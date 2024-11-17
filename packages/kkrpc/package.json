@@ -13,9 +13,13 @@
 	},
 	"devDependencies": {
 		"@types/bun": "latest",
+		"@types/ws": "^8.5.10",
 		"typedoc": "^0.26.11"
 	},
 	"peerDependencies": {
 		"typescript": "^5.0.0"
+	},
+	"dependencies": {
+		"ws": "^8.16.0"
 	}
 }
