@@ -1,8 +1,8 @@
 import { $ } from "bun"
 
-// check if deno is installed
-const deno = await $`deno`.text()
-if (!deno) {
+// check if CF_PAGES is set to 1
+const isCFPages = process.env.CF_PAGES === "1"
+if (isCFPages) {
 	process.exit(0)
 }
 
