@@ -1,0 +1,10 @@
+{
+	"name": "@kunkun/kkrpc",
+	"tasks": {
+		"dev": "deno run --watch main.ts"
+	},
+	"exports": "./src/index.ts",
+	"imports": {
+		"@std/assert": "jsr:@std/assert@1"
+	}
+}

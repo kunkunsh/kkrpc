@@ -1,11 +1,16 @@
 <script lang="ts">
-	import { apiImplementation2, type API, type API2 } from "$lib/api"
+	import {
+		apiImplementation,
+		apiImplementationNested,
+		type API,
+		type APINested
+	} from "@kksh/demo-api"
 	import { IframeChildIO, RPCChannel, type DestroyableIoInterface } from "kkrpc"
 	import { onDestroy, onMount } from "svelte"
 	import { toast } from "svelte-sonner"
 
 	const io = new IframeChildIO(),
-		rpc = new RPCChannel<API2, API, DestroyableIoInterface>(io, apiImplementation2)
+		rpc = new RPCChannel<APINested, API, DestroyableIoInterface>(io, apiImplementationNested)
 
 	onMount(() => {})
 	onDestroy(() => {

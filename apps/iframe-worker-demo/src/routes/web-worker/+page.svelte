@@ -1,12 +1,17 @@
 <script lang="ts">
-	import { apiImplementation, type API, type API2 } from "$lib/api"
+	import {
+		apiImplementation,
+		apiImplementationNested,
+		type API,
+		type APINested
+	} from "@kksh/demo-api"
 	import Worker from "$lib/worker?worker"
 	import { RPCChannel, WorkerParentIO, type DestroyableIoInterface } from "kkrpc"
 	import { toast } from "svelte-sonner"
 
 	const worker = new Worker()
 	const io = new WorkerParentIO(worker)
-	const rpc = new RPCChannel<API, API2, DestroyableIoInterface>(io, apiImplementation)
+	const rpc = new RPCChannel<API, APINested, DestroyableIoInterface>(io, apiImplementation)
 	const api = rpc.getAPI()
 
 	function onAddClicked() {

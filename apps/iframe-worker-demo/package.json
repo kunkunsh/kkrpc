@@ -29,6 +29,7 @@
 		"vitest": "^2.0.4"
 	},
 	"dependencies": {
+		"@kksh/demo-api": "workspace:*",
 		"@iconify/svelte": "^4.0.2",
 		"kkrpc": "workspace:*",
 		"svelte-sonner": "^0.3.28"

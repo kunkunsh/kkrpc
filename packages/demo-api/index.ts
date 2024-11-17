@@ -3,13 +3,13 @@ export type API = {
 }
 
 export const apiImplementation: API = {
-	add: async (a, b, callback) => {
+	add: (a, b, callback) => {
 		callback?.(a + b)
-		return a + b
+		return Promise.resolve(a + b)
 	}
 }
 
-export type API2 = {
+export type APINested = {
 	math: {
 		grade1: {
 			add: (a: number, b: number, callback?: (sum: number) => void) => Promise<number>
@@ -20,7 +20,7 @@ export type API2 = {
 	}
 }
 
-export const apiImplementation2: API2 = {
+export const apiImplementationNested: APINested = {
 	math: {
 		grade1: {
 			add: (a, b, callback) => {
