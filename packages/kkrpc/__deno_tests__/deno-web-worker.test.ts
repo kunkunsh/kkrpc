@@ -1,10 +1,15 @@
+/**
+ * If you see error in this file, it's likely Deno extension is not enabled.
+ */
 import { assertEquals } from "jsr:@std/assert"
 import { apiMethods, type API } from "../__tests__/scripts/api.ts"
 import { WorkerParentIO } from "../src/adapters/worker.ts"
 import { RPCChannel } from "../src/channel.ts"
 import type { DestroyableIoInterface } from "../src/interface.ts"
 
-const worker = new Worker(new URL("./worker.ts", import.meta.url).href, { type: "module" })
+const worker = new Worker(new URL("../__tests__/scripts/worker.ts", import.meta.url).href, {
+	type: "module"
+})
 const io = new WorkerParentIO(worker)
 const rpc = new RPCChannel<API, API, DestroyableIoInterface>(io, apiMethods)
 const api = rpc.getAPI()

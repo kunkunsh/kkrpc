@@ -1,7 +1,6 @@
-import { apiMethods, type API } from "../__tests__/scripts/api.ts"
-import { WorkerChildIO } from "../src/adapters/worker.ts"
-import { RPCChannel } from "../src/channel.ts"
-import type { DestroyableIoInterface } from "../src/interface.ts"
+import { RPCChannel, WorkerChildIO } from "../../mod.ts"
+import type { DestroyableIoInterface } from "../../src/interface.ts"
+import { apiMethods, type API } from "./api.ts"
 
 const io: DestroyableIoInterface = new WorkerChildIO()
 const rpc = new RPCChannel<API, API, DestroyableIoInterface>(io, apiMethods)

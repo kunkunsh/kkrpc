@@ -4,14 +4,16 @@
 	"type": "module",
 	"scripts": {
 		"prepare": "bun run scripts/prepare.ts",
-		"test": "bun run scripts/test.ts"
+		"test": "bun run scripts/test.ts",
+		"docs": "typedoc --out docs"
 	},
 	"exports": {
 		".": "./mod.ts",
 		"./browser": "./browser-mod.ts"
 	},
 	"devDependencies": {
-		"@types/bun": "latest"
+		"@types/bun": "latest",
+		"typedoc": "^0.26.11"
 	},
 	"peerDependencies": {
 		"typescript": "^5.0.0"

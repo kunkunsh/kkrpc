@@ -21,8 +21,8 @@ async function runWorker(worker: ChildProcessWithoutNullStreams) {
 
 	// const stdio = createStdio();
 	const io = new NodeIo(worker.stdout, worker.stdin)
-	const parent = new RPCChannel<{}, API>(io, {})
-	const api = parent.getAPI()
+	const rpc = new RPCChannel<{}, API>(io, {})
+	const api = rpc.getAPI()
 
 	expect(await api.add(1, 2)).toEqual(3)
 	const sum2 = await new Promise((resolve, reject) => {

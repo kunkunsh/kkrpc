@@ -177,3 +177,4 @@ dist
 deno.d.ts
 
 __tests__/scripts/node-api.js
+docs
