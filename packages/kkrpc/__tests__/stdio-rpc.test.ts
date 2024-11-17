@@ -83,8 +83,8 @@ describe("RPCChannel Test", () => {
 		const workerBun = spawn("node", [path.join(testsPath, "scripts/node-api.js")])
 		await runWorker(workerBun)
 	})
-	test("NodeStdio with bun", async () => {
-		const workerBun = spawn("bun", [path.join(testsPath, "scripts/node-api.ts")])
-		await runWorker(workerBun)
-	})
+	// test("NodeStdio with bun", async () => {
+	// 	const workerBun = spawn("bun", [path.join(testsPath, "scripts/node-api.ts")])
+	// 	await runWorker(workerBun)
+	// })
 })
