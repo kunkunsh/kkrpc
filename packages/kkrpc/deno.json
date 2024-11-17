@@ -1,5 +1,6 @@
 {
 	"name": "@kunkun/kkrpc",
+	"version": "0.0.1",
 	"tasks": {
 		"dev": "deno run --watch main.ts"
 	},
@@ -14,5 +15,6 @@
 		"rules": {
 			"exclude": ["no-explicit-any"]
 		}
-	}
+	},
+	"license": "MIT"
 }
