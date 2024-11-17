@@ -27,5 +27,6 @@ jobs:
       - name: CI
         run: |
           pnpm install
+          pnpm exec playwright install
           deno install
           pnpm test
