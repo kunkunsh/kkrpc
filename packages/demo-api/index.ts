@@ -23,6 +23,9 @@ export type APINested = {
 		grade2: {
 			multiply: (a: number, b: number, callback?: (product: number) => void) => Promise<number>
 		}
+		grade3: {
+			divide(a: number, b: number, callback?: (result: number) => void): Promise<number>
+		}
 	}
 }
 
@@ -42,6 +45,15 @@ export const apiImplementationNested: APINested = {
 			multiply: (a, b, callback) => {
 				callback?.(a * b)
 				return Promise.resolve(a * b)
+			}
+		},
+		grade3: {
+			divide: (a, b, callback) => {
+				callback?.(a / b)
+				if (b === 0) {
+					throw new Error("Division by zero")
+				}
+				return Promise.resolve(a / b)
 			}
 		}
 	}

@@ -86,3 +86,74 @@ const api = rpc.getAPI()
 const sum = await api.add(1, 2)
 expect(sum).toBe(3)
 ```
+
+### HTTP Example
+
+Codesandbox: https://codesandbox.io/p/live/4a349334-0b04-4352-89f9-cf1955553ae7
+
+#### `api.ts`
+
+Define API type and implementation.
+
+```ts
+export type API = {
+	echo: (message: string) => Promise<string>
+	add: (a: number, b: number) => Promise<number>
+}
+
+export const api: API = {
+	echo: (message) => {
+		return Promise.resolve(message)
+	},
+	add: (a, b) => {
+		return Promise.resolve(a + b)
+	}
+}
+```
+
+#### `server.ts`
+
+Server only requires a one-time setup, then it won't need to be touched again.
+All the API implementation is in `api.ts`.
+
+```ts
+import { HTTPServerIO, RPCChannel } from "kkrpc"
+import { api, type API } from "./api"
+
+const serverIO = new HTTPServerIO()
+const serverRPC = new RPCChannel<API, API>(serverIO, api)
+
+const server = Bun.serve({
+	port: 3000,
+	async fetch(req) {
+		const url = new URL(req.url)
+		if (url.pathname === "/rpc") {
+			const res = await serverIO.handleRequest(await req.text())
+			return new Response(res, {
+				headers: { "Content-Type": "application/json" }
+			})
+		}
+		return new Response("Not found", { status: 404 })
+	}
+})
+console.log(`Start server on port: ${server.port}`)
+```
+
+#### `client.ts`
+
+```ts
+import { HTTPClientIO, RPCChannel } from "kkrpc"
+import { api, type API } from "./api"
+
+const clientIO = new HTTPClientIO({
+	url: "http://localhost:3000/rpc"
+})
+const clientRPC = new RPCChannel<{}, API>(clientIO, api)
+const clientAPI = clientRPC.getAPI()
+
+const echoResponse = await clientAPI.echo("hello")
+console.log("echoResponse", echoResponse)
+
+const sum = await clientAPI.add(2, 3)
+console.log("Sum: ", sum)
+```

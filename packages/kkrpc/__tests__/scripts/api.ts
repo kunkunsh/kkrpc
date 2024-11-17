@@ -10,6 +10,9 @@ export interface API {
 		grade2: {
 			multiply(a: number, b: number, callback?: (result: number) => void): Promise<number>
 		}
+		grade3: {
+			divide(a: number, b: number, callback?: (result: number) => void): Promise<number>
+		}
 	}
 }
 
@@ -32,6 +35,12 @@ export const apiMethods: API = {
 			multiply: async (a: number, b: number, callback?: (result: number) => void) => {
 				callback?.(a * b)
 				return a * b
+			}
+		},
+		grade3: {
+			divide: async (a: number, b: number, callback?: (result: number) => void) => {
+				callback?.(a / b)
+				return a / b
 			}
 		}
 	}

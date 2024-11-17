@@ -16,8 +16,7 @@
 
 	<footer>
 		<p>
-			visit <a href="https://github.com/kunkunsh/kkrpc" target="_blank"
-				>github.com/kunkunsh/kkrpc</a
+			visit <a href="https://github.com/kunkunsh/kkrpc" target="_blank">github.com/kunkunsh/kkrpc</a
 			> to learn about kkrpc
 		</p>
 	</footer>
