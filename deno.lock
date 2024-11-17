@@ -1768,7 +1768,9 @@
         "packageJson": {
           "dependencies": [
             "npm:@types/bun@latest",
-            "npm:typedoc@~0.26.11"
+            "npm:@types/ws@^8.5.10",
+            "npm:typedoc@~0.26.11",
+            "npm:ws@^8.16.0"
           ]
         }
       }
