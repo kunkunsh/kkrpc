@@ -46,12 +46,13 @@ jobs:
       - name: Install dependencies
         run: pnpm install
       - name: Build Docs
-        run: pnpm --filter docs docs:build
+        run: pnpm docs:build
+        working-directory: ./docs
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
           # Upload entire repository
-          path: "./docs/.vitepress/dist"
+          path: "./.vitepress/dist"
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
