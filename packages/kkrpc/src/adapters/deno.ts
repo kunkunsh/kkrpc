@@ -8,14 +8,15 @@ import type { IoInterface } from "../interface.ts"
  */
 export class DenoIo implements IoInterface {
 	private reader: ReadableStreamDefaultReader<Uint8Array>
+	name = "deno-io"
 
 	constructor(
 		private readStream: ReadableStream<Uint8Array>,
 		private writeStream: WritableStream<Uint8Array>
 	) {
 		this.reader = this.readStream.getReader()
-		const writer = this.writeStream.getWriter()
-		const encoder = new TextEncoder()
+		// const writer = this.writeStream.getWriter()
+		// const encoder = new TextEncoder()
 
 		// writer.write(encoder.encode("hello"))
 	}
@@ -28,9 +29,10 @@ export class DenoIo implements IoInterface {
 		return Buffer.from(value)
 	}
 
-	async write(data: string): Promise<void> {
+	write(data: string): Promise<void> {
 		const encoder = new TextEncoder()
 		const encodedData = encoder.encode(data + "\n")
 		Deno.stdout.writeSync(encodedData)
+		return Promise.resolve()
 	}
 }

@@ -1,12 +1,7 @@
 <script lang="ts">
-	import {
-		apiImplementation,
-		apiImplementationNested,
-		type API,
-		type APINested
-	} from "@kksh/demo-api"
+	import { apiImplementation, type API, type APINested } from "@kksh/demo-api"
 	import Worker from "$lib/worker?worker"
-	import { RPCChannel, WorkerParentIO, type DestroyableIoInterface } from "kkrpc"
+	import { RPCChannel, WorkerParentIO, type DestroyableIoInterface } from "kkrpc/browser"
 	import { toast } from "svelte-sonner"
 
 	const worker = new Worker()

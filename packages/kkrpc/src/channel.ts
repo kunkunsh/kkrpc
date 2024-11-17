@@ -22,8 +22,8 @@ interface CallbackFunction {
  * without needing to deal with `argv`, `stdin`, `stdout` directly.
  */
 export class RPCChannel<
-	LocalAPI extends {},
-	RemoteAPI extends {},
+	LocalAPI extends Record<string, any>,
+	RemoteAPI extends Record<string, any>,
 	Io extends IoInterface = IoInterface
 > {
 	private pendingRequests: Record<string, PendingRequest> = {}
@@ -44,15 +44,18 @@ export class RPCChannel<
 	}
 
 	private async listen(): Promise<void> {
+		// console.error("start listening with", this.io.name)
+
 		while (true) {
 			const buffer = await this.io.read()
+			// console.error(`${this.io.name} buffer`, buffer?.toString("utf-8"))
 			if (!buffer) {
 				continue
 			}
 			this.messageStr += buffer.toString("utf-8")
 			const lastChar = this.messageStr[this.messageStr.length - 1]
 			const msgsSplit = this.messageStr.split("\n")
-			let msgs = lastChar === "\n" ? msgsSplit : msgsSplit.slice(0, -1) // remove the last incomplete message
+			const msgs = lastChar === "\n" ? msgsSplit : msgsSplit.slice(0, -1) // remove the last incomplete message
 			this.messageStr = lastChar === "\n" ? "" : (msgsSplit.at(-1) ?? "")
 
 			for (const msgStr of msgs.map((msg) => msg.trim()).filter(Boolean)) {

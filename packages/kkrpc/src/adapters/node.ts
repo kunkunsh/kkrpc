@@ -4,13 +4,14 @@
  */
 import { type Buffer } from "node:buffer"
 import { Readable, Writable } from "node:stream"
-import { type IoInterface } from "../interface"
+import { type IoInterface } from "../interface.ts"
 
 /**
  * Stdio implementation for Node.js
  * Simply wrap Node.js's `process.stdin` and `process.stdout` to follow StdioInterface
  */
 export class NodeIo implements IoInterface {
+	name = "node-io"
 	private readStream: Readable
 	private writeStream: Writable
 	private dataHandler: ((chunk: Buffer) => void) | null = null

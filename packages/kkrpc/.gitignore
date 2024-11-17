@@ -175,3 +175,5 @@ dist
 .DS_Store
 
 deno.d.ts
+
+__tests__/scripts/node-api.js

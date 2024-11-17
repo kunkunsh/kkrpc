@@ -20,6 +20,7 @@ const PORT_INIT_SIGNAL = "__PORT_INIT__"
  * It's a good practice to call `destroy()` on either side of the channel to close `MessageChannel` and release resources.
  */
 export class IframeParentIO implements DestroyableIoInterface {
+	name = "iframe-parent-io"
 	private messageQueue: string[] = []
 	private resolveRead: ((value: string | null) => void) | null = null
 	private port: MessagePort | null = null
@@ -104,6 +105,7 @@ export class IframeParentIO implements DestroyableIoInterface {
 
 // Child frame version
 export class IframeChildIO implements DestroyableIoInterface {
+	name = "iframe-child-io"
 	private messageQueue: string[] = []
 	private resolveRead: ((value: string | null) => void) | null = null
 	private port: MessagePort | null = null

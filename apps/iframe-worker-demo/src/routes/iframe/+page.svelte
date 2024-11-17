@@ -1,11 +1,6 @@
 <script lang="ts">
-	import {
-		apiImplementation,
-		apiImplementationNested,
-		type API,
-		type APINested
-	} from "@kksh/demo-api"
-	import { IframeChildIO, RPCChannel, type DestroyableIoInterface } from "kkrpc"
+	import { apiImplementationNested, type API, type APINested } from "@kksh/demo-api"
+	import { IframeChildIO, RPCChannel, type DestroyableIoInterface } from "kkrpc/browser"
 	import { onDestroy, onMount } from "svelte"
 	import { toast } from "svelte-sonner"
 

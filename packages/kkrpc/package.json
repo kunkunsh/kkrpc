@@ -3,13 +3,12 @@
 	"module": "index.ts",
 	"type": "module",
 	"scripts": {
-		"prepare": "bun run scripts/prepare.ts"
+		"prepare": "bun run scripts/prepare.ts",
+		"test": "bun run scripts/test.ts"
 	},
 	"exports": {
-		".": {
-			"import": "./src/index.ts",
-			"types": "./src/index.ts"
-		}
+		".": "./mod.ts",
+		"./browser": "./browser-mod.ts"
 	},
 	"devDependencies": {
 		"@types/bun": "latest"

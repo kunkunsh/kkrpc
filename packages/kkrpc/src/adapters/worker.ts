@@ -1,8 +1,10 @@
+/// <reference lib="webworker" />
 import type { DestroyableIoInterface } from "../interface.ts"
 
 const DESTROY_SIGNAL = "__DESTROY__"
 
 export class WorkerParentIO implements DestroyableIoInterface {
+	name = "worker-parent-io"
 	private messageQueue: string[] = []
 	private resolveRead: ((value: string | null) => void) | null = null
 	private worker: Worker
@@ -31,10 +33,10 @@ export class WorkerParentIO implements DestroyableIoInterface {
 		}
 	}
 
-	async read(): Promise<string | null> {
+	read(): Promise<string | null> {
 		// If there are queued messages, return the first one
 		if (this.messageQueue.length > 0) {
-			return this.messageQueue.shift() ?? null
+			return Promise.resolve(this.messageQueue.shift() ?? null)
 		}
 
 		// Otherwise, wait for the next message
@@ -43,8 +45,9 @@ export class WorkerParentIO implements DestroyableIoInterface {
 		})
 	}
 
-	async write(data: string): Promise<void> {
+	write(data: string): Promise<void> {
 		this.worker.postMessage(data)
+		return Promise.resolve()
 	}
 
 	destroy(): void {
@@ -59,6 +62,7 @@ export class WorkerParentIO implements DestroyableIoInterface {
 
 // Worker version
 export class WorkerChildIO implements DestroyableIoInterface {
+	name = "worker-child-io"
 	private messageQueue: string[] = []
 	private resolveRead: ((value: string | null) => void) | null = null
 
