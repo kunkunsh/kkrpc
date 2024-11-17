@@ -1746,10 +1746,13 @@
           "jsr:@std/assert@1"
         ]
       },
-      "apps/hono-demo": {
+      "apps/http-demo": {
         "packageJson": {
           "dependencies": [
             "npm:@types/bun@latest",
+            "npm:@types/express@5",
+            "npm:express@^4.21.1",
+            "npm:fastify@^5.1.0",
             "npm:hono@^4.6.10"
           ]
         }

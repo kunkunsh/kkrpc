@@ -2,24 +2,7 @@ import { type Server } from "bun"
 import { afterAll, beforeAll, describe, expect, test } from "bun:test"
 import { RPCChannel } from "../mod.ts"
 import { HTTPClientIO, HTTPServerIO } from "../src/adapters/http.ts"
-
-// Define API interface
-interface API {
-	echo(message: string): Promise<string>
-	math: {
-		add(a: number, b: number): Promise<number>
-		multiply(a: number, b: number): Promise<number>
-	}
-}
-
-// API implementation
-const apiMethods = {
-	echo: async (message: string) => message,
-	math: {
-		add: async (a: number, b: number) => a + b,
-		multiply: async (a: number, b: number) => a * b
-	}
-}
+import { apiMethods, type API } from "./scripts/api.ts"
 
 describe("HTTP RPC", () => {
 	let server: Server
@@ -36,10 +19,14 @@ describe("HTTP RPC", () => {
 
 		server = Bun.serve({
 			port: 3000,
-			fetch(req) {
+			async fetch(req) {
 				const url = new URL(req.url)
 				if (url.pathname === "/rpc") {
-					return serverIO.handleRequest(req)
+					if (req.method !== "POST") {
+						return new Response("Method not allowed", { status: 405 })
+					}
+					const res = await serverIO.handleRequest(await req.text())
+					return new Response(res, { headers: { "Content-Type": "application/json" } })
 				}
 				return new Response("Not found", { status: 404 })
 			}
@@ -65,15 +52,18 @@ describe("HTTP RPC", () => {
 	})
 
 	test("math operations", async () => {
-		const sum = await api.math.add(5, 3)
+		const sum = await api.math.grade1.add(5, 3)
 		expect(sum).toBe(8)
 
-		const product = await api.math.multiply(4, 6)
+		const product = await api.math.grade2.multiply(4, 6)
 		expect(product).toBe(24)
 	})
 
 	test("concurrent calls", async () => {
-		const results = await Promise.all([api.math.add(10, 20), api.math.multiply(10, 20)])
+		const results = await Promise.all([
+			api.math.grade1.add(10, 20),
+			api.math.grade2.multiply(10, 20)
+		])
 		expect(results).toEqual([30, 200])
 	})
 
@@ -87,7 +77,7 @@ describe("HTTP RPC", () => {
 			const expectedSums = pairs.map(([a, b]) => a + b)
 
 			// Make concurrent API calls
-			const actualSums = await Promise.all(pairs.map(([a, b]) => api.math.add(a, b)))
+			const actualSums = await Promise.all(pairs.map(([a, b]) => api.math.grade1.add(a, b)))
 
 			// Compare results
 			expect(actualSums).toEqual(expectedSums)

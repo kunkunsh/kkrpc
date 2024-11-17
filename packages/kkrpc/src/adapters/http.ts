@@ -65,7 +65,7 @@ export class HTTPServerIO implements IoInterface {
 	name = "http-server-io"
 	private messageQueue: string[] = []
 	private resolveRead: ((value: string | null) => void) | null = null
-	private pendingResponses = new Map<string, (response: Response) => void>()
+	private pendingResponses = new Map<string, (response: string) => void>()
 
 	constructor() {}
 
@@ -86,31 +86,22 @@ export class HTTPServerIO implements IoInterface {
 
 		const resolveResponse = this.pendingResponses.get(requestId)
 		if (resolveResponse) {
-			resolveResponse(
-				new Response(data, {
-					headers: { "Content-Type": "application/json" }
-				})
-			)
+			resolveResponse(data)
 			this.pendingResponses.delete(requestId)
 		}
 	}
 
-	async handleRequest(request: Request): Promise<Response> {
-		if (request.method !== "POST") {
-			return new Response("Method not allowed", { status: 405 })
-		}
-
+	async handleRequest(reqData: string): Promise<string> {
 		try {
-			const message = await request.text()
 			// Parse the request to get its ID
-			const requestData = JSON.parse(message)
+			const requestData = JSON.parse(reqData)
 			const requestId = requestData.id
 
 			if (this.resolveRead) {
-				this.resolveRead(message)
+				this.resolveRead(reqData)
 				this.resolveRead = null
 			} else {
-				this.messageQueue.push(message)
+				this.messageQueue.push(reqData)
 			}
 
 			return new Promise((resolve) => {
@@ -118,7 +109,7 @@ export class HTTPServerIO implements IoInterface {
 			})
 		} catch (error) {
 			console.error("RPC processing error:", error)
-			return new Response("Internal server error", { status: 500 })
+			throw new Error("Internal server error")
 		}
 	}
 }
