@@ -1,12 +1,13 @@
 {
 	"name": "@kunkun/kkrpc",
-	"version": "0.0.3",
+	"version": "0.0.4",
 	"tasks": {
 		"dev": "deno run --watch main.ts"
 	},
 	"exports": {
 		".": "./mod.ts",
-		"./browser": "./browser-mod.ts"
+		"./browser": "./browser-mod.ts",
+		"./http": "./src/http.ts"
 	},
 	"imports": {
 		"@std/assert": "jsr:@std/assert@1"
