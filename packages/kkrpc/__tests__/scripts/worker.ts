@@ -1,5 +1,4 @@
-import { RPCChannel, WorkerChildIO } from "../../mod.ts"
-import type { DestroyableIoInterface } from "../../src/interface.ts"
+import { RPCChannel, WorkerChildIO, type DestroyableIoInterface } from "../../mod.ts"
 import { apiMethods, type API } from "./api.ts"
 
 const io: DestroyableIoInterface = new WorkerChildIO()
