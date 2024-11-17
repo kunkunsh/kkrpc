@@ -1,6 +1,6 @@
 {
 	"$schema": "https://typedoc.org/schema.json",
-	"entryPoints": ["mod.ts", "browser-mod.ts"],
+	"entryPoints": ["mod.ts", "browser-mod.ts", "./src/http.ts"],
 	"visibilityFilters": {
 		"protected": false,
 		"private": false,
