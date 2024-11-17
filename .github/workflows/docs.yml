@@ -43,10 +43,10 @@ jobs:
           node-version: 22
           cache: "pnpm"
           cache-dependency-path: ./pnpm-lock.yaml
-      - name: Install dependencies
-        run: pnpm install
       - name: Build Docs
-        run: pnpm docs:build
+        run: |
+            pnpm install    
+            pnpm docs:build
         working-directory: ./docs
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
