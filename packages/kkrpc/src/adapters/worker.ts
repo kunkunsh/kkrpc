@@ -1,4 +1,3 @@
-/// <reference lib="webworker" />
 import type { DestroyableIoInterface } from "../interface.ts"
 
 const DESTROY_SIGNAL = "__DESTROY__"
@@ -6,7 +5,7 @@ const DESTROY_SIGNAL = "__DESTROY__"
 export class WorkerParentIO implements DestroyableIoInterface {
 	name = "worker-parent-io"
 	private messageQueue: string[] = []
-	private resolveRead: ((value: string | null) => void) | null = null
+private resolveRead: ((value: string | null) => void) | null = null
 	private worker: Worker
 
 	constructor(worker: Worker) {
@@ -67,6 +66,7 @@ export class WorkerChildIO implements DestroyableIoInterface {
 	private resolveRead: ((value: string | null) => void) | null = null
 
 	constructor() {
+		// @ts-ignore: lack of types in deno
 		self.onmessage = this.handleMessage
 	}
 
@@ -98,16 +98,19 @@ export class WorkerChildIO implements DestroyableIoInterface {
 	}
 
 	async write(data: string): Promise<void> {
+		// @ts-ignore: lack of types in deno
 		self.postMessage(data)
 	}
 
 	destroy(): void {
+		// @ts-ignore: lack of types in deno
 		self.postMessage(DESTROY_SIGNAL)
 		// In a worker context, we can use close() to terminate the worker
 		self.close()
 	}
 
 	signalDestroy(): void {
+		// @ts-ignore: lack of types in deno
 		self.postMessage(DESTROY_SIGNAL)
 	}
 }
