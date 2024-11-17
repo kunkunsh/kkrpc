@@ -5,7 +5,7 @@ const DESTROY_SIGNAL = "__DESTROY__"
 export class WorkerParentIO implements DestroyableIoInterface {
 	name = "worker-parent-io"
 	private messageQueue: string[] = []
-private resolveRead: ((value: string | null) => void) | null = null
+	private resolveRead: ((value: string | null) => void) | null = null
 	private worker: Worker
 
 	constructor(worker: Worker) {

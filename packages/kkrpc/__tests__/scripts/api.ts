@@ -1,4 +1,5 @@
 export interface API {
+	echo(message: string): Promise<string>
 	add(a: number, b: number): Promise<number>
 	subtract(a: number, b: number): Promise<number>
 	addCallback(a: number, b: number, callback: (result: number) => void): void
@@ -14,6 +15,7 @@ export interface API {
 
 // Define your API methods
 export const apiMethods: API = {
+	echo: async (message: string) => message,
 	add: async (a: number, b: number) => a + b,
 	subtract: async (a: number, b: number) => a - b,
 	addCallback: async (a: number, b: number, callback?: (result: number) => void) => {

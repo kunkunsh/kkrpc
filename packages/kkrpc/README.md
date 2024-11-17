@@ -3,11 +3,14 @@
 > A TypeScript-first RPC library that enables seamless bi-directional communication between processes.
 > Call remote functions as if they were local, with full TypeScript type safety and autocompletion support.
 
-The two main environments supported are:
+## Supported Environments
 
 - stdio: RPC over stdio between any combinations of Node.js, Deno, Bun processes
 - web: RPC over `postMessage` API and message channel between browser main thread and web workers, or main thread and iframe
   - Web Worker API (web standard) is also supported in Deno and Bun, the main thread can call functions in worker and vice versa.
+- http: RPC over HTTP like tRPC
+  - supports any HTTP server (e.g. hono, bun, nodejs http, express, fastify, deno, etc.)
+- WebSocket: RPC over WebSocket
 
 The core of **kkrpc** design is in `RPCChannel` and `IoInterface`.
 
