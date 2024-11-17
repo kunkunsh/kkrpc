@@ -10,6 +10,7 @@
 - [JSR Package](https://jsr.io/@kunkun/kkrpc)
 - [NPM Package](https://www.npmjs.com/package/kkrpc)
 - [Documentation by JSR](https://jsr.io/@kunkun/kkrpc/doc)
+- [Typedoc Documentation](https://kunkunsh.github.io/kkrpc/)
 
 ## Supported Environments
 
