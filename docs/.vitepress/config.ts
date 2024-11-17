@@ -27,5 +27,5 @@ export default defineConfig({
 	markdown: {
 		lineNumbers: true
 	},
-	base: "./"
+	// base: "./"
 })
