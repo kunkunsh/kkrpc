@@ -13,6 +13,7 @@
     "npm:@sveltejs/kit@2": "2.8.1_@sveltejs+vite-plugin-svelte@4.0.1__svelte@5.2.2___acorn@8.14.0__vite@5.4.11_svelte@5.2.2__acorn@8.14.0_vite@5.4.11",
     "npm:@sveltejs/vite-plugin-svelte@4": "4.0.1_svelte@5.2.2__acorn@8.14.0_vite@5.4.11",
     "npm:@types/bun@latest": "1.1.13",
+    "npm:@types/ws@^8.5.10": "8.5.13",
     "npm:autoprefixer@^10.4.20": "10.4.20_postcss@8.4.49",
     "npm:daisyui@^4.12.14": "4.12.14",
     "npm:prettier-plugin-svelte@^3.2.8": "3.2.8_prettier@3.3.3_svelte@5.2.2__acorn@8.14.0",
@@ -27,7 +28,8 @@
     "npm:typescript@5": "5.5.4",
     "npm:typescript@5.5.4": "5.5.4",
     "npm:vite@^5.0.3": "5.4.11",
-    "npm:vitest@^2.0.4": "2.1.5_vite@5.4.11"
+    "npm:vitest@^2.0.4": "2.1.5_vite@5.4.11",
+    "npm:ws@^8.16.0": "8.18.0"
   },
   "jsr": {
     "@std/assert@1.0.7": {
@@ -1703,6 +1705,9 @@
         "string-width@5.1.2",
         "strip-ansi@7.1.0"
       ]
+    },
+    "ws@8.18.0": {
+      "integrity": "sha512-8VbfWfHLbbwu3+N6OKsOMpBdT4kXPDDB9cJk2bJ6mh9ucxdlnNvH1e+roYkKmN9Nxw2yjz7VzeO9oOz2zJ04Pw=="
     },
     "yaml@2.6.0": {
       "integrity": "sha512-a6ae//JvKDEra2kdi1qzCyrJW/WZCgFi8ydDV+eXExl95t+5R+ijnqHJbz9tmMh8FUjx3iv2fCQ4dclAQlO2UQ=="
