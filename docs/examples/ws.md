@@ -1,0 +1,50 @@
+## WebSocket Demo
+
+`api.ts`
+
+```ts
+export type API = {
+	add: (a: number, b: number, callback?: (sum: number) => void) => Promise<number>
+}
+
+export const apiMethods: API = {
+	add: (a, b, callback) => {
+		callback?.(a + b)
+		return Promise.resolve(a + b)
+	}
+}
+```
+
+`server.ts`
+
+```ts
+import { WebSocketClientIO, WebSocketServerIO } from "kkrpc"
+import { WebSocketServer } from "ws"
+
+let serverRPC: RPCChannel<API, API>
+
+let wss: WebSocketServer = new WebSocketServer({ port: PORT })
+wss.on("connection", (ws: WebSocket) => {
+	const serverIO = new WebSocketServerIO(ws)
+	serverRPC = new RPCChannel<API, API>(serverIO, apiMethods)
+})
+```
+
+`client.ts`
+
+```ts
+import { WebSocketClientIO, WebSocketServerIO } from "kkrpc"
+
+const clientIO = new WebSocketClientIO({
+	url: `ws://localhost:${PORT}`
+})
+
+const clientRPC = new RPCChannel<API, API, DestroyableIoInterface>(clientIO, apiMethods)
+const api = clientRPC.getAPI()
+
+const sum = await api.add(5, 3)
+expect(sum).toBe(8)
+await api.add(10, 20, (sum) => {
+	expect(sum).toBe(30)
+})
+```

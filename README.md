@@ -55,7 +55,7 @@ const child = new RPCChannel(stdio, apiMethods)
 ```ts
 import { spawn } from "child_process"
 
-const workerBun = spawn("bun", ["scripts/node-api.ts"])
+const worker = spawn("bun", ["scripts/node-api.ts"])
 const io = new NodeIo(worker.stdout, worker.stdin)
 const parent = new RPCChannel<{}, API>(io, {})
 const api = parent.getAPI()

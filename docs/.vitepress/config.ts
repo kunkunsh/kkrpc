@@ -2,7 +2,7 @@ import { defineConfig } from "vitepress"
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
-	title: "kkrpc",
+	title: "kkRPC",
 	description: "kkrpc Documentation",
 	themeConfig: {
 		// https://vitepress.dev/reference/default-theme-config
@@ -18,7 +18,13 @@ export default defineConfig({
 			},
 			{
 				text: "Examples",
-				items: [{ text: "HTTP", link: "/examples/http-demo" }]
+				items: [
+					{ text: "HTTP", link: "/examples/http" },
+					{ text: "stdio", link: "/examples/stdio" },
+					{ text: "WebSocket", link: "/examples/ws" },
+					{ text: "WebWorker", link: "/examples/webworker" },
+					{ text: "Iframe", link: "/examples/iframe" }
+				]
 			}
 		],
 
@@ -26,6 +32,6 @@ export default defineConfig({
 	},
 	markdown: {
 		lineNumbers: true
-	},
+	}
 	// base: "./"
 })

@@ -71,3 +71,17 @@ console.log("Sum: ", sum)
 ```
 
 `bun client.ts` to test the API.
+
+
+::: danger
+`http` adapter is the only adapter that doesn't support bidirectional RPC calls and callbacks.
+
+This means
+- You can't expose functions from client side and call them on server side.
+- When you call a method on server from client, you can't add a callback function for async response.
+
+This is because the others `stdio`, `websocket`, `iframe` `MessageChannel`, `WebWorker` `postMessage`
+are all based on event-driven communication, while `http` is request-response based.
+
+They are in nature bidirectional (both sides can actively push message to each other), but `http` is not, there is no easy way to actively push message from server to client (long polling is an option, but not efficient, I may consider adding long polling support in the future).
+:::
