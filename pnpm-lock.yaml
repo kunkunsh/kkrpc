@@ -14,6 +14,9 @@ importers:
       '@types/bun':
         specifier: latest
         version: 1.1.13
+      husky:
+        specifier: ^9.1.6
+        version: 9.1.6
       prettier:
         specifier: ^3.2.5
         version: 3.3.3
@@ -29,6 +32,19 @@ importers:
       typescript:
         specifier: 5.5.4
         version: 5.5.4
+
+  apps/hono-demo:
+    dependencies:
+      hono:
+        specifier: ^4.6.10
+        version: 4.6.10
+      kkrpc:
+        specifier: workspace:*
+        version: link:../../packages/kkrpc
+    devDependencies:
+      '@types/bun':
+        specifier: latest
+        version: 1.1.13
 
   apps/iframe-worker-demo:
     dependencies:
@@ -862,8 +878,17 @@ packages:
   hast-util-whitespace@3.0.0:
     resolution: {integrity: sha512-88JUN06ipLwsnv+dVn+OIYOvAuvBMy/Qoi6O7mQHxdPXpjy+Cd6xRkWwux7DKO+4sYILtLBRIKgsdpS2gQc7qw==}
 
+  hono@4.6.10:
+    resolution: {integrity: sha512-IXXNfRAZEahFnWBhUUlqKEGF9upeE6hZoRZszvNkyAz/CYp+iVbxm3viMvStlagRJohjlBRGOQ7f4jfcV0XMGg==}
+    engines: {node: '>=16.9.0'}
+
   html-void-elements@3.0.0:
     resolution: {integrity: sha512-bEqo66MRXsUGxWHV5IP0PUiAWwoEjba4VCzg0LjFJBpchPaTfyfCKTG6bc5F8ucKec3q5y6qOdGyYTSBEvhCrg==}
+
+  husky@9.1.6:
+    resolution: {integrity: sha512-sqbjZKK7kf44hfdE94EoX8MZNk0n7HeW37O4YrVGCF4wzgQjp+akPAkfUK5LZ6KuR/6sqeAVuXHji+RzQgOn5A==}
+    engines: {node: '>=18'}
+    hasBin: true
 
   import-meta-resolve@4.1.0:
     resolution: {integrity: sha512-I6fiaX09Xivtk+THaMfAwnA3MVA5Big1WHF1Dfx9hFuvNIWpXnorlkzhcQf6ehrqQiiZECRt1poOAkPmer3ruw==}
@@ -2240,7 +2265,11 @@ snapshots:
     dependencies:
       '@types/hast': 3.0.4
 
+  hono@4.6.10: {}
+
   html-void-elements@3.0.0: {}
+
+  husky@9.1.6: {}
 
   import-meta-resolve@4.1.0: {}
 
