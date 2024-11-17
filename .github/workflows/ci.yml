@@ -3,7 +3,7 @@ on:
   push:
 
 jobs:
-  publish:
+  test:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
