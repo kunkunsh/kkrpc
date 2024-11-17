@@ -9,7 +9,7 @@
 - web: RPC over `postMessage` API and message channel between browser main thread and web workers, or main thread and iframe
   - Web Worker API (web standard) is also supported in Deno and Bun, the main thread can call functions in worker and vice versa.
 - http: RPC over HTTP like tRPC
-  - supports any HTTP server that supports the standard `Request` and `Response` objects (e.g. Bun, Hono, Express, Fastify, etc.)
+  - supports any HTTP server (e.g. hono, bun, nodejs http, express, fastify, deno, etc.)
 - WebSocket: RPC over WebSocket
 
 The core of **kkrpc** design is in `RPCChannel` and `IoInterface`.
