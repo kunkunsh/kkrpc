@@ -1,8 +1,7 @@
 # kkrpc
 
-![kunkun](https://socialify.git.ci/kunkunsh/kkrpc/image?description=1&forks=1&issues=1&logo=https%3A%2F%2Fstorage.huakun.tech%2F2024%2F9%2F12%2F4MjHiKK.png&name=1&owner=1&pattern=Circuit%20Board&pulls=1&stargazers=1&theme=Auto)
-
 [![NPM Version](https://img.shields.io/npm/v/kkrpc)](https://www.npmjs.com/package/kkrpc)
+![JSR Version](https://img.shields.io/jsr/v/kunkun/kkrpc)
 ![GitHub last commit](https://img.shields.io/github/last-commit/kunkunsh/kkrpc)
 
 > A TypeScript-first RPC library that enables seamless bi-directional communication between processes.
