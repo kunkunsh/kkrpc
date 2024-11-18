@@ -21,7 +21,7 @@ async function runWorker(worker: ChildProcessWithoutNullStreams) {
 
 	// const stdio = createStdio();
 	const io = new NodeIo(worker.stdout, worker.stdin)
-	const rpc = new RPCChannel<{}, API>(io, {})
+	const rpc = new RPCChannel<{}, API>(io)
 	const api = rpc.getAPI()
 
 	expect(await api.add(1, 2)).toEqual(3)

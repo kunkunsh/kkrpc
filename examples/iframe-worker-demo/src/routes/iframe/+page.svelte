@@ -5,7 +5,9 @@
 	import { toast } from "svelte-sonner"
 
 	const io = new IframeChildIO(),
-		rpc = new RPCChannel<APINested, API, DestroyableIoInterface>(io, apiImplementationNested)
+		rpc = new RPCChannel<APINested, API, DestroyableIoInterface>(io, {
+			expose: apiImplementationNested
+		})
 
 	onMount(() => {})
 	onDestroy(() => {

@@ -16,7 +16,7 @@ beforeAll(() => {
 	// Handle WebSocket connections
 	wss.on("connection", (ws: WebSocket) => {
 		const serverIO = new WebSocketServerIO(ws)
-		serverRPC = new RPCChannel<API, API>(serverIO, apiMethods)
+		serverRPC = new RPCChannel<API, API>(serverIO, { expose: apiMethods })
 	})
 })
 
@@ -29,7 +29,9 @@ test("WebSocket RPC", async () => {
 		url: `ws://localhost:${PORT}`
 	})
 
-	const clientRPC = new RPCChannel<API, API, DestroyableIoInterface>(clientIO, apiMethods)
+	const clientRPC = new RPCChannel<API, API, DestroyableIoInterface>(clientIO, {
+		expose: apiMethods
+	})
 	const api = clientRPC.getAPI()
 
 	// Test individual calls
@@ -70,7 +72,7 @@ test("WebSocket RPC", async () => {
 // 		url: `ws://localhost:${invalidPort}`
 // 	})
 
-// 	const clientRPC = new RPCChannel<{}, API, DestroyableIoInterface>(clientIO, {})
+// 	const clientRPC = new RPCChannel<{}, API, DestroyableIoInterface>(clientIO)
 // 	const api = clientRPC.getAPI()
 // 	expect(() => api.add(1, 2)).toThrow()
 // 	clientIO.destroy()
@@ -84,7 +86,7 @@ test("WebSocket concurrent connections", async () => {
 		})
 		return {
 			io: clientIO,
-			rpc: new RPCChannel<{}, API, DestroyableIoInterface>(clientIO, {})
+			rpc: new RPCChannel<{}, API, DestroyableIoInterface>(clientIO)
 		}
 	})
 

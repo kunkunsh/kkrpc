@@ -15,7 +15,7 @@ describe("HTTP RPC", () => {
 	beforeAll(() => {
 		// Create server
 		serverIO = new HTTPServerIO()
-		serverRPC = new RPCChannel<API, API>(serverIO, apiMethods)
+		serverRPC = new RPCChannel<API, API>(serverIO, { expose: apiMethods })
 
 		server = Bun.serve({
 			port: 3000,
@@ -36,7 +36,7 @@ describe("HTTP RPC", () => {
 		clientIO = new HTTPClientIO({
 			url: "http://localhost:3000/rpc"
 		})
-		const clientRPC = new RPCChannel<API, API>(clientIO, apiMethods)
+		const clientRPC = new RPCChannel<API, API>(clientIO, { expose: apiMethods })
 		api = clientRPC.getAPI()
 	})
 

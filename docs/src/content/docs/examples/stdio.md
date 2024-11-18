@@ -40,7 +40,7 @@ import { NodeIo, RPCChannel } from "kkrpc"
 import { apiMethods } from "./api.ts"
 
 const stdio = new NodeIo(process.stdin, process.stdout)
-const child = new RPCChannel(stdio, apiMethods)
+const child = new RPCChannel(stdio, { expose: apiMethods })
 ```
 
 ```ts title="main.ts"
@@ -48,7 +48,7 @@ import { spawn } from "child_process"
 
 const worker = spawn("bun", ["scripts/node-api.ts"])
 const io = new NodeIo(worker.stdout, worker.stdin)
-const parent = new RPCChannel<{}, API>(io, {})
+const parent = new RPCChannel<{}, API>(io)
 const api = parent.getAPI()
 
 expect(await api.add(1, 2)).toBe(3)
@@ -61,7 +61,7 @@ import { DenoIo, RPCChannel } from "kkrpc"
 import { apiMethods } from "./api.ts"
 
 const io = new DenoIo(Deno.stdin.readable, Deno.stdout.writable)
-const child = new RPCChannel(io, apiMethods)
+const child = new RPCChannel(io, { expose: apiMethods })
 ```
 
 ```ts title="main.ts"
@@ -69,7 +69,7 @@ import { spawn } from "child_process"
 
 const worker = spawn("deno", [path.join(testsPath, "scripts/deno-api.ts")])
 const io = new NodeIo(worker.stdout, worker.stdin)
-const parent = new RPCChannel<{}, API>(io, {})
+const parent = new RPCChannel<{}, API>(io)
 const api = parent.getAPI()
 
 expect(await api.add(1, 2)).toBe(3)

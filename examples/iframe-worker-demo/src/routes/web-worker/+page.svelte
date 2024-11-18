@@ -6,7 +6,9 @@
 
 	const worker = new Worker()
 	const io = new WorkerParentIO(worker)
-	const rpc = new RPCChannel<API, APINested, DestroyableIoInterface>(io, apiImplementation)
+	const rpc = new RPCChannel<API, APINested, DestroyableIoInterface>(io, {
+		expose: apiImplementation
+	})
 	const api = rpc.getAPI()
 
 	function onAddClicked() {

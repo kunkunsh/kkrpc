@@ -11,7 +11,7 @@ const worker = new Worker(new URL("../__tests__/scripts/worker.ts", import.meta.
 	type: "module"
 })
 const io = new WorkerParentIO(worker)
-const rpc = new RPCChannel<API, API, DestroyableIoInterface>(io, apiMethods)
+const rpc = new RPCChannel<API, API, DestroyableIoInterface>(io, { expose: apiMethods })
 const api = rpc.getAPI()
 
 Deno.test("Call Worker Exposed API", async () => {

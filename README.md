@@ -1,7 +1,8 @@
 # kkrpc
 
+![kunkun](https://socialify.git.ci/kunkunsh/kkrpc/image?description=1&forks=1&issues=1&logo=https%3A%2F%2Fstorage.huakun.tech%2F2024%2F9%2F12%2F4MjHiKK.png&name=1&owner=1&pattern=Circuit%20Board&pulls=1&stargazers=1&theme=Auto)
+
 [![NPM Version](https://img.shields.io/npm/v/kkrpc)](https://www.npmjs.com/package/kkrpc)
-![JSR Version](https://img.shields.io/jsr/v/kunkun/kkrpc)
 ![GitHub last commit](https://img.shields.io/github/last-commit/kunkunsh/kkrpc)
 
 > A TypeScript-first RPC library that enables seamless bi-directional communication between processes.
@@ -58,7 +59,7 @@ import { NodeIo, RPCChannel } from "kkrpc"
 import { apiMethods } from "./api.ts"
 
 const stdio = new NodeIo(process.stdin, process.stdout)
-const child = new RPCChannel(stdio, apiMethods)
+const child = new RPCChannel(stdio, { expose: apiMethods })
 ```
 
 ```ts
@@ -66,7 +67,7 @@ import { spawn } from "child_process"
 
 const worker = spawn("bun", ["scripts/node-api.ts"])
 const io = new NodeIo(worker.stdout, worker.stdin)
-const parent = new RPCChannel<{}, API>(io, {})
+const parent = new RPCChannel<{}, API>(io)
 const api = parent.getAPI()
 
 expect(await api.add(1, 2)).toBe(3)
@@ -79,7 +80,7 @@ import { RPCChannel, WorkerChildIO, type DestroyableIoInterface } from "kkrpc"
 
 const worker = new Worker(new URL("./scripts/worker.ts", import.meta.url).href, { type: "module" })
 const io = new WorkerChildIO(worker)
-const rpc = new RPCChannel<API, API, DestroyableIoInterface>(io, apiMethods)
+const rpc = new RPCChannel<API, API, DestroyableIoInterface>(io, { expose: apiMethods })
 const api = rpc.getAPI()
 
 expect(await api.add(1, 2)).toBe(3)
@@ -89,7 +90,7 @@ expect(await api.add(1, 2)).toBe(3)
 import { RPCChannel, WorkerParentIO, type DestroyableIoInterface } from "kkrpc"
 
 const io: DestroyableIoInterface = new WorkerChildIO()
-const rpc = new RPCChannel<API, API, DestroyableIoInterface>(io, apiMethods)
+const rpc = new RPCChannel<API, API, DestroyableIoInterface>(io, { expose: apiMethods })
 const api = rpc.getAPI()
 
 const sum = await api.add(1, 2)
@@ -130,7 +131,7 @@ import { HTTPServerIO, RPCChannel } from "kkrpc"
 import { api, type API } from "./api"
 
 const serverIO = new HTTPServerIO()
-const serverRPC = new RPCChannel<API, API>(serverIO, api)
+const serverRPC = new RPCChannel<API, API>(serverIO, { expose: api })
 
 const server = Bun.serve({
 	port: 3000,
@@ -157,7 +158,7 @@ import { api, type API } from "./api"
 const clientIO = new HTTPClientIO({
 	url: "http://localhost:3000/rpc"
 })
-const clientRPC = new RPCChannel<{}, API>(clientIO, api)
+const clientRPC = new RPCChannel<{}, API>(clientIO, { expose: api })
 const clientAPI = clientRPC.getAPI()
 
 const echoResponse = await clientAPI.echo("hello")

@@ -95,7 +95,7 @@ export const apiImplementationNested: APINested = {
 	async function onIframeLoad() {
 		if (!iframeRef.contentWindow) return
 		io = new IframeParentIO(iframeRef.contentWindow)
-		rpc = new RPCChannel<API, APINested, DestroyableIoInterface>(io, apiImplementation)
+		rpc = new RPCChannel<API, APINested, DestroyableIoInterface>(io, { expose: apiImplementation })
 	}
 
 	function onMultiplyClicked(e: MouseEvent) {
@@ -149,7 +149,7 @@ export const apiImplementationNested: APINested = {
 	import { toast } from "svelte-sonner"
 
 	const io = new IframeChildIO(),
-		rpc = new RPCChannel<APINested, API, DestroyableIoInterface>(io, apiImplementationNested)
+		rpc = new RPCChannel<APINested, API, DestroyableIoInterface>(io, { expose: apiImplementationNested })
 
 	onMount(() => {})
 	onDestroy(() => {

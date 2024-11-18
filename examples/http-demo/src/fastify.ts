@@ -7,7 +7,9 @@ const app = Fastify({
 })
 
 const serverIO = new HTTPServerIO()
-const serverRPC = new RPCChannel<APINested, APINested>(serverIO, apiImplementationNested)
+const serverRPC = new RPCChannel<APINested, APINested>(serverIO, {
+	expose: apiImplementationNested
+})
 
 // Add content type parser for raw body
 app.addContentTypeParser("application/json", { parseAs: "string" }, function (_, body, done) {

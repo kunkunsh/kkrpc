@@ -4,7 +4,9 @@ import { HTTPServerIO, RPCChannel } from "kkrpc"
 
 const app = express()
 const serverIO = new HTTPServerIO()
-const serverRPC = new RPCChannel<APINested, APINested>(serverIO, apiImplementationNested)
+const serverRPC = new RPCChannel<APINested, APINested>(serverIO, {
+	expose: apiImplementationNested
+})
 
 // Parse raw body
 app.use(express.text({ type: "application/json" }))

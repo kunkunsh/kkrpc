@@ -31,11 +31,15 @@ export class RPCChannel<
 	private callbackCache: Map<CallbackFunction, string> = new Map()
 	private count: number = 0
 	private messageStr = ""
+	private apiImplementation?: LocalAPI
 
 	constructor(
 		private io: Io,
-		private apiImplementation: LocalAPI
+		options?: {
+			expose?: LocalAPI
+		}
 	) {
+		this.apiImplementation = options?.expose
 		this.listen()
 	}
 
@@ -134,6 +138,7 @@ export class RPCChannel<
 
 		// Split the method path and traverse the API implementation
 		const methodPath = method.split(".")
+		if (!this.apiImplementation) return
 		let target: any = this.apiImplementation
 
 		// Traverse the object path
