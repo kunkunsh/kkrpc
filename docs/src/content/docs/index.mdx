@@ -1,0 +1,38 @@
+---
+title: kkRPC
+description: kkRPC Documentation
+template: splash
+hero:
+  tagline: RPC Everything with TypeScript
+  actions:
+    - text: Get Started
+      link: /guides/get-started/
+      icon: right-arrow
+    - text: Source Code
+      link: https://github.com/kunkunsh/kkrpc
+      icon: external
+      variant: minimal
+    - text: Typedoc
+      link: https://kunkunsh.github.io/kkrpc/
+      icon: external
+      variant: minimal
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+## Next steps
+
+<CardGrid stagger>
+	<Card title="HTTP">
+		Call API over HTTP like calling local functions (similar to tRPC)
+	</Card>
+	<Card title="WebSocket">
+		Call API over WebSocket (with callback support and bidirectional)
+	</Card>
+	<Card title="Web Worker">
+		Bidirectional communication between Web Worker and main thread
+	</Card>
+	<Card title="stdio">
+		IPC over stdio between JavaScript/TypeScript processes (e.g. Node.js/Deno/Bun)
+	</Card>
+</CardGrid>

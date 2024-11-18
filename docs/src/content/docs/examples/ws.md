@@ -1,8 +1,10 @@
-## WebSocket Demo
+---
+title: WebSocket
+description: Make RPC calls over WebSocket
+---
 
-`api.ts`
-
-```ts
+### API Definition
+```ts title="api.ts"
 export type API = {
 	add: (a: number, b: number, callback?: (sum: number) => void) => Promise<number>
 }
@@ -15,9 +17,9 @@ export const apiMethods: API = {
 }
 ```
 
-`server.ts`
+### Server
 
-```ts
+```ts title="server.ts"
 import { WebSocketClientIO, WebSocketServerIO } from "kkrpc"
 import { WebSocketServer } from "ws"
 
@@ -30,9 +32,9 @@ wss.on("connection", (ws: WebSocket) => {
 })
 ```
 
-`client.ts`
+### Client
 
-```ts
+```ts title="client.ts"
 import { WebSocketClientIO, WebSocketServerIO } from "kkrpc"
 
 const clientIO = new WebSocketClientIO({

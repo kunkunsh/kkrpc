@@ -1,17 +1,19 @@
 {
   "name": "docs",
-  "module": "index.ts",
   "type": "module",
-  "devDependencies": {
-    "@types/bun": "latest",
-    "vitepress": "^1.5.0"
-  },
-  "peerDependencies": {
-    "typescript": "^5.0.0"
-  },
+  "version": "0.0.1",
   "scripts": {
-    "docs:dev": "vitepress dev",
-    "docs:build": "vitepress build",
-    "docs:preview": "vitepress preview"
+    "dev": "astro dev",
+    "start": "astro dev",
+    "build": "astro check && astro build",
+    "preview": "astro preview",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "@astrojs/starlight": "^0.29.0",
+    "astro": "^4.16.10",
+    "sharp": "^0.32.5",
+    "@astrojs/check": "^0.9.4",
+    "typescript": "^5.6.3"
   }
 }

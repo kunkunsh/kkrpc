@@ -1,4 +1,9 @@
-# Getting Started
+---
+title: Get Started
+description: Get started with kkRPC
+sidebar:
+  order: 0
+---
 
 > The purpose of this project is to provide a simple-to-use RPC framework for any environment JavaScript/TypeScript can run, not just http.
 

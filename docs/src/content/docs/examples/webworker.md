@@ -1,4 +1,7 @@
-# WebWorker Demo
+---
+title: WebWorker
+description: Bidirectional communication between main thread and WebWorker
+---
 
 `kkRPC` supports bidirectional RPC communication between the main thread and WebWorker.
 
@@ -6,9 +9,7 @@ For JS/TS runtime that supports web `WebWorker` standard, like Bun and Deno, thi
 
 It's better to run the example project located in `examples/iframe-worker-demo`.
 
-`api.ts`
-
-```ts
+```ts title="api.ts"
 export interface API {
 	add(a: number, b: number): Promise<number>
 	addCallback(a: number, b: number, callback: (result: number) => void): void
@@ -46,9 +47,7 @@ export const apiMethods2: API2 = {
 
 The main thread and worker thread can call each other's methods.
 
-`main.ts`
-
-```ts
+```ts title="main.ts"
 const worker = new Worker(new URL("./worker.ts", import.meta.url).href, {
 	type: "module"
 })
@@ -62,9 +61,7 @@ expect(sum).toBe(5)
 io.destroy()
 ```
 
-`worker.ts`
-
-```ts
+```ts title="worker.ts"
 import { RPCChannel, WorkerChildIO, type DestroyableIoInterface } from "kkrpc"
 import { apiMethods, type API } from "./api.ts"
 

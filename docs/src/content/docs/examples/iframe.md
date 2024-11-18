@@ -1,13 +1,15 @@
-# Iframe Demo
-
+---
+title: iframe
+description: Bidirectional communication between main thread and iframe
+---
 
 `kkRPC` supports bidirectional RPC communication between the main thread and iframe.
 
 Here is a real example from the repo. It's better to run the example project located in `examples/iframe-worker-demo`.
 
-`api.ts`
+### API Definition
 
-```ts
+```ts title="api.ts"
 export type API = {
 	echo: (message: string, callback?: (echo: string) => void) => Promise<string>
 	add: (a: number, b: number, callback?: (sum: number) => void) => Promise<number>
@@ -68,17 +70,16 @@ export const apiImplementationNested: APINested = {
 		}
 	}
 }
-
 ```
 
-`/+page.svelte` (main page)
+### Main Page
 
-```svelte
+```svelte title="+page.svelte"
 <script lang="ts">
-	import { apiImplementation, type API, type APINested } from "./api"
 	import { IframeParentIO, RPCChannel, type DestroyableIoInterface } from "kkrpc/browser"
 	import { onDestroy, onMount } from "svelte"
 	import { toast } from "svelte-sonner"
+	import { apiImplementation, type API, type APINested } from "./api"
 
 	let iframeRef: HTMLIFrameElement
 	let io: IframeParentIO | undefined
@@ -136,12 +137,11 @@ export const apiImplementationNested: APINested = {
 		></iframe>
 	</main>
 </div>
-
 ```
 
-`/iframe/+page.svelte` (iframe page)
+### Iframe Page
 
-```ts
+```ts title="iframe/+page.svelte"
 <script lang="ts">
 	import { apiImplementationNested, type API, type APINested } from "./api.ts"
 	import { IframeChildIO, RPCChannel, type DestroyableIoInterface } from "kkrpc/browser"

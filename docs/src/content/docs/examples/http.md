@@ -1,4 +1,7 @@
-# HTTP Demo
+---
+title: HTTP
+description: Make RPC calls over HTTP like calling local functions (similar to tRPC)
+---
 
 I will be using [Hono](https://hono.dev/) for server because of its simplicity,
 but you can use `kkRPC` with any JS/TS HTTP server (e.g. Express, Fastify, http, `Bun.serve`, `Deno.serve`).
@@ -10,7 +13,7 @@ but you can use `kkRPC` with any JS/TS HTTP server (e.g. Express, Fastify, http,
 To add a new API method, just add a new method to the `API` type and implement it in the `api` object. Then you can call it directly in `client.ts`
 No need to touch `server.ts`.
 
-```ts
+```ts title="api.ts"
 export type API = {
 	echo: (message: string) => Promise<string>
 	add: (a: number, b: number) => Promise<number>
@@ -30,7 +33,7 @@ export const api: API = {
 
 `server.ts` only needs to be setup once (no need to touch it later to add more API methods), and contain only one post route (`/rpc`).
 
-```ts
+```ts title="server.ts"
 import { Hono } from "hono"
 import { createHttpHandler } from "kkrpc/http"
 import { apiImplementationNested, type APINested } from "./api.ts"
@@ -57,7 +60,7 @@ export default {
 
 Making an http RPC call is as simple as calling the methods defined in `api.ts`.
 
-```ts{6-10}
+```ts title="client.ts"
 import { createHttpClient } from "kkrpc/http"
 import { api, type API } from "./api.ts"
 
@@ -73,7 +76,7 @@ console.log("Sum: ", sum)
 `bun client.ts` to test the API.
 
 
-::: danger
+:::danger
 `http` adapter is the only adapter that doesn't support bidirectional RPC calls and callbacks.
 
 This means
