@@ -1,21 +1,37 @@
 {
 	"name": "kkrpc",
 	"module": "index.ts",
-	"version": "0.0.7",
+	"version": "0.0.8",
 	"type": "module",
 	"scripts": {
 		"prepare": "bun run scripts/prepare.ts",
 		"test": "bun run scripts/test.ts",
-		"docs": "typedoc --out docs"
+		"docs": "typedoc --out docs",
+		"build": "rimraf dist && rollup -c"
 	},
 	"exports": {
-		".": "./mod.ts",
-		"./browser": "./browser-mod.ts",
-		"./http": "./src/http.ts"
+		".": {
+			"import": "./dist/mod.js",
+			"require": "./dist/mod.cjs",
+			"types": "./dist/mod.d.ts"
+		},
+		"./browser": {
+			"import": "./dist/browser-mod.js",
+			"require": "./dist/browser-mod.cjs",
+			"types": "./dist/browser-mod.d.ts"
+		},
+		"./http": {
+			"import": "./dist/http.js",
+			"require": "./dist/http.cjs",
+			"types": "./dist/http.d.ts"
+		}
 	},
 	"devDependencies": {
+		"@rollup/plugin-typescript": "^12.1.1",
 		"@types/bun": "latest",
 		"@types/ws": "^8.5.10",
+		"rimraf": "^6.0.1",
+		"rollup": "^4.27.3",
 		"typedoc": "^0.26.11"
 	},
 	"peerDependencies": {

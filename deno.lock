@@ -2409,8 +2409,11 @@
         ],
         "packageJson": {
           "dependencies": [
+            "npm:@rollup/plugin-typescript@^12.1.1",
             "npm:@types/bun@latest",
             "npm:@types/ws@^8.5.10",
+            "npm:rimraf@^6.0.1",
+            "npm:rollup@^4.27.3",
             "npm:typedoc@~0.26.11",
             "npm:ws@^8.16.0"
           ]

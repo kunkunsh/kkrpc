@@ -56,11 +56,14 @@ export class RPCChannel<
 
 		while (true) {
 			const buffer = await this.io.read()
-			// console.error(`${this.io.name} buffer`, buffer?.toString("utf-8"))
 			if (!buffer) {
 				continue
 			}
-			this.messageStr += buffer.toString("utf-8")
+			const bufferStr = buffer.toString("utf-8")
+			if (bufferStr.trim().length === 0) {
+				continue
+			}
+			this.messageStr += bufferStr
 			const lastChar = this.messageStr[this.messageStr.length - 1]
 			const msgsSplit = this.messageStr.split("\n")
 			const msgs = lastChar === "\n" ? msgsSplit : msgsSplit.slice(0, -1) // remove the last incomplete message

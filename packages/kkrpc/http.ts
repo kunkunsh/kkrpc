@@ -1,6 +1,6 @@
-import { HTTPClientIO, HTTPServerIO } from "./adapters/http"
-import { RPCChannel } from "./channel"
-import type { IoInterface } from "./interface"
+import { HTTPClientIO, HTTPServerIO } from "./src/adapters/http"
+import { RPCChannel } from "./src/channel"
+import type { IoInterface } from "./src/interface"
 
 export function createHttpClient<API extends Record<string, any>>(
 	url: string
@@ -20,5 +20,5 @@ export function createHttpHandler<API extends Record<string, any>>(
 	new RPCChannel<{}, API>(serverIO, { expose: api })
 	return serverIO
 }
-export { RPCChannel } from "./channel"
-export { HTTPClientIO, HTTPServerIO } from "./adapters/http"
+export { RPCChannel } from "./src/channel"
+export { HTTPClientIO, HTTPServerIO } from "./src/adapters/http"
