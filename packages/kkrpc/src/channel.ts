@@ -43,6 +43,10 @@ export class RPCChannel<
 		this.listen()
 	}
 
+	expose(api: LocalAPI) {
+		this.apiImplementation = api
+	}
+
 	getIO(): Io {
 		return this.io
 	}
