@@ -5,7 +5,9 @@ import type { DestroyableIoInterface } from "kkrpc"
 console.log("worker loaded")
 
 const io: DestroyableIoInterface = new WorkerChildIO()
-const rpc = new RPCChannel<APINested, API, DestroyableIoInterface>(io, apiImplementationNested)
+const rpc = new RPCChannel<APINested, API, DestroyableIoInterface>(io, {
+	expose: apiImplementationNested
+})
 const api = rpc.getAPI()
 
 const randInt1 = Math.floor(Math.random() * 100)

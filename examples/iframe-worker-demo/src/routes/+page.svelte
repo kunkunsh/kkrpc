@@ -18,7 +18,7 @@
 	async function onIframeLoad() {
 		if (!iframeRef.contentWindow) return
 		io = new IframeParentIO(iframeRef.contentWindow)
-		rpc = new RPCChannel<API, APINested, DestroyableIoInterface>(io, apiImplementation)
+		rpc = new RPCChannel<API, APINested, DestroyableIoInterface>(io, { expose: apiImplementation })
 	}
 
 	function onMultiplyClicked(e: MouseEvent) {

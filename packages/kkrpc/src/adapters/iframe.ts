@@ -28,10 +28,12 @@ export class IframeParentIO implements DestroyableIoInterface {
 	/**
 	 * @example
 	 * ```ts
-	 * const io = new IframeParentIO(iframeRef.contentWindow)
+	 * const io = new IframeParentIO(iframeRef.contentWindow);
 	 * const rpc = new RPCChannel(io, {
-	 *	 add: (a: number, b: number) => Promise.resolve(a + b)
-	 * })
+	 *   expose: {
+	 *     add: (a: number, b: number) => Promise.resolve(a + b),
+	 *   },
+	 * });
 	 * ```
 	 */
 	constructor(private targetWindow: Window) {

@@ -4,7 +4,7 @@ import { apiMethods, type API } from "./scripts/api.ts"
 
 const worker = new Worker(new URL("./scripts/worker.ts", import.meta.url).href, { type: "module" })
 const io = new WorkerParentIO(worker)
-const rpc = new RPCChannel<API, API, DestroyableIoInterface>(io, apiMethods)
+const rpc = new RPCChannel<API, API, DestroyableIoInterface>(io, { expose: apiMethods })
 const api = rpc.getAPI()
 
 test("Bun Worker", async () => {

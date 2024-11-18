@@ -2,7 +2,7 @@ import { RPCChannel, WorkerChildIO, type DestroyableIoInterface } from "../../mo
 import { apiMethods, type API } from "./api.ts"
 
 const io: DestroyableIoInterface = new WorkerChildIO()
-const rpc = new RPCChannel<API, API, DestroyableIoInterface>(io, apiMethods)
+const rpc = new RPCChannel<API, API, DestroyableIoInterface>(io, { expose: apiMethods })
 const api = rpc.getAPI()
 
 // const randInt1 = Math.floor(Math.random() * 100)

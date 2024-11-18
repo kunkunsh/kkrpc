@@ -4,6 +4,7 @@ description: Make RPC calls over WebSocket
 ---
 
 ### API Definition
+
 ```ts title="api.ts"
 export type API = {
 	add: (a: number, b: number, callback?: (sum: number) => void) => Promise<number>
@@ -28,7 +29,7 @@ let serverRPC: RPCChannel<API, API>
 let wss: WebSocketServer = new WebSocketServer({ port: PORT })
 wss.on("connection", (ws: WebSocket) => {
 	const serverIO = new WebSocketServerIO(ws)
-	serverRPC = new RPCChannel<API, API>(serverIO, apiMethods)
+	serverRPC = new RPCChannel<API, API>(serverIO, { expose: apiMethods })
 })
 ```
 
@@ -41,7 +42,7 @@ const clientIO = new WebSocketClientIO({
 	url: `ws://localhost:${PORT}`
 })
 
-const clientRPC = new RPCChannel<API, API, DestroyableIoInterface>(clientIO, apiMethods)
+const clientRPC = new RPCChannel<API, API, DestroyableIoInterface>(clientIO, { expose: apiMethods })
 const api = clientRPC.getAPI()
 
 const sum = await api.add(5, 3)

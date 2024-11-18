@@ -2,7 +2,9 @@ import { apiImplementationNested, type APINested } from "@kksh/demo-api"
 import { HTTPServerIO, RPCChannel } from "kkrpc"
 
 const serverIO = new HTTPServerIO()
-const serverRPC = new RPCChannel<APINested, APINested>(serverIO, apiImplementationNested)
+const serverRPC = new RPCChannel<APINested, APINested>(serverIO, {
+	expose: apiImplementationNested
+})
 
 Bun.serve({
 	port: 3000,
