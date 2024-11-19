@@ -2,6 +2,7 @@ import { readFileSync } from "fs"
 import path, { join } from "path"
 import { cwd } from "process"
 import typescript from "@rollup/plugin-typescript"
+import dts from "rollup-plugin-dts"
 
 const pkg = JSON.parse(readFileSync(join(cwd(), "package.json"), "utf8"))
 
@@ -27,7 +28,7 @@ const config = {
 		}
 	],
 	treeshake: true,
-	plugins: [typescript()]
+	plugins: [typescript(), dts()]
 }
 
 export default config
