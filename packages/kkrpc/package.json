@@ -1,7 +1,7 @@
 {
 	"name": "kkrpc",
 	"module": "index.ts",
-	"version": "0.0.9",
+	"version": "0.0.10",
 	"type": "module",
 	"scripts": {
 		"prepare": "bun run scripts/prepare.ts",
@@ -40,5 +40,8 @@
 	},
 	"dependencies": {
 		"ws": "^8.16.0"
-	}
+	},
+	"files": [
+		"dist"
+	]
 }
