@@ -1,46 +1,43 @@
 {
 	"name": "kkrpc",
 	"module": "index.ts",
-	"version": "0.0.11",
+	"version": "0.0.12",
 	"type": "module",
 	"scripts": {
 		"prepare": "bun run scripts/prepare.ts",
 		"test": "bun run scripts/test.ts",
 		"docs": "typedoc --out docs",
-		"build": "rimraf dist && rollup -c"
+		"build": "bun run build.ts"
 	},
 	"exports": {
 		".": {
+			"types": "./dist/mod.d.ts",
 			"import": "./dist/mod.js",
-			"require": "./dist/mod.cjs",
-			"types": "./dist/mod.d.ts"
+			"require": "./dist/mod.cjs"
 		},
 		"./browser": {
+			"types": "./dist/browser-mod.d.ts",
 			"import": "./dist/browser-mod.js",
-			"require": "./dist/browser-mod.cjs",
-			"types": "./dist/browser-mod.d.ts"
+			"require": "./dist/browser-mod.cjs"
 		},
 		"./http": {
+			"types": "./dist/http.d.ts",
 			"import": "./dist/http.js",
-			"require": "./dist/http.cjs",
-			"types": "./dist/http.d.ts"
+			"require": "./dist/http.cjs"
 		}
 	},
 	"devDependencies": {
-		"@rollup/plugin-typescript": "^12.1.1",
 		"@types/bun": "latest",
-		"@types/ws": "^8.5.10",
-		"rimraf": "^6.0.1",
-		"rollup": "^4.27.3",
-		"rollup-plugin-dts": "^6.1.1",
+		"@types/ws": "^8.5.13",
 		"tslib": "^2.8.1",
+		"tsup": "^8.3.5",
 		"typedoc": "^0.26.11"
 	},
 	"peerDependencies": {
-		"typescript": "^5.0.0"
+		"typescript": "^5.6.3"
 	},
 	"dependencies": {
-		"ws": "^8.16.0"
+		"ws": "^8.18.0"
 	},
 	"files": [
 		"dist"
