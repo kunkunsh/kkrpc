@@ -1,6 +1,6 @@
 {
 	"name": "@kunkun/kkrpc",
-	"version": "0.0.12",
+	"version": "0.0.14",
 	"tasks": {
 		"dev": "deno run --watch main.ts"
 	},
