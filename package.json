@@ -13,14 +13,14 @@
 	"devDependencies": {
 		"@ianvs/prettier-plugin-sort-imports": "^4.4.0",
 		"@types/bun": "latest",
-		"husky": "^9.1.6",
-		"prettier": "^3.2.5",
-		"prettier-plugin-svelte": "^3.2.8",
-		"prettier-plugin-tailwindcss": "^0.6.8",
-		"turbo": "^2.3.0",
-		"typescript": "5.5.4"
+		"husky": "^9.1.7",
+		"prettier": "^3.4.2",
+		"prettier-plugin-svelte": "^3.3.2",
+		"prettier-plugin-tailwindcss": "^0.6.9",
+		"turbo": "^2.3.3",
+		"typescript": "5.7.2"
 	},
-	"packageManager": "pnpm@9.13.2",
+	"packageManager": "pnpm@9.15.3",
 	"engines": {
 		"node": ">=18"
 	},
