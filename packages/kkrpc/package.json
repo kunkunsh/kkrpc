@@ -3,6 +3,10 @@
 	"module": "index.ts",
 	"version": "0.0.15",
 	"type": "module",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/kunkunsh/kkrpc.git"
+	},
 	"scripts": {
 		"prepare": "bun run scripts/prepare.ts",
 		"test": "bun run scripts/test.ts",
