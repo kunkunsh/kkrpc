@@ -29,6 +29,6 @@ jobs:
           pnpm install
           pnpm build
       - run: npm publish --provenance --access public
-        working-directory: ./packages/kkrp
+        working-directory: ./packages/kkrpc
         env:
           NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
