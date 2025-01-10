@@ -1,3 +1,7 @@
+/**
+ * @module @kunkun/kkrpc/http
+ * @description This module contains the HTTP adapters for kkrpc.
+ */
 import { HTTPClientIO, HTTPServerIO } from "./src/adapters/http"
 import { RPCChannel } from "./src/channel"
 import type { IoInterface } from "./src/interface"
