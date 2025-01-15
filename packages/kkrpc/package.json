@@ -1,7 +1,6 @@
 {
 	"name": "kkrpc",
-	"module": "index.ts",
-	"version": "0.0.15",
+	"version": "0.0.16",
 	"type": "module",
 	"repository": {
 		"type": "git",
@@ -10,6 +9,7 @@
 	"scripts": {
 		"prepare": "bun run scripts/prepare.ts",
 		"test": "bun run scripts/test.ts",
+		"posttest": "verify-package-export verify",
 		"docs": "typedoc --out docs",
 		"build": "bun run build.ts"
 	},
@@ -28,14 +28,21 @@
 			"types": "./dist/http.d.ts",
 			"import": "./dist/http.js",
 			"require": "./dist/http.cjs"
+		},
+		"./chrome": {
+			"types": "./dist/chrome.d.ts",
+			"import": "./dist/chrome.js",
+			"require": "./dist/chrome.cjs"
 		}
 	},
 	"devDependencies": {
 		"@types/bun": "latest",
+		"@types/chrome": "^0.0.296",
 		"@types/ws": "^8.5.13",
 		"tslib": "^2.8.1",
 		"tsup": "^8.3.5",
-		"typedoc": "^0.27.6"
+		"typedoc": "^0.27.6",
+		"verify-package-export": "^0.0.2"
 	},
 	"peerDependencies": {
 		"typescript": "^5.0.0"
