@@ -32,6 +32,7 @@
 	},
 	"devDependencies": {
 		"@types/bun": "latest",
+		"@types/chrome": "^0.0.296",
 		"@types/ws": "^8.5.13",
 		"tslib": "^2.8.1",
 		"tsup": "^8.3.5",

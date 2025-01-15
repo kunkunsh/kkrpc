@@ -47,7 +47,7 @@ class RPCChannel<
 > {}
 ```
 
-## Examplesr
+## Examples
 
 Below are simple examples.
 
@@ -165,4 +165,50 @@ console.log("echoResponse", echoResponse)
 
 const sum = await clientAPI.add(2, 3)
 console.log("Sum: ", sum)
+```
+
+### Chrome Extension Example
+
+#### `background.ts`
+
+```ts
+import { ChromeBackgroundIO, RPCChannel } from "kkrpc"
+import type { API } from "./api"
+
+// When a tab connects, create a new RPC channel for it
+chrome.runtime.onConnect.addListener((port) => {
+    const tabId = port.sender?.tab?.id
+    if (!tabId) return
+
+    const io = new ChromeBackgroundIO(tabId)
+    const rpc = new RPCChannel<API, API>(io, {
+        expose: {
+            getData: async () => {
+                return { message: "Hello from background!" }
+            }
+        }
+    })
+})
+```
+
+#### `content.ts`
+
+```ts
+import { ChromeContentIO, RPCChannel } from "kkrpc"
+import type { API } from "./api"
+
+const io = new ChromeContentIO()
+const rpc = new RPCChannel<API, API>(io, {
+    expose: {
+        updateUI: async (data) => {
+            document.body.innerHTML = data.message
+            return true
+        }
+    }
+})
+
+// Get API from background script
+const api = rpc.getAPI()
+const data = await api.getData()
+console.log(data) // { message: "Hello from background!" }
 ```
