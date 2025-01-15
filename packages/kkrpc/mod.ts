@@ -17,6 +17,7 @@
  */
 export * from "./src/adapters/worker.ts"
 export * from "./src/adapters/node.ts"
+export * from "./src/adapters/chrome.ts"
 export * from "./src/adapters/websocket.ts"
 export * from "./src/adapters/http.ts"
 export * from "./src/interface.ts"
