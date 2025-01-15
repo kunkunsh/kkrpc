@@ -2451,6 +2451,7 @@
             "npm:tslib@^2.8.1",
             "npm:tsup@^8.3.5",
             "npm:typedoc@~0.27.6",
+            "npm:verify-package-export@^0.0.2",
             "npm:ws@^8.18.0"
           ]
         }
