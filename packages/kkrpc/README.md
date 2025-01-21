@@ -12,6 +12,10 @@
 - [Documentation by JSR](https://jsr.io/@kunkun/kkrpc/doc)
 - [Typedoc Documentation](https://kunkunsh.github.io/kkrpc/)
 
+![](https://imgur.com/vR3Lmv0.png)
+![](https://imgur.com/u728aVv.png)
+![](https://imgur.com/2ycWgVQ.png)
+
 ## Supported Environments
 
 - stdio: RPC over stdio between any combinations of Node.js, Deno, Bun processes
@@ -47,7 +51,7 @@ class RPCChannel<
 > {}
 ```
 
-## Examplesr
+## Examples
 
 Below are simple examples.
 
@@ -165,4 +169,52 @@ console.log("echoResponse", echoResponse)
 
 const sum = await clientAPI.add(2, 3)
 console.log("Sum: ", sum)
+```
+
+### Chrome Extension Example
+
+#### `background.ts`
+
+```ts
+import { ChromeBackgroundIO, RPCChannel } from "kkrpc"
+import type { API } from "./api"
+
+// Store RPC channels for each tab
+const rpcChannels = new Map<number, RPCChannel<API, {}>>()
+
+// Listen for tab connections
+chrome.runtime.onConnect.addListener((port) => {
+	if (port.sender?.tab?.id) {
+		const tabId = port.sender.tab.id
+		const io = new ChromeBackgroundIO(tabId)
+		const rpc = new RPCChannel(io, { expose: backgroundAPI })
+		rpcChannels.set(tabId, rpc)
+
+		port.onDisconnect.addListener(() => {
+			rpcChannels.delete(tabId)
+		})
+	}
+})
+```
+
+#### `content.ts`
+
+```ts
+import { ChromeContentIO, RPCChannel } from "kkrpc"
+import type { API } from "./api"
+
+const io = new ChromeContentIO()
+const rpc = new RPCChannel<API, API>(io, {
+	expose: {
+		updateUI: async (data) => {
+			document.body.innerHTML = data.message
+			return true
+		}
+	}
+})
+
+// Get API from background script
+const api = rpc.getAPI()
+const data = await api.getData()
+console.log(data) // { message: "Hello from background!" }
 ```
