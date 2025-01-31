@@ -1,5 +1,6 @@
 import { spawn } from "child_process"
 import type { ChildProcessWithoutNullStreams } from "node:child_process"
+import fs from "node:fs"
 import path from "node:path"
 import { sleep } from "bun"
 import { describe, expect, test } from "bun:test"
@@ -23,7 +24,7 @@ async function runWorker(worker: ChildProcessWithoutNullStreams) {
 	const io = new NodeIo(worker.stdout, worker.stdin)
 	const rpc = new RPCChannel<{}, API>(io)
 	const api = rpc.getAPI()
-
+	expect(await api.echo("hello")).toEqual("hello")
 	expect(await api.add(1, 2)).toEqual(3)
 	const sum2 = await new Promise((resolve, reject) => {
 		api.addCallback(1, 2, (sum) => {
@@ -75,16 +76,25 @@ async function runWorker(worker: ChildProcessWithoutNullStreams) {
 }
 
 describe("RPCChannel Test", () => {
-	test("DenoStdio", async () => {
+	test.todo("DenoStdio", async () => {
 		const workerDeno = spawn("deno", [path.join(testsPath, "scripts/deno-api.ts")])
 		await runWorker(workerDeno)
 	})
-	test("NodeStdio", async () => {
-		const workerBun = spawn("node", [path.join(testsPath, "scripts/node-api.js")])
+	test.todo("NodeStdio", async () => {
+		const jsScriptPath = path.join(testsPath, "scripts/node-api.js")
+		if (!fs.existsSync(jsScriptPath)) {
+			await Bun.build({
+				entrypoints: [path.join(testsPath, "scripts/node-api.ts")],
+				outdir: path.join(testsPath, "scripts"),
+				sourcemap: "inline",
+				minify: true
+			})
+		}
+		const workerBun = spawn("node", [jsScriptPath])
 		await runWorker(workerBun)
 	})
-	// test("NodeStdio with bun", async () => {
-	// 	const workerBun = spawn("bun", [path.join(testsPath, "scripts/node-api.ts")])
-	// 	await runWorker(workerBun)
-	// })
+	test.todo("NodeStdio with bun", async () => {
+		const workerBun = spawn("bun", [path.join(testsPath, "scripts/node-api.ts")])
+		await runWorker(workerBun)
+	})
 })

@@ -18,7 +18,10 @@ export interface API {
 
 // Define your API methods
 export const apiMethods: API = {
-	echo: async (message: string) => message,
+	echo: async (message: string) => {
+		console.log(message)
+		return message
+	},
 	add: async (a: number, b: number) => a + b,
 	subtract: async (a: number, b: number) => a - b,
 	addCallback: async (a: number, b: number, callback?: (result: number) => void) => {

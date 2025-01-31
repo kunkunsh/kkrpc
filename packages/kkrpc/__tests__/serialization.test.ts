@@ -12,7 +12,7 @@ describe("Serializer", () => {
 		const message: Message = {
 			id: "1",
 			method: "testMethod",
-			args: [1, 2, 3],
+			args: [1, 2, 3, new Uint8Array([1, 2, 3])],
 			type: "request"
 		}
 		const serialized = serializeMessage(message)
