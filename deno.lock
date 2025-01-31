@@ -2383,6 +2383,7 @@
   "workspace": {
     "packageJson": {
       "dependencies": [
+        "npm:@changesets/cli@^2.27.12",
         "npm:@ianvs/prettier-plugin-sort-imports@^4.4.0",
         "npm:@types/bun@latest",
         "npm:husky@^9.1.7",

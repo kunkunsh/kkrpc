@@ -1,5 +1,6 @@
 import { spawn } from "child_process"
 import type { ChildProcessWithoutNullStreams } from "node:child_process"
+import fs from "node:fs"
 import path from "node:path"
 import { sleep } from "bun"
 import { describe, expect, test } from "bun:test"
@@ -80,11 +81,20 @@ describe("RPCChannel Test", () => {
 		await runWorker(workerDeno)
 	})
 	test("NodeStdio", async () => {
-		const workerBun = spawn("node", [path.join(testsPath, "scripts/node-api.js")])
+		const jsScriptPath = path.join(testsPath, "scripts/node-api.js")
+		if (!fs.existsSync(jsScriptPath)) {
+			await Bun.build({
+				entrypoints: [path.join(testsPath, "scripts/node-api.ts")],
+				outdir: path.join(testsPath, "scripts"),
+				sourcemap: "inline",
+				minify: true
+			})
+		}
+		const workerBun = spawn("node", [jsScriptPath])
 		await runWorker(workerBun)
 	})
-	// test("NodeStdio with bun", async () => {
-	// 	const workerBun = spawn("bun", [path.join(testsPath, "scripts/node-api.ts")])
-	// 	await runWorker(workerBun)
-	// })
+	test("NodeStdio with bun", async () => {
+		const workerBun = spawn("bun", [path.join(testsPath, "scripts/node-api.ts")])
+		await runWorker(workerBun)
+	})
 })
