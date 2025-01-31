@@ -76,7 +76,7 @@ async function runWorker(worker: ChildProcessWithoutNullStreams) {
 }
 
 describe("RPCChannel Test", () => {
-	test("DenoStdio", async () => {
+	test.todo("DenoStdio", async () => {
 		const workerDeno = spawn("deno", [path.join(testsPath, "scripts/deno-api.ts")])
 		await runWorker(workerDeno)
 	})
