@@ -172,8 +172,8 @@ importers:
         specifier: ^0.27.6
         version: 0.27.6(typescript@5.7.2)
       verify-package-export:
-        specifier: ^0.0.2
-        version: 0.0.2(typescript@5.7.2)
+        specifier: ^0.0.3
+        version: 0.0.3(typescript@5.7.2)
 
 packages:
 
@@ -3865,8 +3865,8 @@ packages:
     resolution: {integrity: sha512-BNGbWLfd0eUPabhkXUVm0j8uuvREyTh5ovRa/dyow/BqAbZJyC+5fU+IzQOzmAKzYqYRAISoRhdQr3eIZ/PXqg==}
     engines: {node: '>= 0.8'}
 
-  verify-package-export@0.0.2:
-    resolution: {integrity: sha512-eTxBMzf5O5G+KZYyGg33Zp36rnlbuMAKSR3nNzh299SDLOgxoFDlNVbiy1mANVWJ/uG15qVZv0K4KdwV5u1FZQ==}
+  verify-package-export@0.0.3:
+    resolution: {integrity: sha512-EEkH32KXpVdaUBRWA84CSwdQZExpyMgN8cR3OI9y7evJwhZfvNj+sAZHeMqglrnZ7dTK3FrdXqeK54QniUCnxg==}
     engines: {node: '>=18.0.0'}
     hasBin: true
 
@@ -4323,7 +4323,7 @@ snapshots:
   '@astrojs/telemetry@3.1.0':
     dependencies:
       ci-info: 4.1.0
-      debug: 4.3.7
+      debug: 4.4.0(supports-color@8.1.1)
       dlv: 1.1.3
       dset: 3.1.4
       is-docker: 3.0.0
@@ -4357,7 +4357,7 @@ snapshots:
       '@babel/traverse': 7.25.9
       '@babel/types': 7.26.0
       convert-source-map: 2.0.0
-      debug: 4.3.7
+      debug: 4.4.0(supports-color@8.1.1)
       gensync: 1.0.0-beta.2
       json5: 2.2.3
       semver: 6.3.1
@@ -8450,7 +8450,7 @@ snapshots:
 
   vary@1.1.2: {}
 
-  verify-package-export@0.0.2(typescript@5.7.2):
+  verify-package-export@0.0.3(typescript@5.7.2):
     dependencies:
       '@oclif/core': 4.2.3
       '@oclif/plugin-help': 6.2.21

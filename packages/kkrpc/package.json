@@ -1,6 +1,6 @@
 {
 	"name": "kkrpc",
-	"version": "0.0.17",
+	"version": "0.0.18",
 	"type": "module",
 	"repository": {
 		"type": "git",
@@ -15,22 +15,38 @@
 	},
 	"exports": {
 		".": {
-			"types": "./dist/mod.d.ts",
+			"types": {
+				"import": "./dist/mod.d.ts",
+				"require": "./dist/mod.cjs",
+				"default": "./dist/mod.js"
+			},
 			"import": "./dist/mod.js",
 			"require": "./dist/mod.cjs"
 		},
 		"./browser": {
-			"types": "./dist/browser-mod.d.ts",
+			"types": {
+				"import": "./dist/browser-mod.d.ts",
+				"require": "./dist/browser-mod.cjs",
+				"default": "./dist/browser-mod.js"
+			},
 			"import": "./dist/browser-mod.js",
 			"require": "./dist/browser-mod.cjs"
 		},
 		"./http": {
-			"types": "./dist/http.d.ts",
+			"types": {
+				"import": "./dist/http.d.ts",
+				"require": "./dist/http.cjs",
+				"default": "./dist/http.js"
+			},
 			"import": "./dist/http.js",
 			"require": "./dist/http.cjs"
 		},
 		"./chrome": {
-			"types": "./dist/chrome.d.ts",
+			"types": {
+				"import": "./dist/chrome.d.ts",
+				"require": "./dist/chrome.cjs",
+				"default": "./dist/chrome.js"
+			},
 			"import": "./dist/chrome.js",
 			"require": "./dist/chrome.cjs"
 		}
@@ -42,7 +58,7 @@
 		"tslib": "^2.8.1",
 		"tsup": "^8.3.5",
 		"typedoc": "^0.27.6",
-		"verify-package-export": "^0.0.2"
+		"verify-package-export": "^0.0.3"
 	},
 	"peerDependencies": {
 		"typescript": "^5.0.0"
