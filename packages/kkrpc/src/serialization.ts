@@ -14,16 +14,33 @@ export interface Response<T = any> {
 	error?: string
 }
 
+function replacer(key: string, value: any) {
+	if (value instanceof Uint8Array) {
+		return {
+			type: "Uint8Array",
+			data: Array.from(value) // Convert to regular array
+		}
+	}
+	return value
+}
+
+function reviver(key: string, value: any) {
+	if (value && value.type === "Uint8Array" && Array.isArray(value.data)) {
+		return new Uint8Array(value.data)
+	}
+	return value
+}
+
 // Serialize a message
 export function serializeMessage<T>(message: Message<T>): string {
-	return JSON.stringify(message) + "\n"
+	return JSON.stringify(message, replacer) + "\n"
 }
 
 // Deserialize a message
 export function deserializeMessage<T>(message: string): Promise<Message<T>> {
 	return new Promise((resolve, reject) => {
 		try {
-			const parsed = JSON.parse(message)
+			const parsed = JSON.parse(message, reviver)
 			resolve(parsed)
 		} catch (error) {
 			console.error("failed to parse message", typeof message, message, error)

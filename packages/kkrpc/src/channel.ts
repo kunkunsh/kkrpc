@@ -70,24 +70,32 @@ export class RPCChannel<
 			this.messageStr = lastChar === "\n" ? "" : (msgsSplit.at(-1) ?? "")
 
 			for (const msgStr of msgs.map((msg) => msg.trim()).filter(Boolean)) {
-				this.handleMessageStr(msgStr)
+				if (msgStr.startsWith("{")) {
+					this.handleMessageStr(msgStr)
+				} else {
+					console.log(`(kkrpc stdout passthrough):`, msgStr) // allow debug log passthrough
+				}
 			}
 		}
 	}
 
 	private async handleMessageStr(messageStr: string): Promise<void> {
 		this.count++
-		// console.error(`count: ${this.count}`);
-		const parsedMessage = await deserializeMessage(messageStr)
-		if (parsedMessage.type === "response") {
-			this.handleResponse(parsedMessage as Message<Response<any>>)
-		} else if (parsedMessage.type === "request") {
-			this.handleRequest(parsedMessage)
-		} else if (parsedMessage.type === "callback") {
-			this.handleCallback(parsedMessage)
-		} else {
-			console.error("received unknown message type", parsedMessage, typeof parsedMessage)
-		}
+		return deserializeMessage(messageStr)
+			.then((parsedMessage) => {
+				if (parsedMessage.type === "response") {
+					this.handleResponse(parsedMessage as Message<Response<any>>)
+				} else if (parsedMessage.type === "request") {
+					this.handleRequest(parsedMessage)
+				} else if (parsedMessage.type === "callback") {
+					this.handleCallback(parsedMessage)
+				} else {
+					console.error("received unknown message type", parsedMessage, typeof parsedMessage)
+				}
+			})
+			.catch((err) => {
+				console.log(`(kkrpc stdout passthrough):`, messageStr)
+			})
 	}
 
 	// Send a method call to the other process

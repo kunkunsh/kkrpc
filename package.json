@@ -11,6 +11,7 @@
 		"prepare": "husky"
 	},
 	"devDependencies": {
+		"@changesets/cli": "^2.27.12",
 		"@ianvs/prettier-plugin-sort-imports": "^4.4.0",
 		"@types/bun": "latest",
 		"husky": "^9.1.7",
