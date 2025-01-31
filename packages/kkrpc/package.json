@@ -1,6 +1,6 @@
 {
 	"name": "kkrpc",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"type": "module",
 	"repository": {
 		"type": "git",
@@ -13,6 +13,8 @@
 		"docs": "typedoc --out docs",
 		"build": "bun run build.ts"
 	},
+	"main": "./dist/mod.js",
+	"types": "./dist/mod.d.ts",
 	"exports": {
 		".": {
 			"types": {
