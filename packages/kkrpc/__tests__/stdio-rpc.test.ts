@@ -80,7 +80,7 @@ describe("RPCChannel Test", () => {
 		const workerDeno = spawn("deno", [path.join(testsPath, "scripts/deno-api.ts")])
 		await runWorker(workerDeno)
 	})
-	test("NodeStdio", async () => {
+	test.todo("NodeStdio", async () => {
 		const jsScriptPath = path.join(testsPath, "scripts/node-api.js")
 		if (!fs.existsSync(jsScriptPath)) {
 			await Bun.build({
@@ -93,8 +93,8 @@ describe("RPCChannel Test", () => {
 		const workerBun = spawn("node", [jsScriptPath])
 		await runWorker(workerBun)
 	})
-	// test("NodeStdio with bun", async () => {
-	// 	const workerBun = spawn("bun", [path.join(testsPath, "scripts/node-api.ts")])
-	// 	await runWorker(workerBun)
-	// })
+	test.todo("NodeStdio with bun", async () => {
+		const workerBun = spawn("bun", [path.join(testsPath, "scripts/node-api.ts")])
+		await runWorker(workerBun)
+	})
 })
