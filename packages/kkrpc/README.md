@@ -12,6 +12,8 @@
 - [Documentation by JSR](https://jsr.io/@kunkun/kkrpc/doc)
 - [Typedoc Documentation](https://kunkunsh.github.io/kkrpc/)
 
+[Excalidraw Diagrams](https://excalidraw.com/#json=otqFU25B2sSjweA4Sbq9l,7-eY_bzFrGAXLNkOVpQ2Tg)
+
 ![](https://imgur.com/vR3Lmv0.png)
 ![](https://imgur.com/u728aVv.png)
 ![](https://imgur.com/2ycWgVQ.png)
