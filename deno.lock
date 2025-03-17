@@ -29,6 +29,7 @@
     "npm:prettier-plugin-svelte@^3.3.2": "3.3.2_prettier@3.4.2_svelte@5.2.2__acorn@8.14.0",
     "npm:prettier-plugin-tailwindcss@~0.6.9": "0.6.9_@ianvs+prettier-plugin-sort-imports@4.4.0__prettier@3.4.2_prettier@3.4.2_prettier-plugin-svelte@3.3.2__prettier@3.4.2__svelte@5.2.2___acorn@8.14.0_svelte@5.2.2__acorn@8.14.0",
     "npm:prettier@^3.4.2": "3.4.2",
+    "npm:superjson@^2.2.2": "2.2.2",
     "npm:svelte-check@4": "4.1.3_svelte@5.2.2__acorn@8.14.0_typescript@5.7.2",
     "npm:svelte-sonner@~0.3.28": "0.3.28_svelte@5.2.2__acorn@8.14.0",
     "npm:svelte@5": "5.2.2_acorn@8.14.0",
@@ -1535,6 +1536,12 @@
     "cookie@1.0.1": {
       "integrity": "sha512-Xd8lFX4LM9QEEwxQpF9J9NTUh8pmdJO0cyRJhFiDoLTk2eH8FXlRv2IFGYVadZpqI3j8fhNrSdKCeYPxiAhLXw=="
     },
+    "copy-anything@3.0.5": {
+      "integrity": "sha512-yCEafptTtb4bk7GLEQoM8KVJpxAfdBJYaXyzQEgQQQgYrZiDp8SJmGKlYza6CYjEDNstAdNdKA3UuoULlEbS6w==",
+      "dependencies": [
+        "is-what"
+      ]
+    },
     "cross-spawn@7.0.5": {
       "integrity": "sha512-ZVJrKKYunU38/76t0RMOulHOnUcbU9GbpWKAOZ0mhjr7CX6FVrH+4FrAapSOekrgFQ3f/8gwMEuIft0aKq6Hug==",
       "dependencies": [
@@ -2242,6 +2249,9 @@
       "dependencies": [
         "better-path-resolve"
       ]
+    },
+    "is-what@4.1.16": {
+      "integrity": "sha512-ZhMwEosbFJkA0YhFnNDgTM4ZxDRsS6HqTo7qsZM08fehyRYIYa0yHu5R6mgo1n/8MgaPBXiPimPD77baVFYg+A=="
     },
     "is-windows@1.0.2": {
       "integrity": "sha512-eXK1UInq2bPmjyX6e3VHIzMLobc4J94i4AWn+Hpq3OU5KkrRC96OAcR3PRJ/pGu6m8TRnBHP9dkXQVsT/COVIA=="
@@ -3568,6 +3578,12 @@
         "mz",
         "pirates",
         "ts-interface-checker"
+      ]
+    },
+    "superjson@2.2.2": {
+      "integrity": "sha512-5JRxVqC8I8NuOUjzBbvVJAKNM8qoVuH0O77h4WInc/qC2q5IreqKxYwgkga3PfA22OayK2ikceb/B26dztPl+Q==",
+      "dependencies": [
+        "copy-anything"
       ]
     },
     "supports-color@7.2.0": {
