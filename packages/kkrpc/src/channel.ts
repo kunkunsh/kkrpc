@@ -73,6 +73,7 @@ export class RPCChannel<
 				continue
 			}
 			const bufferStr = buffer.toString("utf-8")
+			// console.error("bufferStr", bufferStr)
 			if (bufferStr.trim().length === 0) {
 				continue
 			}
