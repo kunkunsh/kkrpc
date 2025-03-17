@@ -2,7 +2,6 @@ import { spawn } from "child_process"
 import type { ChildProcessWithoutNullStreams } from "node:child_process"
 import fs from "node:fs"
 import path from "node:path"
-import { sleep } from "bun"
 import { describe, expect, test } from "bun:test"
 import { DenoIo, NodeIo } from "../mod.ts"
 import { RPCChannel } from "../src/channel.ts"
@@ -76,7 +75,7 @@ async function runWorker(worker: ChildProcessWithoutNullStreams) {
 }
 
 describe("RPCChannel Test", () => {
-	test.todo("DenoStdio", async () => {
+	test("DenoStdio", async () => {
 		const workerDeno = spawn("deno", [path.join(testsPath, "scripts/deno-api.ts")])
 		await runWorker(workerDeno)
 	})
@@ -93,8 +92,13 @@ describe("RPCChannel Test", () => {
 		const workerBun = spawn("node", [jsScriptPath])
 		await runWorker(workerBun)
 	})
-	test.todo("NodeStdio with bun", async () => {
+	test("NodeStdio with bun", async () => {
 		const workerBun = spawn("bun", [path.join(testsPath, "scripts/node-api.ts")])
+		await runWorker(workerBun)
+	})
+
+	test("Bun Stdio with bun", async () => {
+		const workerBun = spawn("bun", [path.join(testsPath, "scripts/bun-api.ts")])
 		await runWorker(workerBun)
 	})
 })

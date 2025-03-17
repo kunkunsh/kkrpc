@@ -12,7 +12,7 @@ export class DenoIo implements IoInterface {
 
 	constructor(
 		private readStream: ReadableStream<Uint8Array>,
-		private writeStream: WritableStream<Uint8Array>
+		// private writeStream: WritableStream<Uint8Array>
 	) {
 		this.reader = this.readStream.getReader()
 		// const writer = this.writeStream.getWriter()
