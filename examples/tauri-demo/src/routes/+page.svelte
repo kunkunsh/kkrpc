@@ -5,7 +5,7 @@
 	import { RPCChannel } from "kkrpc/browser"
 	import { toast } from "svelte-sonner"
 	import { Child, Command } from "tauri-plugin-shellx-api"
-	import { type apiMethods as remoteAPI } from "../../sample-script/api"
+	import { type apiMethods as remoteAPI } from "../../sample-script/api.ts"
 
 	const localAPIImplementation = {
 		add: (a: number, b: number) => Promise.resolve(a + b)
@@ -14,13 +14,16 @@
 	let process = $state<Child | null>(null)
 	let stdioRPC = $state<RPCChannel<typeof localAPIImplementation, RemoteAPI> | null>(null)
 
-	async function spawnCmd(runtime: "deno" | "bun") {
+	async function spawnCmd(runtime: "deno" | "bun" | "node") {
 		let cmd: Command<string>
 		if (runtime === "deno") {
 			cmd = Command.create("deno", ["run", "-A", scriptPath])
 			process = await cmd.spawn()
 		} else if (runtime === "bun") {
-			cmd = Command.create("bun", ["run", scriptPath])
+			cmd = Command.create("bun", [scriptPath])
+			process = await cmd.spawn()
+		} else if (runtime === "node") {
+			cmd = Command.create("node", [scriptPath])
 			process = await cmd.spawn()
 		} else {
 			return toast.error(`Invalid runtime: ${runtime}, pick either deno or bun`)
@@ -37,7 +40,7 @@
 			expose: localAPIImplementation
 		})
 	}
-	function run(runtime: "deno" | "bun") {
+	function run(runtime: "deno" | "bun" | "node") {
 		return spawnCmd(runtime)
 			.then(() => {
 				toast.success("Script running, you can now use the API")
@@ -74,9 +77,10 @@
 		<Input placeholder="Script path" disabled bind:value={scriptPath} />
 		<Button onclick={pickScript}>Pick Script</Button>
 	</div>
-	<div class="grid grid-cols-3 gap-2">
+	<div class="grid grid-cols-4 gap-2">
 		<Button disabled={!scriptPath} onclick={() => run("deno")}>Run with Deno</Button>
 		<Button disabled={!scriptPath} onclick={() => run("bun")}>Run with Bun</Button>
+		<Button disabled={!scriptPath} onclick={() => run("node")}>Run with Node</Button>
 		<Button
 			variant="destructive"
 			disabled={!process}
