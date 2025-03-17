@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test"
+import superjson from "superjson"
 import {
 	deserializeMessage,
 	deserializeResponse,
@@ -27,5 +28,17 @@ describe("Serializer", () => {
 		const serializedResponse = serializeResponse(response as any)
 		const deserializedResponse = await deserializeResponse(serializedResponse)
 		expect(deserializedResponse).toEqual(response as any)
+	})
+
+	test("should serialize and deserialize a superjson message", async () => {
+		const message: Message = {
+			id: "1",
+			method: "testMethod",
+			args: [1, 2, 3, new Uint8Array([1, 2, 3])],
+			type: "request"
+		}
+		const serialized = superjson.stringify(message)
+		const deserialized = superjson.parse(serialized)
+		expect(deserialized).toEqual(message as any)
 	})
 })

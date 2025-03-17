@@ -4139,6 +4139,7 @@
             "npm:@types/chrome@^0.0.296",
             "npm:@types/node@^22.12.0",
             "npm:@types/ws@^8.5.13",
+            "npm:superjson@^2.2.2",
             "npm:tslib@^2.8.1",
             "npm:tsup@^8.3.5",
             "npm:typedoc@~0.27.6",

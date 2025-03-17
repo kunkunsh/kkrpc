@@ -16,7 +16,7 @@ importers:
         version: 4.4.0(@vue/compiler-sfc@3.5.13)(prettier@3.4.2)
       '@types/bun':
         specifier: latest
-        version: 1.2.1
+        version: 1.2.5
       husky:
         specifier: ^9.1.7
         version: 9.1.7
@@ -74,7 +74,7 @@ importers:
     devDependencies:
       '@types/bun':
         specifier: latest
-        version: 1.2.1
+        version: 1.2.5
       '@types/express':
         specifier: ^5.0.0
         version: 5.0.0
@@ -145,10 +145,13 @@ importers:
     devDependencies:
       '@types/bun':
         specifier: latest
-        version: 1.2.1
+        version: 1.2.5
 
   packages/kkrpc:
     dependencies:
+      superjson:
+        specifier: ^2.2.2
+        version: 2.2.2
       typescript:
         specifier: ^5.0.0
         version: 5.7.2
@@ -158,7 +161,7 @@ importers:
     devDependencies:
       '@types/bun':
         specifier: latest
-        version: 1.2.1
+        version: 1.2.5
       '@types/chrome':
         specifier: ^0.0.296
         version: 0.0.296
@@ -1208,8 +1211,8 @@ packages:
   '@types/body-parser@1.19.5':
     resolution: {integrity: sha512-fB3Zu92ucau0iQ0JMCFQE7b/dv8Ot07NI3KaZIkIUNXq82k4eBAqUaneXfleGY9JWskeS9y+u0nXMyspcuQrCg==}
 
-  '@types/bun@1.2.1':
-    resolution: {integrity: sha512-iiCeMAKMkft8EPQJxSbpVRD0DKqrh91w40zunNajce3nMNNFd/LnAquVisSZC+UpTMjDwtcdyzbWct08IvEqRA==}
+  '@types/bun@1.2.5':
+    resolution: {integrity: sha512-w2OZTzrZTVtbnJew1pdFmgV99H0/L+Pvw+z1P67HaR18MHOzYnTYOi6qzErhK8HyT+DB782ADVPPE92Xu2/Opg==}
 
   '@types/chrome@0.0.296':
     resolution: {integrity: sha512-EWVcJlIXi2PzKfnzOXkIfySMFkdOQ6DiKkhbuHeuvTxOcVYeUBXbfiExSJ5EDS4M0gAChO/15tDHqMWP47muYw==}
@@ -1583,8 +1586,8 @@ packages:
   buffer@5.7.1:
     resolution: {integrity: sha512-EHcyIPBQ4BSGlvjB16k5KgAJ27CIsHY/2JBmCRReo48y9rQ3MaUzWX3KVlBa4U7MyX02HdVj0K7C3WaB3ju7FQ==}
 
-  bun-types@1.2.1:
-    resolution: {integrity: sha512-p7bmXUWmrPWxhcbFVk7oUXM5jAGt94URaoa3qf4mz43MEhNAo/ot1urzBqctgvuq7y9YxkuN51u+/qm4BiIsHw==}
+  bun-types@1.2.5:
+    resolution: {integrity: sha512-3oO6LVGGRRKI4kHINx5PIdIgnLRb7l/SprhzqXapmoYkFl5m4j6EvALvbDVuuBFaamB46Ap6HCUxIXNLCGy+tg==}
 
   bundle-require@5.0.0:
     resolution: {integrity: sha512-GuziW3fSSmopcx4KRymQEJVbZUfqlCqcq7dvs6TYwKRZiegK/2buMxQTPs6MGlNv50wms1699qYO54R8XfRX4w==}
@@ -1755,6 +1758,10 @@ packages:
   cookie@1.0.1:
     resolution: {integrity: sha512-Xd8lFX4LM9QEEwxQpF9J9NTUh8pmdJO0cyRJhFiDoLTk2eH8FXlRv2IFGYVadZpqI3j8fhNrSdKCeYPxiAhLXw==}
     engines: {node: '>=18'}
+
+  copy-anything@3.0.5:
+    resolution: {integrity: sha512-yCEafptTtb4bk7GLEQoM8KVJpxAfdBJYaXyzQEgQQQgYrZiDp8SJmGKlYza6CYjEDNstAdNdKA3UuoULlEbS6w==}
+    engines: {node: '>=12.13'}
 
   cross-spawn@7.0.5:
     resolution: {integrity: sha512-ZVJrKKYunU38/76t0RMOulHOnUcbU9GbpWKAOZ0mhjr7CX6FVrH+4FrAapSOekrgFQ3f/8gwMEuIft0aKq6Hug==}
@@ -2449,6 +2456,10 @@ packages:
   is-unicode-supported@2.1.0:
     resolution: {integrity: sha512-mE00Gnza5EEB3Ds0HfMyllZzbBrmLOX3vfWoj9A9PEnTfratQ/BcaJOuMhnkhjXvb2+FkY3VuHqtAGpTPmglFQ==}
     engines: {node: '>=18'}
+
+  is-what@4.1.16:
+    resolution: {integrity: sha512-ZhMwEosbFJkA0YhFnNDgTM4ZxDRsS6HqTo7qsZM08fehyRYIYa0yHu5R6mgo1n/8MgaPBXiPimPD77baVFYg+A==}
+    engines: {node: '>=12.13'}
 
   is-windows@1.0.2:
     resolution: {integrity: sha512-eXK1UInq2bPmjyX6e3VHIzMLobc4J94i4AWn+Hpq3OU5KkrRC96OAcR3PRJ/pGu6m8TRnBHP9dkXQVsT/COVIA==}
@@ -3719,6 +3730,10 @@ packages:
     resolution: {integrity: sha512-8EbVDiu9iN/nESwxeSxDKe0dunta1GOlHufmSSXxMD2z2/tMZpDMpvXQGsc+ajGo8y2uYUmixaSRUc/QPoQ0GA==}
     engines: {node: '>=16 || 14 >=14.17'}
     hasBin: true
+
+  superjson@2.2.2:
+    resolution: {integrity: sha512-5JRxVqC8I8NuOUjzBbvVJAKNM8qoVuH0O77h4WInc/qC2q5IreqKxYwgkga3PfA22OayK2ikceb/B26dztPl+Q==}
+    engines: {node: '>=16'}
 
   supports-color@7.2.0:
     resolution: {integrity: sha512-qpCAvRl9stuOHveKsn7HncJRvv501qIacKzQlO/+Lwxc9+0q2wLyv4Dfvt80/DPn2pqOBsJdDiogXGR9+OvwRw==}
@@ -5470,9 +5485,9 @@ snapshots:
       '@types/connect': 3.4.38
       '@types/node': 20.12.14
 
-  '@types/bun@1.2.1':
+  '@types/bun@1.2.5':
     dependencies:
-      bun-types: 1.2.1
+      bun-types: 1.2.5
 
   '@types/chrome@0.0.296':
     dependencies:
@@ -5555,7 +5570,7 @@ snapshots:
 
   '@types/sax@1.2.7':
     dependencies:
-      '@types/node': 20.12.14
+      '@types/node': 22.12.0
 
   '@types/send@0.17.4':
     dependencies:
@@ -5995,7 +6010,7 @@ snapshots:
       base64-js: 1.5.1
       ieee754: 1.2.1
 
-  bun-types@1.2.1:
+  bun-types@1.2.5:
     dependencies:
       '@types/node': 22.12.0
       '@types/ws': 8.5.13
@@ -6139,6 +6154,10 @@ snapshots:
   cookie@0.7.2: {}
 
   cookie@1.0.1: {}
+
+  copy-anything@3.0.5:
+    dependencies:
+      is-what: 4.1.16
 
   cross-spawn@7.0.5:
     dependencies:
@@ -6983,6 +7002,8 @@ snapshots:
   is-unicode-supported@1.3.0: {}
 
   is-unicode-supported@2.1.0: {}
+
+  is-what@4.1.16: {}
 
   is-windows@1.0.2: {}
 
@@ -8527,6 +8548,10 @@ snapshots:
       mz: 2.7.0
       pirates: 4.0.6
       ts-interface-checker: 0.1.13
+
+  superjson@2.2.2:
+    dependencies:
+      copy-anything: 3.0.5
 
   supports-color@7.2.0:
     dependencies:

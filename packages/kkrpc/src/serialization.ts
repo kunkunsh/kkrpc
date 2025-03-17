@@ -1,3 +1,5 @@
+import superjson from "superjson"
+
 /**
  * This file contains the serialization and deserialization functions for the RPC protocol.
  */
@@ -33,14 +35,16 @@ function reviver(key: string, value: any) {
 
 // Serialize a message
 export function serializeMessage<T>(message: Message<T>): string {
-	return JSON.stringify(message, replacer) + "\n"
+	return superjson.stringify(message) + "\n"
+	// return JSON.stringify(message, replacer) + "\n"
 }
 
 // Deserialize a message
 export function deserializeMessage<T>(message: string): Promise<Message<T>> {
 	return new Promise((resolve, reject) => {
 		try {
-			const parsed = JSON.parse(message, reviver)
+			const parsed = superjson.parse<Message<T>>(message)
+			// const parsed = JSON.parse(message, reviver)
 			resolve(parsed)
 		} catch (error) {
 			console.error("failed to parse message", typeof message, message, error)
