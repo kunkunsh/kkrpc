@@ -19,6 +19,9 @@ jobs:
         with:
           node-version: "22"
       - uses: oven-sh/setup-bun@v2
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
       - uses: pnpm/action-setup@v4
       - run: pnpm install
       - name: Publish package
