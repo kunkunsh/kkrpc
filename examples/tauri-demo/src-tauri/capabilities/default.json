@@ -1,10 +1,16 @@
 {
-  "$schema": "../gen/schemas/desktop-schema.json",
-  "identifier": "default",
-  "description": "Capability for the main window",
-  "windows": ["main"],
-  "permissions": [
-    "core:default",
-    "opener:default"
-  ]
+	"$schema": "../gen/schemas/desktop-schema.json",
+	"identifier": "default",
+	"description": "Capability for the main window",
+	"windows": ["main"],
+	"permissions": [
+		"core:default",
+		"opener:default",
+		"dialog:allow-open",
+		"dialog:default",
+		"shellx:allow-spawn",
+		"shellx:allow-stdin-write",
+		"shellx:allow-kill",
+		"shellx:allow-fix-path-env"
+	]
 }
