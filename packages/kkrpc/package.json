@@ -1,6 +1,6 @@
 {
 	"name": "kkrpc",
-	"version": "0.2.0-beta.1",
+	"version": "0.2.0-beta.2",
 	"type": "module",
 	"repository": {
 		"type": "git",
@@ -55,12 +55,12 @@
 	},
 	"devDependencies": {
 		"@types/bun": "latest",
-		"@types/chrome": "^0.0.296",
-		"@types/node": "^22.12.0",
-		"@types/ws": "^8.5.13",
+		"@types/chrome": "^0.0.309",
+		"@types/node": "^22.13.10",
+		"@types/ws": "^8.18.0",
 		"tslib": "^2.8.1",
-		"tsup": "^8.3.5",
-		"typedoc": "^0.27.6",
+		"tsup": "^8.4.0",
+		"typedoc": "^0.28.0",
 		"verify-package-export": "^0.0.3"
 	},
 	"peerDependencies": {
@@ -68,7 +68,7 @@
 	},
 	"dependencies": {
 		"superjson": "^2.2.2",
-		"ws": "^8.18.0"
+		"ws": "^8.18.1"
 	},
 	"files": [
 		"dist"

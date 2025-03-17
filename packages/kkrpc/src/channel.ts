@@ -43,14 +43,27 @@ export class RPCChannel<
 		this.listen()
 	}
 
+	/**
+	 * Exposes a local API implementation that can be called remotely
+	 * @param api The local API implementation to expose
+	 */
 	expose(api: LocalAPI) {
 		this.apiImplementation = api
 	}
 
+	/**
+	 * Returns the IO interface used by this channel
+	 * @returns The IO interface instance
+	 */
 	getIO(): Io {
 		return this.io
 	}
 
+	/**
+	 * Listens for incoming messages on the IO interface
+	 * Handles message buffering and parsing
+	 * @private
+	 */
 	private async listen(): Promise<void> {
 		// console.error("start listening with", this.io.name)
 
@@ -79,6 +92,11 @@ export class RPCChannel<
 		}
 	}
 
+	/**
+	 * Handles a single message string by parsing and routing it
+	 * @param messageStr The message string to handle
+	 * @private 
+	 */
 	private async handleMessageStr(messageStr: string): Promise<void> {
 		this.count++
 		return deserializeMessage(messageStr)
@@ -98,7 +116,12 @@ export class RPCChannel<
 			})
 	}
 
-	// Send a method call to the other process
+	/**
+	 * Calls a method on the remote API
+	 * @param method The name of the method to call
+	 * @param args Arguments to pass to the remote method
+	 * @returns Promise that resolves with the result of the remote call
+	 */
 	public callMethod<T extends keyof RemoteAPI>(method: T, args: any[]): Promise<void> {
 		return new Promise((resolve, reject) => {
 			const messageId = generateUUID()
@@ -133,7 +156,11 @@ export class RPCChannel<
 		})
 	}
 
-	// Handle response to a request we sent
+	/**
+	 * Handles responses received from remote method calls
+	 * @param response The response message to handle
+	 * @private
+	 */
 	private handleResponse(response: Message<Response<any>>): void {
 		const { id } = response
 		const { result, error } = response.args
@@ -147,7 +174,11 @@ export class RPCChannel<
 		}
 	}
 
-	// Handle incoming requests from the other process using a Proxy
+	/**
+	 * Handles incoming method call requests from the remote endpoint
+	 * @param request The request message to handle
+	 * @private
+	 */
 	private handleRequest(request: Message): void {
 		const { id, method, args } = request
 
@@ -195,6 +226,12 @@ export class RPCChannel<
 		}
 	}
 
+	/**
+	 * Invokes a callback on the remote endpoint
+	 * @param callbackId The ID of the callback to invoke
+	 * @param args Arguments to pass to the callback
+	 * @private
+	 */
 	private invokeCallback(callbackId: string, args: any[]): void {
 		const message: Message = {
 			id: generateUUID(),
@@ -205,6 +242,11 @@ export class RPCChannel<
 		this.io.write(serializeMessage(message))
 	}
 
+	/**
+	 * Handles callback invocations received from the remote endpoint
+	 * @param message The callback message to handle
+	 * @private
+	 */
 	private handleCallback(message: Message): void {
 		const { method: callbackId, args } = message
 		const callback = this.callbacks[callbackId]
@@ -218,7 +260,12 @@ export class RPCChannel<
 		}
 	}
 
-	// Send a response to a request
+	/**
+	 * Sends a successful response back to the remote endpoint
+	 * @param id The ID of the request being responded to
+	 * @param result The result to send back
+	 * @private
+	 */
 	private sendResponse<T>(id: string, result: T): void {
 		const response: Message<Response<T>> = {
 			id,
@@ -229,7 +276,12 @@ export class RPCChannel<
 		this.io.write(serializeMessage(response))
 	}
 
-	// Send an error response
+	/**
+	 * Sends an error response back to the remote endpoint
+	 * @param id The ID of the request being responded to
+	 * @param error The error message to send back
+	 * @private
+	 */
 	private sendError(id: string, error: string): void {
 		const response: Message<Response<null>> = {
 			id,
@@ -240,6 +292,12 @@ export class RPCChannel<
 		this.io.write(serializeMessage(response))
 	}
 
+	/**
+	 * Creates a nested proxy object for chaining remote method calls
+	 * @param chain Array of method names in the chain
+	 * @returns Proxy object that transforms property access into remote method calls
+	 * @private
+	 */
 	private createNestedProxy(chain: string[] = []): any {
 		return new Proxy(() => {}, {
 			get: (_target, prop: string | symbol) => {
@@ -256,17 +314,18 @@ export class RPCChannel<
 		})
 	}
 
+	/**
+	 * Returns a proxy object that represents the remote API
+	 * Methods called on this proxy will be executed on the remote endpoint
+	 * @returns Proxy object representing the remote API
+	 */
 	public getAPI(): RemoteAPI {
 		return this.createNestedProxy() as RemoteAPI
 	}
 
 	/**
-	 * Free up the callback map and cache
-	 * If you use callbacks a lot, you could get memory leak.
-	 * e.g. If you use anonymous callback function in a 5000 iterations loop,
-	 * you will get 5000 callbacks in cache. It's a better idea to free them.
-	 *
-	 * If you use a named callback function, there will be only one entry in the cache.
+	 * Frees up memory by clearing stored callbacks and callback cache
+	 * Useful when dealing with many anonymous callback functions to prevent memory leaks
 	 */
 	freeCallbacks() {
 		this.callbacks = {}

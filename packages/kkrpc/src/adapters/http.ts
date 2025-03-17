@@ -1,3 +1,4 @@
+import superjson from "superjson"
 import type { DestroyableIoInterface, IoInterface } from "../interface.ts"
 
 interface HTTPClientOptions {
@@ -81,7 +82,7 @@ export class HTTPServerIO implements IoInterface {
 
 	async write(data: string): Promise<void> {
 		// Parse the response to get the request ID
-		const response = JSON.parse(data)
+		const response = superjson.parse<{ id: string }>(data)
 		const requestId = response.id
 
 		const resolveResponse = this.pendingResponses.get(requestId)
@@ -94,7 +95,7 @@ export class HTTPServerIO implements IoInterface {
 	async handleRequest(reqData: string): Promise<string> {
 		try {
 			// Parse the request to get its ID
-			const requestData = JSON.parse(reqData)
+			const requestData = superjson.parse<{ id: string }>(reqData)
 			const requestId = requestData.id
 
 			if (this.resolveRead) {

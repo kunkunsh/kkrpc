@@ -33,18 +33,24 @@ function reviver(key: string, value: any) {
 	return value
 }
 
-// Serialize a message
+/**
+ * Serialize a message with superjson (supports all data types supported by superjson)
+ * @param message - The message to serialize, an object of any shape
+ * @returns The serialized message
+ */
 export function serializeMessage<T>(message: Message<T>): string {
 	return superjson.stringify(message) + "\n"
-	// return JSON.stringify(message, replacer) + "\n"
 }
 
-// Deserialize a message
+/**
+ * Deserialize a message with superjson (supports all data types supported by superjson)
+ * @param message - The serialized message
+ * @returns The deserialized message
+ */
 export function deserializeMessage<T>(message: string): Promise<Message<T>> {
 	return new Promise((resolve, reject) => {
 		try {
 			const parsed = superjson.parse<Message<T>>(message)
-			// const parsed = JSON.parse(message, reviver)
 			resolve(parsed)
 		} catch (error) {
 			console.error("failed to parse message", typeof message, message, error)
@@ -53,16 +59,24 @@ export function deserializeMessage<T>(message: string): Promise<Message<T>> {
 	})
 }
 
-// Serialize a response
+/**
+ * Serialize a response with JSON (only supports primitive types)
+ * @param response - The response to serialize, an object of primitive types
+ * @returns The serialized response
+ */
 export function serializeResponse<T>(response: Response<T>): string {
-	return JSON.stringify(response) + "\n"
+	return superjson.stringify(response) + "\n"
 }
 
-// Deserialize a response
+/**
+ * Deserialize a response with superjson (supports all data types supported by superjson)
+ * @param response - The serialized response
+ * @returns The deserialized response
+ */
 export function deserializeResponse<T>(response: string): Promise<Response<T>> {
 	return new Promise((resolve, reject) => {
 		try {
-			const parsed = JSON.parse(response)
+			const parsed = superjson.parse<Response<T>>(response)
 			resolve(parsed)
 		} catch (error) {
 			console.error("failed to parse response", response)
