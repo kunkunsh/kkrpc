@@ -11,17 +11,17 @@
 		"prepare": "husky"
 	},
 	"devDependencies": {
-		"@changesets/cli": "^2.27.12",
-		"@ianvs/prettier-plugin-sort-imports": "^4.4.0",
+		"@changesets/cli": "^2.28.1",
+		"@ianvs/prettier-plugin-sort-imports": "^4.4.1",
 		"@types/bun": "latest",
 		"husky": "^9.1.7",
-		"prettier": "^3.4.2",
-		"prettier-plugin-svelte": "^3.3.2",
-		"prettier-plugin-tailwindcss": "^0.6.9",
-		"turbo": "^2.3.3",
-		"typescript": "5.7.2"
+		"prettier": "^3.5.3",
+		"prettier-plugin-svelte": "^3.3.3",
+		"prettier-plugin-tailwindcss": "^0.6.11",
+		"turbo": "^2.4.4",
+		"typescript": "5.8.2"
 	},
-	"packageManager": "pnpm@9.15.3",
+	"packageManager": "pnpm@10.6.4",
 	"engines": {
 		"node": ">=18"
 	},
