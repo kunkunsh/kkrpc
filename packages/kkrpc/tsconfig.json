@@ -27,5 +27,5 @@
 		"noUnusedParameters": false,
 		"noPropertyAccessFromIndexSignature": false
 	},
-	"exclude": ["__deno_tests__/**/*"]
+	"exclude": ["__deno_tests__/**/*", "dist/**/*"]
 }
