@@ -1996,6 +1996,7 @@
             "npm:@tauri-apps/cli@2",
             "npm:@tauri-apps/plugin-dialog@^2.2.0",
             "npm:@tauri-apps/plugin-opener@2",
+            "npm:@tauri-apps/plugin-shell@^2.2.0",
             "npm:autoprefixer@^10.4.20",
             "npm:clsx@^2.1.1",
             "npm:formsnap@2",

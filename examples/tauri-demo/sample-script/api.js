@@ -8,7 +8,7 @@
  * @returns {Promise<number>}
  */
 export function fibonacci(n) {
-	console.error("start computing fibonacci", n)
+	// console.error("start computing fibonacci", n)
 	if (n <= 1) return Promise.resolve(n)
 	return Promise.all([fibonacci(n - 1), fibonacci(n - 2)]).then(([a, b]) => a + b)
 }

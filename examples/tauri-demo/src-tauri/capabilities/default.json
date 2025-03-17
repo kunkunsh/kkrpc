@@ -11,6 +11,19 @@
 		"shellx:allow-spawn",
 		"shellx:allow-stdin-write",
 		"shellx:allow-kill",
-		"shellx:allow-fix-path-env"
+		"shellx:allow-fix-path-env",
+		{
+			"identifier": "shell:allow-spawn",
+			"allow": [
+				{
+					"name": "run-bun",
+					"cmd": "bun",
+					"args": ["run", { "validator": ".+" }]
+				}
+			]
+		},
+		"shell:allow-spawn",
+		"shell:allow-kill",
+		"shell:allow-stdin-write"
 	]
 }

@@ -1,14 +1,22 @@
 <script lang="ts">
 	import { Button, Input } from "@kksh/svelte5"
 	import { open } from "@tauri-apps/plugin-dialog"
+	import DebugBun from "$lib/components/DebugBun.svelte"
 	import { TauriShellStdio } from "$lib/kkrpc"
 	import { RPCChannel } from "kkrpc/browser"
 	import { toast } from "svelte-sonner"
 	import { Child, Command } from "tauri-plugin-shellx-api"
 	import { type apiMethods as remoteAPI } from "../../sample-script/api.ts"
 
+	function fibonacci(n: number): number {
+		if (n <= 0) return 0
+		if (n === 1) return 1
+		return fibonacci(n - 1) + fibonacci(n - 2)
+	}
+
 	const localAPIImplementation = {
-		add: (a: number, b: number) => Promise.resolve(a + b)
+		add: (a: number, b: number) => Promise.resolve(a + b),
+		fibonacci
 	}
 	type RemoteAPI = typeof remoteAPI
 	let process = $state<Child | null>(null)
@@ -35,6 +43,13 @@
 		cmd.stderr.on("data", (data) => {
 			console.warn("stderr", data)
 		})
+		cmd.on("close", (code) => {
+			console.log("close", code)
+		})
+		cmd.on("error", (err) => {
+			console.error("error", err)
+		})
+
 		const stdio = new TauriShellStdio(cmd.stdout, process)
 		stdioRPC = new RPCChannel<typeof localAPIImplementation, RemoteAPI>(stdio, {
 			expose: localAPIImplementation
@@ -63,11 +78,12 @@
 	}
 
 	let scriptPath = $state("")
-	let fibNumber = $state(1)
+	let fibNumber = $state(5)
 	let fibResult = $state(0)
 </script>
 
 <div class="container mx-auto flex flex-col gap-4 pt-8">
+	<DebugBun />
 	<h1 class="text-2xl font-bold">Sample kkrpc usage with Tauri</h1>
 	<small
 		>Press Pick Script, then select either bun or deno script from <code>sample-script</code> folder
@@ -94,8 +110,10 @@
 						process = null
 						stdioRPC = null
 					})
-			}}>Kill</Button
+			}}
 		>
+			Kill
+		</Button>
 	</div>
 	<h1 class="text-2xl font-bold">Run Fibonacci in Bun or Deno</h1>
 	<Input
