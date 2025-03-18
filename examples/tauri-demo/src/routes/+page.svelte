@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { Button, Input } from "@kksh/svelte5"
 	import { open } from "@tauri-apps/plugin-dialog"
-	import DebugBun from "$lib/components/DebugBun.svelte"
 	import { TauriShellStdio } from "$lib/kkrpc"
 	import { RPCChannel } from "kkrpc/browser"
 	import { toast } from "svelte-sonner"
@@ -83,7 +82,6 @@
 </script>
 
 <div class="container mx-auto flex flex-col gap-4 pt-8">
-	<DebugBun />
 	<h1 class="text-2xl font-bold">Sample kkrpc usage with Tauri</h1>
 	<small
 		>Press Pick Script, then select either bun or deno script from <code>sample-script</code> folder
