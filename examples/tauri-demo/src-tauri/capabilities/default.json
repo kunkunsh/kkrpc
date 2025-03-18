@@ -8,17 +8,23 @@
 		"opener:default",
 		"dialog:allow-open",
 		"dialog:default",
-		"shellx:allow-spawn",
-		"shellx:allow-stdin-write",
-		"shellx:allow-kill",
-		"shellx:allow-fix-path-env",
 		{
 			"identifier": "shell:allow-spawn",
 			"allow": [
 				{
-					"name": "run-bun",
+					"name": "bun",
 					"cmd": "bun",
+					"args": [{ "validator": ".+" }]
+				},
+				{
+					"name": "deno",
+					"cmd": "deno",
 					"args": ["run", { "validator": ".+" }]
+				},
+				{
+					"name": "node",
+					"cmd": "node",
+					"args": [{ "validator": ".+" }]
 				}
 			]
 		},

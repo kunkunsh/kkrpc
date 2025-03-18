@@ -67,6 +67,7 @@
 		"typescript": "^5.0.0"
 	},
 	"dependencies": {
+		"@tauri-apps/plugin-shell": "^2.2.0",
 		"superjson": "^2.2.2",
 		"ws": "^8.18.1"
 	},

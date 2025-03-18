@@ -1,10 +1,9 @@
 <script lang="ts">
 	import { Button, Input } from "@kksh/svelte5"
 	import { open } from "@tauri-apps/plugin-dialog"
-	import { TauriShellStdio } from "$lib/kkrpc"
-	import { RPCChannel } from "kkrpc/browser"
+	import { Child, Command } from "@tauri-apps/plugin-shell"
+	import { RPCChannel, TauriShellStdio } from "kkrpc/browser"
 	import { toast } from "svelte-sonner"
-	import { Child, Command } from "tauri-plugin-shellx-api"
 	import { type apiMethods as remoteAPI } from "../../sample-script/api.ts"
 
 	function fibonacci(n: number): number {
