@@ -220,3 +220,6 @@ const api = rpc.getAPI()
 const data = await api.getData()
 console.log(data) // { message: "Hello from background!" }
 ```
+
+### Tauri Example
+
