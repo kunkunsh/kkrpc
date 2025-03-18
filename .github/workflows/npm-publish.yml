@@ -33,7 +33,7 @@ jobs:
           pnpm build
       - name: Check if version is already published
         run: |
-          PACKAGE_VERSION=$(jq -r '.version' ./packages/kkrpc/package.json")
+          PACKAGE_VERSION=$(node -p "require('./packages/kkrpc/package.json').version")
           PACKAGE_NAME=$(jq -r '.name' ./packages/kkrpc/package.json)
           npm view $PACKAGE_NAME@$PACKAGE_VERSION
         continue-on-error: true
