@@ -1,6 +1,6 @@
 {
 	"$schema": "https://typedoc.org/schema.json",
-	"entryPoints": ["mod.ts", "browser-mod.ts", "./src/http.ts", "./chrome.ts", "./deno.ts"],
+	"entryPoints": ["mod.ts", "browser-mod.ts", "./src/http.ts", "./chrome.ts"],
 	"visibilityFilters": {
 		"protected": false,
 		"private": false,
@@ -8,5 +8,6 @@
 		"external": true
 	},
 	"out": "docs",
-	"exclude": ["__deno_tests__/**/*"]
+	"exclude": ["__deno_tests__/**/*"],
+	"skipErrorChecking": true
 }
