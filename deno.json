@@ -1,3 +1,0 @@
-{
-	"workspace": ["./packages/kkrpc", "./packages/demo-api", "./examples/deno-webworker-demo"]
-}

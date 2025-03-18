@@ -1,5 +1,9 @@
 # kkrpc
 
+> This project is created for building extension system for a Tauri app (https://github.com/kunkunsh/kunkun).
+>
+> It's potential can be used in other types of apps, so I open sourced it as a standalone package.
+
 [![NPM Version](https://img.shields.io/npm/v/kkrpc)](https://www.npmjs.com/package/kkrpc)
 [![JSR Version](https://jsr.io/badges/@kunkun/kkrpc)](https://jsr.io/@kunkun/kkrpc)
 ![GitHub last commit](https://img.shields.io/github/last-commit/kunkunsh/kkrpc)
@@ -12,11 +16,12 @@
 - [Documentation by JSR](https://jsr.io/@kunkun/kkrpc/doc)
 - [Typedoc Documentation](https://kunkunsh.github.io/kkrpc/)
 
-[Excalidraw Diagrams](https://excalidraw.com/#json=otqFU25B2sSjweA4Sbq9l,7-eY_bzFrGAXLNkOVpQ2Tg)
+[Excalidraw Diagrams](https://excalidraw.com/#json=xp6GbAJVAx3nU-h3PhaxW,oYBNvYmCRsQ2XR3MQo73Ug)
 
-![](https://imgur.com/vR3Lmv0.png)
-![](https://imgur.com/u728aVv.png)
-![](https://imgur.com/2ycWgVQ.png)
+<img src="https://imgur.com/vR3Lmv0.png" style="max-height: 200px;"/>
+<img src="https://i.imgur.com/zmOHNfu.png" style="max-height: 250px;"/>
+<img src="https://imgur.com/u728aVv.png" style="max-height: 400px;"/>
+<img src="https://i.imgur.com/Gu7jH1v.png" style="max-height: 300px;"/>
 
 ## Supported Environments
 
@@ -225,6 +230,10 @@ console.log(data) // { message: "Hello from background!" }
 
 Call functions in bun/node/deno processes from Tauri app with JS/TS.
 
+It allows you to call any JS/TS code in Deno/Bun/Node processes from Tauri app, just like using Electron.
+
+Seamless integration with Tauri's official shell plugin and [unlocked shellx plugin](https://github.com/HuakunShen/tauri-plugin-shellx).
+
 ```ts
 import { RPCChannel, TauriShellStdio } from "kkrpc/browser"
 import { Child, Command } from "@tauri-apps/plugin-shell"
@@ -250,6 +259,7 @@ async function spawnCmd(runtime: "deno" | "bun" | "node") {
 		throw new Error(`Invalid runtime: ${runtime}, pick either deno or bun`)
 	}
 
+	// monitor stdout/stderr/close/error for debugging and error handling
 	cmd.stdout.on("data", (data) => {
 		console.log("stdout", data)
 	})
@@ -281,3 +291,7 @@ async function spawnCmd(runtime: "deno" | "bun" | "node") {
 	process?.kill()
 }
 ```
+
+I provided a sample tauri app in `examples/tauri-demo`.
+
+![Sample Tauri App](https://i.imgur.com/nkDwRHk.png)

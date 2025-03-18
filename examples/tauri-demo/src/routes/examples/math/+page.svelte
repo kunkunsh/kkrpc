@@ -1,7 +1,10 @@
 <script lang="ts">
-	import { Button, Input } from "@kksh/svelte5"
+	import { Alert, Button, Input } from "@kksh/svelte5"
+	import { InfoIcon } from "@lucide/svelte"
 	import { open } from "@tauri-apps/plugin-dialog"
+	import { openUrl } from "@tauri-apps/plugin-opener"
 	import { Child, Command } from "@tauri-apps/plugin-shell"
+	import CodeBlock from "$lib/components/code-block.svelte"
 	import { RPCChannel, TauriShellStdio } from "kkrpc/browser"
 	import { toast } from "svelte-sonner"
 	import { type apiMethods as remoteAPI } from "../../../../sample-script/api.js"
@@ -32,7 +35,7 @@
 			cmd = Command.create("node", [scriptPath])
 			process = await cmd.spawn()
 		} else {
-			return toast.error(`Invalid runtime: ${runtime}, pick either deno or bun`)
+			return toast.error(`Invalid runtime: ${runtime}, pick deno, bun or node`)
 		}
 
 		cmd.stdout.on("data", (data) => {
@@ -76,16 +79,40 @@
 	}
 
 	let scriptPath = $state("")
-	let fibNumber = $state(5)
+	let fibNumber = $state(10)
 	let fibResult = $state(0)
 </script>
 
-<div class="container mx-auto flex flex-col gap-4 pt-8">
-	<h1 class="text-2xl font-bold">Sample kkrpc usage with Tauri</h1>
-	<small
-		>Press Pick Script, then select either bun or deno script from <code>sample-script</code> folder
-		of this example tauri app.</small
-	>
+<div class="container mx-auto flex flex-col gap-2">
+	<h1 class="text-2xl font-bold">
+		Direct <code>bun/node/deno</code> CLI call with <code>kkrpc</code>
+	</h1>
+	<Alert.Root class="bg-blue-500/50">
+		<InfoIcon class="size-4" />
+		<Alert.Title>Explanation</Alert.Title>
+		<Alert.Description>
+			<p>
+				This example demonstrates calling <code>bun/node/deno</code> CLI directly with
+				<code>kkrpc</code>.
+			</p>
+			<p>
+				The runtime executables should be in system <code>PATH</code>, otherwise it won't run.
+			</p>
+			<p>
+				Press Pick Script, then select <code>bun.ts</code>, <code>deno.ts</code> or
+				<code>node.js</code> script from <code>sample-script</code> folder of this example tauri app.
+			</p>
+			<span class="text-red-400">
+				There is a known bug with bun's stdin on MacOS, kkrpc will not work on Mac for now.
+			</span>
+			<button
+				class="text-green-500 hover:text-blue-400 hover:underline"
+				onclick={() => openUrl("https://github.com/kunkunsh/kkrpc/issues/11")}
+			>
+				https://github.com/kunkunsh/kkrpc/issues/11
+			</button>
+		</Alert.Description>
+	</Alert.Root>
 	<div class="flex gap-2">
 		<Input placeholder="Script path" disabled bind:value={scriptPath} />
 		<Button onclick={pickScript}>Pick Script</Button>
@@ -141,4 +168,25 @@
 		Fibonacci
 	</Button>
 	<p>Result: {fibResult}</p>
+	<h2 class="text-xl font-bold">Sample Code</h2>
+	<p>
+		Here is the sample code to call the <code>fibonacci</code> function from the script.
+	</p>
+	<p>
+		You can define any function in <code>bun</code>, <code>deno</code> or <code>node</code> and call
+		it from tauri app.
+	</p>
+	<CodeBlock
+		code={`const stdio = new TauriShellStdio(cmd.stdout, process)
+stdioRPC = new RPCChannel<{}, API>(stdio, {})
+const api = stdioRPC.getAPI()
+console.log(await api.fibonacci(fibNumber))
+	`}
+	/>
 </div>
+
+<style scoped>
+	code {
+		@apply text-yellow-300;
+	}
+</style>

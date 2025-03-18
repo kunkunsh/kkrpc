@@ -17,11 +17,6 @@
 			title: "Math",
 			url: "/examples/math",
 			icon: CalculatorIcon
-		},
-		{
-			title: "Database",
-			url: "/examples/database",
-			icon: DatabaseIcon
 		}
 	]
 </script>

@@ -58,3 +58,5 @@ async function spawnCmd(runtime: "deno" | "bun" | "node") {
 	process?.kill()
 }
 ```
+
+![Sample Tauri App](https://i.imgur.com/nkDwRHk.png)
