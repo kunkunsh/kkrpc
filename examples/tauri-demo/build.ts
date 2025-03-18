@@ -22,4 +22,4 @@ if (process.platform !== "win32") {
 	await $`dir /s /a dist-backend`
 }
 // build svelte frontend
-// await $`vite build`
+await $`vite build`
