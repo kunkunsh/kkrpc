@@ -12,6 +12,12 @@ if (flags.version) {
 }
 
 const stdio = new DenoIo(Deno.stdin.readable)
-const child = new RPCChannel(stdio, { expose: {} })
+const child = new RPCChannel(stdio, {
+	expose: {
+		eval: (code: string) => {
+			return eval(code)
+		}
+	}
+})
 
 console.error("Deno is running")

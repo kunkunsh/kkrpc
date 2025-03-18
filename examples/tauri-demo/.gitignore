@@ -11,3 +11,7 @@ vite.config.ts.timestamp-*
 
 dist-*/
 *.db
+
+src-tauri/binaries/*
+!src-tauri/binaries/.gitkeep
+
