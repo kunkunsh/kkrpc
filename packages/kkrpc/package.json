@@ -45,12 +45,12 @@
 		},
 		"./deno": {
 			"types": {
-				"import": "./dist/deno.d.ts",
-				"require": "./dist/deno.cjs",
-				"default": "./dist/deno.js"
+				"import": "./dist/deno-mod.d.ts",
+				"require": "./dist/deno-mod.cjs",
+				"default": "./dist/deno-mod.js"
 			},
-			"import": "./dist/deno.js",
-			"require": "./dist/deno.cjs"
+			"import": "./dist/deno-mod.js",
+			"require": "./dist/deno-mod.cjs"
 		},
 		"./chrome": {
 			"types": {
