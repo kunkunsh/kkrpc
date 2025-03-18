@@ -54,16 +54,6 @@ importers:
         specifier: ^5.6.3
         version: 5.6.3
 
-  examples/backend:
-    dependencies:
-      typescript:
-        specifier: ^5
-        version: 5.6.3
-    devDependencies:
-      '@types/bun':
-        specifier: latest
-        version: 1.2.5
-
   examples/http-demo:
     dependencies:
       '@kksh/demo-api':
@@ -147,7 +137,7 @@ importers:
         specifier: ^2.0.4
         version: 2.1.5(@types/node@22.13.10)
 
-  examples/tauri-kkrpc-example:
+  examples/tauri-demo:
     dependencies:
       '@kksh/svelte5':
         specifier: ^0.1.16
@@ -5841,8 +5831,8 @@ snapshots:
       hast-util-to-html: 9.0.5
       hast-util-to-text: 4.0.2
       hastscript: 9.0.0
-      postcss: 8.4.49
-      postcss-nested: 6.2.0(postcss@8.4.49)
+      postcss: 8.5.3
+      postcss-nested: 6.2.0(postcss@8.5.3)
       unist-util-visit: 5.0.0
       unist-util-visit-parents: 6.0.1
 
@@ -6414,7 +6404,7 @@ snapshots:
       esm-env: 1.2.2
       import-meta-resolve: 4.1.0
       kleur: 4.1.5
-      magic-string: 0.30.12
+      magic-string: 0.30.17
       mrmime: 2.0.0
       sade: 1.8.1
       set-cookie-parser: 2.7.1
@@ -6735,7 +6725,7 @@ snapshots:
     dependencies:
       '@vitest/spy': 2.1.5
       estree-walker: 3.0.3
-      magic-string: 0.30.12
+      magic-string: 0.30.17
     optionalDependencies:
       vite: 5.4.11(@types/node@22.13.10)
 
@@ -6751,7 +6741,7 @@ snapshots:
   '@vitest/snapshot@2.1.5':
     dependencies:
       '@vitest/pretty-format': 2.1.5
-      magic-string: 0.30.12
+      magic-string: 0.30.17
       pathe: 1.1.2
 
   '@vitest/spy@2.1.5':
@@ -10279,7 +10269,7 @@ snapshots:
       postcss-load-config: 4.0.2(postcss@8.5.3)
       postcss-nested: 6.2.0(postcss@8.5.3)
       postcss-selector-parser: 6.1.2
-      resolve: 1.22.8
+      resolve: 1.22.10
       sucrase: 3.35.0
     transitivePeerDependencies:
       - ts-node
