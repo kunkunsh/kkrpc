@@ -1,3 +1,4 @@
+import fs from "node:fs"
 import path from "node:path"
 import process from "node:process"
 import { $ } from "bun"
@@ -35,3 +36,13 @@ if (process.platform !== "win32") {
 }
 // build svelte frontend
 await $`vite build`
+
+// rename binaries
+const rustInfo = await $`rustc -vV`.text()
+const targetTriple = /host: (\S+)/g.exec(rustInfo)?.[1]
+if (!targetTriple) {
+	console.error("Failed to determine platform target triple")
+}
+fs.renameSync(`${binariesDir}/node${ext}`, `${binariesDir}/node-${targetTriple}${ext}`)
+fs.renameSync(`${binariesDir}/deno${ext}`, `${binariesDir}/deno-${targetTriple}${ext}`)
+fs.renameSync(`${binariesDir}/bun${ext}`, `${binariesDir}/bun-${targetTriple}${ext}`)
