@@ -177,8 +177,7 @@
 		it from tauri app.
 	</p>
 	<CodeBlock
-		code={`
-const stdio = new TauriShellStdio(cmd.stdout, process)
+		code={`const stdio = new TauriShellStdio(cmd.stdout, process)
 stdioRPC = new RPCChannel<{}, API>(stdio, {})
 const api = stdioRPC.getAPI()
 console.log(await api.fibonacci(fibNumber))
