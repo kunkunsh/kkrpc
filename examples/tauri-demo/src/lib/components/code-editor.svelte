@@ -10,14 +10,12 @@
 	onMount(async () => {
 		// Create the highlighter, it can be reused
 		const highlighter = await createHighlighter({
-			themes: ["github-dark-default"],
+			themes: ["vitesse-dark", "vitesse-light", "github-dark-default"],
 			langs: ["typescript"]
 		})
 
 		// Register the languageIds first. Only registered languages will be highlighted.
-		monaco.languages.register({ id: "vue" })
 		monaco.languages.register({ id: "typescript" })
-		monaco.languages.register({ id: "javascript" })
 
 		// Register the themes from Shiki, and provide syntax highlighting for Monaco.
 		shikiToMonaco(highlighter, monaco)
@@ -25,7 +23,7 @@
 		// Create the editor
 		const editor = monaco.editor.create(document.getElementById("editor")!, {
 			value: code,
-			language: "javascript",
+			language: "typescript",
 			theme: "github-dark-default"
 		})
 

@@ -1,8 +1,8 @@
 {
 	"$schema": "https://schema.tauri.app/config/2",
-	"productName": "tauri-demo",
+	"productName": "tauri-kkrpc-example",
 	"version": "0.1.0",
-	"identifier": "com.tauri-demo.app",
+	"identifier": "com.tauri-kkrpc-example.app",
 	"build": {
 		"beforeDevCommand": "pnpm dev",
 		"devUrl": "http://localhost:1420",
@@ -12,9 +12,9 @@
 	"app": {
 		"windows": [
 			{
-				"title": "tauri-demo",
-				"width": 800,
-				"height": 600
+				"title": "tauri-kkrpc-example",
+				"width": 1000,
+				"height": 800
 			}
 		],
 		"security": {
@@ -23,7 +23,7 @@
 	},
 	"bundle": {
 		"active": true,
-		"externalBin": ["binaries/node"],
+		"externalBin": ["binaries/node", "binaries/deno", "binaries/bun"],
 		"targets": "all",
 		"icon": [
 			"icons/32x32.png",

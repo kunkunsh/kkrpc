@@ -5841,7 +5841,7 @@
           ]
         }
       },
-      "examples/tauri-demo": {
+      "examples/tauri-kkrpc-example": {
         "packageJson": {
           "dependencies": [
             "npm:@kksh/svelte5@~0.1.16",

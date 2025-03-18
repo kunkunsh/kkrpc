@@ -10,7 +10,7 @@ const cwd = process.cwd()
 const binariesDir = path.join(cwd, "src-tauri/binaries")
 console.log("binariesDir", binariesDir)
 const denoBackendDir = path.join(cwd, "../deno-backend")
-await $`deno compile -A -o deno${ext} main.ts`.cwd(denoBackendDir)
+await $`deno compile -A --unstable-kv -o deno${ext} main.ts`.cwd(denoBackendDir)
 await $`cp deno${ext} ${binariesDir}/deno${ext}`.cwd(denoBackendDir)
 
 // build node from typescript to javascript

@@ -1,5 +1,5 @@
 {
-	"name": "tauri-demo",
+	"name": "tauri-kkrpc-example",
 	"version": "0.1.0",
 	"description": "",
 	"type": "module",
@@ -19,13 +19,16 @@
 		"@tauri-apps/api": "^2",
 		"@tauri-apps/plugin-dialog": "^2.2.0",
 		"@tauri-apps/plugin-opener": "^2",
+		"@tauri-apps/plugin-os": "^2.2.1",
 		"@tauri-apps/plugin-shell": "^2.2.0",
 		"formsnap": "^2.0.0",
 		"kkrpc": "workspace:*",
 		"mode-watcher": "^0.5.1",
 		"monaco-editor-core": "^0.52.2",
+		"runed": "^0.24.1",
 		"shiki": "^3.2.1",
 		"shiki-magic-move": "^1.1.0",
+		"svelte-inspect-value": "^0.5.0",
 		"svelte-sonner": "^0.3.28"
 	},
 	"devDependencies": {
