@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { Alert } from "@kksh/svelte5"
 	import CodeBlock from "$lib/components/code-block.svelte"
 </script>
 
@@ -41,6 +42,13 @@ contextBridge.exposeInMainWorld(
 window.electron.doThing()`}
 	/>
 	<h2 class="text-xl font-bold">Tauri + kkrpc</h2>
+	<Alert.Root class="bg-blue-500/50">
+		<Alert.Title>Explanation</Alert.Title>
+		<Alert.Description>
+			The code indeed look longer then Electron's, but honestly it's a onetime cost. You can spawn a
+			sidecar process in the background and call it like a local library.
+		</Alert.Description>
+	</Alert.Root>
 	<CodeBlock
 		class="w-full overflow-x-auto"
 		code={`// Deno Process
