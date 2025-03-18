@@ -4,14 +4,8 @@
 		"build": "deno compile main.ts"
 	},
 	"imports": {
-		"@libsql/client": "npm:@libsql/client@^0.15.0",
 		"@std/assert": "jsr:@std/assert@1",
 		"@kunkun/kkrpc/deno": "../../packages/kkrpc/deno.ts",
-		"@types/pg": "npm:@types/pg@^8.11.11",
-		"better-sqlite3": "npm:better-sqlite3@^11.9.1",
-		"drizzle-kit": "npm:drizzle-kit@^0.30.5",
-		"drizzle-orm": "npm:drizzle-orm@^0.40.1",
-		"pg": "npm:pg@^8.14.1",
 		"superjson": "npm:superjson@^2.2.2",
 		"@tauri-apps/plugin-shell": "npm:@tauri-apps/plugin-shell@^2.2.0"
 	}
