@@ -1,0 +1,46 @@
+{
+  "version": "4",
+  "specifiers": {
+    "jsr:@std/cli@*": "1.0.14",
+    "npm:@tauri-apps/plugin-shell@^2.2.0": "2.2.0",
+    "npm:superjson@^2.2.2": "2.2.2"
+  },
+  "jsr": {
+    "@std/cli@1.0.14": {
+      "integrity": "b09ee9921cd476c0e08185ed2bfce682d45ecf4654f26c31b4aa244a2c5c024e"
+    }
+  },
+  "npm": {
+    "@tauri-apps/api@2.3.0": {
+      "integrity": "sha512-33Z+0lX2wgZbx1SPFfqvzI6su63hCBkbzv+5NexeYjIx7WA9htdOKoRR7Dh3dJyltqS5/J8vQFyybiRoaL0hlA=="
+    },
+    "@tauri-apps/plugin-shell@2.2.0": {
+      "integrity": "sha512-iC3Ic1hLmasoboG7BO+7p+AriSoqAwKrIk+Hpk+S/bjTQdXqbl2GbdclghI4gM32X0bls7xHzIFqhRdrlvJeaA==",
+      "dependencies": [
+        "@tauri-apps/api"
+      ]
+    },
+    "copy-anything@3.0.5": {
+      "integrity": "sha512-yCEafptTtb4bk7GLEQoM8KVJpxAfdBJYaXyzQEgQQQgYrZiDp8SJmGKlYza6CYjEDNstAdNdKA3UuoULlEbS6w==",
+      "dependencies": [
+        "is-what"
+      ]
+    },
+    "is-what@4.1.16": {
+      "integrity": "sha512-ZhMwEosbFJkA0YhFnNDgTM4ZxDRsS6HqTo7qsZM08fehyRYIYa0yHu5R6mgo1n/8MgaPBXiPimPD77baVFYg+A=="
+    },
+    "superjson@2.2.2": {
+      "integrity": "sha512-5JRxVqC8I8NuOUjzBbvVJAKNM8qoVuH0O77h4WInc/qC2q5IreqKxYwgkga3PfA22OayK2ikceb/B26dztPl+Q==",
+      "dependencies": [
+        "copy-anything"
+      ]
+    }
+  },
+  "workspace": {
+    "dependencies": [
+      "jsr:@std/assert@1",
+      "npm:@tauri-apps/plugin-shell@^2.2.0",
+      "npm:superjson@^2.2.2"
+    ]
+  }
+}
