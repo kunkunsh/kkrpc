@@ -1,16 +1,13 @@
-import { parseArgs } from "node:util"
+import { NodeIo, RPCChannel } from "kkrpc"
+import pkg from "../../../../packages/kkrpc/package.json" with { type: "json" }
+import { apiMethods } from "./api"
 
-const { values: flags } = parseArgs({
-	args: process.argv,
-	options: {
-		version: {
-			type: "boolean"
-		}
-	},
-	strict: true,
-	allowPositionals: true
-})
-
-if (flags.version) {
-	console.log("1.0.0")
+if (process.argv.includes("--version")) {
+	console.log(pkg.version)
+	process.exit(0)
 }
+
+console.error("Node process starts")
+const stdio = new NodeIo(process.stdin, process.stdout)
+const child = new RPCChannel(stdio, { expose: apiMethods })
+console.error("Server is running")

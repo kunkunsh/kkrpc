@@ -13,8 +13,13 @@ await Bun.build({
 	minify: true
 })
 await $`bun pkg dist-backend/node.js --output dist-backend/node${ext}`
-await $`deno compile -A -o dist-backend/deno src/backend/deno.ts`
 await $`bun build --compile src/backend/bun.ts --outfile dist-backend/bun${ext}`
 
+// print size of generated binaries
+if (process.platform !== "win32") {
+	await $`du -h ./dist-backend/*`
+} else {
+	await $`dir /s /a dist-backend`
+}
 // build svelte frontend
-await $`vite build`
+// await $`vite build`
