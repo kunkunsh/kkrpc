@@ -75,11 +75,11 @@ console.log("Sum: ", sum)
 
 `bun client.ts` to test the API.
 
-
 :::danger
 `http` adapter is the only adapter that doesn't support bidirectional RPC calls and callbacks.
 
 This means
+
 - You can't expose functions from client side and call them on server side.
 - When you call a method on server from client, you can't add a callback function for async response.
 

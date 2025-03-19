@@ -59,20 +59,17 @@ To adapt to a new environment, simply implement `IoInterface` and pass it to `RP
 
 `RPCChannel` does all the underlying magic, including serialization/deserialization, request-response matching, callback managing, proxy generating, etc.
 
-
 ## Extend to Other Languages
 
 JS/TS has the advantage of dynamic typing and super free syntax which allows proxy, eventually allowing calling remote RPC methods like if the are local
 with TypeScript support.
 
-`kkRPC` was created for TypeScript projects, it doesn't have a schema like GraphQL or gRPC's `.proto` file. 
+`kkRPC` was created for TypeScript projects, it doesn't have a schema like GraphQL or gRPC's `.proto` file.
 This project will be so complicated if I want to do that, code generate for other languages will be a ton of work and I don't want to do that.
 
-Since the underlying protocol is quite simple (similar to JSON-RPC), it's possible to extend to other languages. 
+Since the underlying protocol is quite simple (similar to JSON-RPC), it's possible to extend to other languages.
 Just implement the same IO interface and channel in the target language, it's not too hard.
 
 The problem is, you can't reuse the API type/interface from TypeScript, and there is most likely no proxy support (you will need to write the method names). In this case, I don't think `kkRPC` is a good choice, you lose all the benefits of `kkRPC` (i.e. proxy, TypeScript, intellisense).
 
 If you are sure you need other languages for features like `callback`, then you can implement your own channel and IO adapter.
-
-

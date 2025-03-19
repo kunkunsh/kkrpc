@@ -8,4 +8,7 @@ const buildOutput = await Bun.build({
 	format: "esm"
 })
 
-await $`bun test __tests__ --coverage`
+await $`bun test __tests__ --coverage`.env({
+	...process.env,
+	FORCE_COLOR: "1"
+})

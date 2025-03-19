@@ -11,7 +11,7 @@ export class DenoIo implements IoInterface {
 	name = "deno-io"
 
 	constructor(
-		private readStream: ReadableStream<Uint8Array>,
+		private readStream: ReadableStream<Uint8Array>
 		// private writeStream: WritableStream<Uint8Array>
 	) {
 		this.reader = this.readStream.getReader()

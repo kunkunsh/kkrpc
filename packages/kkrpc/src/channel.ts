@@ -3,7 +3,8 @@ import {
 	deserializeMessage,
 	serializeMessage,
 	type Message,
-	type Response
+	type Response,
+	type SerializationOptions
 } from "./serialization.ts"
 import { generateUUID } from "./utils.ts"
 
@@ -32,14 +33,17 @@ export class RPCChannel<
 	private count: number = 0
 	private messageStr = ""
 	private apiImplementation?: LocalAPI
+	private serializationOptions: SerializationOptions
 
 	constructor(
 		private io: Io,
 		options?: {
 			expose?: LocalAPI
+			serialization?: SerializationOptions
 		}
 	) {
 		this.apiImplementation = options?.expose
+		this.serializationOptions = options?.serialization || {}
 		this.listen()
 	}
 
@@ -96,7 +100,7 @@ export class RPCChannel<
 	/**
 	 * Handles a single message string by parsing and routing it
 	 * @param messageStr The message string to handle
-	 * @private 
+	 * @private
 	 */
 	private async handleMessageStr(messageStr: string): Promise<void> {
 		this.count++
@@ -153,7 +157,7 @@ export class RPCChannel<
 				type: "request",
 				callbackIds: callbackIds.length > 0 ? callbackIds : undefined
 			}
-			this.io.write(serializeMessage(message))
+			this.io.write(serializeMessage(message, this.serializationOptions))
 		})
 	}
 
@@ -240,7 +244,7 @@ export class RPCChannel<
 			args,
 			type: "callback"
 		}
-		this.io.write(serializeMessage(message))
+		this.io.write(serializeMessage(message, this.serializationOptions))
 	}
 
 	/**
@@ -274,7 +278,7 @@ export class RPCChannel<
 			args: { result },
 			type: "response"
 		}
-		this.io.write(serializeMessage(response))
+		this.io.write(serializeMessage(response, this.serializationOptions))
 	}
 
 	/**
@@ -290,7 +294,7 @@ export class RPCChannel<
 			args: { error },
 			type: "response"
 		}
-		this.io.write(serializeMessage(response))
+		this.io.write(serializeMessage(response, this.serializationOptions))
 	}
 
 	/**

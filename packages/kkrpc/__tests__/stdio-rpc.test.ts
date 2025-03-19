@@ -17,9 +17,6 @@ const projectRoot = getProjectRoot()
 const testsPath = path.join(projectRoot, "__tests__")
 
 async function runWorker(worker: ChildProcessWithoutNullStreams) {
-	// worker.stderr.pipe(process.stdout);
-
-	// const stdio = createStdio();
 	const io = new NodeIo(worker.stdout, worker.stdin)
 	const rpc = new RPCChannel<{}, API>(io)
 	const api = rpc.getAPI()
@@ -79,18 +76,20 @@ describe("RPCChannel Test", () => {
 		const workerDeno = spawn("deno", [path.join(testsPath, "scripts/deno-api.ts")])
 		await runWorker(workerDeno)
 	})
-	test.todo("NodeStdio", async () => {
+	test("NodeStdio", async () => {
 		const jsScriptPath = path.join(testsPath, "scripts/node-api.js")
 		if (!fs.existsSync(jsScriptPath)) {
+			await fs.unlinkSync(path.join(testsPath, "scripts/node-api.js"))
 			await Bun.build({
 				entrypoints: [path.join(testsPath, "scripts/node-api.ts")],
 				outdir: path.join(testsPath, "scripts"),
-				sourcemap: "inline",
+				target: "node",
 				minify: true
 			})
 		}
-		const workerBun = spawn("node", [jsScriptPath])
-		await runWorker(workerBun)
+		console.log("jsScriptPath", jsScriptPath)
+		const workerNode = spawn("node", [jsScriptPath])
+		await runWorker(workerNode)
 	})
 	test("NodeStdio with bun", async () => {
 		const workerBun = spawn("bun", [path.join(testsPath, "scripts/node-api.ts")])
