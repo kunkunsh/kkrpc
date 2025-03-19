@@ -58,6 +58,34 @@ class RPCChannel<
 > {}
 ```
 
+## Serialization
+
+kkrpc supports two serialization formats for message transmission:
+
+- `json`: Standard JSON serialization
+- `superjson`: Enhanced JSON serialization with support for more data types like Date, Map, Set, BigInt, and Uint8Array (default since v0.2.0)
+
+You can specify the serialization format when creating a new RPCChannel:
+
+```ts
+// Using default serialization (superjson)
+const rpc = new RPCChannel(io, { expose: apiImplementation })
+
+// Explicitly using superjson serialization (recommended for clarity)
+const rpc = new RPCChannel(io, {
+	expose: apiImplementation,
+	serialization: { version: "superjson" }
+})
+
+// Using standard JSON serialization (for backward compatibility)
+const rpc = new RPCChannel(io, {
+	expose: apiImplementation,
+	serialization: { version: "json" }
+})
+```
+
+For backward compatibility, the receiving side will automatically detect the serialization format so older clients can communicate with newer servers and vice versa.
+
 ## Examples
 
 Below are simple examples.

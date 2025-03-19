@@ -62,8 +62,8 @@ class RPCChannel<
 
 kkrpc supports two serialization formats for message transmission:
 
-- `json`: Standard JSON serialization (default in versions before 0.x)
-- `superjson`: Enhanced JSON serialization with support for more data types like Date, Map, Set, BigInt, and Uint8Array (default since version 0.x)
+- `json`: Standard JSON serialization
+- `superjson`: Enhanced JSON serialization with support for more data types like Date, Map, Set, BigInt, and Uint8Array (default since v0.2.0)
 
 You can specify the serialization format when creating a new RPCChannel:
 

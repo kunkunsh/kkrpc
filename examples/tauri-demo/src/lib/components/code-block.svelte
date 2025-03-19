@@ -15,7 +15,7 @@
 {#await highlighter then highlighter}
 	<ShikiMagicMove
 		lang="ts"
-		class={cn("p-3 overflow-auto", className)}
+		class={cn("overflow-auto p-3", className)}
 		theme="nord"
 		{highlighter}
 		{code}
