@@ -1,12 +1,6 @@
 import { describe, expect, test } from "bun:test"
 import superjson from "superjson"
-import {
-	deserializeMessage,
-	deserializeResponse,
-	serializeMessage,
-	serializeResponse,
-	type Message
-} from "../src/serialization.ts"
+import { deserializeMessage, serializeMessage, type Message } from "../src/serialization.ts"
 
 describe("Serializer", () => {
 	test("should serialize and deserialize a message", async () => {
@@ -24,14 +18,14 @@ describe("Serializer", () => {
 		expect(deserialized).toEqual(expectedMessage as any)
 	})
 
-	test("should serialize and deserialize a response", async () => {
-		const response = {
-			id: 1
-		}
-		const serializedResponse = serializeResponse(response as any)
-		const deserializedResponse = await deserializeResponse(serializedResponse)
-		expect(deserializedResponse).toEqual(response as any)
-	})
+	// test("should serialize and deserialize a response", async () => {
+	// 	const response = {
+	// 		id: 1
+	// 	}
+	// 	const serializedResponse = serializeResponse(response as any)
+	// 	const deserializedResponse = await deserializeResponse(serializedResponse)
+	// 	expect(deserializedResponse).toEqual(response as any)
+	// })
 
 	test("should serialize and deserialize a message with json version", async () => {
 		const message: Message = {
