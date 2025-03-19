@@ -18,15 +18,6 @@ describe("Serializer", () => {
 		expect(deserialized).toEqual(expectedMessage as any)
 	})
 
-	// test("should serialize and deserialize a response", async () => {
-	// 	const response = {
-	// 		id: 1
-	// 	}
-	// 	const serializedResponse = serializeResponse(response as any)
-	// 	const deserializedResponse = await deserializeResponse(serializedResponse)
-	// 	expect(deserializedResponse).toEqual(response as any)
-	// })
-
 	test("should serialize and deserialize a message with json version", async () => {
 		const message: Message = {
 			id: "1",
