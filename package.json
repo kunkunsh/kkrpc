@@ -1,5 +1,5 @@
 {
-	"name": "krpc",
+	"name": "kkrpc-repo",
 	"private": true,
 	"scripts": {
 		"build": "turbo build",

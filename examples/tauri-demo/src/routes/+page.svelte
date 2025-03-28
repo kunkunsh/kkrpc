@@ -51,29 +51,41 @@ window.electron.doThing()`}
 	</Alert.Root>
 	<CodeBlock
 		class="w-full overflow-x-auto"
-		code={`// Deno Process
+		code={`/* -------------------------------------------------------------------------- */
+/*                                Deno Process                                */
+/* -------------------------------------------------------------------------- */
 import { DenoIo, RPCChannel } from "kkrpc"
-import { apiMethods } from "./api.js"
+import { initSqlite } from "./api.ts"
 
 const stdio = new DenoIo(Deno.stdin.readable)
 // expose an object containing functions to the other side
 // nested objects are supported
-const child = new RPCChannel(stdio, { expose: apiMethods })`}
+const channel = new RPCChannel(stdio, { expose: { initSqlite } })
+const rendererAPI = channel.getAPI()
+rendererAPI.sendNotification("Hello, world!")
+`}
 	/>
 
 	<CodeBlock
-		code={`// WebView Process
+		code={`/* -------------------------------------------------------------------------- */
+/*                               WebView Process                              */
+/* -------------------------------------------------------------------------- */
 // Spawn the sidecar process
+import { RPCChannel, TauriShellStdio } from "kkrpc/browser"
+import { sendNotification } from '@tauri-apps/plugin-notification'
 const cmd = Command.sidecar("binaries/deno-sidecar")
+// or run deno binary directly
+const cmd = Command.create("deno", ["main.ts"])
+
 const process = await cmd.spawn()
 
 // Establish the bidirectional kkrpc channel
 const stdio = new TauriShellStdio(cmd.stdout, process)
-const stdioRPC = new RPCChannel<{}, API>(stdio, {})
-const api = stdioRPC.getAPI()
+const channel = new RPCChannel(stdio, { expose: { sendNotification } })
+const api = channel.getAPI()
 
 // Call the API
-console.log(await api.fibonacci(fibNumber))`}
+console.log(await api.initSqlite())`}
 	></CodeBlock>
 </main>
 

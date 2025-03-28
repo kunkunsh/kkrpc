@@ -42,6 +42,7 @@ export class RPCChannel<
 			serialization?: SerializationOptions
 		}
 	) {
+		console.warn("RPCChannel constructor")
 		this.apiImplementation = options?.expose
 		this.serializationOptions = options?.serialization || {}
 		this.listen()
@@ -113,7 +114,7 @@ export class RPCChannel<
 				} else if (parsedMessage.type === "callback") {
 					this.handleCallback(parsedMessage)
 				} else {
-					console.error("received unknown message type", parsedMessage, typeof parsedMessage)
+					console.error("received unknown message type 2", parsedMessage, typeof parsedMessage)
 				}
 			})
 			.catch((err) => {

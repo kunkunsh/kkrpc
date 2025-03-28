@@ -1,4 +1,4 @@
-import { DenoIo, RPCChannel } from "@kunkun/kkrpc/deno"
+import { DenoIo, RPCChannel } from "kkrpc/deno"
 import { parseArgs } from "jsr:@std/cli/parse-args"
 import pkg from "../../packages/kkrpc/package.json" with { type: "json" }
 
@@ -12,12 +12,15 @@ if (flags.version) {
 }
 
 const stdio = new DenoIo(Deno.stdin.readable)
-const child = new RPCChannel(stdio, {
+const channel = new RPCChannel(stdio, {
 	expose: {
 		eval: (code: string) => {
 			return eval(code)
 		}
 	}
 })
+
+const api = channel.getAPI()
+api.eval("console.log('Hello, world!')")
 
 console.error("Deno is running")
