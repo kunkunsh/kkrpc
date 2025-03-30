@@ -2,7 +2,7 @@
 
 > This project is created for building extension system for a Tauri app (https://github.com/kunkunsh/kunkun).
 >
-> It's potential can be used in other types of apps, so I open sourced it as a standalone package.
+> It can potentially be used in other types of apps, so I open sourced it as a standalone package.
 
 [![NPM Version](https://img.shields.io/npm/v/kkrpc)](https://www.npmjs.com/package/kkrpc)
 [![JSR Version](https://jsr.io/badges/@kunkun/kkrpc)](https://jsr.io/@kunkun/kkrpc)
