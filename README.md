@@ -208,51 +208,97 @@ console.log("Sum: ", sum)
 
 ### Chrome Extension Example
 
+For Chrome extensions, use the dedicated chrome-extension adapters that provide both basic and enhanced options:
+
 #### `background.ts`
 
 ```ts
-import { ChromeBackgroundIO, RPCChannel } from "kkrpc"
-import type { API } from "./api"
+import { setupBackgroundRPC } from "kkrpc/chrome-extension"
+import type { BackgroundAPI, ContentAPI } from "./types"
 
-// Store RPC channels for each tab
-const rpcChannels = new Map<number, RPCChannel<API, {}>>()
+const backgroundAPI: BackgroundAPI = {
+	async executeInMainWorld(code: string) {
+		const tabs = await chrome.tabs.query({ active: true, currentWindow: true })
+		const currentTab = tabs[0]
+		
+		if (!currentTab?.id) {
+			return { success: false, error: "No active tab found" }
+		}
 
-// Listen for tab connections
-chrome.runtime.onConnect.addListener((port) => {
-	if (port.sender?.tab?.id) {
-		const tabId = port.sender.tab.id
-		const io = new ChromeBackgroundIO(tabId)
-		const rpc = new RPCChannel(io, { expose: backgroundAPI })
-		rpcChannels.set(tabId, rpc)
+		try {
+			await chrome.scripting.executeScript({
+				target: { tabId: currentTab.id },
+				world: 'MAIN',
+				func: (codeToExecute: string) => eval(codeToExecute),
+				args: [code]
+			})
+			return { success: true }
+		} catch (error) {
+			return { success: false, error: error.message }
+		}
+	},
 
-		port.onDisconnect.addListener(() => {
-			rpcChannels.delete(tabId)
-		})
+	async getExtensionInfo() {
+		const manifest = chrome.runtime.getManifest()
+		return { version: manifest.version, name: manifest.name }
 	}
-})
+}
+
+// Simple setup using utility function
+const rpcChannels = setupBackgroundRPC<BackgroundAPI, ContentAPI>(backgroundAPI)
 ```
 
 #### `content.ts`
 
 ```ts
-import { ChromeContentIO, RPCChannel } from "kkrpc"
-import type { API } from "./api"
+import { setupContentRPC } from "kkrpc/chrome-extension"
+import type { BackgroundAPI, ContentAPI } from "./types"
 
-const io = new ChromeContentIO()
-const rpc = new RPCChannel<API, API>(io, {
-	expose: {
-		updateUI: async (data) => {
-			document.body.innerHTML = data.message
-			return true
+const contentAPI: ContentAPI = {
+	async getPageInfo() {
+		return {
+			title: document.title,
+			url: window.location.href,
+			domain: window.location.hostname
 		}
-	}
-})
+	},
 
-// Get API from background script
-const api = rpc.getAPI()
-const data = await api.getData()
-console.log(data) // { message: "Hello from background!" }
+	async manipulateDOM(selector: string, action: 'click' | 'highlight' | 'remove') {
+		const elements = document.querySelectorAll(selector)
+		if (elements.length === 0) return false
+
+		elements.forEach(element => {
+			switch (action) {
+				case 'click': (element as HTMLElement).click(); break
+				case 'highlight':
+					(element as HTMLElement).style.backgroundColor = 'yellow'
+					break
+				case 'remove': element.remove(); break
+			}
+		})
+		return true
+	}
+}
+
+// Simple setup using utility function
+const { rpc, backgroundAPI } = setupContentRPC<ContentAPI, BackgroundAPI>(contentAPI)
+
+// Execute code in main world
+const result = await backgroundAPI.executeInMainWorld(`
+	console.log("Hello from main world!")
+	console.log("Current URL:", window.location.href)
+`)
+
+console.log("Execution result:", result)
 ```
+
+**Chrome Extension Features:**
+- **Basic adapters**: Simple message-based communication for lightweight use cases
+- **Enhanced adapters**: Port-based communication with automatic reconnection
+- **Utility functions**: Simple setup with `setupBackgroundRPC()` and `setupContentRPC()`
+- **Type-safe**: Full TypeScript support with defined API interfaces
+- **Reliable**: Message queuing, error handling, and automatic cleanup
+- **Production-ready**: Enhanced logging and debugging capabilities
 
 ### Tauri Example
 

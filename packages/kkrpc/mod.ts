@@ -16,7 +16,6 @@
  * If you want to use this library in browser, please use `/browser` instead.
  */
 export * from "./src/adapters/worker.ts"
-export * from "./src/adapters/chrome.ts"
 export * from "./src/adapters/bun.ts"
 export * from "./src/adapters/node.ts"
 export * from "./src/adapters/websocket.ts"

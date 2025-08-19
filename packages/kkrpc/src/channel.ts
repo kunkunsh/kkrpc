@@ -77,7 +77,7 @@ export class RPCChannel<
 			if (!buffer) {
 				continue
 			}
-			const bufferStr = buffer.toString("utf-8")
+			const bufferStr = typeof buffer === 'string' ? buffer : new TextDecoder('utf-8').decode(buffer)
 			// console.error("bufferStr", bufferStr)
 			if (bufferStr.trim().length === 0) {
 				continue

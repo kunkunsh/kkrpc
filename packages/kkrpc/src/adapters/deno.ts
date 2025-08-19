@@ -1,4 +1,4 @@
-import { Buffer } from "node:buffer"
+// Use global Buffer type for better compatibility with DTS generation
 import type { IoInterface } from "../interface.ts"
 
 /**
@@ -21,12 +21,12 @@ export class DenoIo implements IoInterface {
 		// writer.write(encoder.encode("hello"))
 	}
 
-	async read(): Promise<Buffer | null> {
+	async read(): Promise<Uint8Array | null> {
 		const { value, done } = await this.reader.read()
 		if (done) {
 			return null // End of input
 		}
-		return Buffer.from(value)
+		return value
 	}
 
 	write(data: string): Promise<void> {
