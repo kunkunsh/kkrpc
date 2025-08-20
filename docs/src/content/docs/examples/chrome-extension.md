@@ -450,17 +450,111 @@ try {
 - **Enhanced logging** for debugging
 - **Proper cleanup** on tab close
 
+## Multi-Component Communication Examples
+
+### All Extension Components
+
+The Tamper Kunkun extension demonstrates comprehensive RPC communication between all Chrome extension components:
+
+#### Component Communication Matrix
+
+| From → To | Background | Content | Popup | Side Panel | Options |
+|-----------|------------|---------|-------|------------|---------|
+| **Background** | ✅ Internal | ✅ Direct | ✅ Direct | ✅ Direct | ✅ Direct |
+| **Content** | ✅ Direct | ✅ Broadcast | ⚠️ Via Background | ⚠️ Via Background | ❌ Not Common |
+| **Popup** | ✅ Direct | ⚠️ Via Background | ✅ Internal | ⚠️ Via Background | ⚠️ Via Background |
+| **Side Panel** | ✅ Direct | ⚠️ Via Background | ⚠️ Via Background | ✅ Internal | ⚠️ Via Background |
+| **Options** | ✅ Direct | ❌ Not Common | ⚠️ Via Background | ⚠️ Via Background | ✅ Internal |
+
+### Universal Chrome Extension RPC
+
+For complex multi-component communication, use the Universal Chrome IO adapter:
+
+```typescript
+import { UniversalChromeIO, setupComponentRPC } from "kkrpc/chrome-extension"
+
+// Background to Popup
+const popupChannels = setupComponentRPC('background', 'popup', backgroundAPI)
+
+// Side Panel to Background  
+const { rpc, remoteAPI } = setupComponentRPC('sidepanel', 'background', sidePanelAPI)
+
+// Multi-component setup for background
+const channels = setupMultiComponentRPC(backgroundAPI, ['popup', 'sidepanel', 'content', 'options'])
+```
+
+### Cross-Component Proxy Communication
+
+For components that can't directly communicate (e.g., popup to content), use the background as a proxy:
+
+```typescript
+// Background script - proxy handler
+async function proxyPopupToContent(tabId: number, method: string, args: any[]) {
+  const contentChannel = contentRPCChannels.get(tabId)
+  if (!contentChannel) {
+    throw new Error(`No content script found for tab ${tabId}`)
+  }
+  
+  const contentAPI = contentChannel.getAPI()
+  
+  switch (method) {
+    case 'highlightElements':
+      return await contentAPI.manipulateDOM(args[0], 'highlight')
+    case 'getFormData':
+      return await contentAPI.getPageInfo()
+    default:
+      throw new Error(`Unknown method: ${method}`)
+  }
+}
+
+// Extended background API
+const extendedBackgroundAPI = {
+  ...backgroundAPI,
+  async proxyToContent(tabId: number, method: string, args: any[]) {
+    return await proxyPopupToContent(tabId, method, args)
+  }
+}
+```
+
+### Broadcast Communication
+
+Broadcast messages to all connected components:
+
+```typescript
+// Background script broadcaster
+class ExtensionBroadcaster {
+  async broadcastToAll(message: string, data?: any) {
+    const promises: Promise<void>[] = []
+
+    // Broadcast to all component types
+    for (const [componentType, channelMap] of Object.entries(this.channels)) {
+      for (const [connectionId, channel] of channelMap) {
+        promises.push(
+          this.sendToComponent(componentType, channel, message, data)
+            .catch(error => console.error(`Broadcast failed to ${componentType}:${connectionId}`, error))
+        )
+      }
+    }
+
+    await Promise.allSettled(promises)
+  }
+}
+```
+
 ## Comparison
 
-| Feature | Basic Adapters | Enhanced Adapters |
-|---------|----------------|-------------------|
-| Connection Type | Message passing | Port-based |
-| Reconnection | Manual | Automatic |
-| Error Handling | Basic | Comprehensive |
-| Message Queuing | No | Yes |
-| Tab Isolation | Manual | Automatic |
-| Cleanup | Manual | Automatic |
-| Logging | Minimal | Enhanced |
+| Feature | Basic Adapters | Enhanced Adapters | Universal Adapters |
+|---------|----------------|-------------------|-------------------|
+| Connection Type | Message passing | Port-based | Port-based |
+| Reconnection | Manual | Automatic | Automatic |
+| Error Handling | Basic | Comprehensive | Comprehensive |
+| Message Queuing | No | Yes | Yes |
+| Tab Isolation | Manual | Automatic | Automatic |
+| Cleanup | Manual | Automatic | Automatic |
+| Logging | Minimal | Enhanced | Enhanced |
+| Multi-Component | No | Limited | Full Support |
+| Proxy Support | No | No | Yes |
+| Broadcasting | No | No | Yes |
 
 ## Best Practices
 

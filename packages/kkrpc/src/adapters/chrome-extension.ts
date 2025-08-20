@@ -44,274 +44,99 @@ import { RPCChannel } from "../channel.ts"
 import type { DestroyableIoInterface } from "../interface.ts"
 
 const DESTROY_SIGNAL = "__DESTROY__"
-const RPC_PORT_NAME = "kkrpc-channel"
 
 // ============================================================================
-// BASIC CHROME ADAPTERS (Message-based)
+// LEGACY ADAPTERS (Deprecated - Use UniversalChromeIO instead)
+// ============================================================================
+// These adapters are kept for backward compatibility but are deprecated.
+// New code should use UniversalChromeIO or the specialized adapters below.
+
+// ============================================================================
+// LEGACY UTILITY FUNCTIONS (Deprecated)
+// ============================================================================
+// These functions are deprecated. Use setupComponentRPC or setupMultiComponentRPC instead.
+
+// ============================================================================
+// MULTI-COMPONENT CHROME ADAPTERS
 // ============================================================================
 
 /**
- * Basic adapter for Chrome extension background scripts
- * 
- * Uses chrome.runtime.onMessage and chrome.tabs.sendMessage for communication.
- * Suitable for simple use cases where advanced features are not needed.
- * 
- * Features:
- * - Simple message-based communication
- * - Lightweight implementation
- * - Tab-specific messaging
+ * Component types for Chrome extension RPC communication
  */
-export class ChromeBackgroundIO implements DestroyableIoInterface {
-	name = "chrome-background-io"
-	private messageQueue: string[] = []
-	private resolveRead: ((value: string | null) => void) | null = null
-	private tabId: number
-
-	private handleMessage = (
-		message: any,
-		sender: chrome.runtime.MessageSender,
-		_sendResponse: Function
-	) => {
-		// Only handle messages from the specified tab
-		if (sender.tab?.id !== this.tabId) return
-
-		if (message === DESTROY_SIGNAL) {
-			this.destroy()
-			return
-		}
-
-		if (this.resolveRead) {
-			this.resolveRead(message)
-			this.resolveRead = null
-		} else {
-			this.messageQueue.push(message)
-		}
-	}
-
-	/**
-	 * Creates a new ChromeBackgroundIO instance
-	 * @param tabId - The ID of the tab to communicate with
-	 */
-	constructor(tabId: number) {
-		this.tabId = tabId
-		// Listen for messages from content script
-		chrome.runtime.onMessage.addListener(this.handleMessage)
-	}
-
-	async read(): Promise<string | null> {
-		if (this.messageQueue.length > 0) {
-			return this.messageQueue.shift() ?? null
-		}
-
-		return new Promise((resolve) => {
-			this.resolveRead = resolve
-		})
-	}
-
-	async write(data: string): Promise<void> {
-		await chrome.tabs.sendMessage(this.tabId, data)
-	}
-
-	destroy(): void {
-		// Cleanup listeners
-		chrome.runtime.onMessage.removeListener(this.handleMessage)
-	}
-
-	signalDestroy(): void {
-		this.write(DESTROY_SIGNAL)
-	}
-}
+export type ChromeComponentType = 'background' | 'content' | 'popup' | 'sidepanel' | 'options' | 'newtab'
 
 /**
- * Basic adapter for Chrome extension content scripts
+ * Universal Chrome extension adapter that can work with any extension component
  * 
- * Uses chrome.runtime.onMessage and chrome.runtime.sendMessage for communication.
- * Suitable for simple use cases where advanced features are not needed.
- * 
- * Features:
- * - Simple message-based communication
- * - Lightweight implementation
- * - Direct background script communication
- */
-export class ChromeContentIO implements DestroyableIoInterface {
-	name = "chrome-content-io"
-	private messageQueue: string[] = []
-	private resolveRead: ((value: string | null) => void) | null = null
-
-	constructor() {
-		// Listen for messages from background script
-		chrome.runtime.onMessage.addListener(this.handleMessage)
-	}
-
-	private handleMessage = (
-		message: any,
-		_sender: chrome.runtime.MessageSender,
-		_sendResponse: Function
-	) => {
-		if (message === DESTROY_SIGNAL) {
-			this.destroy()
-			return
-		}
-
-		if (this.resolveRead) {
-			this.resolveRead(message)
-			this.resolveRead = null
-		} else {
-			this.messageQueue.push(message)
-		}
-	}
-
-	async read(): Promise<string | null> {
-		if (this.messageQueue.length > 0) {
-			return this.messageQueue.shift() ?? null
-		}
-
-		return new Promise((resolve) => {
-			this.resolveRead = resolve
-		})
-	}
-
-	async write(data: string): Promise<void> {
-		await chrome.runtime.sendMessage(data)
-	}
-
-	destroy(): void {
-		// Cleanup listeners
-		chrome.runtime.onMessage.removeListener(this.handleMessage)
-	}
-
-	signalDestroy(): void {
-		this.write(DESTROY_SIGNAL)
-	}
-}
-
-// ============================================================================
-// ENHANCED CHROME ADAPTERS (Port-based)
-// ============================================================================
-
-/**
- * Enhanced adapter for Chrome extension background scripts
- * 
- * Uses chrome.runtime.onConnect and port messaging for better connection
- * management and reliability compared to the basic ChromeBackgroundIO.
+ * Uses port-based communication with component-specific connection handling.
+ * Supports bidirectional communication between any two extension components.
  * 
  * Features:
- * - Port-based communication for better reliability
- * - Automatic cleanup on disconnection
- * - Message queuing during connection issues
- * - Enhanced error handling and logging
- * - Better resource management
- */
-export class EnhancedChromeBackgroundIO implements DestroyableIoInterface {
-	name = "enhanced-chrome-background-io"
-	private messageQueue: string[] = []
-	private resolveRead: ((value: string | null) => void) | null = null
-	private port: chrome.runtime.Port
-	private isDestroyed = false
-
-	/**
-	 * Creates a new EnhancedChromeBackgroundIO instance
-	 * @param port - The Chrome runtime port for this tab connection
-	 */
-	constructor(port: chrome.runtime.Port) {
-		this.port = port
-		this.port.onMessage.addListener(this.handleMessage)
-		this.port.onDisconnect.addListener(() => {
-			if (!this.isDestroyed) {
-				console.log("[EnhancedChromeBackgroundIO] Content script disconnected")
-			}
-		})
-	}
-
-	private handleMessage = (message: any) => {
-		if (this.isDestroyed) return
-
-		if (message === DESTROY_SIGNAL) {
-			this.destroy()
-			return
-		}
-
-		if (this.resolveRead) {
-			this.resolveRead(message)
-			this.resolveRead = null
-		} else {
-			this.messageQueue.push(message)
-		}
-	}
-
-	async read(): Promise<string | null> {
-		if (this.isDestroyed) return null
-
-		if (this.messageQueue.length > 0) {
-			return this.messageQueue.shift() ?? null
-		}
-
-		return new Promise((resolve) => {
-			this.resolveRead = resolve
-		})
-	}
-
-	async write(data: string): Promise<void> {
-		if (this.isDestroyed) {
-			throw new Error("Background IO is destroyed")
-		}
-
-		try {
-			this.port.postMessage(data)
-		} catch (error) {
-			console.error("[EnhancedChromeBackgroundIO] Failed to send message:", error)
-			throw error
-		}
-	}
-
-	destroy(): void {
-		this.isDestroyed = true
-		this.port.onMessage.removeListener(this.handleMessage)
-
-		if (this.resolveRead) {
-			this.resolveRead(null)
-			this.resolveRead = null
-		}
-	}
-
-	signalDestroy(): void {
-		this.write(DESTROY_SIGNAL).catch(() => {
-			// Ignore errors when signaling destroy
-		})
-	}
-}
-
-/**
- * Enhanced adapter for Chrome extension content scripts
- * 
- * Uses chrome.runtime.connect to establish a port-based connection with the
- * background script. Provides better reliability and features compared to
- * the basic ChromeContentIO.
- * 
- * Features:
- * - Port-based communication for better reliability
- * - Automatic connection establishment
- * - Reconnection on unexpected disconnects
- * - Message queuing during disconnection
+ * - Universal component support (popup, sidepanel, options, newtab, content, background)
+ * - Port-based communication for reliability
+ * - Automatic connection management
+ * - Component-specific port naming
  * - Enhanced error handling and logging
  */
-export class EnhancedChromeContentIO implements DestroyableIoInterface {
-	name = "enhanced-chrome-content-io"
+export class UniversalChromeIO implements DestroyableIoInterface {
+	name = "universal-chrome-io"
 	private messageQueue: string[] = []
 	private resolveRead: ((value: string | null) => void) | null = null
 	private port: chrome.runtime.Port | null = null
 	private isDestroyed = false
+	private componentType: ChromeComponentType
+	private targetComponentType?: ChromeComponentType
+	private tabId?: number // Reserved for future use in content script communication
 
 	/**
-	 * Creates a new EnhancedChromeContentIO instance and connects to background script
+	 * Creates a new UniversalChromeIO instance
+	 * @param componentType - The type of the current component
+	 * @param targetComponentType - The type of the target component (optional for server-side)
+	 * @param tabId - Tab ID for content script communication
 	 */
-	constructor() {
-		this.connectToBackground()
+	constructor(
+		componentType: ChromeComponentType,
+		targetComponentType?: ChromeComponentType,
+		tabId?: number
+	) {
+		this.componentType = componentType
+		this.targetComponentType = targetComponentType
+		this.tabId = tabId
+
+		if (componentType === 'background') {
+			this.setupBackgroundListener()
+		} else {
+			this.connectToTarget()
+		}
 	}
 
-	private connectToBackground() {
+	private getPortName(): string {
+		if (this.targetComponentType) {
+			return `kkrpc-${this.componentType}-to-${this.targetComponentType}`
+		}
+		return `kkrpc-${this.componentType}`
+	}
+
+	private setupBackgroundListener() {
+		chrome.runtime.onConnect.addListener((port) => {
+			const expectedPortName = this.getPortName()
+			if (port.name === expectedPortName) {
+				this.port = port
+				this.port.onMessage.addListener(this.handleMessage)
+				this.port.onDisconnect.addListener(() => {
+					if (!this.isDestroyed) {
+						console.log(`[UniversalChromeIO] ${this.componentType} disconnected`)
+					}
+					this.port = null
+				})
+			}
+		})
+	}
+
+	private connectToTarget() {
 		try {
-			this.port = chrome.runtime.connect({ name: RPC_PORT_NAME })
+			const portName = this.getPortName()
+			this.port = chrome.runtime.connect({ name: portName })
 
 			this.port.onMessage.addListener(this.handleMessage)
 			this.port.onDisconnect.addListener(() => {
@@ -320,13 +145,13 @@ export class EnhancedChromeContentIO implements DestroyableIoInterface {
 					// Attempt to reconnect after a delay
 					setTimeout(() => {
 						if (!this.isDestroyed) {
-							this.connectToBackground()
+							this.connectToTarget()
 						}
 					}, 1000)
 				}
 			})
 		} catch (error) {
-			console.error("[EnhancedChromeContentIO] Failed to connect:", error)
+			console.error(`[UniversalChromeIO] Failed to connect from ${this.componentType}:`, error)
 			throw error
 		}
 	}
@@ -361,13 +186,13 @@ export class EnhancedChromeContentIO implements DestroyableIoInterface {
 
 	async write(data: string): Promise<void> {
 		if (this.isDestroyed || !this.port) {
-			throw new Error("Content IO is destroyed or port not connected")
+			throw new Error(`${this.componentType} IO is destroyed or port not connected`)
 		}
 
 		try {
 			this.port.postMessage(data)
 		} catch (error) {
-			console.error("[EnhancedChromeContentIO] Failed to send message:", error)
+			console.error(`[UniversalChromeIO] Failed to send message from ${this.componentType}:`, error)
 			throw error
 		}
 	}
@@ -390,104 +215,228 @@ export class EnhancedChromeContentIO implements DestroyableIoInterface {
 	}
 }
 
-// ============================================================================
-// UTILITY FUNCTIONS
-// ============================================================================
-
 /**
- * Utility function to set up RPC in background script using enhanced adapters
- * 
- * This function sets up automatic port connection handling and RPC channel
- * management for multiple tabs. It's the recommended way to set up Chrome
- * extension RPC in background scripts.
- * 
- * @example
- * ```typescript
- * import { setupBackgroundRPC } from 'kkrpc/chrome-extension'
- * 
- * const backgroundAPI = {
- *   async executeInMainWorld(code: string) {
- *     // Implementation here
- *     return { success: true }
- *   }
- * }
- * 
- * const rpcChannels = setupBackgroundRPC(backgroundAPI)
- * ```
+ * Specialized adapter for popup to background communication
  */
-export function setupBackgroundRPC<
-	TLocalAPI extends Record<string, any>,
-	TRemoteAPI extends Record<string, any>
->(
-	localAPI: TLocalAPI,
-	options: { portName?: string } = {}
-): Map<number, RPCChannel<TLocalAPI, TRemoteAPI>> {
-	const { portName = RPC_PORT_NAME } = options
-	const rpcChannels = new Map<number, RPCChannel<TLocalAPI, TRemoteAPI>>()
-
-	chrome.runtime.onConnect.addListener((port) => {
-		if (port.name === portName && port.sender?.tab?.id) {
-			const tabId = port.sender.tab.id
-
-			const io = new EnhancedChromeBackgroundIO(port)
-			const rpc = new RPCChannel<TLocalAPI, TRemoteAPI>(io, {
-				expose: localAPI
-			})
-
-			rpcChannels.set(tabId, rpc)
-
-			port.onDisconnect.addListener(() => {
-				rpcChannels.delete(tabId)
-				io.destroy()
-			})
-		}
-	})
-
-	return rpcChannels
+export class PopupToBg extends UniversalChromeIO {
+	constructor() {
+		super('popup', 'background')
+	}
 }
 
 /**
- * Utility function to set up RPC in content script using enhanced adapters
+ * Specialized adapter for background to popup communication
+ */
+export class BgToPopup extends UniversalChromeIO {
+	constructor() {
+		super('background', 'popup')
+	}
+}
+
+/**
+ * Specialized adapter for sidepanel to background communication
+ */
+export class SidePanelToBg extends UniversalChromeIO {
+	constructor() {
+		super('sidepanel', 'background')
+	}
+}
+
+/**
+ * Specialized adapter for background to sidepanel communication
+ */
+export class BgToSidePanel extends UniversalChromeIO {
+	constructor() {
+		super('background', 'sidepanel')
+	}
+}
+
+/**
+ * Specialized adapter for options to background communication
+ */
+export class OptionsToBg extends UniversalChromeIO {
+	constructor() {
+		super('options', 'background')
+	}
+}
+
+/**
+ * Specialized adapter for background to options communication
+ */
+export class BgToOptions extends UniversalChromeIO {
+	constructor() {
+		super('background', 'options')
+	}
+}
+
+/**
+ * Specialized adapter for newtab to background communication
+ */
+export class NewTabToBg extends UniversalChromeIO {
+	constructor() {
+		super('newtab', 'background')
+	}
+}
+
+/**
+ * Specialized adapter for background to newtab communication
+ */
+export class BgToNewTab extends UniversalChromeIO {
+	constructor() {
+		super('background', 'newtab')
+	}
+}
+
+/**
+ * Specialized adapter for popup to content communication (via background)
+ */
+export class PopupToContent extends UniversalChromeIO {
+	constructor(tabId: number) {
+		super('popup', 'content', tabId)
+	}
+}
+
+/**
+ * Specialized adapter for sidepanel to content communication (via background)
+ */
+export class SidePanelToContent extends UniversalChromeIO {
+	constructor(tabId: number) {
+		super('sidepanel', 'content', tabId)
+	}
+}
+
+// ============================================================================
+// ENHANCED UTILITY FUNCTIONS
+// ============================================================================
+
+/**
+ * Setup RPC for any Chrome extension component
  * 
- * This function simplifies the setup of RPC communication from content scripts
- * to background scripts. It handles connection establishment and returns both
- * the RPC channel and the background API.
+ * This is the universal setup function that can be used in any extension component
+ * to establish RPC communication with any other component.
  * 
- * @example
+ * @example Background to Popup
  * ```typescript
- * import { setupContentRPC } from 'kkrpc/chrome-extension'
+ * const channels = setupComponentRPC('background', 'popup', backgroundAPI)
+ * ```
  * 
- * const contentAPI = {
- *   async getPageInfo() {
- *     return {
- *       title: document.title,
- *       url: window.location.href
- *     }
- *   }
- * }
- * 
- * const { rpc, backgroundAPI } = await setupContentRPC(contentAPI)
- * const result = await backgroundAPI.executeInMainWorld('console.log("Hello!")')
+ * @example Popup to Background
+ * ```typescript
+ * const { rpc, remoteAPI } = setupComponentRPC('popup', 'background', popupAPI)
  * ```
  */
-export function setupContentRPC<
+export function setupComponentRPC<
 	TLocalAPI extends Record<string, any>,
 	TRemoteAPI extends Record<string, any>
 >(
+	componentType: ChromeComponentType,
+	targetComponentType: ChromeComponentType,
 	localAPI: TLocalAPI,
-	_options: { portName?: string } = {}
+	tabId?: number
 ): {
 	rpc: RPCChannel<TLocalAPI, TRemoteAPI>
-	backgroundAPI: TRemoteAPI
-} {
-	const io = new EnhancedChromeContentIO()
-	const rpc = new RPCChannel<TLocalAPI, TRemoteAPI>(io, {
-		expose: localAPI
-	})
+	remoteAPI: TRemoteAPI
+} | Map<number, RPCChannel<TLocalAPI, TRemoteAPI>> {
+	
+	if (componentType === 'background') {
+		// Background script - return a map of connections
+		const rpcChannels = new Map<number, RPCChannel<TLocalAPI, TRemoteAPI>>()
+		
+		chrome.runtime.onConnect.addListener((port) => {
+			const expectedPortName = `kkrpc-${targetComponentType}-to-background`
+			
+			if (port.name === expectedPortName) {
+				let connectionId: number
+				
+				if (targetComponentType === 'content' && port.sender?.tab?.id) {
+					connectionId = port.sender.tab.id
+				} else {
+					// For popup, sidepanel, options, newtab - use a general ID
+					connectionId = Date.now()
+				}
 
-	const backgroundAPI = rpc.getAPI()
+				const io = new UniversalChromeIO('background', targetComponentType)
+				const rpc = new RPCChannel<TLocalAPI, TRemoteAPI>(io, {
+					expose: localAPI
+				})
 
-	return { rpc, backgroundAPI }
+				rpcChannels.set(connectionId, rpc)
+
+				port.onDisconnect.addListener(() => {
+					rpcChannels.delete(connectionId)
+					io.destroy()
+				})
+			}
+		})
+
+		return rpcChannels
+	} else {
+		// Client component - return single connection
+		const io = new UniversalChromeIO(componentType, targetComponentType, tabId)
+		const rpc = new RPCChannel<TLocalAPI, TRemoteAPI>(io, {
+			expose: localAPI
+		})
+
+		const remoteAPI = rpc.getAPI()
+
+		return { rpc, remoteAPI }
+	}
+}
+
+/**
+ * Setup multi-component RPC for background script
+ * 
+ * This function sets up RPC channels for background script to communicate
+ * with multiple component types simultaneously.
+ * 
+ * @example
+ * ```typescript
+ * const channels = setupMultiComponentRPC(backgroundAPI, ['popup', 'sidepanel', 'content', 'options'])
+ * 
+ * // Access specific component channels
+ * const popupChannel = channels.popup.get('popup-connection-id')
+ * const contentChannel = channels.content.get(tabId)
+ * ```
+ */
+export function setupMultiComponentRPC<TLocalAPI extends Record<string, any>>(
+	localAPI: TLocalAPI,
+	targetComponents: ChromeComponentType[]
+): Record<ChromeComponentType, Map<string | number, RPCChannel<TLocalAPI, any>>> {
+	const channels: Record<string, Map<string | number, RPCChannel<TLocalAPI, any>>> = {}
+
+	for (const targetComponent of targetComponents) {
+		if (targetComponent === 'background') continue // Skip background as source
+
+		channels[targetComponent] = new Map()
+
+		chrome.runtime.onConnect.addListener((port) => {
+			const expectedPortName = `kkrpc-${targetComponent}-to-background`
+			
+			if (port.name === expectedPortName) {
+				let connectionId: string | number
+				
+				if (targetComponent === 'content' && port.sender?.tab?.id) {
+					connectionId = port.sender.tab.id
+				} else {
+					connectionId = `${targetComponent}-${Date.now()}`
+				}
+
+				const io = new UniversalChromeIO('background', targetComponent)
+				const rpc = new RPCChannel(io, { expose: localAPI })
+
+				channels[targetComponent].set(connectionId, rpc)
+
+				port.onDisconnect.addListener(() => {
+					channels[targetComponent].delete(connectionId)
+					io.destroy()
+				})
+
+				console.log(`[setupMultiComponentRPC] Connected to ${targetComponent} (${connectionId})`)
+			}
+		})
+	}
+
+	return channels as Record<ChromeComponentType, Map<string | number, RPCChannel<TLocalAPI, any>>>
 }
 
 // ============================================================================
