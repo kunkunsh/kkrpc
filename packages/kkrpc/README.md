@@ -208,97 +208,59 @@ console.log("Sum: ", sum)
 
 ### Chrome Extension Example
 
-For Chrome extensions, use the dedicated chrome-extension adapters that provide both basic and enhanced options:
+For Chrome extensions, use the dedicated `ChromePortIO` adapter for reliable, port-based communication.
 
 #### `background.ts`
 
 ```ts
-import { setupBackgroundRPC } from "kkrpc/chrome-extension"
-import type { BackgroundAPI, ContentAPI } from "./types"
+import { ChromePortIO, RPCChannel } from "kkrpc/chrome-extension";
+import type { BackgroundAPI, ContentAPI } from "./types";
 
 const backgroundAPI: BackgroundAPI = {
-	async executeInMainWorld(code: string) {
-		const tabs = await chrome.tabs.query({ active: true, currentWindow: true })
-		const currentTab = tabs[0]
-		
-		if (!currentTab?.id) {
-			return { success: false, error: "No active tab found" }
-		}
+  async getExtensionVersion() {
+    return chrome.runtime.getManifest().version;
+  },
+};
 
-		try {
-			await chrome.scripting.executeScript({
-				target: { tabId: currentTab.id },
-				world: 'MAIN',
-				func: (codeToExecute: string) => eval(codeToExecute),
-				args: [code]
-			})
-			return { success: true }
-		} catch (error) {
-			return { success: false, error: error.message }
-		}
-	},
-
-	async getExtensionInfo() {
-		const manifest = chrome.runtime.getManifest()
-		return { version: manifest.version, name: manifest.name }
-	}
-}
-
-// Simple setup using utility function
-const rpcChannels = setupBackgroundRPC<BackgroundAPI, ContentAPI>(backgroundAPI)
+chrome.runtime.onConnect.addListener((port) => {
+  if (port.name === "content-to-background") {
+    const io = new ChromePortIO(port);
+    const rpc = new RPCChannel(io, { expose: backgroundAPI });
+    // Handle disconnect
+    port.onDisconnect.addListener(() => io.destroy());
+  }
+});
 ```
 
 #### `content.ts`
 
 ```ts
-import { setupContentRPC } from "kkrpc/chrome-extension"
-import type { BackgroundAPI, ContentAPI } from "./types"
+import { ChromePortIO, RPCChannel } from "kkrpc/chrome-extension";
+import type { BackgroundAPI, ContentAPI } from "./types";
 
 const contentAPI: ContentAPI = {
-	async getPageInfo() {
-		return {
-			title: document.title,
-			url: window.location.href,
-			domain: window.location.hostname
-		}
-	},
+  async getPageTitle() {
+    return document.title;
+  },
+};
 
-	async manipulateDOM(selector: string, action: 'click' | 'highlight' | 'remove') {
-		const elements = document.querySelectorAll(selector)
-		if (elements.length === 0) return false
+const port = chrome.runtime.connect({ name: "content-to-background" });
+const io = new ChromePortIO(port);
+const rpc = new RPCChannel<ContentAPI, BackgroundAPI>(io, { expose: contentAPI });
 
-		elements.forEach(element => {
-			switch (action) {
-				case 'click': (element as HTMLElement).click(); break
-				case 'highlight':
-					(element as HTMLElement).style.backgroundColor = 'yellow'
-					break
-				case 'remove': element.remove(); break
-			}
-		})
-		return true
-	}
-}
+const backgroundAPI = rpc.getAPI();
 
-// Simple setup using utility function
-const { rpc, backgroundAPI } = setupContentRPC<ContentAPI, BackgroundAPI>(contentAPI)
-
-// Execute code in main world
-const result = await backgroundAPI.executeInMainWorld(`
-	console.log("Hello from main world!")
-	console.log("Current URL:", window.location.href)
-`)
-
-console.log("Execution result:", result)
+// Example call
+backgroundAPI.getExtensionVersion().then(version => {
+  console.log("Extension version:", version);
+});
 ```
 
 **Chrome Extension Features:**
-- **Basic adapters**: Simple message-based communication for lightweight use cases
-- **Enhanced adapters**: Port-based communication with automatic reconnection
-- **Utility functions**: Simple setup with `setupBackgroundRPC()` and `setupContentRPC()`
-- **Type-safe**: Full TypeScript support with defined API interfaces
-- **Reliable**: Message queuing, error handling, and automatic cleanup
-- **Production-ready**: Enhanced logging and debugging capabilities
+- **Port-based**: Uses `chrome.runtime.Port` for stable, long-lived connections.
+- **Bidirectional**: Both sides can expose and call APIs.
+- **Type-safe**: Full TypeScript support for your APIs.
+- **Reliable**: Handles connection lifecycle and cleanup.
 
 ### Tauri Example
 
