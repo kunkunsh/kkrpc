@@ -1,9 +1,7 @@
 ---
-title: Chrome Extension RPC
+title: Chrome Extension
 description: Guide to Chrome extension communication using kkrpc
 ---
-
-# Chrome Extension RPC
 
 This guide demonstrates how to implement robust bidirectional communication between different parts of a Chrome extension (like background scripts, content scripts, popups, etc.) using `kkrpc`.
 
@@ -29,11 +27,11 @@ First, define the types for the APIs you want to expose from different parts of 
 ```typescript
 // types.ts
 export interface BackgroundAPI {
-  getExtensionVersion: () => Promise<string>;
+	getExtensionVersion: () => Promise<string>
 }
 
 export interface ContentAPI {
-  getPageTitle: () => Promise<string>;
+	getPageTitle: () => Promise<string>
 }
 ```
 
@@ -45,38 +43,38 @@ The background script listens for incoming connections from other parts of the e
 
 ```typescript
 // background.ts
-import { ChromePortIO, RPCChannel } from "kkrpc/chrome-extension";
-import type { BackgroundAPI, ContentAPI } from "./types";
+import { ChromePortIO, RPCChannel } from "kkrpc/chrome-extension"
+import type { BackgroundAPI, ContentAPI } from "./types"
 
 const backgroundAPI: BackgroundAPI = {
-  async getExtensionVersion() {
-    return chrome.runtime.getManifest().version;
-  },
-};
+	async getExtensionVersion() {
+		return chrome.runtime.getManifest().version
+	}
+}
 
 // A map to hold RPC channels, e.g., for each content script tab
-const contentChannels = new Map<number, RPCChannel<BackgroundAPI, ContentAPI>>();
+const contentChannels = new Map<number, RPCChannel<BackgroundAPI, ContentAPI>>()
 
 chrome.runtime.onConnect.addListener((port) => {
-  console.log(`[Background] Connection from: ${port.name}`);
+	console.log(`[Background] Connection from: ${port.name}`)
 
-  // Example: Differentiating connections
-  if (port.name === "content-to-background") {
-    const tabId = port.sender?.tab?.id;
-    if (tabId) {
-      const io = new ChromePortIO(port);
-      const rpc = new RPCChannel(io, { expose: backgroundAPI });
-      contentChannels.set(tabId, rpc);
+	// Example: Differentiating connections
+	if (port.name === "content-to-background") {
+		const tabId = port.sender?.tab?.id
+		if (tabId) {
+			const io = new ChromePortIO(port)
+			const rpc = new RPCChannel(io, { expose: backgroundAPI })
+			contentChannels.set(tabId, rpc)
 
-      port.onDisconnect.addListener(() => {
-        io.destroy();
-        contentChannels.delete(tabId);
-        console.log(`[Background] Disconnected from tab ${tabId}`);
-      });
-    }
-  }
-  // Add handlers for other components like popup, sidepanel...
-});
+			port.onDisconnect.addListener(() => {
+				io.destroy()
+				contentChannels.delete(tabId)
+				console.log(`[Background] Disconnected from tab ${tabId}`)
+			})
+		}
+	}
+	// Add handlers for other components like popup, sidepanel...
+})
 ```
 
 ### Content Script
@@ -85,34 +83,34 @@ The content script initiates a connection to the background script.
 
 ```typescript
 // content.ts
-import { ChromePortIO, RPCChannel } from "kkrpc/chrome-extension";
-import type { BackgroundAPI, ContentAPI } from "./types";
+import { ChromePortIO, RPCChannel } from "kkrpc/chrome-extension"
+import type { BackgroundAPI, ContentAPI } from "./types"
 
 const contentAPI: ContentAPI = {
-  async getPageTitle() {
-    return document.title;
-  },
-};
+	async getPageTitle() {
+		return document.title
+	}
+}
 
-const port = chrome.runtime.connect({ name: "content-to-background" });
-const io = new ChromePortIO(port);
+const port = chrome.runtime.connect({ name: "content-to-background" })
+const io = new ChromePortIO(port)
 const rpc = new RPCChannel<ContentAPI, BackgroundAPI>(io, {
-  expose: contentAPI,
-});
+	expose: contentAPI
+})
 
-const backgroundAPI = rpc.getAPI();
+const backgroundAPI = rpc.getAPI()
 
 // Example Usage
 async function logVersion() {
-  try {
-    const version = await backgroundAPI.getExtensionVersion();
-    console.log(`[Content] Extension version: ${version}`);
-  } catch (error) {
-    console.error("[Content] RPC call failed:", error);
-  }
+	try {
+		const version = await backgroundAPI.getExtensionVersion()
+		console.log(`[Content] Extension version: ${version}`)
+	} catch (error) {
+		console.error("[Content] RPC call failed:", error)
+	}
 }
 
-logVersion();
+logVersion()
 ```
 
 ### Popup / Side Panel / Options Page
@@ -121,21 +119,21 @@ Other UI components like the popup connect in the same way as the content script
 
 ```typescript
 // popup.ts
-import { ChromePortIO, RPCChannel } from "kkrpc/chrome-extension";
-import type { BackgroundAPI } from "./types";
+import { ChromePortIO, RPCChannel } from "kkrpc/chrome-extension"
+import type { BackgroundAPI } from "./types"
 
 // Popups don't usually expose APIs to the background script
-const port = chrome.runtime.connect({ name: "popup-to-background" });
-const io = new ChromePortIO(port);
-const rpc = new RPCChannel<{}, BackgroundAPI>(io);
+const port = chrome.runtime.connect({ name: "popup-to-background" })
+const io = new ChromePortIO(port)
+const rpc = new RPCChannel<{}, BackgroundAPI>(io)
 
-const backgroundAPI = rpc.getAPI();
+const backgroundAPI = rpc.getAPI()
 
 // Example: Get version when popup button is clicked
-document.getElementById('get-version-btn')?.addEventListener('click', async () => {
-  const version = await backgroundAPI.getExtensionVersion();
-  document.getElementById('version-display')!.textContent = version;
-});
+document.getElementById("get-version-btn")?.addEventListener("click", async () => {
+	const version = await backgroundAPI.getExtensionVersion()
+	document.getElementById("version-display")!.textContent = version
+})
 ```
 
 ## Manifest V3 Configuration
@@ -144,21 +142,21 @@ Ensure your `manifest.json` is set up correctly.
 
 ```json
 {
-  "manifest_version": 3,
-  "name": "My kkrpc Extension",
-  "version": "1.0",
-  "background": {
-    "service_worker": "background.js"
-  },
-  "content_scripts": [
-    {
-      "matches": ["<all_urls>"],
-      "js": ["content.js"]
-    }
-  ],
-  "action": {
-    "default_popup": "popup.html"
-  }
+	"manifest_version": 3,
+	"name": "My kkrpc Extension",
+	"version": "1.0",
+	"background": {
+		"service_worker": "background.js"
+	},
+	"content_scripts": [
+		{
+			"matches": ["<all_urls>"],
+			"js": ["content.js"]
+		}
+	],
+	"action": {
+		"default_popup": "popup.html"
+	}
 }
 ```
 
