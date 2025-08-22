@@ -8,7 +8,7 @@
 		".": "./mod.ts",
 		"./browser": "./browser-mod.ts",
 		"./http": "./http.ts",
-		"./chrome": "./chrome.ts",
+		"./chrome-extension": "./chrome-extension.ts",
 		"./deno": "./deno-mod.ts"
 	},
 	"imports": {

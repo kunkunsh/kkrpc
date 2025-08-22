@@ -52,24 +52,24 @@
 			"import": "./dist/deno-mod.js",
 			"require": "./dist/deno-mod.cjs"
 		},
-		"./chrome": {
+		"./chrome-extension": {
 			"types": {
-				"import": "./dist/chrome.d.ts",
-				"require": "./dist/chrome.cjs",
-				"default": "./dist/chrome.js"
+				"import": "./dist/chrome-extension.d.ts",
+				"require": "./dist/chrome-extension.cjs",
+				"default": "./dist/chrome-extension.js"
 			},
-			"import": "./dist/chrome.js",
-			"require": "./dist/chrome.cjs"
+			"import": "./dist/chrome-extension.js",
+			"require": "./dist/chrome-extension.cjs"
 		}
 	},
 	"devDependencies": {
-		"@types/bun": "latest",
-		"@types/chrome": "^0.0.309",
-		"@types/node": "^22.13.10",
+		"@types/bun": "^1.2.20",
+		"@types/chrome": "^0.1.4",
+		"@types/node": "^24.3.0",
 		"@types/ws": "^8.18.0",
 		"tslib": "^2.8.1",
-		"tsup": "^8.4.0",
-		"typedoc": "^0.28.0",
+		"tsup": "^8.5.0",
+		"typedoc": "^0.28.10",
 		"verify-package-export": "^0.0.3"
 	},
 	"peerDependencies": {

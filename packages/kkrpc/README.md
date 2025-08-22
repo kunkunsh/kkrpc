@@ -2,7 +2,7 @@
 
 > This project is created for building extension system for a Tauri app (https://github.com/kunkunsh/kunkun).
 >
-> It's potential can be used in other types of apps, so I open sourced it as a standalone package.
+> It can potentially be used in other types of apps, so I open sourced it as a standalone package.
 
 [![NPM Version](https://img.shields.io/npm/v/kkrpc)](https://www.npmjs.com/package/kkrpc)
 [![JSR Version](https://jsr.io/badges/@kunkun/kkrpc)](https://jsr.io/@kunkun/kkrpc)
@@ -208,51 +208,59 @@ console.log("Sum: ", sum)
 
 ### Chrome Extension Example
 
+For Chrome extensions, use the dedicated `ChromePortIO` adapter for reliable, port-based communication.
+
 #### `background.ts`
 
 ```ts
-import { ChromeBackgroundIO, RPCChannel } from "kkrpc"
-import type { API } from "./api"
+import { ChromePortIO, RPCChannel } from "kkrpc/chrome-extension";
+import type { BackgroundAPI, ContentAPI } from "./types";
 
-// Store RPC channels for each tab
-const rpcChannels = new Map<number, RPCChannel<API, {}>>()
+const backgroundAPI: BackgroundAPI = {
+  async getExtensionVersion() {
+    return chrome.runtime.getManifest().version;
+  },
+};
 
-// Listen for tab connections
 chrome.runtime.onConnect.addListener((port) => {
-	if (port.sender?.tab?.id) {
-		const tabId = port.sender.tab.id
-		const io = new ChromeBackgroundIO(tabId)
-		const rpc = new RPCChannel(io, { expose: backgroundAPI })
-		rpcChannels.set(tabId, rpc)
-
-		port.onDisconnect.addListener(() => {
-			rpcChannels.delete(tabId)
-		})
-	}
-})
+  if (port.name === "content-to-background") {
+    const io = new ChromePortIO(port);
+    const rpc = new RPCChannel(io, { expose: backgroundAPI });
+    // Handle disconnect
+    port.onDisconnect.addListener(() => io.destroy());
+  }
+});
 ```
 
 #### `content.ts`
 
 ```ts
-import { ChromeContentIO, RPCChannel } from "kkrpc"
-import type { API } from "./api"
+import { ChromePortIO, RPCChannel } from "kkrpc/chrome-extension";
+import type { BackgroundAPI, ContentAPI } from "./types";
 
-const io = new ChromeContentIO()
-const rpc = new RPCChannel<API, API>(io, {
-	expose: {
-		updateUI: async (data) => {
-			document.body.innerHTML = data.message
-			return true
-		}
-	}
-})
+const contentAPI: ContentAPI = {
+  async getPageTitle() {
+    return document.title;
+  },
+};
 
-// Get API from background script
-const api = rpc.getAPI()
-const data = await api.getData()
-console.log(data) // { message: "Hello from background!" }
+const port = chrome.runtime.connect({ name: "content-to-background" });
+const io = new ChromePortIO(port);
+const rpc = new RPCChannel<ContentAPI, BackgroundAPI>(io, { expose: contentAPI });
+
+const backgroundAPI = rpc.getAPI();
+
+// Example call
+backgroundAPI.getExtensionVersion().then(version => {
+  console.log("Extension version:", version);
+});
 ```
+
+**Chrome Extension Features:**
+- **Port-based**: Uses `chrome.runtime.Port` for stable, long-lived connections.
+- **Bidirectional**: Both sides can expose and call APIs.
+- **Type-safe**: Full TypeScript support for your APIs.
+- **Reliable**: Handles connection lifecycle and cleanup.
 
 ### Tauri Example
 

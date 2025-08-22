@@ -3,7 +3,6 @@
  * @description This module contains browser-only modules, other modules don't work in browser.
  */
 export * from "./src/adapters/worker.ts"
-export * from "./src/adapters/chrome.ts"
 export * from "./src/adapters/iframe.ts"
 export * from "./src/adapters/tauri.ts"
 export * from "./src/interface.ts"

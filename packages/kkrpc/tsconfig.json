@@ -25,7 +25,8 @@
 		// Some stricter flags (disabled by default)
 		"noUnusedLocals": false,
 		"noUnusedParameters": false,
-		"noPropertyAccessFromIndexSignature": false
+		"noPropertyAccessFromIndexSignature": false,
+		"types": ["chrome", "bun"]
 	},
 	"exclude": ["__deno_tests__/**/*", "dist/**/*"]
 }

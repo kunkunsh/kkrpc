@@ -2,7 +2,7 @@
  * Node.js implementation of IoInterface
  * Should also work with Bun
  */
-import { Buffer } from "node:buffer"
+// Use Uint8Array instead of Buffer for better compatibility
 import { type IoInterface } from "../interface.ts"
 
 /**
@@ -20,12 +20,12 @@ export class BunIo implements IoInterface {
 		this.reader = this.readStream.getReader()
 	}
 
-	async read(): Promise<Buffer | null> {
+	async read(): Promise<Uint8Array | null> {
 		const { value, done } = await this.reader.read()
 		if (done) {
 			return null // End of input
 		}
-		return Buffer.from(value)
+		return value
 	}
 
 	async write(data: string): Promise<void> {
