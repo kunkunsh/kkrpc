@@ -21,10 +21,12 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version-file: '.node-version'
           cache: "pnpm"
           cache-dependency-path: ./pnpm-lock.yaml
       - name: CI
+        env:
+          TURBO_TELEMETRY_DISABLED: 1
         run: |
           pnpm install
           deno install

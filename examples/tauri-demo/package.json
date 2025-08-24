@@ -33,8 +33,8 @@
 	},
 	"devDependencies": {
 		"@sveltejs/adapter-static": "^3.0.6",
-		"@sveltejs/kit": "^2.9.0",
-		"@sveltejs/vite-plugin-svelte": "^5.0.0",
+		"@sveltejs/kit": "^2.8.1",
+		"@sveltejs/vite-plugin-svelte": "^4.0.1",
 		"@tauri-apps/cli": "^2",
 		"@types/bun": "^1.2.5",
 		"@yao-pkg/pkg": "^6.3.2",
@@ -47,6 +47,6 @@
 		"tailwindcss": "^3.4.17",
 		"tailwindcss-animate": "^1.0.7",
 		"typescript": "~5.6.2",
-		"vite": "^6.0.3"
+		"vite": "^5.4.11"
 	}
 }
