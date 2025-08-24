@@ -23,6 +23,19 @@
 <img src="https://imgur.com/u728aVv.png" style="max-height: 400px;"/>
 <img src="https://i.imgur.com/Gu7jH1v.png" style="max-height: 300px;"/>
 
+## Features
+
+- **Cross-runtime compatibility**: Works seamlessly across Node.js, Deno, Bun, browsers, and more
+- **Type-safe remote calls**: Full TypeScript inference and IDE autocompletion support
+- **Bidirectional communication**: Both endpoints can expose and call APIs simultaneously
+- **Property access**: Remote property getters and setters with dot notation (`await api.prop`, `api.prop = value`)
+- **Enhanced error preservation**: Complete error object preservation across RPC boundaries including stack traces, causes, and custom properties
+- **Multiple transport protocols**: stdio, HTTP, WebSocket, postMessage, Chrome extensions
+- **Callback support**: Remote functions can accept callback functions as parameters
+- **Nested object calls**: Deep method chaining like `api.math.operations.calculate()`
+- **Automatic serialization**: Intelligent detection between JSON and superjson formats
+- **Zero configuration**: No schema files or code generation required
+
 ## Supported Environments
 
 - stdio: RPC over stdio between any combinations of Node.js, Deno, Bun processes
@@ -109,6 +122,81 @@ const parent = new RPCChannel<{}, API>(io)
 const api = parent.getAPI()
 
 expect(await api.add(1, 2)).toBe(3)
+```
+
+### Property Access Example
+
+kkrpc supports direct property access and mutation across RPC boundaries:
+
+```ts
+// Define API with properties
+interface API {
+	add(a: number, b: number): Promise<number>
+	counter: number
+	settings: {
+		theme: string
+		notifications: {
+			enabled: boolean
+		}
+	}
+}
+
+const api = rpc.getAPI<API>()
+
+// Property getters (using await for remote access)
+const currentCount = await api.counter
+const theme = await api.settings.theme
+const notificationsEnabled = await api.settings.notifications.enabled
+
+// Property setters (direct assignment)
+api.counter = 42
+api.settings.theme = "dark"
+api.settings.notifications.enabled = true
+
+// Verify changes
+console.log(await api.counter) // 42
+console.log(await api.settings.theme) // "dark"
+```
+
+### Enhanced Error Preservation
+
+kkrpc preserves complete error information across RPC boundaries:
+
+```ts
+// Custom error class
+class DatabaseError extends Error {
+	constructor(message: string, public code: number, public query: string) {
+		super(message)
+		this.name = 'DatabaseError'
+	}
+}
+
+// API with error-throwing method
+const apiImplementation = {
+	async getUserById(id: string) {
+		if (!id) {
+			const error = new DatabaseError("Invalid user ID", 400, "SELECT * FROM users WHERE id = ?")
+			error.timestamp = new Date().toISOString()
+			error.requestId = generateRequestId()
+			throw error
+		}
+		// ... normal logic
+	}
+}
+
+// Error handling on client side
+try {
+	await api.getUserById("")
+} catch (error) {
+	// All error properties are preserved:
+	console.log(error.name)      // "DatabaseError"
+	console.log(error.message)   // "Invalid user ID"
+	console.log(error.code)      // 400
+	console.log(error.query)     // "SELECT * FROM users WHERE id = ?"
+	console.log(error.stack)     // Full stack trace
+	console.log(error.timestamp) // ISO timestamp
+	console.log(error.requestId) // Request ID
+}
 ```
 
 ### Web Worker Example
