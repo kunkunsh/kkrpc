@@ -14,6 +14,26 @@ export interface API {
 			divide(a: number, b: number, callback?: (result: number) => void): Promise<number>
 		}
 	}
+	// New features for testing
+	counter: number
+	nested: {
+		value: string
+		deepObj: {
+			prop: boolean
+		}
+	}
+	TestClass: new (name: string) => { name: string; greet(): string }
+	throwSimpleError(): never
+	throwCustomError(): never
+	throwErrorWithCause(): never
+	throwErrorWithProperties(): never
+}
+
+class CustomError extends Error {
+	constructor(message: string, public code: number) {
+		super(message)
+		this.name = 'CustomError'
+	}
 }
 
 // Define your API methods
@@ -46,5 +66,38 @@ export const apiMethods: API = {
 				return a / b
 			}
 		}
+	},
+	// New property access features
+	counter: 42,
+	nested: {
+		value: "hello world",
+		deepObj: {
+			prop: true
+		}
+	},
+	// Constructor for testing
+	TestClass: class TestClass {
+		constructor(public name: string) {}
+		greet() {
+			return `Hello, ${this.name}!`
+		}
+	},
+	// Error testing methods
+	throwSimpleError() {
+		throw new Error("This is a simple error")
+	},
+	throwCustomError() {
+		throw new CustomError("This is a custom error", 404)
+	},
+	throwErrorWithCause() {
+		const cause = new Error("Root cause")
+		throw new Error("This error has a cause", { cause })
+	},
+	throwErrorWithProperties() {
+		const error = new Error("This error has custom properties")
+		;(error as any).timestamp = new Date().toISOString()
+		;(error as any).userId = "user123"
+		;(error as any).requestId = "req-456"
+		throw error
 	}
 }

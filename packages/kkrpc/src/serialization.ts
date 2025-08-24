@@ -7,14 +7,24 @@ export interface Message<T = any> {
 	id: string
 	method: string
 	args: T
-	type: "request" | "response" | "callback" // Add "callback" type
+	type: "request" | "response" | "callback" | "get" | "set" | "construct" // Extended message types
 	callbackIds?: string[] // Add callbackIds field
 	version?: "json" | "superjson" // Add version field for backward compatibility
+	path?: string[] // Property path for get/set operations
+	value?: any // Value for set operations
 }
 
 export interface Response<T = any> {
 	result?: T
-	error?: string
+	error?: string | EnhancedError
+}
+
+export interface EnhancedError {
+	name: string
+	message: string
+	stack?: string
+	cause?: any
+	[key: string]: any // Custom properties
 }
 
 export interface SerializationOptions {
@@ -36,6 +46,66 @@ function reviver(key: string, value: any) {
 		return new Uint8Array(value.data)
 	}
 	return value
+}
+
+/**
+ * Serialize an Error object to an EnhancedError that can be transmitted
+ * @param error - The Error object to serialize
+ * @returns EnhancedError object
+ */
+export function serializeError(error: Error): EnhancedError {
+	const enhanced: EnhancedError = {
+		name: error.name,
+		message: error.message
+	}
+
+	// Include stack trace if available
+	if (error.stack) {
+		enhanced.stack = error.stack
+	}
+
+	// Include cause if available (modern Error API)
+	if ('cause' in error && error.cause !== undefined) {
+		enhanced.cause = error.cause
+	}
+
+	// Include any custom properties
+	for (const key in error) {
+		if (key !== 'name' && key !== 'message' && key !== 'stack' && key !== 'cause') {
+			enhanced[key] = (error as any)[key]
+		}
+	}
+
+	return enhanced
+}
+
+/**
+ * Deserialize an EnhancedError back into an Error object
+ * @param enhanced - The EnhancedError to deserialize
+ * @returns Error object
+ */
+export function deserializeError(enhanced: EnhancedError): Error {
+	const error = new Error(enhanced.message)
+	error.name = enhanced.name
+
+	// Restore stack trace if available
+	if (enhanced.stack) {
+		error.stack = enhanced.stack
+	}
+
+	// Restore cause if available
+	if (enhanced.cause !== undefined) {
+		(error as any).cause = enhanced.cause
+	}
+
+	// Restore custom properties
+	for (const key in enhanced) {
+		if (key !== 'name' && key !== 'message' && key !== 'stack' && key !== 'cause') {
+			(error as any)[key] = enhanced[key]
+		}
+	}
+
+	return error
 }
 
 /**

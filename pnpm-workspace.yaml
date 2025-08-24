@@ -1,4 +1,6 @@
 packages:
-  - "examples/*"
-  - "packages/*"
-  - "docs"
+  - examples/*
+  - packages/*
+  - docs
+onlyBuiltDependencies:
+  - '@sveltejs/kit'

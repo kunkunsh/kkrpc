@@ -4,7 +4,10 @@ import {
 	serializeMessage,
 	type Message,
 	type Response,
-	type SerializationOptions
+	type SerializationOptions,
+	type EnhancedError,
+	deserializeError,
+	serializeError
 } from "./serialization.ts"
 import { generateUUID } from "./utils.ts"
 
@@ -113,8 +116,14 @@ export class RPCChannel<
 					this.handleRequest(parsedMessage)
 				} else if (parsedMessage.type === "callback") {
 					this.handleCallback(parsedMessage)
+				} else if (parsedMessage.type === "get") {
+					this.handleGet(parsedMessage)
+				} else if (parsedMessage.type === "set") {
+					this.handleSet(parsedMessage)
+				} else if (parsedMessage.type === "construct") {
+					this.handleConstruct(parsedMessage)
 				} else {
-					console.error("received unknown message type 2", parsedMessage, typeof parsedMessage)
+					console.error("received unknown message type", parsedMessage, typeof parsedMessage)
 				}
 			})
 			.catch((err) => {
@@ -163,6 +172,89 @@ export class RPCChannel<
 	}
 
 	/**
+	 * Gets a property value from the remote API
+	 * @param path The property path (dot notation string or array)
+	 * @returns Promise that resolves with the property value
+	 */
+	public getProperty(path: string | string[]): Promise<any> {
+		return new Promise((resolve, reject) => {
+			const messageId = generateUUID()
+			this.pendingRequests[messageId] = { resolve, reject }
+
+			const propertyPath = Array.isArray(path) ? path : path.split(".")
+			const message: Message = {
+				id: messageId,
+				method: "",
+				args: {},
+				type: "get",
+				path: propertyPath
+			}
+			this.io.write(serializeMessage(message, this.serializationOptions))
+		})
+	}
+
+	/**
+	 * Sets a property value on the remote API
+	 * @param path The property path (dot notation string or array)
+	 * @param value The value to set
+	 * @returns Promise that resolves when the property is set
+	 */
+	public setProperty(path: string | string[], value: any): Promise<void> {
+		return new Promise((resolve, reject) => {
+			const messageId = generateUUID()
+			this.pendingRequests[messageId] = { resolve, reject }
+
+			const propertyPath = Array.isArray(path) ? path : path.split(".")
+			const message: Message = {
+				id: messageId,
+				method: "",
+				args: {},
+				type: "set",
+				path: propertyPath,
+				value: value
+			}
+			this.io.write(serializeMessage(message, this.serializationOptions))
+		})
+	}
+
+	/**
+	 * Calls a constructor on the remote API
+	 * @param constructor The name of the constructor to call
+	 * @param args Arguments to pass to the remote constructor
+	 * @returns Promise that resolves with the constructed instance
+	 */
+	public callConstructor<T extends keyof RemoteAPI>(constructor: T, args: any[]): Promise<any> {
+		return new Promise((resolve, reject) => {
+			const messageId = generateUUID()
+			this.pendingRequests[messageId] = { resolve, reject }
+
+			const callbackIds: string[] = []
+			const processedArgs = args.map((arg) => {
+				if (typeof arg === "function") {
+					let callbackId = this.callbackCache.get(arg)
+					if (!callbackId) {
+						callbackId = generateUUID()
+						this.callbacks[callbackId] = arg
+						this.callbackCache.set(arg, callbackId)
+					}
+					callbackIds.push(callbackId)
+					return `__callback__${callbackId}`
+				}
+				return arg
+			})
+
+			const message: Message = {
+				id: messageId,
+				method: constructor as string,
+				args: processedArgs,
+				type: "construct",
+				callbackIds: callbackIds.length > 0 ? callbackIds : undefined
+			}
+			this.io.write(serializeMessage(message, this.serializationOptions))
+		})
+	}
+
+	/**
 	 * Handles responses received from remote method calls
 	 * @param response The response message to handle
 	 * @private
@@ -172,7 +264,13 @@ export class RPCChannel<
 		const { result, error } = response.args
 		if (this.pendingRequests[id]) {
 			if (error) {
-				this.pendingRequests[id].reject(new Error(error))
+				// Handle enhanced error objects
+				if (typeof error === 'object' && error.name && error.message) {
+					this.pendingRequests[id].reject(deserializeError(error as EnhancedError))
+				} else {
+					// Fall back to simple string errors for backward compatibility
+					this.pendingRequests[id].reject(new Error(error as string))
+				}
 			} else {
 				this.pendingRequests[id].resolve(result)
 			}
@@ -226,9 +324,9 @@ export class RPCChannel<
 				.then((res) => {
 					return this.sendResponse(id, res)
 				})
-				.catch((err) => this.sendError(id, err.message))
+				.catch((err) => this.sendError(id, err))
 		} catch (error: any) {
-			this.sendError(id, error.message ?? error.toString())
+			this.sendError(id, error)
 		}
 	}
 
@@ -267,6 +365,117 @@ export class RPCChannel<
 	}
 
 	/**
+	 * Handles property get requests from the remote endpoint
+	 * @param request The get request message to handle
+	 * @private
+	 */
+	private handleGet(request: Message): void {
+		const { id, path } = request
+		if (!path || !this.apiImplementation) {
+			this.sendError(id, "Invalid get request: missing path or API implementation")
+			return
+		}
+
+		try {
+			// Traverse the object path to get the property value
+			let target: any = this.apiImplementation
+			for (const prop of path) {
+				target = target[prop]
+				if (target === undefined) {
+					this.sendError(id, `Property path ${path.join(".")} not found at ${prop}`)
+					return
+				}
+			}
+			this.sendResponse(id, target)
+		} catch (error: any) {
+			this.sendError(id, error)
+		}
+	}
+
+	/**
+	 * Handles property set requests from the remote endpoint
+	 * @param request The set request message to handle
+	 * @private
+	 */
+	private handleSet(request: Message): void {
+		const { id, path, value } = request
+		if (!path || !this.apiImplementation) {
+			this.sendError(id, "Invalid set request: missing path or API implementation")
+			return
+		}
+
+		try {
+			// Traverse to the parent object
+			let target: any = this.apiImplementation
+			for (let i = 0; i < path.length - 1; i++) {
+				target = target[path[i]]
+				if (!target) {
+					this.sendError(id, `Property path ${path.join(".")} not found at ${path[i]}`)
+					return
+				}
+			}
+
+			// Set the final property
+			const finalProp = path[path.length - 1]
+			target[finalProp] = value
+			this.sendResponse(id, true) // Return true to indicate success
+		} catch (error: any) {
+			this.sendError(id, error)
+		}
+	}
+
+	/**
+	 * Handles constructor calls from the remote endpoint
+	 * @param request The construct request message to handle
+	 * @private
+	 */
+	private handleConstruct(request: Message): void {
+		const { id, method, args } = request
+
+		// Split the method path and traverse the API implementation
+		const methodPath = method.split(".")
+		if (!this.apiImplementation) {
+			this.sendError(id, "No API implementation available")
+			return
+		}
+		let target: any = this.apiImplementation
+
+		// Traverse the object path
+		for (let i = 0; i < methodPath.length - 1; i++) {
+			target = target[methodPath[i]]
+			if (!target) {
+				this.sendError(id, `Constructor path ${method} not found at ${methodPath[i]}`)
+				return
+			}
+		}
+
+		const finalMethod = methodPath[methodPath.length - 1]
+		const ConstructorClass = target[finalMethod]
+
+		if (typeof ConstructorClass !== "function") {
+			this.sendError(id, `${method} is not a constructor function`)
+			return
+		}
+
+		const processedArgs = args.map((arg: any) => {
+			if (typeof arg === "string" && arg.startsWith("__callback__")) {
+				const callbackId = arg.slice(12)
+				return (...callbackArgs: any[]) => {
+					this.invokeCallback(callbackId, callbackArgs)
+				}
+			}
+			return arg
+		})
+
+		try {
+			const instance = new ConstructorClass(...processedArgs)
+			this.sendResponse(id, instance)
+		} catch (error: any) {
+			this.sendError(id, error)
+		}
+	}
+
+	/**
 	 * Sends a successful response back to the remote endpoint
 	 * @param id The ID of the request being responded to
 	 * @param result The result to send back
@@ -285,21 +494,25 @@ export class RPCChannel<
 	/**
 	 * Sends an error response back to the remote endpoint
 	 * @param id The ID of the request being responded to
-	 * @param error The error message to send back
+	 * @param error The error message or Error object to send back
 	 * @private
 	 */
-	private sendError(id: string, error: string): void {
+	private sendError(id: string, error: string | Error): void {
+		const errorResponse = error instanceof Error 
+			? serializeError(error)
+			: error;
+		
 		const response: Message<Response<null>> = {
 			id,
 			method: "",
-			args: { error },
+			args: { error: errorResponse },
 			type: "response"
 		}
 		this.io.write(serializeMessage(response, this.serializationOptions))
 	}
 
 	/**
-	 * Creates a nested proxy object for chaining remote method calls
+	 * Creates a nested proxy object for chaining remote method calls, property access, and constructor calls
 	 * @param chain Array of method names in the chain
 	 * @returns Proxy object that transforms property access into remote method calls
 	 * @private
@@ -307,15 +520,38 @@ export class RPCChannel<
 	private createNestedProxy(chain: string[] = []): any {
 		return new Proxy(() => {}, {
 			get: (_target, prop: string | symbol) => {
-				// Prevent special properties like `toString` or `then` from being treated as part of the chain
-				if (typeof prop === "string" && prop !== "then") {
-					return this.createNestedProxy([...chain, prop])
+				// Handle special properties
+				if (typeof prop === "string") {
+					// Handle property access like obj.prop
+					if (prop !== "then") {
+						return this.createNestedProxy([...chain, prop])
+					}
+					// Handle thenable for await support
+					if (prop === "then" && chain.length > 0) {
+						// Return property value when accessed like: await obj.prop
+						const promise = this.getProperty(chain)
+						return promise.then.bind(promise)
+					}
 				}
 				return undefined
 			},
+			set: (_target, prop: string | symbol, value: any) => {
+				// Handle property setting like obj.prop = value
+				if (typeof prop === "string") {
+					const propertyPath = [...chain, prop]
+					this.setProperty(propertyPath, value)
+					return true
+				}
+				return false
+			},
 			apply: (_target, _thisArg, args: any[]) => {
+				// Handle method calls like obj.method()
 				const method = chain.join(".")
 				return this.callMethod(method as keyof RemoteAPI, args)
+			},
+			construct: (_target, args: any[]) => {
+				// Handle constructor calls like new obj.Constructor()
+				return this.callConstructor(chain.join(".") as keyof RemoteAPI, args)
 			}
 		})
 	}
