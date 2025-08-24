@@ -23,7 +23,12 @@ await Bun.build({
 	minify: true
 })
 
-await $`bun pkg dist-backend/node.js --output dist-backend/node${ext}`
+// Determine platform and arch for pkg target
+const platform = process.platform === "win32" ? "win" : process.platform === "darwin" ? "macos" : "linux"
+const arch = process.arch === "x64" ? "x64" : process.arch === "arm64" ? "arm64" : "x64"
+const pkgTarget = `node22-${platform}-${arch}`
+
+await $`bun pkg dist-backend/node.js --output dist-backend/node${ext} --targets ${pkgTarget}`
 await $`cp dist-backend/node${ext} ${binariesDir}/node${ext}`
 await $`bun build --compile src/backend/bun.ts --outfile dist-backend/bun${ext}`
 await $`cp dist-backend/bun${ext} ${binariesDir}/bun${ext}`
