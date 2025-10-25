@@ -11,7 +11,8 @@
 		"test": "bun run scripts/test.ts",
 		"posttest": "verify-package-export verify",
 		"docs": "typedoc --out docs",
-		"build": "bun run build.ts"
+		"build": "bun run build.ts",
+		"dev": "tsdown --watch"
 	},
 	"main": "./dist/mod.js",
 	"types": "./dist/mod.d.ts",
@@ -77,7 +78,7 @@
 		"@types/node": "^24.3.0",
 		"@types/ws": "^8.18.0",
 		"tslib": "^2.8.1",
-		"tsup": "^8.5.0",
+		"tsdown": "^0.15.9",
 		"typedoc": "^0.28.10",
 		"verify-package-export": "^0.0.3"
 	},

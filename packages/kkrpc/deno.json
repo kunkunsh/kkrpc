@@ -9,7 +9,8 @@
 		"./browser": "./browser-mod.ts",
 		"./http": "./http.ts",
 		"./chrome-extension": "./chrome-extension.ts",
-		"./deno": "./deno-mod.ts"
+		"./deno": "./deno-mod.ts",
+		"./socketio": "./socketio.ts"
 	},
 	"imports": {
 		"@std/assert": "jsr:@std/assert@1"
