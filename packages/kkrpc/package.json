@@ -53,6 +53,7 @@
 			"import": "./dist/mod.js",
 			"require": "./dist/mod.cjs"
 		},
+		"./*": "./src/*",
 		"./browser": {
 			"types": {
 				"import": "./dist/browser-mod.d.ts",

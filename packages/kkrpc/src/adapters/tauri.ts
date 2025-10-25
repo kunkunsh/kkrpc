@@ -15,7 +15,8 @@ export class TauriShellStdio implements IoInterface {
 			})
 		})
 	}
-	async write(data: string): Promise<void> {
+	async write(data: string, transfers?: any[]): Promise<void> {
+		// Tauri shell doesn't support transferables, so we ignore them
 		return this.childProcess.write(data + "\n")
 	}
 }

@@ -10,7 +10,7 @@
 export interface IoInterface {
 	name: string
 	read(): Promise<Uint8Array | string | null> // Reads input
-	write(data: string): Promise<void> // Writes output
+	write(data: string, transfers?: any[]): Promise<void> // Writes output with optional transferables
 }
 
 /**

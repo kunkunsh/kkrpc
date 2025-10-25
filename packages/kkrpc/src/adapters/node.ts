@@ -56,7 +56,8 @@ export class NodeIo implements IoInterface {
 		})
 	}
 
-	async write(data: string): Promise<void> {
+	async write(data: string, transfers?: any[]): Promise<void> {
+		// Node.js streams don't support transferables, so we ignore them
 		return new Promise((resolve, reject) => {
 			this.writeStream.write(data, (err) => {
 				if (err) reject(err)

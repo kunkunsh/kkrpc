@@ -1,0 +1,18 @@
+{
+  "name": "transferable-demo",
+  "private": true,
+  "scripts": {
+    "dev": "bun run client.ts",
+    "build": "bun build client.ts --outdir ./dist --target browser",
+    "start": "bun run client.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+		"kkrpc": "workspace:*"
+  }
+}

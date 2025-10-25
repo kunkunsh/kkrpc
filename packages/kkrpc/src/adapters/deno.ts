@@ -29,7 +29,8 @@ export class DenoIo implements IoInterface {
 		return value
 	}
 
-	write(data: string): Promise<void> {
+	write(data: string, transfers?: any[]): Promise<void> {
+		// Deno stdout doesn't support transferables, so we ignore them
 		const encoder = new TextEncoder()
 		const encodedData = encoder.encode(data + "\n")
 		Deno.stdout.writeSync(encodedData)

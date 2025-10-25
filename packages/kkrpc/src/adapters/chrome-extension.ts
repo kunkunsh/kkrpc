@@ -63,8 +63,10 @@ export class ChromePortIO implements DestroyableIoInterface {
     });
   }
 
-  write(data: string): Promise<void> {
+  write(data: string, transfers?: any[]): Promise<void> {
     try {
+      // Chrome extension ports don't support transferables in the same way as postMessage
+      // but we keep the signature for consistency
       this.port.postMessage(data);
     } catch (error) {
       console.error("[ChromePortIO] Failed to write to port. It might be disconnected.", error);

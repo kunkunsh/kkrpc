@@ -60,8 +60,10 @@ export class WebSocketClientIO implements DestroyableIoInterface {
 		})
 	}
 
-	async write(data: string): Promise<void> {
+	async write(data: string, transfers?: any[]): Promise<void> {
 		await this.connected
+		// WebSocket doesn't support transferables in the same way as postMessage
+		// but we keep the signature for consistency
 		this.ws.send(data)
 	}
 
@@ -113,7 +115,9 @@ export class WebSocketServerIO implements DestroyableIoInterface {
 		})
 	}
 
-	async write(data: string): Promise<void> {
+	async write(data: string, transfers?: any[]): Promise<void> {
+		// WebSocket doesn't support transferables in the same way as postMessage
+		// but we keep the signature for consistency
 		this.ws.send(data)
 	}
 

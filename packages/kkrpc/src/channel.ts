@@ -7,7 +7,9 @@ import {
 	type SerializationOptions,
 	type EnhancedError,
 	deserializeError,
-	serializeError
+	serializeError,
+	proxyMarker,
+	type ProxyMarked
 } from "./serialization.ts"
 import { generateUUID } from "./utils.ts"
 
@@ -167,7 +169,8 @@ export class RPCChannel<
 				type: "request",
 				callbackIds: callbackIds.length > 0 ? callbackIds : undefined
 			}
-			this.io.write(serializeMessage(message, this.serializationOptions))
+			const { data, transfers } = serializeMessage(message, this.serializationOptions)
+			this.io.write(data, transfers || [])
 		})
 	}
 
@@ -189,7 +192,8 @@ export class RPCChannel<
 				type: "get",
 				path: propertyPath
 			}
-			this.io.write(serializeMessage(message, this.serializationOptions))
+			const { data, transfers } = serializeMessage(message, this.serializationOptions)
+			this.io.write(data, transfers || [])
 		})
 	}
 
@@ -213,7 +217,8 @@ export class RPCChannel<
 				path: propertyPath,
 				value: value
 			}
-			this.io.write(serializeMessage(message, this.serializationOptions))
+			const { data, transfers } = serializeMessage(message, this.serializationOptions)
+			this.io.write(data, transfers || [])
 		})
 	}
 
@@ -250,7 +255,8 @@ export class RPCChannel<
 				type: "construct",
 				callbackIds: callbackIds.length > 0 ? callbackIds : undefined
 			}
-			this.io.write(serializeMessage(message, this.serializationOptions))
+			const { data, transfers } = serializeMessage(message, this.serializationOptions)
+			this.io.write(data, transfers || [])
 		})
 	}
 
@@ -343,7 +349,8 @@ export class RPCChannel<
 			args,
 			type: "callback"
 		}
-		this.io.write(serializeMessage(message, this.serializationOptions))
+		const { data, transfers } = serializeMessage(message, this.serializationOptions)
+		this.io.write(data, transfers || [])
 	}
 
 	/**
@@ -488,7 +495,8 @@ export class RPCChannel<
 			args: { result },
 			type: "response"
 		}
-		this.io.write(serializeMessage(response, this.serializationOptions))
+		const { data, transfers } = serializeMessage(response, this.serializationOptions)
+		this.io.write(data, transfers || [])
 	}
 
 	/**
@@ -508,7 +516,8 @@ export class RPCChannel<
 			args: { error: errorResponse },
 			type: "response"
 		}
-		this.io.write(serializeMessage(response, this.serializationOptions))
+		const { data, transfers } = serializeMessage(response, this.serializationOptions)
+		this.io.write(data, transfers || [])
 	}
 
 	/**

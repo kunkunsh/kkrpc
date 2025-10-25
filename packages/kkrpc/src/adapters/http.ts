@@ -26,7 +26,8 @@ export class HTTPClientIO implements IoInterface {
 		})
 	}
 
-	async write(data: string): Promise<void> {
+	async write(data: string, transfers?: any[]): Promise<void> {
+		// HTTP doesn't support transferables, so we ignore them
 		try {
 			const response = await fetch(this.options.url, {
 				method: "POST",

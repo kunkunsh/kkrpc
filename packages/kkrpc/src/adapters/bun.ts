@@ -28,7 +28,8 @@ export class BunIo implements IoInterface {
 		return value
 	}
 
-	async write(data: string): Promise<void> {
+	async write(data: string, transfers?: any[]): Promise<void> {
+		// Bun stdout doesn't support transferables, so we ignore them
 		return Bun.write(Bun.stdout, data).then(() => Promise.resolve())
 	}
 }

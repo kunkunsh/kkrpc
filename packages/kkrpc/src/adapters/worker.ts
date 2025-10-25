@@ -1,4 +1,5 @@
 import type { DestroyableIoInterface } from "../interface.ts"
+import { isTransferableSupported, validateTransferables } from "../transferable.ts"
 
 const DESTROY_SIGNAL = "__DESTROY__"
 
@@ -20,6 +21,12 @@ export class WorkerParentIO implements DestroyableIoInterface {
 		if (message === DESTROY_SIGNAL) {
 			this.destroy()
 			return
+		}
+
+		// Check if this is a transferable message with actual transferable objects
+		if (event.ports && event.ports.length > 0) {
+			// Handle MessagePort transfers
+			console.log('Parent: Received MessagePort transfer')
 		}
 
 		if (this.resolveRead) {
@@ -44,8 +51,33 @@ export class WorkerParentIO implements DestroyableIoInterface {
 		})
 	}
 
-	write(data: string): Promise<void> {
-		this.worker.postMessage(data)
+	write(data: string, transfers?: any[]): Promise<void> {
+		// Handle transferables in browser environments
+		if (transfers && transfers.length > 0) {
+			if (isTransferableSupported()) {
+				try {
+					validateTransferables(transfers)
+					// Check if we're in Bun or browser environment
+					if (typeof Bun !== 'undefined') {
+						// Bun doesn't support transferables in the same way as browsers
+						// Send without transfers for now
+						console.warn("Bun environment detected, transferables not fully supported, sending without transfers")
+						this.worker.postMessage(data)
+					} else {
+						// Browser environment - use transferables
+						this.worker.postMessage(data, transfers)
+					}
+				} catch (error) {
+					console.warn("Invalid transferables provided, sending without transfers:", error)
+					this.worker.postMessage(data)
+				}
+			} else {
+				console.warn("Transferables not supported in this environment, sending without transfers")
+				this.worker.postMessage(data)
+			}
+		} else {
+			this.worker.postMessage(data)
+		}
 		return Promise.resolve()
 	}
 
@@ -79,6 +111,12 @@ export class WorkerChildIO implements DestroyableIoInterface {
 			return
 		}
 
+		// Check if this is a transferable message with actual transferable objects
+		if (event.ports && event.ports.length > 0) {
+			// Handle MessagePort transfers
+			console.log('Worker: Received MessagePort transfer')
+		}
+
 		if (this.resolveRead) {
 			this.resolveRead(message)
 			this.resolveRead = null
@@ -97,9 +135,38 @@ export class WorkerChildIO implements DestroyableIoInterface {
 		})
 	}
 
-	async write(data: string): Promise<void> {
-		// @ts-ignore: lack of types in deno
-		self.postMessage(data)
+	async write(data: string, transfers?: any[]): Promise<void> {
+		// Handle transferables in browser environments
+		if (transfers && transfers.length > 0) {
+			if (isTransferableSupported()) {
+				try {
+					validateTransferables(transfers)
+					// Check if we're in Bun or browser environment
+					if (typeof Bun !== 'undefined') {
+						// Bun doesn't support transferables in the same way as browsers
+						// Send without transfers for now
+						console.warn("Bun environment detected, transferables not fully supported, sending without transfers")
+						// @ts-ignore: lack of types in deno
+						self.postMessage(data)
+					} else {
+						// Browser environment - use transferables
+						// @ts-ignore: lack of types in deno
+						self.postMessage(data, transfers)
+					}
+				} catch (error) {
+					console.warn("Invalid transferables provided, sending without transfers:", error)
+					// @ts-ignore: lack of types in deno
+					self.postMessage(data)
+				}
+			} else {
+				console.warn("Transferables not supported in this environment, sending without transfers")
+				// @ts-ignore: lack of types in deno
+				self.postMessage(data)
+			}
+		} else {
+			// @ts-ignore: lack of types in deno
+			self.postMessage(data)
+		}
 	}
 
 	destroy(): void {

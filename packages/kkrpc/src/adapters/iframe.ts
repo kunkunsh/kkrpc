@@ -1,8 +1,10 @@
 /**
  * This file contains the implementation of the IframeParentIO and IframeChildIO classes.
  * They are used to create a bidirectional communication channel between a parent window and a child iframe.
+ * Enhanced with Transferable objects support for performance optimization.
  */
 import type { DestroyableIoInterface } from "../interface.ts"
+import { isTransferableSupported, validateTransferables } from "../transferable.ts"
 
 const DESTROY_SIGNAL = "__DESTROY__"
 const PORT_INIT_SIGNAL = "__PORT_INIT__"
@@ -83,12 +85,29 @@ export class IframeParentIO implements DestroyableIoInterface {
 		})
 	}
 
-	async write(data: string): Promise<void> {
+	async write(data: string, transfers?: any[]): Promise<void> {
 		if (!this.port) {
 			this.messageQueue.push(data)
 			return
 		}
-		this.port.postMessage(data)
+		
+		// Handle transferables in browser environments
+		if (transfers && transfers.length > 0) {
+			if (isTransferableSupported()) {
+				try {
+					validateTransferables(transfers)
+					this.port.postMessage(data, transfers)
+				} catch (error) {
+					console.warn("Invalid transferables provided, sending without transfers:", error)
+					this.port.postMessage(data)
+				}
+			} else {
+				console.warn("Transferables not supported in this environment, sending without transfers")
+				this.port.postMessage(data)
+			}
+		} else {
+			this.port.postMessage(data)
+		}
 	}
 
 	destroy(): void {
@@ -153,11 +172,27 @@ export class IframeChildIO implements DestroyableIoInterface {
 		})
 	}
 
-	async write(data: string): Promise<void> {
+	async write(data: string, transfers?: any[]): Promise<void> {
 		await this.initialized
 
 		if (this.port) {
-			this.port.postMessage(data)
+			// Handle transferables in browser environments
+			if (transfers && transfers.length > 0) {
+				if (isTransferableSupported()) {
+					try {
+						validateTransferables(transfers)
+						this.port.postMessage(data, transfers)
+					} catch (error) {
+						console.warn("Invalid transferables provided, sending without transfers:", error)
+						this.port.postMessage(data)
+					}
+				} else {
+					console.warn("Transferables not supported in this environment, sending without transfers")
+					this.port.postMessage(data)
+				}
+			} else {
+				this.port.postMessage(data)
+			}
 		} else {
 			this.pendingMessages.push(data)
 		}
