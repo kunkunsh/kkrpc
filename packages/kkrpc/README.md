@@ -1,15 +1,16 @@
 # kkrpc
 
-> This project is created for building extension system for a Tauri app (https://github.com/kunkunsh/kunkun).
->
-> It can potentially be used in other types of apps, so I open sourced it as a standalone package.
-
 [![NPM Version](https://img.shields.io/npm/v/kkrpc)](https://www.npmjs.com/package/kkrpc)
 [![JSR Version](https://jsr.io/badges/@kunkun/kkrpc)](https://jsr.io/@kunkun/kkrpc)
 ![GitHub last commit](https://img.shields.io/github/last-commit/kunkunsh/kkrpc)
+![NPM Downloads](https://img.shields.io/npm/dm/kkrpc)
+![License](https://img.shields.io/npm/l/kkrpc)
 
-> A TypeScript-first RPC library that enables seamless bi-directional communication between processes.
+> 🚀 **TypeScript-first RPC library** for seamless bi-directional communication between processes, workers, and contexts.
+>
 > Call remote functions as if they were local, with full TypeScript type safety and autocompletion support.
+>
+> **Perfect alternative to tRPC and Comlink** with cross-runtime compatibility and enhanced error handling.
 
 - [JSR Package](https://jsr.io/@kunkun/kkrpc)
 - [NPM Package](https://www.npmjs.com/package/kkrpc)
@@ -23,29 +24,29 @@
 <img src="https://imgur.com/u728aVv.png" style="max-height: 400px;"/>
 <img src="https://i.imgur.com/Gu7jH1v.png" style="max-height: 300px;"/>
 
-## Features
+## ✨ Features
 
-- **Cross-runtime compatibility**: Works seamlessly across Node.js, Deno, Bun, browsers, and more
-- **Type-safe remote calls**: Full TypeScript inference and IDE autocompletion support
-- **Bidirectional communication**: Both endpoints can expose and call APIs simultaneously
-- **Property access**: Remote property getters and setters with dot notation (`await api.prop`, `api.prop = value`)
-- **Enhanced error preservation**: Complete error object preservation across RPC boundaries including stack traces, causes, and custom properties
-- **Multiple transport protocols**: stdio, HTTP, WebSocket, postMessage, Chrome extensions
-- **Callback support**: Remote functions can accept callback functions as parameters
-- **Nested object calls**: Deep method chaining like `api.math.operations.calculate()`
-- **Automatic serialization**: Intelligent detection between JSON and superjson formats
-- **Zero configuration**: No schema files or code generation required
+- **🔄 Cross-runtime compatibility**: Works seamlessly across Node.js, Deno, Bun, browsers, and more
+- **🛡️ Type-safe remote calls**: Full TypeScript inference and IDE autocompletion support
+- **↔️ Bidirectional communication**: Both endpoints can expose and call APIs simultaneously
+- **🏠 Property access**: Remote property getters and setters with dot notation (`await api.prop`, `api.prop = value`)
+- **💥 Enhanced error preservation**: Complete error object preservation across RPC boundaries including stack traces, causes, and custom properties
+- **🌐 Multiple transport protocols**: stdio, HTTP, WebSocket, postMessage, Chrome extensions
+- **📞 Callback support**: Remote functions can accept callback functions as parameters
+- **🔗 Nested object calls**: Deep method chaining like `api.math.operations.calculate()`
+- **📦 Automatic serialization**: Intelligent detection between JSON and superjson formats
+- **⚡ Zero configuration**: No schema files or code generation required
 
-## Supported Environments
+## 🌍 Supported Environments
 
-- stdio: RPC over stdio between any combinations of Node.js, Deno, Bun processes
-- web: RPC over `postMessage` API and message channel between browser main thread and web workers, or main thread and iframe
+- **📡 stdio**: RPC over stdio between any combinations of Node.js, Deno, Bun processes
+- **🌐 web**: RPC over `postMessage` API and message channel between browser main thread and web workers, or main thread and iframe
   - Web Worker API (web standard) is also supported in Deno and Bun, the main thread can call functions in worker and vice versa.
-- http: RPC over HTTP like tRPC
+- **🌍 http**: RPC over HTTP like tRPC
   - supports any HTTP server (e.g. hono, bun, nodejs http, express, fastify, deno, etc.)
-- WebSocket: RPC over WebSocket
-- Socket.IO: RPC over Socket.IO with additional features like namespaces and rooms
-- Chrome Extension: RPC between content, background, popup, etc.
+- **🔌 WebSocket**: RPC over WebSocket
+- **🔌 Socket.IO**: RPC over Socket.IO with additional features like namespaces and rooms
+- **🧩 Chrome Extension**: RPC between content, background, popup, etc.
 
 The core of **kkrpc** design is in `RPCChannel` and `IoInterface`.
 
@@ -101,9 +102,27 @@ const rpc = new RPCChannel(io, {
 
 For backward compatibility, the receiving side will automatically detect the serialization format so older clients can communicate with newer servers and vice versa.
 
-## Examples
+## 🚀 Quick Start
 
-Below are simple examples.
+### Installation
+
+```bash
+# npm
+npm install kkrpc
+
+# yarn
+yarn add kkrpc
+
+# pnpm
+pnpm add kkrpc
+
+# deno
+import { RPCChannel } from "jsr:@kunkun/kkrpc"
+```
+
+## 📚 Examples
+
+Below are simple examples to get you started quickly.
 
 ### Stdio Example
 
@@ -421,3 +440,61 @@ async function spawnCmd(runtime: "deno" | "bun" | "node") {
 I provided a sample tauri app in `examples/tauri-demo`.
 
 ![Sample Tauri App](https://i.imgur.com/nkDwRHk.png)
+
+## 🆚 Comparison with Alternatives
+
+| Feature | kkrpc | tRPC | Comlink |
+|---------|-------|------|---------|
+| **Cross-runtime** | ✅ Node.js, Deno, Bun, Browser | ❌ Node.js/Browser only | ❌ Browser only |
+| **Bidirectional** | ✅ Both sides can call APIs | ❌ Client calls server only | ✅ Both sides can call APIs |
+| **Type Safety** | ✅ Full TypeScript support | ✅ Full TypeScript support | ✅ TypeScript support |
+| **Transport Layers** | ✅ stdio, HTTP, WebSocket, postMessage, Chrome Extension | ❌ HTTP only | ❌ postMessage only |
+| **Error Preservation** | ✅ Complete error objects | ⚠️ Limited error serialization | ⚠️ Limited error serialization |
+| **Property Access** | ✅ Remote getters/setters | ❌ Methods only | ❌ Methods only |
+| **Zero Config** | ✅ No code generation | ✅ No code generation | ✅ No code generation |
+| **Callbacks** | ✅ Function parameters | ❌ No callbacks | ✅ Function parameters |
+
+### When to choose kkrpc
+
+- **Cross-process communication**: Need to communicate between different runtimes (Node.js ↔ Deno, Browser ↔ Node.js, etc.)
+- **Extension systems**: Building plugin architectures or extension systems
+- **Tauri applications**: Communicating between Tauri frontend and backend processes
+- **Chrome extensions**: Complex communication between content scripts, background pages, and popups
+- **Multi-worker architectures**: Coordinating multiple web workers with different responsibilities
+- **Desktop applications**: Electron/Tauri apps with multiple processes
+
+### When to choose tRPC
+
+- **Web-focused APIs**: Building APIs primarily for web consumption
+- **HTTP-only communication**: When you only need HTTP-based communication
+- **React/Next.js integration**: When you need tight integration with React ecosystem
+
+### When to choose Comlink
+
+- **Browser-only applications**: Simple web worker communication in browsers
+- **Lightweight needs**: When you only need basic postMessage abstraction
+- **No cross-runtime requirements**: When all your code runs in browsers
+
+## 🔍 Keywords & SEO
+
+**Primary Keywords**: RPC, TypeScript, Remote Procedure Call, Type-safe, Bidirectional, Cross-runtime
+
+**Secondary Keywords**: Node.js, Deno, Bun, Browser, Web Worker, Chrome Extension, Tauri, IPC, Inter-process Communication
+
+**Use Cases**: Extension system, Plugin architecture, Microservices, Worker communication, Cross-context communication
+
+## 📦 Package Information
+
+- **NPM**: [kkrpc](https://www.npmjs.com/package/kkrpc)
+- **JSR**: [@kunkun/kkrpc](https://jsr.io/@kunkun/kkrpc)
+- **GitHub**: [kunkunsh/kkrpc](https://github.com/kunkunsh/kkrpc)
+- **Documentation**: [Typedoc](https://kunkunsh.github.io/kkrpc/)
+- **Examples**: [GitHub Examples](https://github.com/kunkunsh/kkrpc/tree/main/examples)
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
+
+## 📄 License
+
+MIT © [kunkunsh](https://github.com/kunkunsh)
