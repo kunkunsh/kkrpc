@@ -45,7 +45,7 @@ export class RPCChannel<
 			serialization?: SerializationOptions
 		}
 	) {
-		console.warn("RPCChannel constructor")
+		// console.warn("RPCChannel constructor")
 		this.apiImplementation = options?.expose
 		this.serializationOptions = options?.serialization || {}
 		this.listen()

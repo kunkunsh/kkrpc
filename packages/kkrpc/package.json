@@ -60,6 +60,15 @@
 			},
 			"import": "./dist/chrome-extension.js",
 			"require": "./dist/chrome-extension.cjs"
+		},
+		"./socketio": {
+			"types": {
+				"import": "./dist/socketio.d.ts",
+				"require": "./dist/socketio.cjs",
+				"default": "./dist/socketio.js"
+			},
+			"import": "./dist/socketio.js",
+			"require": "./dist/socketio.cjs"
 		}
 	},
 	"devDependencies": {
@@ -73,10 +82,22 @@
 		"verify-package-export": "^0.0.3"
 	},
 	"peerDependencies": {
-		"typescript": "^5.0.0"
+		"typescript": "^5.0.0",
+		"socket.io": "^4.0.0",
+		"socket.io-client": "^4.0.0"
+	},
+	"peerDependenciesMeta": {
+		"socket.io": {
+			"optional": true
+		},
+		"socket.io-client": {
+			"optional": true
+		}
 	},
 	"dependencies": {
 		"@tauri-apps/plugin-shell": "^2.2.0",
+		"socket.io": "^4.8.1",
+		"socket.io-client": "^4.8.1",
 		"superjson": "^2.2.2",
 		"ws": "^8.18.1"
 	},

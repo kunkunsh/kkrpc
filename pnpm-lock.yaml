@@ -16,7 +16,7 @@ importers:
         version: 4.4.1(@vue/compiler-sfc@3.5.13)(prettier@3.5.3)
       '@types/bun':
         specifier: latest
-        version: 1.2.20(@types/react@19.1.10)
+        version: 1.3.1(@types/react@19.1.10)
       husky:
         specifier: ^9.1.7
         version: 9.1.7
@@ -111,7 +111,7 @@ importers:
     devDependencies:
       '@types/bun':
         specifier: latest
-        version: 1.2.20(@types/react@19.1.10)
+        version: 1.3.1(@types/react@19.1.10)
       '@types/express':
         specifier: ^5.0.0
         version: 5.0.0
@@ -257,7 +257,7 @@ importers:
         version: 5.23.1
       svelte-check:
         specifier: ^4.0.0
-        version: 4.0.9(picomatch@4.0.2)(svelte@5.23.1)(typescript@5.6.3)
+        version: 4.0.9(picomatch@4.0.3)(svelte@5.23.1)(typescript@5.6.3)
       tailwind-merge:
         specifier: ^3.0.2
         version: 3.0.2
@@ -345,19 +345,25 @@ importers:
     devDependencies:
       '@types/bun':
         specifier: latest
-        version: 1.2.20(@types/react@19.1.10)
+        version: 1.3.1(@types/react@19.1.10)
 
   packages/kkrpc:
     dependencies:
       '@tauri-apps/plugin-shell':
         specifier: ^2.2.0
         version: 2.2.0
+      socket.io:
+        specifier: ^4.8.1
+        version: 4.8.1
+      socket.io-client:
+        specifier: ^4.8.1
+        version: 4.8.1
       superjson:
         specifier: ^2.2.2
         version: 2.2.2
       typescript:
         specifier: ^5.0.0
-        version: 5.8.2
+        version: 5.8.3
       ws:
         specifier: ^8.18.1
         version: 8.18.1
@@ -379,13 +385,13 @@ importers:
         version: 2.8.1
       tsup:
         specifier: ^8.5.0
-        version: 8.5.0(jiti@1.21.6)(postcss@8.5.6)(typescript@5.8.2)(yaml@2.8.1)
+        version: 8.5.0(jiti@1.21.6)(postcss@8.5.6)(typescript@5.8.3)(yaml@2.8.1)
       typedoc:
         specifier: ^0.28.10
-        version: 0.28.10(typescript@5.8.2)
+        version: 0.28.10(typescript@5.8.3)
       verify-package-export:
         specifier: ^0.0.3
-        version: 0.0.3(typescript@5.8.2)
+        version: 0.0.3(typescript@5.8.3)
 
 packages:
 
@@ -1772,6 +1778,9 @@ packages:
   '@types/bun@1.2.5':
     resolution: {integrity: sha512-w2OZTzrZTVtbnJew1pdFmgV99H0/L+Pvw+z1P67HaR18MHOzYnTYOi6qzErhK8HyT+DB782ADVPPE92Xu2/Opg==}
 
+  '@types/bun@1.3.1':
+    resolution: {integrity: sha512-4jNMk2/K9YJtfqwoAa28c8wK+T7nvJFOjxI4h/7sORWcypRNxBpr+TPNaCfVWq70tLCJsqoFwcf0oI0JU/fvMQ==}
+
   '@types/chrome@0.1.4':
     resolution: {integrity: sha512-vfISO7SPppN3OKVUqWujtZ4vux3nhDqKaHYEHgfQuPARHuWJ3jjyc1s13H0ckzEc86/neTkCl1TeW72UK6jYKA==}
 
@@ -2250,6 +2259,11 @@ packages:
 
   bun-types@1.2.5:
     resolution: {integrity: sha512-3oO6LVGGRRKI4kHINx5PIdIgnLRb7l/SprhzqXapmoYkFl5m4j6EvALvbDVuuBFaamB46Ap6HCUxIXNLCGy+tg==}
+
+  bun-types@1.3.1:
+    resolution: {integrity: sha512-NMrcy7smratanWJ2mMXdpatalovtxVggkj11bScuWuiOoXTiKIu2eVS1/7qbyI/4yHedtsn175n4Sm4JcdHLXw==}
+    peerDependencies:
+      '@types/react': ^19
 
   bundle-require@5.1.0:
     resolution: {integrity: sha512-3WrrOuZiyaaZPWiEt4G3+IffISVC9HYlWueJEBWED4ZH4aIAC2PnkdnuRrR94M+w6yGWn4AglWtJtBI8YqvgoA==}
@@ -2744,6 +2758,9 @@ packages:
 
   end-of-stream@1.4.4:
     resolution: {integrity: sha512-+uw1inIHVPQoaVuHzRyXd21icM+cnt4CzD5rW+NC1wjOUSTOs+Te7FOv7AhN7vS9x/oIyhLP5PR1H+phQAHu5Q==}
+
+  engine.io-client@6.6.3:
+    resolution: {integrity: sha512-T0iLjnyNWahNyv/lcjS2y4oE358tVS/SYQNxYXGAJ9/GLgH4VCvOQ/mhTjqU88mLZCQgiG8RIegFHYCdVC+j5w==}
 
   engine.io-parser@5.2.3:
     resolution: {integrity: sha512-HqD3yTBfnBxIrbnM1DoD6Pcq8NECnh8d4As1Qgh0z5Gg3jRRIqijury0CL3ghu/edArpUYiYqQiDUQBIs4np3Q==}
@@ -5022,6 +5039,7 @@ packages:
   sitemap@8.0.0:
     resolution: {integrity: sha512-+AbdxhM9kJsHtruUF39bwS/B0Fytw6Fr1o4ZAIAEqA6cke2xcoO2GleBw9Zw7nRzILVEgz7zBM5GiTJjie1G9A==}
     engines: {node: '>=14.0.0', npm: '>=6.0.0'}
+    deprecated: 'SECURITY: Multiple vulnerabilities fixed in 8.0.1 (XML injection, path traversal, command injection, protocol injection). Upgrade immediately: npm install sitemap@8.0.1'
     hasBin: true
 
   slash@3.0.0:
@@ -5033,6 +5051,10 @@ packages:
 
   socket.io-adapter@2.5.5:
     resolution: {integrity: sha512-eLDQas5dzPgOWCk9GuuJC2lBqItuhKI4uxGgo9aIV7MYbk2h9Q6uULEh8WBzThoI7l+qU9Ast9fVUmkqPP9wYg==}
+
+  socket.io-client@4.8.1:
+    resolution: {integrity: sha512-hJVXfu3E28NmzGk8o1sHhN3om52tRvwYeidbj7xKy2eIIse5IoKX3USlS6Tqt3BHAtflLIkCQBkzVrEEfWUyYQ==}
+    engines: {node: '>=10.0.0'}
 
   socket.io-parser@4.2.4:
     resolution: {integrity: sha512-/GbIKmo8ioc+NIWIhwdecY0ge+qVBSMdgxGygevmdHj24bsfgtCmcUUcQ5ZzcylGFHsN3k4HB4Cgkl96KVnuew==}
@@ -5989,6 +6011,10 @@ packages:
         optional: true
       utf-8-validate:
         optional: true
+
+  xmlhttprequest-ssl@2.1.2:
+    resolution: {integrity: sha512-TEU+nJVUUnA4CYJFLvK5X9AOeH4KvDvhIfm0vV1GaQRtchnG0hgK5p8hw/xjv8cunWYCsiPCSDzObPyhEwq3KQ==}
+    engines: {node: '>=0.4.0'}
 
   xxhash-wasm@1.0.2:
     resolution: {integrity: sha512-ibF0Or+FivM9lNrg+HGJfVX8WJqgo+kCLDc4vx6xMeTce7Aj+DLttKbxxRR/gNLSAelRc1omAPlJ77N/Jem07A==}
@@ -7507,7 +7533,7 @@ snapshots:
   '@sveltejs/vite-plugin-svelte-inspector@3.0.1(@sveltejs/vite-plugin-svelte@4.0.1(svelte@5.2.2)(vite@5.4.11(@types/node@24.3.0)(terser@5.43.1)))(svelte@5.2.2)(vite@5.4.11(@types/node@24.3.0)(terser@5.43.1))':
     dependencies:
       '@sveltejs/vite-plugin-svelte': 4.0.1(svelte@5.2.2)(vite@5.4.11(@types/node@24.3.0)(terser@5.43.1))
-      debug: 4.3.7
+      debug: 4.4.0(supports-color@8.1.1)
       svelte: 5.2.2
       vite: 5.4.11(@types/node@24.3.0)(terser@5.43.1)
     transitivePeerDependencies:
@@ -7516,7 +7542,7 @@ snapshots:
   '@sveltejs/vite-plugin-svelte-inspector@3.0.1(@sveltejs/vite-plugin-svelte@4.0.1(svelte@5.23.1)(vite@5.4.11(@types/node@24.3.0)(terser@5.43.1)))(svelte@5.23.1)(vite@5.4.11(@types/node@24.3.0)(terser@5.43.1))':
     dependencies:
       '@sveltejs/vite-plugin-svelte': 4.0.1(svelte@5.23.1)(vite@5.4.11(@types/node@24.3.0)(terser@5.43.1))
-      debug: 4.3.7
+      debug: 4.4.0(supports-color@8.1.1)
       svelte: 5.23.1
       vite: 5.4.11(@types/node@24.3.0)(terser@5.43.1)
     transitivePeerDependencies:
@@ -7654,6 +7680,12 @@ snapshots:
   '@types/bun@1.2.5':
     dependencies:
       bun-types: 1.2.5
+
+  '@types/bun@1.3.1(@types/react@19.1.10)':
+    dependencies:
+      bun-types: 1.3.1(@types/react@19.1.10)
+    transitivePeerDependencies:
+      - '@types/react'
 
   '@types/chrome@0.1.4':
     dependencies:
@@ -8332,6 +8364,11 @@ snapshots:
       '@types/node': 24.3.0
       '@types/ws': 8.5.13
 
+  bun-types@1.3.1(@types/react@19.1.10):
+    dependencies:
+      '@types/node': 24.3.0
+      '@types/react': 19.1.10
+
   bundle-require@5.1.0(esbuild@0.25.1):
     dependencies:
       esbuild: 0.25.1
@@ -8800,6 +8837,18 @@ snapshots:
     dependencies:
       once: 1.4.0
 
+  engine.io-client@6.6.3:
+    dependencies:
+      '@socket.io/component-emitter': 3.1.2
+      debug: 4.3.7
+      engine.io-parser: 5.2.3
+      ws: 8.17.1
+      xmlhttprequest-ssl: 2.1.2
+    transitivePeerDependencies:
+      - bufferutil
+      - supports-color
+      - utf-8-validate
+
   engine.io-parser@5.2.3: {}
 
   engine.io@6.6.4:
@@ -9112,10 +9161,6 @@ snapshots:
   fastq@1.17.1:
     dependencies:
       reusify: 1.0.4
-
-  fdir@6.4.2(picomatch@4.0.2):
-    optionalDependencies:
-      picomatch: 4.0.2
 
   fdir@6.4.2(picomatch@4.0.3):
     optionalDependencies:
@@ -11657,6 +11702,17 @@ snapshots:
       - supports-color
       - utf-8-validate
 
+  socket.io-client@4.8.1:
+    dependencies:
+      '@socket.io/component-emitter': 3.1.2
+      debug: 4.3.7
+      engine.io-client: 6.6.3
+      socket.io-parser: 4.2.4
+    transitivePeerDependencies:
+      - bufferutil
+      - supports-color
+      - utf-8-validate
+
   socket.io-parser@4.2.4:
     dependencies:
       '@socket.io/component-emitter': 3.1.2
@@ -11822,18 +11878,6 @@ snapshots:
 
   supports-preserve-symlinks-flag@1.0.0: {}
 
-  svelte-check@4.0.9(picomatch@4.0.2)(svelte@5.23.1)(typescript@5.6.3):
-    dependencies:
-      '@jridgewell/trace-mapping': 0.3.25
-      chokidar: 4.0.1
-      fdir: 6.4.2(picomatch@4.0.2)
-      picocolors: 1.1.1
-      sade: 1.8.1
-      svelte: 5.23.1
-      typescript: 5.6.3
-    transitivePeerDependencies:
-      - picomatch
-
   svelte-check@4.0.9(picomatch@4.0.3)(svelte@5.2.2)(typescript@5.5.4):
     dependencies:
       '@jridgewell/trace-mapping': 0.3.25
@@ -11843,6 +11887,18 @@ snapshots:
       sade: 1.8.1
       svelte: 5.2.2
       typescript: 5.5.4
+    transitivePeerDependencies:
+      - picomatch
+
+  svelte-check@4.0.9(picomatch@4.0.3)(svelte@5.23.1)(typescript@5.6.3):
+    dependencies:
+      '@jridgewell/trace-mapping': 0.3.25
+      chokidar: 4.0.1
+      fdir: 6.4.2(picomatch@4.0.3)
+      picocolors: 1.1.1
+      sade: 1.8.1
+      svelte: 5.23.1
+      typescript: 5.6.3
     transitivePeerDependencies:
       - picomatch
 
@@ -12155,7 +12211,7 @@ snapshots:
 
   tslib@2.8.1: {}
 
-  tsup@8.5.0(jiti@1.21.6)(postcss@8.5.6)(typescript@5.8.2)(yaml@2.8.1):
+  tsup@8.5.0(jiti@1.21.6)(postcss@8.5.6)(typescript@5.8.3)(yaml@2.8.1):
     dependencies:
       bundle-require: 5.1.0(esbuild@0.25.1)
       cac: 6.7.14
@@ -12176,7 +12232,7 @@ snapshots:
       tree-kill: 1.2.2
     optionalDependencies:
       postcss: 8.5.6
-      typescript: 5.8.2
+      typescript: 5.8.3
     transitivePeerDependencies:
       - jiti
       - supports-color
@@ -12228,13 +12284,13 @@ snapshots:
       media-typer: 0.3.0
       mime-types: 2.1.35
 
-  typedoc@0.28.10(typescript@5.8.2):
+  typedoc@0.28.10(typescript@5.8.3):
     dependencies:
       '@gerrit0/mini-shiki': 3.9.2
       lunr: 2.3.9
       markdown-it: 14.1.0
       minimatch: 9.0.5
-      typescript: 5.8.2
+      typescript: 5.8.3
       yaml: 2.8.1
 
   typesafe-path@0.2.2: {}
@@ -12346,9 +12402,9 @@ snapshots:
   valibot@0.31.1:
     optional: true
 
-  valibot@1.0.0-beta.11(typescript@5.8.2):
+  valibot@1.0.0-beta.11(typescript@5.8.3):
     optionalDependencies:
-      typescript: 5.8.2
+      typescript: 5.8.3
 
   valibot@1.0.0-rc.3(typescript@5.6.3):
     optionalDependencies:
@@ -12368,12 +12424,12 @@ snapshots:
       svelte: 5.23.1
       svelte-toolbelt: 0.4.6(svelte@5.23.1)
 
-  verify-package-export@0.0.3(typescript@5.8.2):
+  verify-package-export@0.0.3(typescript@5.8.3):
     dependencies:
       '@oclif/core': 4.2.3
       '@oclif/plugin-help': 6.2.21
       '@oclif/plugin-plugins': 5.4.25
-      valibot: 1.0.0-beta.11(typescript@5.8.2)
+      valibot: 1.0.0-beta.11(typescript@5.8.3)
     transitivePeerDependencies:
       - supports-color
       - typescript
@@ -12673,6 +12729,8 @@ snapshots:
   ws@8.17.1: {}
 
   ws@8.18.1: {}
+
+  xmlhttprequest-ssl@2.1.2: {}
 
   xxhash-wasm@1.0.2: {}
 

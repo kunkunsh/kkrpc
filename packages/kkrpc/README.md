@@ -44,6 +44,8 @@
 - http: RPC over HTTP like tRPC
   - supports any HTTP server (e.g. hono, bun, nodejs http, express, fastify, deno, etc.)
 - WebSocket: RPC over WebSocket
+- Socket.IO: RPC over Socket.IO with additional features like namespaces and rooms
+- Chrome Extension: RPC between content, background, popup, etc.
 
 The core of **kkrpc** design is in `RPCChannel` and `IoInterface`.
 
