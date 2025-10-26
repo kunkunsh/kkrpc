@@ -1,5 +1,5 @@
 // Use global Buffer type for better compatibility with DTS generation
-import type { IoInterface } from "../interface.ts"
+import type { IoInterface, IoMessage, IoCapabilities } from "../interface.ts"
 
 /**
  * Stdio implementation for Deno
@@ -9,6 +9,10 @@ import type { IoInterface } from "../interface.ts"
 export class DenoIo implements IoInterface {
 	private reader: ReadableStreamDefaultReader<Uint8Array>
 	name = "deno-io"
+	capabilities: IoCapabilities = {
+		structuredClone: false,
+		transfer: false
+	}
 
 	constructor(
 		private readStream: ReadableStream<Uint8Array>
@@ -21,17 +25,20 @@ export class DenoIo implements IoInterface {
 		// writer.write(encoder.encode("hello"))
 	}
 
-	async read(): Promise<Uint8Array | null> {
+	async read(): Promise<string | null> {
 		const { value, done } = await this.reader.read()
 		if (done) {
 			return null // End of input
 		}
-		return value
+		return value ? new TextDecoder().decode(value) : null
 	}
 
-	write(data: string): Promise<void> {
+	write(message: string | IoMessage): Promise<void> {
+		if (typeof message !== "string") {
+			throw new Error("DenoIo only supports string messages")
+		}
 		const encoder = new TextEncoder()
-		const encodedData = encoder.encode(data + "\n")
+		const encodedData = encoder.encode(message)
 		Deno.stdout.writeSync(encodedData)
 		return Promise.resolve()
 	}

@@ -1,5 +1,9 @@
 import { io } from "socket.io-client"
-import type { DestroyableIoInterface } from "../interface.ts"
+import type {
+	DestroyableIoInterface,
+	IoMessage,
+	IoCapabilities
+} from "../interface.ts"
 
 const DESTROY_SIGNAL = "__DESTROY__"
 
@@ -19,6 +23,10 @@ export class SocketIOClientIO implements DestroyableIoInterface {
 	private socket: any // Socket.IO client socket
 	private connected: Promise<void>
 	private connectResolve: (() => void) | null = null
+ 	capabilities: IoCapabilities = {
+		structuredClone: false,
+		transfer: false
+	}
 
 	constructor(private options: SocketIOClientOptions) {
 		const url = this.options.namespace 
@@ -72,9 +80,12 @@ export class SocketIOClientIO implements DestroyableIoInterface {
 		})
 	}
 
-	async write(data: string): Promise<void> {
+	async write(message: string | IoMessage): Promise<void> {
+		if (typeof message !== "string") {
+			throw new Error("SocketIOClientIO only supports string messages")
+		}
 		await this.connected
-		this.socket.emit("message", data)
+		this.socket.emit("message", message)
 	}
 
 	destroy(): void {
@@ -96,6 +107,10 @@ export class SocketIOServerIO implements DestroyableIoInterface {
 	private messageQueue: string[] = []
 	private resolveRead: ((value: string | null) => void) | null = null
 	private socket: any // Socket.IO server socket
+ 	capabilities: IoCapabilities = {
+		structuredClone: false,
+		transfer: false
+	}
 
 	constructor(socket: any) {
 		this.socket = socket
@@ -136,8 +151,11 @@ export class SocketIOServerIO implements DestroyableIoInterface {
 		})
 	}
 
-	async write(data: string): Promise<void> {
-		this.socket.emit("message", data)
+	async write(message: string | IoMessage): Promise<void> {
+		if (typeof message !== "string") {
+			throw new Error("SocketIOServerIO only supports string messages")
+		}
+		this.socket.emit("message", message)
 	}
 
 	destroy(): void {

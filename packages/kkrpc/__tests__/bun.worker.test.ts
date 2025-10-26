@@ -1,13 +1,17 @@
 import { expect, test } from "bun:test"
-import { NodeIo, RPCChannel, WorkerParentIO, type DestroyableIoInterface } from "../mod.ts"
+import { RPCChannel, WorkerParentIO, transfer, type DestroyableIoInterface } from "../mod.ts"
 import { apiMethods, type API } from "./scripts/api.ts"
 
-const worker = new Worker(new URL("./scripts/worker.ts", import.meta.url).href, { type: "module" })
-const io = new WorkerParentIO(worker)
-const rpc = new RPCChannel<API, API, DestroyableIoInterface>(io, { expose: apiMethods })
-const api = rpc.getAPI()
+function createRpc() {
+	const worker = new Worker(new URL("./scripts/worker.ts", import.meta.url).href, { type: "module" })
+	const io = new WorkerParentIO(worker)
+	const rpc = new RPCChannel<API, API, DestroyableIoInterface>(io, { expose: apiMethods })
+	const api = rpc.getAPI()
+	return { worker, io, rpc, api }
+}
 
 test("Bun Worker", async () => {
+	const { io, api } = createRpc()
 	for (let i = 0; i < 100; i++) {
 		const randInt1 = Math.floor(Math.random() * 100)
 		const randInt2 = Math.floor(Math.random() * 100)
@@ -20,5 +24,21 @@ test("Bun Worker", async () => {
 			expect(sum).toBe(randInt1 + randInt2)
 		})
 	}
+	io.destroy()
+})
+
+test("Bun worker supports transferable buffers", async () => {
+	const { io, api } = createRpc()
+	const buffer = new Uint8Array([1, 2, 3, 4])
+	const byteLength = buffer.byteLength
+
+	const length = await api.processBuffer(transfer(buffer.buffer, [buffer.buffer]))
+	expect(length).toBe(byteLength)
+	expect(buffer.byteLength).toBe(0)
+
+	const remoteBuffer = await api.createBuffer(512)
+	expect(remoteBuffer).toBeInstanceOf(ArrayBuffer)
+	expect(remoteBuffer.byteLength).toBe(512)
+
 	io.destroy()
 })

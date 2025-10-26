@@ -1,11 +1,14 @@
-import type { IoInterface } from "./interface.ts"
+import type { IoInterface, IoMessage } from "./interface.ts"
 import {
-	deserializeMessage,
-	serializeMessage,
+	encodeMessage,
+	decodeMessage,
+	processValueForTransfer,
+	reconstructValueFromTransfer,
 	type Message,
 	type Response,
 	type SerializationOptions,
 	type EnhancedError,
+	type TransferSlot,
 	deserializeError,
 	serializeError
 } from "./serialization.ts"
@@ -37,17 +40,24 @@ export class RPCChannel<
 	private messageStr = ""
 	private apiImplementation?: LocalAPI
 	private serializationOptions: SerializationOptions
+	private supportsTransfer = false
+	private structuredClone = false
 
 	constructor(
 		private io: Io,
 		options?: {
 			expose?: LocalAPI
 			serialization?: SerializationOptions
+			enableTransfer?: boolean
 		}
 	) {
 		// console.warn("RPCChannel constructor")
 		this.apiImplementation = options?.expose
 		this.serializationOptions = options?.serialization || {}
+		this.structuredClone = io.capabilities?.structuredClone === true
+		if (this.structuredClone && io.capabilities?.transfer === true && options?.enableTransfer !== false) {
+			this.supportsTransfer = true
+		}
 		this.listen()
 	}
 
@@ -68,67 +78,91 @@ export class RPCChannel<
 	}
 
 	/**
-	 * Listens for incoming messages on the IO interface
-	 * Handles message buffering and parsing
-	 * @private
+	 * Listens for incoming messages on the IO interface and dispatches them.
 	 */
 	private async listen(): Promise<void> {
-		// console.error("start listening with", this.io.name)
-
 		while (true) {
-			const buffer = await this.io.read()
-			if (!buffer) {
+			const incoming = await this.io.read()
+			if (incoming === null || incoming === undefined) {
 				continue
 			}
-			const bufferStr = typeof buffer === 'string' ? buffer : new TextDecoder('utf-8').decode(buffer)
-			// console.error("bufferStr", bufferStr)
-			if (bufferStr.trim().length === 0) {
-				continue
-			}
-			this.messageStr += bufferStr
-			const lastChar = this.messageStr[this.messageStr.length - 1]
-			const msgsSplit = this.messageStr.split("\n")
-			const msgs = lastChar === "\n" ? msgsSplit : msgsSplit.slice(0, -1) // remove the last incomplete message
-			this.messageStr = lastChar === "\n" ? "" : (msgsSplit.at(-1) ?? "")
-
-			for (const msgStr of msgs.map((msg) => msg.trim()).filter(Boolean)) {
-				if (msgStr.startsWith("{")) {
-					this.handleMessageStr(msgStr)
-				} else {
-					console.log(`(kkrpc stdout passthrough):`, msgStr) // allow debug log passthrough
-				}
+			try {
+				await this.handleIncomingMessage(incoming)
+			} catch (error) {
+				console.error("kkrpc: failed to handle incoming message", error)
 			}
 		}
 	}
 
-	/**
-	 * Handles a single message string by parsing and routing it
-	 * @param messageStr The message string to handle
-	 * @private
-	 */
+	private async handleIncomingMessage(raw: string | IoMessage): Promise<void> {
+		if (typeof raw === "string") {
+			if (raw.trim().length === 0) {
+				return
+			}
+			this.bufferString(raw)
+			return
+		}
+
+		const payload = raw.data
+		if (typeof payload === "string") {
+			await this.handleIncomingMessage(payload)
+			return
+		}
+
+		if (!payload || typeof payload !== "object") {
+			return
+		}
+
+		if (!payload.__transferredValues && raw.transfers && raw.transfers.length > 0) {
+			payload.__transferredValues = raw.transfers
+		}
+
+		const message = await decodeMessage(payload)
+		await this.processDecodedMessage(message)
+	}
+
+	private bufferString(chunk: string): void {
+		this.messageStr += chunk
+		const lastChar = this.messageStr[this.messageStr.length - 1]
+		const msgsSplit = this.messageStr.split("\n")
+		const msgs = lastChar === "\n" ? msgsSplit : msgsSplit.slice(0, -1)
+		this.messageStr = lastChar === "\n" ? "" : msgsSplit.at(-1) ?? ""
+
+		for (const msgStr of msgs.map((msg) => msg.trim()).filter(Boolean)) {
+			if (msgStr.startsWith("{")) {
+				void this.handleMessageStr(msgStr)
+			} else {
+				console.log(`(kkrpc stdout passthrough):`, msgStr)
+			}
+		}
+	}
+
 	private async handleMessageStr(messageStr: string): Promise<void> {
 		this.count++
-		return deserializeMessage(messageStr)
-			.then((parsedMessage) => {
-				if (parsedMessage.type === "response") {
-					this.handleResponse(parsedMessage as Message<Response<any>>)
-				} else if (parsedMessage.type === "request") {
-					this.handleRequest(parsedMessage)
-				} else if (parsedMessage.type === "callback") {
-					this.handleCallback(parsedMessage)
-				} else if (parsedMessage.type === "get") {
-					this.handleGet(parsedMessage)
-				} else if (parsedMessage.type === "set") {
-					this.handleSet(parsedMessage)
-				} else if (parsedMessage.type === "construct") {
-					this.handleConstruct(parsedMessage)
-				} else {
-					console.error("received unknown message type", parsedMessage, typeof parsedMessage)
-				}
-			})
-			.catch((err) => {
-				console.log(`(kkrpc stdout passthrough):`, messageStr)
-			})
+		try {
+			const parsedMessage = await decodeMessage(messageStr)
+			await this.processDecodedMessage(parsedMessage)
+		} catch (error) {
+			console.error("failed to parse message", typeof messageStr, messageStr, error)
+		}
+	}
+
+	private async processDecodedMessage(parsedMessage: Message): Promise<void> {
+		if (parsedMessage.type === "response") {
+			this.handleResponse(parsedMessage as Message<Response<any>>)
+		} else if (parsedMessage.type === "request") {
+			this.handleRequest(parsedMessage)
+		} else if (parsedMessage.type === "callback") {
+			this.handleCallback(parsedMessage)
+		} else if (parsedMessage.type === "get") {
+			this.handleGet(parsedMessage)
+		} else if (parsedMessage.type === "set") {
+			this.handleSet(parsedMessage)
+		} else if (parsedMessage.type === "construct") {
+			this.handleConstruct(parsedMessage)
+		} else {
+			console.error("received unknown message type", parsedMessage, typeof parsedMessage)
+		}
 	}
 
 	/**
@@ -143,16 +177,13 @@ export class RPCChannel<
 			this.pendingRequests[messageId] = { resolve, reject }
 
 			const callbackIds: string[] = []
-			const processedArgs = args.map((arg) => {
+			const argsWithCallbacks = args.map((arg) => {
 				if (typeof arg === "function") {
 					let callbackId = this.callbackCache.get(arg)
 					if (!callbackId) {
 						callbackId = generateUUID()
 						this.callbacks[callbackId] = arg
-						// console.log("callbacks size", Object.keys(this.callbacks).length);
 						this.callbackCache.set(arg, callbackId)
-					} else {
-						//   console.log("callbackId already exists", callbackId);
 					}
 					callbackIds.push(callbackId)
 					return `__callback__${callbackId}`
@@ -160,14 +191,26 @@ export class RPCChannel<
 				return arg
 			})
 
+			let finalArgs = argsWithCallbacks
+			const transferables: Transferable[] = []
+			const transferSlots: TransferSlot[] = []
+
+			if (this.supportsTransfer) {
+				finalArgs = argsWithCallbacks.map((arg) =>
+					processValueForTransfer(arg, transferables, transferSlots)
+				)
+			}
+
 			const message: Message = {
 				id: messageId,
 				method: method as string,
-				args: processedArgs,
+				args: finalArgs,
 				type: "request",
-				callbackIds: callbackIds.length > 0 ? callbackIds : undefined
+				callbackIds: callbackIds.length > 0 ? callbackIds : undefined,
+				transferSlots: transferSlots.length > 0 ? transferSlots : undefined
 			}
-			this.io.write(serializeMessage(message, this.serializationOptions))
+
+			this.sendMessage(message, transferables)
 		})
 	}
 
@@ -189,7 +232,7 @@ export class RPCChannel<
 				type: "get",
 				path: propertyPath
 			}
-			this.io.write(serializeMessage(message, this.serializationOptions))
+			this.sendMessage(message)
 		})
 	}
 
@@ -205,15 +248,25 @@ export class RPCChannel<
 			this.pendingRequests[messageId] = { resolve, reject }
 
 			const propertyPath = Array.isArray(path) ? path : path.split(".")
+			let processedValue = value
+			const transferables: Transferable[] = []
+			const transferSlots: TransferSlot[] = []
+
+			if (this.supportsTransfer) {
+				processedValue = processValueForTransfer(value, transferables, transferSlots)
+			}
+
 			const message: Message = {
 				id: messageId,
 				method: "",
 				args: {},
 				type: "set",
 				path: propertyPath,
-				value: value
+				value: processedValue,
+				transferSlots: transferSlots.length > 0 ? transferSlots : undefined
 			}
-			this.io.write(serializeMessage(message, this.serializationOptions))
+
+			this.sendMessage(message, transferables)
 		})
 	}
 
@@ -229,7 +282,7 @@ export class RPCChannel<
 			this.pendingRequests[messageId] = { resolve, reject }
 
 			const callbackIds: string[] = []
-			const processedArgs = args.map((arg) => {
+			const argsWithCallbacks = args.map((arg) => {
 				if (typeof arg === "function") {
 					let callbackId = this.callbackCache.get(arg)
 					if (!callbackId) {
@@ -243,14 +296,26 @@ export class RPCChannel<
 				return arg
 			})
 
+			let finalArgs = argsWithCallbacks
+			const transferables: Transferable[] = []
+			const transferSlots: TransferSlot[] = []
+
+			if (this.supportsTransfer) {
+				finalArgs = argsWithCallbacks.map((arg) =>
+					processValueForTransfer(arg, transferables, transferSlots)
+				)
+			}
+
 			const message: Message = {
 				id: messageId,
 				method: constructor as string,
-				args: processedArgs,
+				args: finalArgs,
 				type: "construct",
-				callbackIds: callbackIds.length > 0 ? callbackIds : undefined
+				callbackIds: callbackIds.length > 0 ? callbackIds : undefined,
+				transferSlots: transferSlots.length > 0 ? transferSlots : undefined
 			}
-			this.io.write(serializeMessage(message, this.serializationOptions))
+
+			this.sendMessage(message, transferables)
 		})
 	}
 
@@ -272,7 +337,16 @@ export class RPCChannel<
 					this.pendingRequests[id].reject(new Error(error as string))
 				}
 			} else {
-				this.pendingRequests[id].resolve(result)
+				let finalResult = result
+				if (response.transferSlots && response.transferSlots.length > 0) {
+					const transferredValues = (response as any).__transferredValues || []
+					finalResult = reconstructValueFromTransfer(
+						result,
+						response.transferSlots,
+						transferredValues
+					)
+				}
+				this.pendingRequests[id].resolve(finalResult)
 			}
 			delete this.pendingRequests[id]
 		}
@@ -284,14 +358,20 @@ export class RPCChannel<
 	 * @private
 	 */
 	private handleRequest(request: Message): void {
-		const { id, method, args } = request
+		const { id, method } = request
+		let incomingArgs = Array.isArray(request.args) ? request.args : []
 
-		// Split the method path and traverse the API implementation
+		if (request.transferSlots && request.transferSlots.length > 0) {
+			const transferredValues = (request as any).__transferredValues || []
+			incomingArgs = incomingArgs.map((arg: any) =>
+				reconstructValueFromTransfer(arg, request.transferSlots!, transferredValues)
+			)
+		}
+
 		const methodPath = method.split(".")
 		if (!this.apiImplementation) return
 		let target: any = this.apiImplementation
 
-		// Traverse the object path
 		for (let i = 0; i < methodPath.length - 1; i++) {
 			target = target[methodPath[i]]
 			if (!target) {
@@ -308,7 +388,7 @@ export class RPCChannel<
 			return
 		}
 
-		const processedArgs = args.map((arg: any) => {
+		const processedArgs = incomingArgs.map((arg: any) => {
 			if (typeof arg === "string" && arg.startsWith("__callback__")) {
 				const callbackId = arg.slice(12)
 				return (...callbackArgs: any[]) => {
@@ -337,13 +417,22 @@ export class RPCChannel<
 	 * @private
 	 */
 	private invokeCallback(callbackId: string, args: any[]): void {
+		let finalArgs = args
+		const transferables: Transferable[] = []
+		const transferSlots: TransferSlot[] = []
+
+		if (this.supportsTransfer) {
+			finalArgs = args.map((arg) => processValueForTransfer(arg, transferables, transferSlots))
+		}
+
 		const message: Message = {
 			id: generateUUID(),
 			method: callbackId,
-			args,
-			type: "callback"
+			args: finalArgs,
+			type: "callback",
+			transferSlots: transferSlots.length > 0 ? transferSlots : undefined
 		}
-		this.io.write(serializeMessage(message, this.serializationOptions))
+		this.sendMessage(message, transferables)
 	}
 
 	/**
@@ -352,13 +441,17 @@ export class RPCChannel<
 	 * @private
 	 */
 	private handleCallback(message: Message): void {
-		const { method: callbackId, args } = message
+		const { method: callbackId } = message
 		const callback = this.callbacks[callbackId]
 		if (callback) {
-			callback(...args)
-			// delete this.callbacks[callbackId];
-			// console.log("callback size", Object.keys(this.callbacks).length);
-			// this.cleanupCallbacks();
+			let callbackArgs = Array.isArray(message.args) ? message.args : []
+			if (message.transferSlots && message.transferSlots.length > 0) {
+				const transferredValues = (message as any).__transferredValues || []
+				callbackArgs = callbackArgs.map((arg: any) =>
+					reconstructValueFromTransfer(arg, message.transferSlots!, transferredValues)
+				)
+			}
+			callback(...callbackArgs)
 		} else {
 			console.error(`Callback with id ${callbackId} not found`)
 		}
@@ -398,10 +491,20 @@ export class RPCChannel<
 	 * @private
 	 */
 	private handleSet(request: Message): void {
-		const { id, path, value } = request
+		const { id, path } = request
 		if (!path || !this.apiImplementation) {
 			this.sendError(id, "Invalid set request: missing path or API implementation")
 			return
+		}
+
+		let incomingValue = request.value
+		if (request.transferSlots && request.transferSlots.length > 0) {
+			const transferredValues = (request as any).__transferredValues || []
+			incomingValue = reconstructValueFromTransfer(
+				request.value,
+				request.transferSlots,
+				transferredValues
+			)
 		}
 
 		try {
@@ -417,7 +520,7 @@ export class RPCChannel<
 
 			// Set the final property
 			const finalProp = path[path.length - 1]
-			target[finalProp] = value
+			target[finalProp] = incomingValue
 			this.sendResponse(id, true) // Return true to indicate success
 		} catch (error: any) {
 			this.sendError(id, error)
@@ -430,7 +533,15 @@ export class RPCChannel<
 	 * @private
 	 */
 	private handleConstruct(request: Message): void {
-		const { id, method, args } = request
+		const { id, method } = request
+		let incomingArgs = Array.isArray(request.args) ? request.args : []
+
+		if (request.transferSlots && request.transferSlots.length > 0) {
+			const transferredValues = (request as any).__transferredValues || []
+			incomingArgs = incomingArgs.map((arg: any) =>
+				reconstructValueFromTransfer(arg, request.transferSlots!, transferredValues)
+			)
+		}
 
 		// Split the method path and traverse the API implementation
 		const methodPath = method.split(".")
@@ -457,7 +568,7 @@ export class RPCChannel<
 			return
 		}
 
-		const processedArgs = args.map((arg: any) => {
+		const processedArgs = incomingArgs.map((arg: any) => {
 			if (typeof arg === "string" && arg.startsWith("__callback__")) {
 				const callbackId = arg.slice(12)
 				return (...callbackArgs: any[]) => {
@@ -482,13 +593,23 @@ export class RPCChannel<
 	 * @private
 	 */
 	private sendResponse<T>(id: string, result: T): void {
+		let responseResult = result
+		const transferables: Transferable[] = []
+		const transferSlots: TransferSlot[] = []
+
+		if (this.supportsTransfer) {
+			responseResult = processValueForTransfer(result, transferables, transferSlots)
+		}
+
 		const response: Message<Response<T>> = {
 			id,
 			method: "",
-			args: { result },
-			type: "response"
+			args: { result: responseResult },
+			type: "response",
+			transferSlots: transferSlots.length > 0 ? transferSlots : undefined
 		}
-		this.io.write(serializeMessage(response, this.serializationOptions))
+
+		this.sendMessage(response, transferables)
 	}
 
 	/**
@@ -498,17 +619,33 @@ export class RPCChannel<
 	 * @private
 	 */
 	private sendError(id: string, error: string | Error): void {
-		const errorResponse = error instanceof Error 
-			? serializeError(error)
-			: error;
-		
+		const errorResponse = error instanceof Error ? serializeError(error) : error
+
 		const response: Message<Response<null>> = {
 			id,
 			method: "",
 			args: { error: errorResponse },
 			type: "response"
 		}
-		this.io.write(serializeMessage(response, this.serializationOptions))
+		this.sendMessage(response)
+	}
+
+	private sendMessage(message: Message, transferables: Transferable[] = []): void {
+		const encoded = encodeMessage(
+			message,
+			this.serializationOptions,
+			this.supportsTransfer && transferables.length > 0,
+			transferables
+		)
+
+		if (encoded.mode === "string") {
+			this.io.write(encoded.data)
+		} else {
+			this.io.write({
+				data: encoded.data,
+				transfers: transferables
+			})
+		}
 	}
 
 	/**

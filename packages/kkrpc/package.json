@@ -38,7 +38,8 @@
 		"test": "bun run scripts/test.ts",
 		"posttest": "verify-package-export verify",
 		"docs": "typedoc --out docs",
-		"build": "bun run build.ts",
+		"build": "tsdown",
+		"postbuild": "pnpm run docs",
 		"dev": "tsdown --watch"
 	},
 	"main": "./dist/mod.js",

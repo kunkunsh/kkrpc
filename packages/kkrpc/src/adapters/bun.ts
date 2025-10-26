@@ -1,17 +1,13 @@
-/**
- * Node.js implementation of IoInterface
- * Should also work with Bun
- */
-// Use Uint8Array instead of Buffer for better compatibility
-import { type IoInterface } from "../interface.ts"
+import { type IoInterface, type IoMessage, type IoCapabilities } from "../interface.ts"
 
-/**
- * Stdio implementation for Bun
- */
 export class BunIo implements IoInterface {
 	name = "bun-io"
 	private readStream: ReadableStream<Uint8Array>
 	private reader: ReadableStreamDefaultReader<Uint8Array>
+	capabilities: IoCapabilities = {
+		structuredClone: false,
+		transfer: false
+	}
 
 	constructor(readStream: ReadableStream<Uint8Array>) {
 		this.readStream = readStream
@@ -20,15 +16,18 @@ export class BunIo implements IoInterface {
 		this.reader = this.readStream.getReader()
 	}
 
-	async read(): Promise<Uint8Array | null> {
+	async read(): Promise<string | null> {
 		const { value, done } = await this.reader.read()
 		if (done) {
 			return null // End of input
 		}
-		return value
+		return new TextDecoder().decode(value)
 	}
 
-	async write(data: string): Promise<void> {
-		return Bun.write(Bun.stdout, data).then(() => Promise.resolve())
+	async write(message: string | IoMessage): Promise<void> {
+		if (typeof message !== "string") {
+			throw new Error("BunIo only supports string messages")
+		}
+		return Bun.write(Bun.stdout, message).then(() => Promise.resolve())
 	}
 }

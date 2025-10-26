@@ -2,7 +2,12 @@
  * This file contains the implementation of the IframeParentIO and IframeChildIO classes.
  * They are used to create a bidirectional communication channel between a parent window and a child iframe.
  */
-import type { DestroyableIoInterface } from "../interface.ts"
+import type {
+	DestroyableIoInterface,
+	IoMessage,
+	IoCapabilities
+} from "../interface.ts"
+import type { WireEnvelope } from "../serialization.ts"
 
 const DESTROY_SIGNAL = "__DESTROY__"
 const PORT_INIT_SIGNAL = "__PORT_INIT__"
@@ -21,9 +26,14 @@ const PORT_INIT_SIGNAL = "__PORT_INIT__"
  */
 export class IframeParentIO implements DestroyableIoInterface {
 	name = "iframe-parent-io"
-	private messageQueue: string[] = []
-	private resolveRead: ((value: string | null) => void) | null = null
+	private messageQueue: Array<string | IoMessage> = []
+	private resolveRead: ((value: string | IoMessage | null) => void) | null = null
 	private port: MessagePort | null = null
+ 	capabilities: IoCapabilities = {
+		structuredClone: true,
+		transfer: true,
+		transferTypes: ["ArrayBuffer", "MessagePort"]
+	}
 
 	/**
 	 * @example
@@ -46,14 +56,21 @@ export class IframeParentIO implements DestroyableIoInterface {
 
 				while (this.messageQueue.length > 0) {
 					const message = this.messageQueue.shift()
-					if (message) this.port.postMessage(message)
+					if (!message) continue
+					if (typeof message === "string") {
+						this.port.postMessage(message)
+					} else if (message.transfers && message.transfers.length > 0) {
+						this.port.postMessage(message.data, message.transfers)
+					} else {
+						this.port.postMessage(message.data)
+					}
 				}
 			}
 		})
 	}
 
 	private handleMessage = (event: MessageEvent) => {
-		const message = event.data
+		const message = this.normalizeIncoming(event.data)
 
 		// Handle destroy signal
 		if (message === DESTROY_SIGNAL) {
@@ -62,16 +79,30 @@ export class IframeParentIO implements DestroyableIoInterface {
 		}
 
 		if (this.resolveRead) {
-			// If there's a pending read, resolve it immediately
 			this.resolveRead(message)
 			this.resolveRead = null
 		} else {
-			// Otherwise, queue the message
 			this.messageQueue.push(message)
 		}
 	}
 
-	async read(): Promise<string | null> {
+	private normalizeIncoming(message: any): string | IoMessage {
+		if (typeof message === "string") {
+			return message
+		}
+
+		if (message && typeof message === "object" && message.version === 2) {
+			const envelope = message as WireEnvelope
+			return {
+				data: envelope,
+				transfers: (envelope.__transferredValues as Transferable[] | undefined) ?? []
+			}
+		}
+
+		return message as string
+	}
+
+	async read(): Promise<string | IoMessage | null> {
 		// If there are queued messages, return the first one
 		if (this.messageQueue.length > 0) {
 			return this.messageQueue.shift() ?? null
@@ -83,12 +114,18 @@ export class IframeParentIO implements DestroyableIoInterface {
 		})
 	}
 
-	async write(data: string): Promise<void> {
+	async write(message: string | IoMessage): Promise<void> {
 		if (!this.port) {
-			this.messageQueue.push(data)
+			this.messageQueue.push(message)
 			return
 		}
-		this.port.postMessage(data)
+		if (typeof message === "string") {
+			this.port.postMessage(message)
+		} else if (message.transfers && message.transfers.length > 0) {
+			this.port.postMessage(message.data, message.transfers)
+		} else {
+			this.port.postMessage(message.data)
+		}
 	}
 
 	destroy(): void {
@@ -108,12 +145,17 @@ export class IframeParentIO implements DestroyableIoInterface {
 // Child frame version
 export class IframeChildIO implements DestroyableIoInterface {
 	name = "iframe-child-io"
-	private messageQueue: string[] = []
-	private resolveRead: ((value: string | null) => void) | null = null
+	private messageQueue: Array<string | IoMessage> = []
+	private resolveRead: ((value: string | IoMessage | null) => void) | null = null
 	private port: MessagePort | null = null
-	private pendingMessages: string[] = []
+	private pendingMessages: Array<string | IoMessage> = []
 	private initialized: Promise<void>
 	private channel: MessageChannel
+ 	capabilities: IoCapabilities = {
+		structuredClone: true,
+		transfer: true,
+		transferTypes: ["ArrayBuffer", "MessagePort"]
+	}
 
 	constructor() {
 		this.channel = new MessageChannel()
@@ -125,7 +167,7 @@ export class IframeChildIO implements DestroyableIoInterface {
 	}
 
 	private handleMessage = (event: MessageEvent) => {
-		const message = event.data
+		const message = this.normalizeIncoming(event.data)
 
 		// Handle destroy signal
 		if (message === DESTROY_SIGNAL) {
@@ -141,7 +183,23 @@ export class IframeChildIO implements DestroyableIoInterface {
 		}
 	}
 
-	async read(): Promise<string | null> {
+	private normalizeIncoming(message: any): string | IoMessage {
+		if (typeof message === "string") {
+			return message
+		}
+
+		if (message && typeof message === "object" && message.version === 2) {
+			const envelope = message as WireEnvelope
+			return {
+				data: envelope,
+				transfers: (envelope.__transferredValues as Transferable[] | undefined) ?? []
+			}
+		}
+
+		return message as string
+	}
+
+	async read(): Promise<string | IoMessage | null> {
 		await this.initialized
 
 		if (this.messageQueue.length > 0) {
@@ -153,13 +211,19 @@ export class IframeChildIO implements DestroyableIoInterface {
 		})
 	}
 
-	async write(data: string): Promise<void> {
+	async write(message: string | IoMessage): Promise<void> {
 		await this.initialized
 
 		if (this.port) {
-			this.port.postMessage(data)
+			if (typeof message === "string") {
+				this.port.postMessage(message)
+			} else if (message.transfers && message.transfers.length > 0) {
+				this.port.postMessage(message.data, message.transfers)
+			} else {
+				this.port.postMessage(message.data)
+			}
 		} else {
-			this.pendingMessages.push(data)
+			this.pendingMessages.push(message)
 		}
 	}
 

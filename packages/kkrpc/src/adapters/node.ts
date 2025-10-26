@@ -4,7 +4,7 @@
  */
 import { type Buffer } from "node:buffer"
 import { Readable, Writable } from "node:stream"
-import { type IoInterface } from "../interface.ts"
+import { type IoInterface, type IoMessage, type IoCapabilities } from "../interface.ts"
 
 /**
  * Stdio implementation for Node.js
@@ -14,8 +14,11 @@ export class NodeIo implements IoInterface {
 	name = "node-io"
 	private readStream: Readable
 	private writeStream: Writable
-	private dataHandler: ((chunk: Buffer) => void) | null = null
 	private errorHandler: ((error: Error) => void) | null = null
+	capabilities: IoCapabilities = {
+		structuredClone: false,
+		transfer: false
+	}
 
 	constructor(readStream: Readable, writeStream: Writable) {
 		this.readStream = readStream
@@ -31,7 +34,8 @@ export class NodeIo implements IoInterface {
 		return new Promise((resolve, reject) => {
 			const onData = (chunk: Buffer) => {
 				cleanup()
-				resolve(new Uint8Array(chunk))
+				const decoder = new TextDecoder()
+				resolve(decoder.decode(chunk))
 			}
 
 			const onEnd = () => {
@@ -56,9 +60,13 @@ export class NodeIo implements IoInterface {
 		})
 	}
 
-	async write(data: string): Promise<void> {
+	async write(message: string | IoMessage): Promise<void> {
+		if (typeof message !== "string") {
+			throw new Error("NodeIo only supports string messages")
+		}
+
 		return new Promise((resolve, reject) => {
-			this.writeStream.write(data, (err) => {
+			this.writeStream.write(message, (err) => {
 				if (err) reject(err)
 				else {
 					resolve()
