@@ -30,6 +30,6 @@ jobs:
         run: |
           pnpm install
           deno install
+          pnpm --filter kkrpc exec playwright install
           pnpm build
-          # pnpm --filter kkrpc exec playwright install
           pnpm test
