@@ -6,6 +6,7 @@ export interface API {
 	subtract(a: number, b: number): Promise<number>
 	addCallback(a: number, b: number, callback: (result: number) => void): void
 	processBuffer(buffer: ArrayBuffer): Promise<number>
+	processMultiTransfer(obj: { buf1: ArrayBuffer; buf2: ArrayBuffer; c: number }): Promise<{ b1: number; b2: number; c: number }>
 	createBuffer(size: number): Promise<ArrayBuffer>
 	math: {
 		grade1: {
@@ -52,6 +53,19 @@ export const apiMethods: API = {
 		callback?.(a + b)
 	},
 	processBuffer: async (buffer: ArrayBuffer) => buffer.byteLength,
+	processMultiTransfer: async (obj: { buf1: ArrayBuffer; buf2: ArrayBuffer; c: number }) => {
+		if (!(obj.buf1 instanceof ArrayBuffer)) {
+			throw new Error(`obj.buf1 is not an ArrayBuffer, but ${obj.buf1?.constructor.name}`)
+		}
+		if (!(obj.buf2 instanceof ArrayBuffer)) {
+			throw new Error(`obj.buf2 is not an ArrayBuffer, but ${obj.buf2?.constructor.name}`)
+		}
+		return {
+			b1: obj.buf1.byteLength,
+			b2: obj.buf2.byteLength,
+			c: obj.c
+		}
+	},
 	createBuffer: async (size: number) => {
 		const buffer = new ArrayBuffer(size)
 		return transfer(buffer, [buffer])
