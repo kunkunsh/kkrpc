@@ -55,10 +55,10 @@ export const apiMethods: API = {
 	processBuffer: async (buffer: ArrayBuffer) => buffer.byteLength,
 	processMultiTransfer: async (obj: { buf1: ArrayBuffer; buf2: ArrayBuffer; c: number }) => {
 		if (!(obj.buf1 instanceof ArrayBuffer)) {
-			throw new Error(`obj.buf1 is not an ArrayBuffer, but ${obj.buf1?.constructor.name}`)
+			throw new Error(`obj.buf1 is not an ArrayBuffer, but ${(obj.buf1 as unknown as any)?.constructor.name}`)
 		}
 		if (!(obj.buf2 instanceof ArrayBuffer)) {
-			throw new Error(`obj.buf2 is not an ArrayBuffer, but ${obj.buf2?.constructor.name}`)
+			throw new Error(`obj.buf2 is not an ArrayBuffer, but ${(obj.buf2 as unknown as any)?.constructor.name}`)
 		}
 		return {
 			b1: obj.buf1.byteLength,
