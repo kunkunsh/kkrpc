@@ -10,7 +10,7 @@ export interface TransferHandler<T = any, S = any> {
 	deserialize(value: S): T
 }
 
-export const transferHandlers = new Map<string, TransferHandler>()
+export const transferHandlers: Map<string, TransferHandler> = new Map<string, TransferHandler>()
 
 /**
  * Registers a custom transfer handler for non-standard transferable types.
