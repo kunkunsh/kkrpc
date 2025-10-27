@@ -1,3 +1,0 @@
-[submodule "packages/comlink"]
-	path = packages/comlink
-	url = https://github.com/GoogleChromeLabs/comlink.git
