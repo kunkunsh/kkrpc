@@ -154,15 +154,16 @@ export class WorkerChildIO implements DestroyableIoInterface {
 	}
 
 	async write(message: string | IoMessage): Promise<void> {
-		// @ts-ignore: lack of types in deno
 		if (typeof message === "string") {
+			// @ts-ignore: lack of types in deno
 			self.postMessage(message)
 			return
 		}
-		// @ts-ignore: lack of types in deno
 		if (message.transfers && message.transfers.length > 0) {
+			// @ts-ignore: lack of types in deno
 			self.postMessage(message.data, message.transfers)
 		} else {
+			// @ts-ignore: lack of types in deno
 			self.postMessage(message.data)
 		}
 	}
