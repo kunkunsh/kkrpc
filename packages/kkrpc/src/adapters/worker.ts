@@ -50,7 +50,7 @@ export class WorkerParentIO implements DestroyableIoInterface {
 			const envelope = message as WireEnvelope
 			return {
 				data: envelope,
-				transfers: (envelope.__transferredValues as Transferable[] | undefined) ?? []
+				transfers: (envelope.__transferredValues as unknown[] | undefined) ?? []
 			}
 		}
 
@@ -76,7 +76,7 @@ export class WorkerParentIO implements DestroyableIoInterface {
 		}
 
 		if (message.transfers && message.transfers.length > 0) {
-			this.worker.postMessage(message.data, message.transfers)
+			this.worker.postMessage(message.data, message.transfers as Transferable[])
 		} else {
 			this.worker.postMessage(message.data)
 		}
@@ -136,7 +136,7 @@ export class WorkerChildIO implements DestroyableIoInterface {
 			const envelope = message as WireEnvelope
 			return {
 				data: envelope,
-				transfers: (envelope.__transferredValues as Transferable[] | undefined) ?? []
+				transfers: (envelope.__transferredValues as unknown[] | undefined) ?? []
 			}
 		}
 
@@ -161,7 +161,7 @@ export class WorkerChildIO implements DestroyableIoInterface {
 		}
 		if (message.transfers && message.transfers.length > 0) {
 			// @ts-ignore: lack of types in deno
-			self.postMessage(message.data, message.transfers)
+			self.postMessage(message.data, message.transfers as Transferable[])
 		} else {
 			// @ts-ignore: lack of types in deno
 			self.postMessage(message.data)

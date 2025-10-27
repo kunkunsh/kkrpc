@@ -194,10 +194,16 @@ export class RPCChannel<
 			let finalArgs = argsWithCallbacks
 			const transferables: Transferable[] = []
 			const transferSlots: TransferSlot[] = []
+			const transferredValues: unknown[] = []
 
 			if (this.supportsTransfer) {
 				finalArgs = argsWithCallbacks.map((arg) =>
-					processValueForTransfer(arg, transferables, transferSlots)
+					processValueForTransfer(
+						arg,
+						transferables,
+						transferSlots,
+						transferredValues
+					)
 				)
 			}
 
@@ -210,7 +216,7 @@ export class RPCChannel<
 				transferSlots: transferSlots.length > 0 ? transferSlots : undefined
 			}
 
-			this.sendMessage(message, transferables)
+			this.sendMessage(message, transferables, transferredValues)
 		})
 	}
 
@@ -251,9 +257,15 @@ export class RPCChannel<
 			let processedValue = value
 			const transferables: Transferable[] = []
 			const transferSlots: TransferSlot[] = []
+			const transferredValues: unknown[] = []
 
 			if (this.supportsTransfer) {
-				processedValue = processValueForTransfer(value, transferables, transferSlots)
+				processedValue = processValueForTransfer(
+					value,
+					transferables,
+					transferSlots,
+					transferredValues
+				)
 			}
 
 			const message: Message = {
@@ -266,7 +278,7 @@ export class RPCChannel<
 				transferSlots: transferSlots.length > 0 ? transferSlots : undefined
 			}
 
-			this.sendMessage(message, transferables)
+			this.sendMessage(message, transferables, transferredValues)
 		})
 	}
 
@@ -299,10 +311,16 @@ export class RPCChannel<
 			let finalArgs = argsWithCallbacks
 			const transferables: Transferable[] = []
 			const transferSlots: TransferSlot[] = []
+			const transferredValues: unknown[] = []
 
 			if (this.supportsTransfer) {
 				finalArgs = argsWithCallbacks.map((arg) =>
-					processValueForTransfer(arg, transferables, transferSlots)
+					processValueForTransfer(
+						arg,
+						transferables,
+						transferSlots,
+						transferredValues
+					)
 				)
 			}
 
@@ -315,7 +333,7 @@ export class RPCChannel<
 				transferSlots: transferSlots.length > 0 ? transferSlots : undefined
 			}
 
-			this.sendMessage(message, transferables)
+			this.sendMessage(message, transferables, transferredValues)
 		})
 	}
 
@@ -420,9 +438,17 @@ export class RPCChannel<
 		let finalArgs = args
 		const transferables: Transferable[] = []
 		const transferSlots: TransferSlot[] = []
+		const transferredValues: unknown[] = []
 
 		if (this.supportsTransfer) {
-			finalArgs = args.map((arg) => processValueForTransfer(arg, transferables, transferSlots))
+			finalArgs = args.map((arg) =>
+				processValueForTransfer(
+					arg,
+					transferables,
+					transferSlots,
+					transferredValues
+				)
+			)
 		}
 
 		const message: Message = {
@@ -432,7 +458,7 @@ export class RPCChannel<
 			type: "callback",
 			transferSlots: transferSlots.length > 0 ? transferSlots : undefined
 		}
-		this.sendMessage(message, transferables)
+		this.sendMessage(message, transferables, transferredValues)
 	}
 
 	/**
@@ -596,9 +622,15 @@ export class RPCChannel<
 		let responseResult = result
 		const transferables: Transferable[] = []
 		const transferSlots: TransferSlot[] = []
+		const transferredValues: unknown[] = []
 
 		if (this.supportsTransfer) {
-			responseResult = processValueForTransfer(result, transferables, transferSlots)
+			responseResult = processValueForTransfer(
+				result,
+				transferables,
+				transferSlots,
+				transferredValues
+			)
 		}
 
 		const response: Message<Response<T>> = {
@@ -609,7 +641,7 @@ export class RPCChannel<
 			transferSlots: transferSlots.length > 0 ? transferSlots : undefined
 		}
 
-		this.sendMessage(response, transferables)
+		this.sendMessage(response, transferables, transferredValues)
 	}
 
 	/**
@@ -630,12 +662,16 @@ export class RPCChannel<
 		this.sendMessage(response)
 	}
 
-	private sendMessage(message: Message, transferables: Transferable[] = []): void {
+	private sendMessage(
+		message: Message,
+		transferables: Transferable[] = [],
+		transferredValues: unknown[] = []
+	): void {
 		const encoded = encodeMessage(
 			message,
 			this.serializationOptions,
 			this.supportsTransfer && transferables.length > 0,
-			transferables
+			transferredValues
 		)
 
 		if (encoded.mode === "string") {

@@ -23,7 +23,7 @@ export interface IoCapabilities {
  */
 export interface IoMessage {
 	data: string | WireEnvelope
-	transfers?: Transferable[]
+	transfers?: unknown[]
 }
 
 /**

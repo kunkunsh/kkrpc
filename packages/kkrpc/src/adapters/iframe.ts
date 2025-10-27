@@ -95,7 +95,7 @@ export class IframeParentIO implements DestroyableIoInterface {
 			const envelope = message as WireEnvelope
 			return {
 				data: envelope,
-				transfers: (envelope.__transferredValues as Transferable[] | undefined) ?? []
+				transfers: (envelope.__transferredValues as unknown[] | undefined) ?? []
 			}
 		}
 
@@ -121,8 +121,8 @@ export class IframeParentIO implements DestroyableIoInterface {
 		}
 		if (typeof message === "string") {
 			this.port.postMessage(message)
-		} else if (message.transfers && message.transfers.length > 0) {
-			this.port.postMessage(message.data, message.transfers)
+	} else if (message.transfers && message.transfers.length > 0) {
+		this.port.postMessage(message.data, message.transfers as Transferable[])
 		} else {
 			this.port.postMessage(message.data)
 		}
@@ -192,7 +192,7 @@ export class IframeChildIO implements DestroyableIoInterface {
 			const envelope = message as WireEnvelope
 			return {
 				data: envelope,
-				transfers: (envelope.__transferredValues as Transferable[] | undefined) ?? []
+				transfers: (envelope.__transferredValues as unknown[] | undefined) ?? []
 			}
 		}
 
@@ -217,8 +217,8 @@ export class IframeChildIO implements DestroyableIoInterface {
 		if (this.port) {
 			if (typeof message === "string") {
 				this.port.postMessage(message)
-			} else if (message.transfers && message.transfers.length > 0) {
-				this.port.postMessage(message.data, message.transfers)
+	} else if (message.transfers && message.transfers.length > 0) {
+		this.port.postMessage(message.data, message.transfers as Transferable[])
 			} else {
 				this.port.postMessage(message.data)
 			}

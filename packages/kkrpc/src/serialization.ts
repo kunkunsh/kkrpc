@@ -205,6 +205,7 @@ export function processValueForTransfer(
 	value: any,
 	transferables: Transferable[] = [],
 	transferSlots: TransferSlot[] = [],
+	transferredValues: unknown[] = [],
 	slotMap: Map<any, number> = new Map()
 ): any {
 	if (value === null || typeof value !== "object") {
@@ -221,6 +222,7 @@ export function processValueForTransfer(
 		const slotIndex = transferSlots.length
 		slotMap.set(value, slotIndex)
 		transferables.push(...descriptor.transfers)
+		transferredValues.push(descriptor.value)
 		transferSlots.push({
 			type: "raw",
 			metadata: { original: true }
@@ -234,6 +236,7 @@ export function processValueForTransfer(
 			const slotIndex = transferSlots.length
 			slotMap.set(value, slotIndex)
 			transferables.push(...handlerTransferables)
+			transferredValues.push(undefined)
 			transferSlots.push({
 				type: "handler",
 				handlerName: name,
@@ -244,13 +247,21 @@ export function processValueForTransfer(
 	}
 
 	if (Array.isArray(value)) {
-		return value.map((item) => processValueForTransfer(item, transferables, transferSlots, slotMap))
+		return value.map((item) =>
+			processValueForTransfer(item, transferables, transferSlots, transferredValues, slotMap)
+		)
 	}
 
 	if (value && value.constructor === Object) {
 		const processed: Record<string, any> = {}
 		for (const [key, val] of Object.entries(value)) {
-			processed[key] = processValueForTransfer(val, transferables, transferSlots, slotMap)
+			processed[key] = processValueForTransfer(
+				val,
+				transferables,
+				transferSlots,
+				transferredValues,
+				slotMap
+			)
 		}
 		return processed
 	}
@@ -269,6 +280,9 @@ export function reconstructValueFromTransfer(
 		const transferredValue = transferredValues[slotIndex]
 
 		if (slot?.type === "raw") {
+			if (transferredValue === undefined) {
+				throw new Error(`Missing transferred value for slot ${slotIndex}`)
+			}
 			return transferredValue
 		}
 
