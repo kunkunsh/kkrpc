@@ -36,6 +36,7 @@
 	"scripts": {
 		"prepare": "bun run scripts/prepare.ts",
 		"test": "bun run scripts/test.ts",
+		"test:deno": "deno test -R __deno_tests__",
 		"posttest": "verify-package-export verify",
 		"docs": "typedoc --out docs",
 		"build": "tsdown",

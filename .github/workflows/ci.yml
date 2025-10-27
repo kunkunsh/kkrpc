@@ -29,8 +29,12 @@ jobs:
           TURBO_TELEMETRY_DISABLED: 1
         run: |
           pnpm install
-          deno install
           # pnpm --filter kkrpc exec playwright install
           pnpx playwright install --with-deps
           pnpm build
           pnpm test
+      - name: deno test
+        run: |
+          deno install
+          pnpm run --filter kkrpc test:deno
+          
