@@ -30,7 +30,7 @@ export class NodeIo implements IoInterface {
 		})
 	}
 
-	async read(): Promise<Uint8Array | null> {
+	async read(): Promise<string | null> {
 		return new Promise((resolve, reject) => {
 			const onData = (chunk: Buffer) => {
 				cleanup()
