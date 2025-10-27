@@ -1,0 +1,10 @@
+{
+	"mcpServers": {
+		"svelte": {
+			"url": "https://mcp.svelte.dev/mcp"
+		},
+		"deepwiki": {
+			"url": "https://mcp.deepwiki.com/sse"
+		}
+	}
+}

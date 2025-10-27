@@ -1,6 +1,33 @@
 {
 	"name": "@kunkun/kkrpc",
-	"version": "0.4.0",
+	"version": "0.5.0",
+	"description": "TypeScript-first RPC library for seamless bi-directional communication between processes, workers, and contexts. Cross-runtime compatible with Node.js, Deno, Bun, and browsers.",
+	"keywords": [
+		"rpc",
+		"typescript",
+		"remote-procedure-call",
+		"type-safe",
+		"bidirectional",
+		"cross-runtime",
+		"nodejs",
+		"deno",
+		"bun",
+		"browser",
+		"web-worker",
+		"chrome-extension",
+		"tauri",
+		"ipc",
+		"inter-process-communication",
+		"extension-system",
+		"plugin-architecture",
+		"microservices",
+		"worker-communication",
+		"cross-context",
+		"stdio",
+		"http",
+		"websocket",
+		"postmessage"
+	],
 	"tasks": {
 		"dev": "deno run --watch main.ts"
 	},
@@ -9,7 +36,8 @@
 		"./browser": "./browser-mod.ts",
 		"./http": "./http.ts",
 		"./chrome-extension": "./chrome-extension.ts",
-		"./deno": "./deno-mod.ts"
+		"./deno": "./deno-mod.ts",
+		"./socketio": "./socketio.ts"
 	},
 	"imports": {
 		"@std/assert": "jsr:@std/assert@1"

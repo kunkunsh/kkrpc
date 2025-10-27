@@ -1,5 +1,10 @@
 import superjson from "superjson"
-import type { DestroyableIoInterface, IoInterface } from "../interface.ts"
+import type {
+	DestroyableIoInterface,
+	IoInterface,
+	IoMessage,
+	IoCapabilities
+} from "../interface.ts"
 
 interface HTTPClientOptions {
 	url: string
@@ -13,6 +18,10 @@ export class HTTPClientIO implements IoInterface {
 	name = "http-client-io"
 	private messageQueue: string[] = []
 	private resolveRead: ((value: string | null) => void) | null = null
+ 	capabilities: IoCapabilities = {
+		structuredClone: false,
+		transfer: false
+	}
 
 	constructor(private options: HTTPClientOptions) {}
 
@@ -26,7 +35,10 @@ export class HTTPClientIO implements IoInterface {
 		})
 	}
 
-	async write(data: string): Promise<void> {
+	async write(message: string | IoMessage): Promise<void> {
+		if (typeof message !== "string") {
+			throw new Error("HTTPClientIO only supports string messages")
+		}
 		try {
 			const response = await fetch(this.options.url, {
 				method: "POST",
@@ -34,7 +46,7 @@ export class HTTPClientIO implements IoInterface {
 					"Content-Type": "application/json",
 					...this.options.headers
 				},
-				body: data
+				body: message
 			})
 
 			if (!response.ok) {
@@ -43,20 +55,20 @@ export class HTTPClientIO implements IoInterface {
 
 			const responseText = await response.text()
 
-			if (this.resolveRead) {
-				this.resolveRead(responseText)
-				this.resolveRead = null
-			} else {
-				this.messageQueue.push(responseText)
-			}
-		} catch (error) {
-			console.error("HTTP request failed:", error)
-			if (this.resolveRead) {
-				this.resolveRead(null)
-				this.resolveRead = null
-			}
+		if (this.resolveRead) {
+			this.resolveRead(responseText)
+			this.resolveRead = null
+		} else {
+			this.messageQueue.push(responseText)
+		}
+	} catch (error) {
+		console.error("HTTP request failed:", error)
+		if (this.resolveRead) {
+			this.resolveRead(null)
+			this.resolveRead = null
 		}
 	}
+}
 }
 
 /**
@@ -67,6 +79,10 @@ export class HTTPServerIO implements IoInterface {
 	private messageQueue: string[] = []
 	private resolveRead: ((value: string | null) => void) | null = null
 	private pendingResponses = new Map<string, (response: string) => void>()
+ 	capabilities: IoCapabilities = {
+		structuredClone: false,
+		transfer: false
+	}
 
 	constructor() {}
 
@@ -80,14 +96,17 @@ export class HTTPServerIO implements IoInterface {
 		})
 	}
 
-	async write(data: string): Promise<void> {
+	async write(message: string | IoMessage): Promise<void> {
+		if (typeof message !== "string") {
+			throw new Error("HTTPServerIO only supports string messages")
+		}
 		// Parse the response to get the request ID
-		const response = superjson.parse<{ id: string }>(data)
+		const response = superjson.parse<{ id: string }>(message)
 		const requestId = response.id
 
 		const resolveResponse = this.pendingResponses.get(requestId)
 		if (resolveResponse) {
-			resolveResponse(data)
+			resolveResponse(message)
 			this.pendingResponses.delete(requestId)
 		}
 	}

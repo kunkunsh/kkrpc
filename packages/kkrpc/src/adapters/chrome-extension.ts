@@ -5,7 +5,11 @@
  * bidirectional RPC communication.
  */
 
-import type { DestroyableIoInterface } from "../interface.ts"
+import type {
+	DestroyableIoInterface,
+	IoMessage,
+	IoCapabilities
+} from "../interface.ts"
 
 const DESTROY_SIGNAL = "__DESTROY__";
 
@@ -14,34 +18,32 @@ const DESTROY_SIGNAL = "__DESTROY__";
  * This can be used in both background scripts and content scripts.
  */
 export class ChromePortIO implements DestroyableIoInterface {
-  name = "chrome-port-io";
-  private messageQueue: string[] = [];
-  private resolveRead: ((value: string | null) => void) | null = null;
+	name = "chrome-port-io";
+	private messageQueue: Array<string | IoMessage> = [];
+	private resolveRead: ((value: string | IoMessage | null) => void) | null = null;
+	capabilities: IoCapabilities = {
+		structuredClone: true,
+		transfer: false
+	};
 
   constructor(private port: chrome.runtime.Port) {
     this.port.onMessage.addListener(this.handleMessage);
     this.port.onDisconnect.addListener(this.handleDisconnect);
   }
 
-  private handleMessage = (message: any) => {
-    // The message can be anything, but kkrpc sends strings.
-    if (typeof message !== 'string') {
-        console.warn('[ChromePortIO] Received non-string message, ignoring:', message);
-        return;
-    }
+	private handleMessage = (message: any) => {
+		if (message === DESTROY_SIGNAL) {
+			this.destroy();
+			return;
+		}
 
-    if (message === DESTROY_SIGNAL) {
-      this.destroy();
-      return;
-    }
-
-    if (this.resolveRead) {
-      this.resolveRead(message);
-      this.resolveRead = null;
-    } else {
-      this.messageQueue.push(message);
-    }
-  };
+		if (this.resolveRead) {
+			this.resolveRead(message as string | IoMessage);
+			this.resolveRead = null;
+		} else {
+			this.messageQueue.push(message as string | IoMessage);
+		}
+	};
 
   private handleDisconnect = () => {
     // When the other side disconnects, we signal the destruction
@@ -53,25 +55,26 @@ export class ChromePortIO implements DestroyableIoInterface {
     this.cleanup();
   }
 
-  read(): Promise<string | null> {
-    if (this.messageQueue.length > 0) {
-      return Promise.resolve(this.messageQueue.shift() ?? null);
-    }
+	read(): Promise<string | IoMessage | null> {
+		if (this.messageQueue.length > 0) {
+			return Promise.resolve(this.messageQueue.shift() ?? null);
+		}
 
-    return new Promise((resolve) => {
-      this.resolveRead = resolve;
-    });
-  }
+		return new Promise((resolve) => {
+			this.resolveRead = resolve;
+		});
+	}
 
-  write(data: string): Promise<void> {
-    try {
-      this.port.postMessage(data);
-    } catch (error) {
-      console.error("[ChromePortIO] Failed to write to port. It might be disconnected.", error);
-      this.destroy();
-    }
-    return Promise.resolve();
-  }
+	write(message: string | IoMessage): Promise<void> {
+		try {
+			const payload = typeof message === 'string' ? message : message.data;
+			this.port.postMessage(payload);
+		} catch (error) {
+			console.error("[ChromePortIO] Failed to write to port. It might be disconnected.", error);
+			this.destroy();
+		}
+		return Promise.resolve();
+	}
 
   private cleanup = () => {
       this.port.onMessage.removeListener(this.handleMessage);

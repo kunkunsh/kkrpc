@@ -1,12 +1,22 @@
-import type { DestroyableIoInterface } from "../interface.ts"
+import type {
+	DestroyableIoInterface,
+	IoMessage,
+	IoCapabilities
+} from "../interface.ts"
+import type { WireEnvelope } from "../serialization.ts"
 
 const DESTROY_SIGNAL = "__DESTROY__"
 
 export class WorkerParentIO implements DestroyableIoInterface {
 	name = "worker-parent-io"
-	private messageQueue: string[] = []
-	private resolveRead: ((value: string | null) => void) | null = null
+	private messageQueue: Array<string | IoMessage> = []
+	private resolveRead: ((value: string | IoMessage | null) => void) | null = null
 	private worker: Worker
+ 	capabilities: IoCapabilities = {
+		structuredClone: true,
+		transfer: true,
+		transferTypes: ["ArrayBuffer", "MessagePort", "ImageBitmap", "OffscreenCanvas"]
+	}
 
 	constructor(worker: Worker) {
 		this.worker = worker
@@ -14,7 +24,8 @@ export class WorkerParentIO implements DestroyableIoInterface {
 	}
 
 	private handleMessage = (event: MessageEvent) => {
-		const message = event.data
+		const raw = event.data
+		const message = this.normalizeIncoming(raw)
 
 		// Handle destroy signal
 		if (message === DESTROY_SIGNAL) {
@@ -23,16 +34,30 @@ export class WorkerParentIO implements DestroyableIoInterface {
 		}
 
 		if (this.resolveRead) {
-			// If there's a pending read, resolve it immediately
 			this.resolveRead(message)
 			this.resolveRead = null
 		} else {
-			// Otherwise, queue the message
 			this.messageQueue.push(message)
 		}
 	}
 
-	read(): Promise<string | null> {
+	private normalizeIncoming(message: any): string | IoMessage {
+		if (typeof message === "string") {
+			return message
+		}
+
+		if (message && typeof message === "object" && message.version === 2) {
+			const envelope = message as WireEnvelope
+			return {
+				data: envelope,
+				transfers: (envelope.__transferredValues as unknown[] | undefined) ?? []
+			}
+		}
+
+		return message as string
+	}
+
+	read(): Promise<string | IoMessage | null> {
 		// If there are queued messages, return the first one
 		if (this.messageQueue.length > 0) {
 			return Promise.resolve(this.messageQueue.shift() ?? null)
@@ -44,8 +69,17 @@ export class WorkerParentIO implements DestroyableIoInterface {
 		})
 	}
 
-	write(data: string): Promise<void> {
-		this.worker.postMessage(data)
+	write(message: string | IoMessage): Promise<void> {
+		if (typeof message === "string") {
+			this.worker.postMessage(message)
+			return Promise.resolve()
+		}
+
+		if (message.transfers && message.transfers.length > 0) {
+			this.worker.postMessage(message.data, message.transfers as Transferable[])
+		} else {
+			this.worker.postMessage(message.data)
+		}
 		return Promise.resolve()
 	}
 
@@ -62,8 +96,13 @@ export class WorkerParentIO implements DestroyableIoInterface {
 // Worker version
 export class WorkerChildIO implements DestroyableIoInterface {
 	name = "worker-child-io"
-	private messageQueue: string[] = []
-	private resolveRead: ((value: string | null) => void) | null = null
+	private messageQueue: Array<string | IoMessage> = []
+	private resolveRead: ((value: string | IoMessage | null) => void) | null = null
+ 	capabilities: IoCapabilities = {
+		structuredClone: true,
+		transfer: true,
+		transferTypes: ["ArrayBuffer", "MessagePort", "ImageBitmap", "OffscreenCanvas"]
+	}
 
 	constructor() {
 		// @ts-ignore: lack of types in deno
@@ -71,7 +110,8 @@ export class WorkerChildIO implements DestroyableIoInterface {
 	}
 
 	private handleMessage = (event: MessageEvent) => {
-		const message = event.data
+		const raw = event.data
+		const message = this.normalizeIncoming(raw)
 
 		// Handle destroy signal
 		if (message === DESTROY_SIGNAL) {
@@ -87,7 +127,23 @@ export class WorkerChildIO implements DestroyableIoInterface {
 		}
 	}
 
-	async read(): Promise<string | null> {
+	private normalizeIncoming(message: any): string | IoMessage {
+		if (typeof message === "string") {
+			return message
+		}
+
+		if (message && typeof message === "object" && message.version === 2) {
+			const envelope = message as WireEnvelope
+			return {
+				data: envelope,
+				transfers: (envelope.__transferredValues as unknown[] | undefined) ?? []
+			}
+		}
+
+		return message as string
+	}
+
+	async read(): Promise<string | IoMessage | null> {
 		if (this.messageQueue.length > 0) {
 			return this.messageQueue.shift() ?? null
 		}
@@ -97,9 +153,19 @@ export class WorkerChildIO implements DestroyableIoInterface {
 		})
 	}
 
-	async write(data: string): Promise<void> {
-		// @ts-ignore: lack of types in deno
-		self.postMessage(data)
+	async write(message: string | IoMessage): Promise<void> {
+		if (typeof message === "string") {
+			// @ts-ignore: lack of types in deno
+			self.postMessage(message)
+			return
+		}
+		if (message.transfers && message.transfers.length > 0) {
+			// @ts-ignore: lack of types in deno
+			self.postMessage(message.data, message.transfers as Transferable[])
+		} else {
+			// @ts-ignore: lack of types in deno
+			self.postMessage(message.data)
+		}
 	}
 
 	destroy(): void {

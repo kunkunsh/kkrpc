@@ -1,5 +1,5 @@
 import { $ } from "bun"
 
 await $`rm -rf dist`
-await $`tsup`
+await $`tsdown`
 await $`pnpm run docs`
