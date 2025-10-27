@@ -37,7 +37,12 @@ export class WebSocketClientIO implements DestroyableIoInterface {
 		}
 
 		this.ws.onmessage = (event) => {
-			const message = event.data
+			// Convert Buffer to string if needed (for Node.js ws library)
+			let message = event.data
+			if (message instanceof Buffer) {
+				message = message.toString("utf-8")
+			}
+
 			if (message === DESTROY_SIGNAL) {
 				this.destroy()
 				return
@@ -99,7 +104,12 @@ export class WebSocketServerIO implements DestroyableIoInterface {
 
 	constructor(private ws: WebSocket) {
 		this.ws.onmessage = (event) => {
-			const message = event.data
+			// Convert Buffer to string if needed (for Node.js ws library)
+			let message = event.data
+			if (message instanceof Buffer) {
+				message = message.toString("utf-8")
+			}
+
 			if (message === DESTROY_SIGNAL) {
 				this.destroy()
 				return
