@@ -27,7 +27,9 @@
 		"stdio",
 		"http",
 		"websocket",
-		"postmessage"
+		"postmessage",
+		"elysia",
+		"elysia-websocket"
 	],
 	"repository": {
 		"type": "git",
@@ -114,13 +116,21 @@
 	"peerDependencies": {
 		"typescript": "^5.0.0",
 		"socket.io": "^4.0.0",
-		"socket.io-client": "^4.0.0"
+		"socket.io-client": "^4.0.0",
+		"hono": "^4.10.4",
+		"elysia": "^1.0.0"
 	},
 	"peerDependenciesMeta": {
 		"socket.io": {
 			"optional": true
 		},
 		"socket.io-client": {
+			"optional": true
+		},
+		"hono": {
+			"optional": true
+		},
+		"elysia": {
 			"optional": true
 		}
 	},

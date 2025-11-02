@@ -35,6 +35,7 @@ The core architecture consists of:
 ## Development Commands
 
 ### Root Level Commands
+
 ```bash
 # Build all packages
 pnpm build
@@ -56,6 +57,7 @@ pnpm --filter kkrpc test
 ```
 
 ### Package Development
+
 ```bash
 # In packages/kkrpc/
 bun run build          # Build the main package
@@ -80,6 +82,7 @@ This is a **pnpm workspace** monorepo with **Turbo** for task orchestration:
 ## Testing
 
 Tests are located in `packages/kkrpc/__tests__/` and use various runtime scripts:
+
 - `__tests__/scripts/node-api.ts` - Node.js test server
 - `__tests__/scripts/deno-api.ts` - Deno test server
 - `__tests__/scripts/bun-api.ts` - Bun test server
@@ -98,6 +101,7 @@ Run tests with `bun run test` in the kkrpc package directory.
 ## Package Exports
 
 The main package provides multiple entry points:
+
 - `.` - Main package (Node.js/Deno/Bun compatible)
 - `./browser` - Browser-specific bundle
 - `./http` - HTTP adapter only
@@ -115,18 +119,25 @@ The main package provides multiple entry points:
 ## Development Guidelines
 
 ### Svelte Development
+
 - Always use Svelte 5 syntax (see `.cursor/rules/svelte5.mdc`)
 - Import from Svelte 5 documentation when needed
 
 ### Code Organization
+
 - Keep adapters runtime-specific and isolated
 - Maintain TypeScript strict mode compliance
 - Use proper error serialization across RPC boundaries
 - Test cross-runtime compatibility before shipping changes
 
 ### Serialization Notes
+
 - Default uses superjson for enhanced type support
 - Backward compatibility with JSON format
 - Error objects are fully preserved across RPC boundaries
 
 This repository emphasizes cross-runtime compatibility, type safety, and seamless developer experience across JavaScript/TypeScript environments.
+
+## Coding Style
+
+When writing comments, use Chinglish / Mixed-language comments. Chinese is shorter and more concise, so you can write terminologies in English and some general explanation in Chinese.
