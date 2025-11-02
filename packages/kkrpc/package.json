@@ -101,15 +101,6 @@
 			},
 			"import": "./dist/socketio.js",
 			"require": "./dist/socketio.cjs"
-		},
-		"./elysia-websocket": {
-			"types": {
-				"import": "./dist/elysia-websocket.d.ts",
-				"require": "./dist/elysia-websocket.cjs",
-				"default": "./dist/elysia-websocket.js"
-			},
-			"import": "./dist/elysia-websocket.js",
-			"require": "./dist/elysia-websocket.cjs"
 		}
 	},
 	"devDependencies": {
