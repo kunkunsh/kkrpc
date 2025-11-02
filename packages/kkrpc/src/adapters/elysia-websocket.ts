@@ -1,8 +1,4 @@
-import type {
-	DestroyableIoInterface,
-	IoMessage,
-	IoCapabilities
-} from "../interface.ts"
+import type { DestroyableIoInterface, IoCapabilities, IoMessage } from "../interface.ts"
 
 const DESTROY_SIGNAL = "__DESTROY__"
 const textDecoder = typeof TextDecoder !== "undefined" ? new TextDecoder() : null
@@ -94,14 +90,15 @@ export class ElysiaWebSocketServerIO implements DestroyableIoInterface {
 
 		if ("onmessage" in source) {
 			const previous = source.onmessage
-			const wrapped = typeof previous === "function"
-				? (event: any) => {
-					this.processIncoming(event?.data ?? event)
-					previous.call(source, event)
-				}
-				: (event: any) => {
-					this.processIncoming(event?.data ?? event)
-				}
+			const wrapped =
+				typeof previous === "function"
+					? (event: any) => {
+							this.processIncoming(event?.data ?? event)
+							previous.call(source, event)
+						}
+					: (event: any) => {
+							this.processIncoming(event?.data ?? event)
+						}
 
 			source.onmessage = wrapped
 			this.detachListeners.push(() => {
@@ -171,13 +168,14 @@ export class ElysiaWebSocketServerIO implements DestroyableIoInterface {
 			message = String(raw)
 		}
 
-		if (!message.endsWith("\n")) {
-			message += "\n"
-		}
-
+		// Check for destroy signal before appending newline
 		if (message === DESTROY_SIGNAL) {
 			this.destroy()
 			return
+		}
+
+		if (!message.endsWith("\n")) {
+			message += "\n"
 		}
 
 		if (this.resolveRead) {
@@ -194,10 +192,7 @@ export class ElysiaWebSocketServerIO implements DestroyableIoInterface {
 
 	static feedMessage(ws: any, message: unknown): void {
 		const candidate =
-			ws?.data?.__kkrpc_io ??
-			ws?.__kkrpc_io ??
-			ws?.raw?.data?.__kkrpc_io ??
-			ws?.raw?.__kkrpc_io
+			ws?.data?.__kkrpc_io ?? ws?.__kkrpc_io ?? ws?.raw?.data?.__kkrpc_io ?? ws?.raw?.__kkrpc_io
 
 		if (candidate && typeof candidate.handleMessage === "function") {
 			candidate.handleMessage(message)
@@ -279,11 +274,7 @@ export class ElysiaWebSocketServerIO implements DestroyableIoInterface {
 	 */
 	getQuery(): Record<string, string> {
 		try {
-			return (
-				this.ws.data?.query ||
-				this.rawWs?.data?.query ||
-				{}
-			)
+			return this.ws.data?.query || this.rawWs?.data?.query || {}
 		} catch {
 			return {}
 		}
@@ -294,10 +285,7 @@ export class ElysiaWebSocketServerIO implements DestroyableIoInterface {
 	 */
 	getHeaders(): Record<string, string> {
 		try {
-			const headers =
-				this.ws.data?.headers ||
-				this.rawWs?.data?.headers ||
-				{}
+			const headers = this.ws.data?.headers || this.rawWs?.data?.headers || {}
 			const result: Record<string, string> = {}
 
 			if (typeof headers === "object" && headers !== null) {
@@ -351,9 +339,10 @@ export class ElysiaWebSocketClientIO implements DestroyableIoInterface {
 
 	constructor(url: string | URL, protocols?: string | string[]) {
 		// Use standard WebSocket to connect to Elysia server
-		this.ws = typeof Bun !== 'undefined'
-			? new WebSocket(url, protocols)
-			: new (globalThis as any).WebSocket(url, protocols)
+		this.ws =
+			typeof Bun !== "undefined"
+				? new WebSocket(url, protocols)
+				: new (globalThis as any).WebSocket(url, protocols)
 
 		this.connected = new Promise((resolve) => {
 			this.connectResolve = resolve
