@@ -1,4 +1,6 @@
-# Elysia WebSocket Adapter
+---
+title: Elysia Websocket
+---
 
 The Elysia WebSocket adapter provides seamless integration between kkrpc and the [Elysia framework](https://elysiajs.com/) modern TypeScript-first web framework. This adapter enables type-safe, bidirectional RPC communication with access to rich connection metadata and ultra-fast performance powered by uWebSocket.
 

@@ -1,4 +1,6 @@
-# Hono WebSocket Adapter
+---
+title: Hono Websocket
+---
 
 The Hono WebSocket adapter provides seamless integration between kkrpc and the [Hono framework](https://hono.dev/) high-performance WebSocket implementation. This adapter enables type-safe, bidirectional RPC communication in Hono applications with minimal setup.
 
