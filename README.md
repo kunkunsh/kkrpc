@@ -100,7 +100,9 @@ graph LR
 | **postMessage** | Browser context communication | Browser ↔ Web Workers ↔ iframes |
 | **HTTP** | Web API communication | All runtimes |
 | **WebSocket** | Real-time communication | All runtimes |
+| **Hono WebSocket** | High-performance WebSocket with Hono framework | Node.js, Deno, Bun, Cloudflare Workers |
 | **Socket.IO** | Enhanced real-time with rooms/namespaces | All runtimes |
+| **Elysia WebSocket** | Modern TypeScript framework WebSocket integration | Bun, Node.js, Deno |
 | **Chrome Extension** | Extension component communication | Chrome Extension contexts |
 
 The core of **kkrpc** design is in `RPCChannel` and `IoInterface`.
@@ -366,6 +368,160 @@ console.log("After transfer:", buffer.byteLength) // 0
 const newBuffer = await api.generateData(5 * 1024 * 1024)
 console.log("Received from worker:", newBuffer.byteLength) // 5242880
 ```
+
+### Hono WebSocket Example
+
+Hono WebSocket adapter provides seamless integration with the Hono framework's high-performance WebSocket support.
+
+#### `server.ts`
+
+```ts
+import { Hono } from 'hono'
+import { upgradeWebSocket, websocket } from 'hono/bun'
+import { createHonoWebSocketHandler } from 'kkrpc'
+import { apiMethods, type API } from './api'
+
+const app = new Hono()
+
+app.get('/ws', upgradeWebSocket(() => {
+  return createHonoWebSocketHandler<API>({
+    expose: apiMethods
+  })
+}))
+
+const server = Bun.serve({
+  port: 3000,
+  fetch: app.fetch,
+  websocket
+})
+
+console.log(`Server running on port ${server.port}`)
+```
+
+#### `client.ts`
+
+```ts
+import { WebSocketClientIO, RPCChannel } from 'kkrpc'
+import { apiMethods, type API } from './api'
+
+const clientIO = new WebSocketClientIO({
+  url: 'ws://localhost:3000/ws'
+})
+
+const clientRPC = new RPCChannel<API, API>(clientIO, {
+  expose: apiMethods
+})
+
+const api = clientRPC.getAPI()
+
+// Test basic RPC calls
+console.log(await api.add(5, 3)) // 8
+console.log(await api.echo("Hello from Hono!")) // "Hello from Hono!"
+
+// Test nested API calls
+console.log(await api.math.grade2.multiply(4, 6)) // 24
+
+// Test property access
+console.log(await api.counter) // 42
+console.log(await api.nested.value) // "hello world"
+
+clientIO.destroy()
+```
+
+**Hono WebSocket Features:**
+- **High Performance**: Built on Hono's ultra-fast WebSocket implementation
+- **Cross-runtime**: Works across Bun, Deno, Node.js, and Cloudflare Workers
+- **Type-safe**: Full TypeScript support with Hono integration
+- **Bidirectional**: Both client and server can expose APIs
+- **Framework Integration**: Seamless integration with Hono's middleware ecosystem
+
+**Learn more:** [Hono WebSocket Documentation](https://hono.dev/docs/helpers/websocket)
+
+### Elysia WebSocket Example
+
+Elysia WebSocket adapter provides seamless integration with the modern TypeScript-first Elysia framework and its uWebSocket-powered WebSocket support.
+
+#### `server.ts`
+
+```ts
+import { Elysia } from 'elysia'
+import { ElysiaWebSocketServerIO, RPCChannel } from 'kkrpc'
+import { apiMethods, type API } from './api'
+
+// Extend API for Elysia-specific features
+interface ElysiaAPI extends API {
+  getConnectionInfo(): Promise<{
+    remoteAddress: string | undefined
+    query: Record<string, string>
+    headers: Record<string, string>
+  }>
+}
+
+const app = new Elysia()
+  .ws('/rpc', {
+    open(ws) {
+      const io = new ElysiaWebSocketServerIO(ws)
+      const elysiaApiMethods: ElysiaAPI = {
+        ...apiMethods,
+        getConnectionInfo: async () => ({
+          remoteAddress: io.getRemoteAddress(),
+          query: io.getQuery(),
+          headers: io.getHeaders()
+        })
+      }
+
+      const rpc = new RPCChannel<ElysiaAPI, ElysiaAPI>(io, {
+        expose: elysiaApiMethods
+      })
+    },
+    message(ws, message) {
+      ElysiaWebSocketServerIO.feedMessage(ws, message)
+    }
+  })
+  .listen(3000)
+
+console.log('Elysia server running on port 3000')
+```
+
+#### `client.ts`
+
+```ts
+import { ElysiaWebSocketClientIO, RPCChannel } from 'kkrpc'
+import { apiMethods, type API } from './api'
+
+const clientIO = new ElysiaWebSocketClientIO('ws://localhost:3000/rpc')
+const clientRPC = new RPCChannel<API, any>(clientIO, {
+  expose: apiMethods
+})
+
+const api = clientRPC.getAPI()
+
+// Test basic RPC calls
+console.log(await api.add(5, 3)) // 8
+console.log(await api.echo("Hello from Elysia!")) // "Hello from Elysia!"
+
+// Test nested API calls
+console.log(await api.math.grade1.add(10, 20)) // 30
+console.log(await api.math.grade3.divide(20, 4)) // 5
+
+// Test Elysia-specific features
+const connInfo = await api.getConnectionInfo()
+console.log('Connected from:', connInfo.remoteAddress)
+console.log('Query params:', connInfo.query)
+console.log('Headers:', connInfo.headers)
+
+clientIO.destroy()
+```
+
+**Elysia WebSocket Features:**
+- **Modern Framework**: Built on Elysia's TypeScript-first design
+- **Ultra-fast**: Powered by uWebSocket for maximum performance
+- **Rich Metadata**: Access to connection info, query params, and headers
+- **Type-safe**: Full TypeScript inference and autocompletion
+- **Runtime Flexible**: Works across Bun, Node.js, and Deno
+- **Developer Experience**: Clean API with factory functions
+
+**Learn more:** [Elysia WebSocket Documentation](https://elysiajs.com/patterns/websocket)
 
 **Key Benefits:**
 - **Zero-copy performance**: No serialization/deserialization overhead
