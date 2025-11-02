@@ -7,7 +7,8 @@ export default defineConfig({
 		"./http.ts",
 		"./deno-mod.ts",
 		"./chrome-extension.ts",
-		"./socketio.ts"
+		"./socketio.ts",
+		"./elysia-websocket.ts"
 	],
 	dts: true,
 	format: ["cjs", "esm"],
