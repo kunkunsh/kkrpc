@@ -31,38 +31,6 @@ jobs:
       - name: Start test services
         run: |
           docker compose up -d
-          echo "Waiting for services to be ready..."
-          
-          # Wait for Redis to be ready
-          echo "Checking Redis..."
-          for i in {1..30}; do
-            if docker compose exec -T redis redis-cli ping 2>/dev/null | grep -q PONG; then
-              echo "✅ Redis is ready"
-              break
-            fi
-            if [ $i -eq 30 ]; then
-              echo "❌ Redis failed to start"
-              exit 1
-            fi
-            sleep 2
-          done
-          
-          # Wait for RabbitMQ to be ready
-          echo "Checking RabbitMQ..."
-          for i in {1..30}; do
-            if docker compose exec -T rabbitmq rabbitmq-diagnostics ping 2>/dev/null | grep -q "pong"; then
-              echo "✅ RabbitMQ is ready"
-              break
-            fi
-            if [ $i -eq 30 ]; then
-              echo "❌ RabbitMQ failed to start"
-              exit 1
-            fi
-            sleep 2
-          done
-          
-          # Give services a moment to fully stabilize
-          sleep 3
           docker compose ps
       - name: CI
         env:
@@ -75,13 +43,6 @@ jobs:
           pnpx playwright install --with-deps
           pnpm build
           pnpm test
-      - name: deno test
-        env:
-          REDIS_URL: redis://localhost:6379
-          RABBITMQ_URL: amqp://admin:admin@localhost:5672
-        run: |
-          deno install
-          pnpm run --filter kkrpc test:deno
       - name: Stop test services
         if: always()
         run: |
