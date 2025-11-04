@@ -1,0 +1,28 @@
+services:
+	redis:
+		image: redis/redis-stack:latest
+		container_name: kkrpc-redis
+		ports:
+			- "6379:6379"
+		healthcheck:
+			test: ["CMD", "redis-cli", "ping"]
+			interval: 5s
+			timeout: 3s
+			retries: 5
+		command: redis-server --appendonly yes
+
+	rabbitmq:
+		image: rabbitmq:4-management-alpine
+		container_name: kkrpc-rabbitmq
+		ports:
+			- "5672:5672"
+			- "15672:15672"
+		environment:
+			RABBITMQ_DEFAULT_USER: admin
+			RABBITMQ_DEFAULT_PASS: admin
+		healthcheck:
+			test: ["CMD", "rabbitmq-diagnostics", "ping"]
+			interval: 10s
+			timeout: 5s
+			retries: 5
+
