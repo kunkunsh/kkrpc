@@ -119,6 +119,15 @@
 			},
 			"import": "./dist/kafka.js",
 			"require": "./dist/kafka.cjs"
+		},
+		"./rabbitmq": {
+			"types": {
+				"import": "./dist/rabbitmq.d.ts",
+				"require": "./dist/rabbitmq.cjs",
+				"default": "./dist/rabbitmq.js"
+			},
+			"import": "./dist/rabbitmq.js",
+			"require": "./dist/rabbitmq.cjs"
 		}
 	},
 	"devDependencies": {

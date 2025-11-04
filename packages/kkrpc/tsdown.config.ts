@@ -9,7 +9,8 @@ export default defineConfig({
 		"./chrome-extension.ts",
 		"./socketio.ts",
 		"./rabbitmq.ts",
-		"./kafka.ts"
+		"./kafka.ts",
+		"./redis-streams.ts"
 	],
 	dts: true,
 	format: ["cjs", "esm"],
