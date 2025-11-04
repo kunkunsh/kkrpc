@@ -1,2 +1,2 @@
 export { SocketIOClientIO, SocketIOServerIO } from "./src/adapters/socketio.ts"
-export type { DestroyableIoInterface } from "./src/interface.ts"
+export type { IoInterface } from "./src/interface.ts"

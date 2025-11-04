@@ -1,5 +1,5 @@
 import type {
-	DestroyableIoInterface,
+	IoInterface,
 	IoMessage,
 	IoCapabilities
 } from "../interface.ts"
@@ -19,7 +19,7 @@ interface RabbitMQOptions {
  * RabbitMQ implementation of IoInterface
  * Uses topic exchange with routing keys to separate kkrpc traffic from other consumers
  */
-export class RabbitMQIO implements DestroyableIoInterface {
+export class RabbitMQIO implements IoInterface {
 	name = "rabbitmq-io"
 	private messageQueue: string[] = []
 	private resolveRead: ((value: string | null) => void) | null = null

@@ -1,4 +1,4 @@
-import type { IoInterface, IoMessage, DestroyableIoInterface } from "./interface.ts"
+import type { IoInterface, IoMessage } from "./interface.ts"
 import {
 	encodeMessage,
 	decodeMessage,
@@ -747,14 +747,6 @@ export class RPCChannel<
 		return this.createNestedProxy() as RemoteAPI
 	}
 
-	/**
-	 * Type guard to check if an IoInterface is a DestroyableIoInterface
-	 */
-	private isDestroyableIo(io: IoInterface): io is DestroyableIoInterface {
-		return 'destroy' in io && 'signalDestroy' in io &&
-			typeof (io as any).destroy === 'function' &&
-			typeof (io as any).signalDestroy === 'function'
-	}
 
 	/**
 	 * Destroys the RPC channel and underlying IO interface if it's destroyable
@@ -763,8 +755,8 @@ export class RPCChannel<
 		// Free callbacks first
 		this.freeCallbacks()
 
-		// If IO interface is destroyable, destroy it
-		if (this.isDestroyableIo(this.io)) {
+		// Clean up IO adapters
+		if (this.io && this.io.destroy) {
 			this.io.destroy()
 		}
 	}

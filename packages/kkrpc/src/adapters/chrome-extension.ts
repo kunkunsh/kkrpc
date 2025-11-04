@@ -6,7 +6,7 @@
  */
 
 import type {
-	DestroyableIoInterface,
+	IoInterface,
 	IoMessage,
 	IoCapabilities
 } from "../interface.ts"
@@ -17,7 +17,7 @@ const DESTROY_SIGNAL = "__DESTROY__";
  * An I/O interface for kkrpc that uses a chrome.runtime.Port for communication.
  * This can be used in both background scripts and content scripts.
  */
-export class ChromePortIO implements DestroyableIoInterface {
+export class ChromePortIO implements IoInterface {
 	name = "chrome-port-io";
 	private messageQueue: Array<string | IoMessage> = [];
 	private resolveRead: ((value: string | IoMessage | null) => void) | null = null;

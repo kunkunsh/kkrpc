@@ -3,7 +3,7 @@
  * They are used to create a bidirectional communication channel between a parent window and a child iframe.
  */
 import type {
-	DestroyableIoInterface,
+	IoInterface,
 	IoMessage,
 	IoCapabilities
 } from "../interface.ts"
@@ -24,7 +24,7 @@ const PORT_INIT_SIGNAL = "__PORT_INIT__"
  *
  * It's a good practice to call `destroy()` on either side of the channel to close `MessageChannel` and release resources.
  */
-export class IframeParentIO implements DestroyableIoInterface {
+export class IframeParentIO implements IoInterface {
 	name = "iframe-parent-io"
 	private messageQueue: Array<string | IoMessage> = []
 	private resolveRead: ((value: string | IoMessage | null) => void) | null = null
@@ -60,7 +60,7 @@ export class IframeParentIO implements DestroyableIoInterface {
 					if (typeof message === "string") {
 						this.port.postMessage(message)
 					} else if (message.transfers && message.transfers.length > 0) {
-						this.port.postMessage(message.data, message.transfers)
+						this.port.postMessage(message.data, message.transfers as Transferable[])
 					} else {
 						this.port.postMessage(message.data)
 					}
@@ -143,7 +143,7 @@ export class IframeParentIO implements DestroyableIoInterface {
 }
 
 // Child frame version
-export class IframeChildIO implements DestroyableIoInterface {
+export class IframeChildIO implements IoInterface {
 	name = "iframe-child-io"
 	private messageQueue: Array<string | IoMessage> = []
 	private resolveRead: ((value: string | IoMessage | null) => void) | null = null

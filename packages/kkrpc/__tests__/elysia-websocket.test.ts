@@ -6,7 +6,7 @@ import {
 	ElysiaWebSocketClientIO,
 	ElysiaWebSocketServerIO
 } from "../src/adapters/elysia-websocket"
-import type { DestroyableIoInterface } from "../src/interface.ts"
+import type { IoInterface } from "../src/interface.ts"
 import { apiMethods, type API } from "./scripts/api.ts"
 
 // Extended API interface for Elysia-specific features
@@ -185,7 +185,7 @@ describe("ElysiaWebSocket", () => {
 
 		it("should connect to server and call remote methods", async () => {
 			const clientIO = new ElysiaWebSocketClientIO(`ws://localhost:${port}/rpc`)
-			const clientRPC = new RPCChannel<API, ElysiaAPI, DestroyableIoInterface>(clientIO, {
+			const clientRPC = new RPCChannel<API, ElysiaAPI, IoInterface>(clientIO, {
 				expose: apiMethods
 			})
 
@@ -203,7 +203,7 @@ describe("ElysiaWebSocket", () => {
 
 		it("should handle complex data types", async () => {
 			const clientIO = new ElysiaWebSocketClientIO(`ws://localhost:${port}/rpc`)
-			const clientRPC = new RPCChannel<ComplexDataClientAPI, ElysiaAPI, DestroyableIoInterface>(
+			const clientRPC = new RPCChannel<ComplexDataClientAPI, ElysiaAPI, IoInterface>(
 				clientIO,
 				{
 					expose: {
@@ -236,7 +236,7 @@ describe("ElysiaWebSocket", () => {
 		it("should handle connection errors gracefully", async () => {
 			// Try to connect to a non-existent server
 			const clientIO = new ElysiaWebSocketClientIO("ws://localhost:9999/nonexistent")
-			const clientRPC = new RPCChannel<TestClientAPI, TestServerAPI, DestroyableIoInterface>(
+			const clientRPC = new RPCChannel<TestClientAPI, TestServerAPI, IoInterface>(
 				clientIO,
 				{
 					expose: { test: () => "ok" }
@@ -283,7 +283,7 @@ describe("ElysiaWebSocket", () => {
 	describe("Integration with Elysia server", () => {
 		it("should handle bidirectional communication", async () => {
 			const clientIO = new ElysiaWebSocketClientIO(`ws://localhost:${port}/rpc`)
-			const clientRPC = new RPCChannel<BidirectionalClientAPI, ElysiaAPI, DestroyableIoInterface>(
+			const clientRPC = new RPCChannel<BidirectionalClientAPI, ElysiaAPI, IoInterface>(
 				clientIO,
 				{
 					expose: {
@@ -322,7 +322,7 @@ describe("ElysiaWebSocket", () => {
 
 		it("should handle errors properly", async () => {
 			const clientIO = new ElysiaWebSocketClientIO(`ws://localhost:${port}/rpc`)
-			const clientRPC = new RPCChannel<ErrorTestClientAPI, ElysiaAPI, DestroyableIoInterface>(
+			const clientRPC = new RPCChannel<ErrorTestClientAPI, ElysiaAPI, IoInterface>(
 				clientIO,
 				{
 					expose: {
@@ -349,7 +349,7 @@ describe("ElysiaWebSocket", () => {
 			const clientIO = new ElysiaWebSocketClientIO(
 				`ws://localhost:${port}/rpc?token=abc123&userId=456`
 			)
-			const clientRPC = new RPCChannel<RealWorldClientAPI, ElysiaAPI, DestroyableIoInterface>(
+			const clientRPC = new RPCChannel<RealWorldClientAPI, ElysiaAPI, IoInterface>(
 				clientIO,
 				{
 					expose: {
@@ -417,7 +417,7 @@ describe("ElysiaWebSocket", () => {
 	describe("Property Access", () => {
 		it("should handle simple property access", async () => {
 			const clientIO = new ElysiaWebSocketClientIO(`ws://localhost:${port}/rpc`)
-			const clientRPC = new RPCChannel<API, ElysiaAPI, DestroyableIoInterface>(clientIO, {
+			const clientRPC = new RPCChannel<API, ElysiaAPI, IoInterface>(clientIO, {
 				expose: apiMethods
 			})
 
@@ -433,7 +433,7 @@ describe("ElysiaWebSocket", () => {
 
 		it("should handle nested property access", async () => {
 			const clientIO = new ElysiaWebSocketClientIO(`ws://localhost:${port}/rpc`)
-			const clientRPC = new RPCChannel<API, ElysiaAPI, DestroyableIoInterface>(clientIO, {
+			const clientRPC = new RPCChannel<API, ElysiaAPI, IoInterface>(clientIO, {
 				expose: apiMethods
 			})
 
@@ -452,7 +452,7 @@ describe("ElysiaWebSocket", () => {
 	describe("Error Handling", () => {
 		it("should preserve error types and messages", async () => {
 			const clientIO = new ElysiaWebSocketClientIO(`ws://localhost:${port}/rpc`)
-			const clientRPC = new RPCChannel<API, ElysiaAPI, DestroyableIoInterface>(clientIO, {
+			const clientRPC = new RPCChannel<API, ElysiaAPI, IoInterface>(clientIO, {
 				expose: apiMethods
 			})
 
@@ -471,7 +471,7 @@ describe("ElysiaWebSocket", () => {
 
 		it("should preserve error properties and causes", async () => {
 			const clientIO = new ElysiaWebSocketClientIO(`ws://localhost:${port}/rpc`)
-			const clientRPC = new RPCChannel<API, ElysiaAPI, DestroyableIoInterface>(clientIO, {
+			const clientRPC = new RPCChannel<API, ElysiaAPI, IoInterface>(clientIO, {
 				expose: apiMethods
 			})
 
@@ -511,7 +511,7 @@ describe("ElysiaWebSocket", () => {
 				const clientIO = new ElysiaWebSocketClientIO(`ws://localhost:${port}/rpc`)
 				return {
 					io: clientIO,
-					rpc: new RPCChannel<API, ElysiaAPI, DestroyableIoInterface>(clientIO, {
+					rpc: new RPCChannel<API, ElysiaAPI, IoInterface>(clientIO, {
 						expose: apiMethods
 					})
 				}
@@ -542,7 +542,7 @@ describe("ElysiaWebSocket", () => {
 	describe("Performance Testing", () => {
 		it("should handle stress test with multiple random calls", async () => {
 			const clientIO = new ElysiaWebSocketClientIO(`ws://localhost:${port}/rpc`)
-			const clientRPC = new RPCChannel<API, ElysiaAPI, DestroyableIoInterface>(clientIO, {
+			const clientRPC = new RPCChannel<API, ElysiaAPI, IoInterface>(clientIO, {
 				expose: apiMethods
 			})
 
@@ -570,7 +570,7 @@ describe("ElysiaWebSocket", () => {
 
 		it("should handle concurrent calls efficiently", async () => {
 			const clientIO = new ElysiaWebSocketClientIO(`ws://localhost:${port}/rpc`)
-			const clientRPC = new RPCChannel<API, ElysiaAPI, DestroyableIoInterface>(clientIO, {
+			const clientRPC = new RPCChannel<API, ElysiaAPI, IoInterface>(clientIO, {
 				expose: apiMethods
 			})
 
@@ -610,7 +610,7 @@ describe("ElysiaWebSocket", () => {
 	describe("Nested Object Operations", () => {
 		it("should handle deeply nested API calls", async () => {
 			const clientIO = new ElysiaWebSocketClientIO(`ws://localhost:${port}/rpc`)
-			const clientRPC = new RPCChannel<API, ElysiaAPI, DestroyableIoInterface>(clientIO, {
+			const clientRPC = new RPCChannel<API, ElysiaAPI, IoInterface>(clientIO, {
 				expose: apiMethods
 			})
 
@@ -633,7 +633,7 @@ describe("ElysiaWebSocket", () => {
 
 		it("should handle nested API calls with callbacks", async () => {
 			const clientIO = new ElysiaWebSocketClientIO(`ws://localhost:${port}/rpc`)
-			const clientRPC = new RPCChannel<API, ElysiaAPI, DestroyableIoInterface>(clientIO, {
+			const clientRPC = new RPCChannel<API, ElysiaAPI, IoInterface>(clientIO, {
 				expose: apiMethods
 			})
 

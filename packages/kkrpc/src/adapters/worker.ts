@@ -1,5 +1,5 @@
 import type {
-	DestroyableIoInterface,
+	IoInterface,
 	IoMessage,
 	IoCapabilities
 } from "../interface.ts"
@@ -7,7 +7,7 @@ import type { WireEnvelope } from "../serialization.ts"
 
 const DESTROY_SIGNAL = "__DESTROY__"
 
-export class WorkerParentIO implements DestroyableIoInterface {
+export class WorkerParentIO implements IoInterface {
 	name = "worker-parent-io"
 	private messageQueue: Array<string | IoMessage> = []
 	private resolveRead: ((value: string | IoMessage | null) => void) | null = null
@@ -94,7 +94,7 @@ export class WorkerParentIO implements DestroyableIoInterface {
 }
 
 // Worker version
-export class WorkerChildIO implements DestroyableIoInterface {
+export class WorkerChildIO implements IoInterface {
 	name = "worker-child-io"
 	private messageQueue: Array<string | IoMessage> = []
 	private resolveRead: ((value: string | IoMessage | null) => void) | null = null

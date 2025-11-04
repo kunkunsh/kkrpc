@@ -35,13 +35,8 @@ export interface IoInterface {
 	read(): Promise<string | IoMessage | null>
 	write(message: string | IoMessage): Promise<void>
 	capabilities?: IoCapabilities
-}
-
-/**
- * A destroyable IoInterface, mainly for iframe and web worker communication.
- * Used for cleaning up resources, e.g. MessageChannel.
- */
-export interface DestroyableIoInterface extends IoInterface {
-	destroy(): void
-	signalDestroy(): void
+	/** Clean up resources used by the IO adapter */
+	destroy?(): void
+	/** Signal that the IO adapter should prepare for destruction */
+	signalDestroy?(): void
 }

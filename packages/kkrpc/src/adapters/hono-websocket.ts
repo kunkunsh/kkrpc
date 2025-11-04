@@ -1,4 +1,4 @@
-import type { DestroyableIoInterface, IoCapabilities, IoMessage } from "../interface.ts"
+import type { IoInterface, IoCapabilities, IoMessage } from "../interface.ts"
 import { RPCChannel } from "../channel.ts"
 
 /**
@@ -17,7 +17,7 @@ export interface HonoWebSocketOptions<API extends Record<string, any>> {
  * WebSocket IO adapter specifically for Hono that processes messages manually
  * This is needed because Hono handles messages through callbacks rather than native onmessage
  */
-class HonoWebSocketIO implements DestroyableIoInterface {
+class HonoWebSocketIO implements IoInterface {
 	name = "hono-websocket-io"
 	private messageQueue: string[] = []
 	private resolveRead: ((value: string | null) => void) | null = null
