@@ -11,13 +11,13 @@ services:
       retries: 5
     command: redis-server --appendonly yes
 
-    rabbitmq:
-      image: rabbitmq:4-management
-      restart: "no"
-      ports:
-        - "5672:5672" # AMQP protocol port
-        - "15672:15672" # Management UI port
-      environment:
-        - RABBITMQ_DEFAULT_USER=admin
-        - RABBITMQ_DEFAULT_PASS=admin
+  rabbitmq:
+    image: rabbitmq:4-management
+    restart: "no"
+    ports:
+      - "5672:5672" # AMQP protocol port
+      - "15672:15672" # Management UI port
+    environment:
+      - RABBITMQ_DEFAULT_USER=admin
+      - RABBITMQ_DEFAULT_PASS=admin
 
