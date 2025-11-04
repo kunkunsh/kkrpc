@@ -83,6 +83,11 @@ export class WebSocketClientIO implements IoInterface {
 	}
 
 	destroy(): void {
+		// 解决 pending Promise，防止 listen loop 永久挂起
+		if (this.resolveRead) {
+			this.resolveRead(null)
+			this.resolveRead = null
+		}
 		this.ws.close()
 	}
 
@@ -148,6 +153,11 @@ export class WebSocketServerIO implements IoInterface {
 	}
 
 	destroy(): void {
+		// 解决 pending Promise，防止 listen loop 永久挂起
+		if (this.resolveRead) {
+			this.resolveRead(null)
+			this.resolveRead = null
+		}
 		this.ws.close()
 	}
 

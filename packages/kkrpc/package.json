@@ -101,6 +101,15 @@
 			},
 			"import": "./dist/socketio.js",
 			"require": "./dist/socketio.cjs"
+		},
+		"./redis-streams": {
+			"types": {
+				"import": "./dist/redis-streams.d.ts",
+				"require": "./dist/redis-streams.cjs",
+				"default": "./dist/redis-streams.js"
+			},
+			"import": "./dist/redis-streams.js",
+			"require": "./dist/redis-streams.cjs"
 		}
 	},
 	"devDependencies": {
@@ -117,6 +126,7 @@
 	"peerDependencies": {
 		"elysia": "^1.0.0",
 		"hono": "^4.10.4",
+		"ioredis": "^5.0.0",
 		"socket.io": "^4.0.0",
 		"socket.io-client": "^4.0.0",
 		"typescript": "^5.0.0"
@@ -136,11 +146,15 @@
 		},
 		"amqplib": {
 			"optional": true
+		},
+		"ioredis": {
+			"optional": true
 		}
 	},
 	"dependencies": {
 		"@tauri-apps/plugin-shell": "^2.2.0",
 		"amqplib": "^0.10.9",
+		"ioredis": "^5.8.2",
 		"socket.io": "^4.8.1",
 		"socket.io-client": "^4.8.1",
 		"superjson": "^2.2.2",

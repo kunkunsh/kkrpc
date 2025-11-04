@@ -169,6 +169,11 @@ export class WorkerChildIO implements IoInterface {
 	}
 
 	destroy(): void {
+		// 解决 pending Promise，防止 listen loop 永久挂起
+		if (this.resolveRead) {
+			this.resolveRead(null)
+			this.resolveRead = null
+		}
 		// @ts-ignore: lack of types in deno
 		self.postMessage(DESTROY_SIGNAL)
 		// In a worker context, we can use close() to terminate the worker

@@ -11,6 +11,7 @@
  * - websocket
  * - http
  * - rabbitmq
+ * - redis-streams
  * - hono-websocket
  * - RPC Channel
  * - serialization
@@ -26,6 +27,7 @@ export * from "./src/adapters/tauri.ts"
 export * from "./src/adapters/hono-websocket.ts"
 export * from "./src/adapters/elysia-websocket.ts"
 export * from "./src/adapters/rabbitmq.ts"
+export * from "./src/adapters/redis-streams.ts"
 export * from "./src/interface.ts"
 export * from "./src/channel.ts"
 export * from "./src/utils.ts"

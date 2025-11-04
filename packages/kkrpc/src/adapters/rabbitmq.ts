@@ -166,7 +166,9 @@ export class RabbitMQIO implements IoInterface {
 	destroy(): void {
 		this.isDestroyed = true
 
+		// 解决 pending Promise，防止 listen loop 永久挂起
 		if (this.resolveRead) {
+			this.resolveRead(null)
 			this.resolveRead = null
 		}
 
