@@ -2,7 +2,7 @@ import { afterAll, beforeAll, expect, test } from "bun:test"
 import { Hono } from "hono"
 import { upgradeWebSocket, websocket } from "hono/bun"
 import { RPCChannel, WebSocketClientIO, createHonoWebSocketHandler } from "../mod.ts"
-import type { DestroyableIoInterface } from "../src/interface.ts"
+import type { IoInterface } from "../src/interface.ts"
 import { apiMethods, type API } from "./scripts/api.ts"
 
 const PORT = 3002
@@ -37,7 +37,7 @@ test("Hono WebSocket RPC", async () => {
 		url: `ws://localhost:${PORT}/ws`
 	})
 
-	const clientRPC = new RPCChannel<API, API, DestroyableIoInterface>(clientIO, {
+	const clientRPC = new RPCChannel<API, API, IoInterface>(clientIO, {
 		expose: apiMethods
 	})
 	const api = clientRPC.getAPI()
@@ -82,7 +82,7 @@ test("Hono WebSocket concurrent connections", async () => {
 		})
 		return {
 			io: clientIO,
-			rpc: new RPCChannel<{}, API, DestroyableIoInterface>(clientIO)
+			rpc: new RPCChannel<{}, API, IoInterface>(clientIO)
 		}
 	})
 
@@ -111,7 +111,7 @@ test("Hono WebSocket property access", async () => {
 		url: `ws://localhost:${PORT}/ws`
 	})
 
-	const clientRPC = new RPCChannel<{}, API, DestroyableIoInterface>(clientIO)
+	const clientRPC = new RPCChannel<{}, API, IoInterface>(clientIO)
 	const api = clientRPC.getAPI()
 
 	// Test property access
@@ -132,7 +132,7 @@ test("Hono WebSocket error handling", async () => {
 		url: `ws://localhost:${PORT}/ws`
 	})
 
-	const clientRPC = new RPCChannel<{}, API, DestroyableIoInterface>(clientIO)
+	const clientRPC = new RPCChannel<{}, API, IoInterface>(clientIO)
 	const api = clientRPC.getAPI()
 
 	// Test error throwing

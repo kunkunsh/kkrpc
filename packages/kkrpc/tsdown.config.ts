@@ -7,7 +7,10 @@ export default defineConfig({
 		"./http.ts",
 		"./deno-mod.ts",
 		"./chrome-extension.ts",
-		"./socketio.ts"
+		"./socketio.ts",
+		"./rabbitmq.ts",
+		"./kafka.ts",
+		"./redis-streams.ts"
 	],
 	dts: true,
 	format: ["cjs", "esm"],

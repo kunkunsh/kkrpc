@@ -2,7 +2,7 @@ import { afterAll, beforeAll, expect, test } from "bun:test"
 import { WebSocketServer } from "ws"
 import { RPCChannel } from "../mod.ts"
 import { WebSocketClientIO, WebSocketServerIO } from "../src/adapters/websocket.ts"
-import type { DestroyableIoInterface } from "../src/interface.ts"
+import type { IoInterface } from "../src/interface.ts"
 import { apiMethods, type API } from "./scripts/api.ts"
 
 const PORT = 3001
@@ -29,7 +29,7 @@ test("WebSocket RPC", async () => {
 		url: `ws://localhost:${PORT}`
 	})
 
-	const clientRPC = new RPCChannel<API, API, DestroyableIoInterface>(clientIO, {
+	const clientRPC = new RPCChannel<API, API, IoInterface>(clientIO, {
 		expose: apiMethods
 	})
 	const api = clientRPC.getAPI()
@@ -72,7 +72,7 @@ test("WebSocket RPC", async () => {
 // 		url: `ws://localhost:${invalidPort}`
 // 	})
 
-// 	const clientRPC = new RPCChannel<{}, API, DestroyableIoInterface>(clientIO)
+// 	const clientRPC = new RPCChannel<{}, API, IoInterface>(clientIO)
 // 	const api = clientRPC.getAPI()
 // 	expect(() => api.add(1, 2)).toThrow()
 // 	clientIO.destroy()
@@ -86,7 +86,7 @@ test("WebSocket concurrent connections", async () => {
 		})
 		return {
 			io: clientIO,
-			rpc: new RPCChannel<{}, API, DestroyableIoInterface>(clientIO)
+			rpc: new RPCChannel<{}, API, IoInterface>(clientIO)
 		}
 	})
 

@@ -3,7 +3,7 @@ import { createServer } from "http"
 import { Server as SocketIOServer } from "socket.io"
 import { RPCChannel } from "../mod.ts"
 import { SocketIOClientIO, SocketIOServerIO } from "../src/adapters/socketio.ts"
-import type { DestroyableIoInterface } from "../src/interface.ts"
+import type { IoInterface } from "../src/interface.ts"
 import { apiMethods, type API } from "./scripts/api.ts"
 
 const PORT = 3002
@@ -43,7 +43,7 @@ test("Socket.IO RPC", async () => {
 		url: `http://localhost:${PORT}`
 	})
 
-	const clientRPC = new RPCChannel<API, API, DestroyableIoInterface>(clientIO, {
+	const clientRPC = new RPCChannel<API, API, IoInterface>(clientIO, {
 		expose: apiMethods
 	})
 	const api = clientRPC.getAPI()
@@ -96,7 +96,7 @@ test("Socket.IO with namespace", async () => {
 		namespace: "test"
 	})
 
-	const clientRPC = new RPCChannel<API, API, DestroyableIoInterface>(clientIO, {
+	const clientRPC = new RPCChannel<API, API, IoInterface>(clientIO, {
 		expose: apiMethods
 	})
 	const api = clientRPC.getAPI()
@@ -119,7 +119,7 @@ test("Socket.IO concurrent connections", async () => {
 		})
 		return {
 			io: clientIO,
-			rpc: new RPCChannel<{}, API, DestroyableIoInterface>(clientIO)
+			rpc: new RPCChannel<{}, API, IoInterface>(clientIO)
 		}
 	})
 
@@ -152,7 +152,7 @@ test("Socket.IO with options", async () => {
 		}
 	})
 
-	const clientRPC = new RPCChannel<API, API, DestroyableIoInterface>(clientIO, {
+	const clientRPC = new RPCChannel<API, API, IoInterface>(clientIO, {
 		expose: apiMethods
 	})
 	const api = clientRPC.getAPI()

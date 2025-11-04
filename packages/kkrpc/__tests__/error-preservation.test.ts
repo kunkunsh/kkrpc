@@ -43,7 +43,7 @@
 
 import { describe, expect, test } from "bun:test"
 import { serializeError, deserializeError, type EnhancedError } from "../src/serialization.ts"
-import { RPCChannel, WorkerParentIO, type DestroyableIoInterface } from "../mod.ts"
+import { RPCChannel, WorkerParentIO, type IoInterface } from "../mod.ts"
 import { apiMethods, type API } from "./scripts/api.ts"
 
 // Custom error classes for testing
@@ -172,7 +172,7 @@ describe("Enhanced Error Preservation Tests", () => {
 describe("Error Preservation Across RPC Boundaries", () => {
 	const worker = new Worker(new URL("./scripts/worker.ts", import.meta.url).href, { type: "module" })
 	const io = new WorkerParentIO(worker)
-	const rpc = new RPCChannel<API, API, DestroyableIoInterface>(io, { expose: apiMethods })
+	const rpc = new RPCChannel<API, API, IoInterface>(io, { expose: apiMethods })
 	const api = rpc.getAPI()
 	
 	test("should preserve simple error across RPC boundaries", async () => {

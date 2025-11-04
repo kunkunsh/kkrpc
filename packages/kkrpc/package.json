@@ -101,24 +101,54 @@
 			},
 			"import": "./dist/socketio.js",
 			"require": "./dist/socketio.cjs"
+		},
+		"./redis-streams": {
+			"types": {
+				"import": "./dist/redis-streams.d.ts",
+				"require": "./dist/redis-streams.cjs",
+				"default": "./dist/redis-streams.js"
+			},
+			"import": "./dist/redis-streams.js",
+			"require": "./dist/redis-streams.cjs"
+		},
+		"./kafka": {
+			"types": {
+				"import": "./dist/kafka.d.ts",
+				"require": "./dist/kafka.cjs",
+				"default": "./dist/kafka.js"
+			},
+			"import": "./dist/kafka.js",
+			"require": "./dist/kafka.cjs"
+		},
+		"./rabbitmq": {
+			"types": {
+				"import": "./dist/rabbitmq.d.ts",
+				"require": "./dist/rabbitmq.cjs",
+				"default": "./dist/rabbitmq.js"
+			},
+			"import": "./dist/rabbitmq.js",
+			"require": "./dist/rabbitmq.cjs"
 		}
 	},
 	"devDependencies": {
+		"@types/amqplib": "^0.10.8",
 		"@types/bun": "^1.2.20",
 		"@types/chrome": "^0.1.4",
 		"@types/node": "^24.3.0",
 		"@types/ws": "^8.18.0",
-		"tslib": "^2.8.1",
 		"tsdown": "^0.15.9",
+		"tslib": "^2.8.1",
 		"typedoc": "^0.28.10",
 		"verify-package-export": "^0.0.3"
 	},
 	"peerDependencies": {
-		"typescript": "^5.0.0",
+		"elysia": "^1.0.0",
+		"hono": "^4.10.4",
+		"ioredis": "^5.0.0",
 		"socket.io": "^4.0.0",
 		"socket.io-client": "^4.0.0",
-		"hono": "^4.10.4",
-		"elysia": "^1.0.0"
+		"kafkajs": "^2.2.4",
+		"typescript": "^5.0.0"
 	},
 	"peerDependenciesMeta": {
 		"socket.io": {
@@ -132,10 +162,22 @@
 		},
 		"elysia": {
 			"optional": true
+		},
+		"amqplib": {
+			"optional": true
+		},
+		"ioredis": {
+			"optional": true
+		},
+		"kafkajs": {
+			"optional": true
 		}
 	},
 	"dependencies": {
 		"@tauri-apps/plugin-shell": "^2.2.0",
+		"amqplib": "^0.10.9",
+		"ioredis": "^5.8.2",
+		"kafkajs": "^2.2.4",
 		"socket.io": "^4.8.1",
 		"socket.io-client": "^4.8.1",
 		"superjson": "^2.2.2",

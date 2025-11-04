@@ -1,4 +1,4 @@
-import type { DestroyableIoInterface, IoCapabilities, IoMessage } from "../interface.ts"
+import type { IoInterface, IoCapabilities, IoMessage } from "../interface.ts"
 
 const DESTROY_SIGNAL = "__DESTROY__"
 const textDecoder = typeof TextDecoder !== "undefined" ? new TextDecoder() : null
@@ -31,7 +31,7 @@ const textDecoder = typeof TextDecoder !== "undefined" ? new TextDecoder() : nul
  *   .listen(3000)
  * ```
  */
-export class ElysiaWebSocketServerIO implements DestroyableIoInterface {
+export class ElysiaWebSocketServerIO implements IoInterface {
 	name = "elysia-websocket-server"
 	private messageQueue: string[] = []
 	private resolveRead: ((value: string | null) => void) | null = null
@@ -325,7 +325,7 @@ export class ElysiaWebSocketServerIO implements DestroyableIoInterface {
  * console.log(await api.greet('World')) // "Hello, World!"
  * ```
  */
-export class ElysiaWebSocketClientIO implements DestroyableIoInterface {
+export class ElysiaWebSocketClientIO implements IoInterface {
 	name = "elysia-websocket-client"
 	private messageQueue: string[] = []
 	private resolveRead: ((value: string | null) => void) | null = null

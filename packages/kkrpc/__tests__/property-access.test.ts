@@ -31,12 +31,12 @@
  */
 
 import { describe, expect, test } from "bun:test"
-import { RPCChannel, WorkerParentIO, type DestroyableIoInterface } from "../mod.ts"
+import { RPCChannel, WorkerParentIO, type IoInterface } from "../mod.ts"
 import { apiMethods, type API } from "./scripts/api.ts"
 
 const worker = new Worker(new URL("./scripts/worker.ts", import.meta.url).href, { type: "module" })
 const io = new WorkerParentIO(worker)
-const rpc = new RPCChannel<API, API, DestroyableIoInterface>(io, { expose: apiMethods })
+const rpc = new RPCChannel<API, API, IoInterface>(io, { expose: apiMethods })
 const api = rpc.getAPI()
 
 describe("Property Access Tests", () => {

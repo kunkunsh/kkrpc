@@ -1,6 +1,6 @@
 import { io } from "socket.io-client"
 import type {
-	DestroyableIoInterface,
+	IoInterface,
 	IoMessage,
 	IoCapabilities
 } from "../interface.ts"
@@ -16,7 +16,7 @@ interface SocketIOClientOptions {
 /**
  * Socket.IO Client implementation of IoInterface
  */
-export class SocketIOClientIO implements DestroyableIoInterface {
+export class SocketIOClientIO implements IoInterface {
 	name = "socketio-client-io"
 	private messageQueue: string[] = []
 	private resolveRead: ((value: string | null) => void) | null = null
@@ -102,7 +102,7 @@ export class SocketIOClientIO implements DestroyableIoInterface {
 /**
  * Socket.IO Server implementation of IoInterface
  */
-export class SocketIOServerIO implements DestroyableIoInterface {
+export class SocketIOServerIO implements IoInterface {
 	name = "socketio-server-io"
 	private messageQueue: string[] = []
 	private resolveRead: ((value: string | null) => void) | null = null

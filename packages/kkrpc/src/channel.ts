@@ -82,13 +82,22 @@ export class RPCChannel<
 	 */
 	private async listen(): Promise<void> {
 		while (true) {
-			const incoming = await this.io.read()
-			if (incoming === null || incoming === undefined) {
-				continue
+			// Check if IO interface is destroyable and has been destroyed
+			if ('isDestroyed' in this.io && (this.io as any).isDestroyed) {
+				break
 			}
+
 			try {
+				const incoming = await this.io.read()
+				if (incoming === null || incoming === undefined) {
+					continue
+				}
 				await this.handleIncomingMessage(incoming)
-			} catch (error) {
+			} catch (error: any) {
+				// If the error indicates the adapter is destroyed, stop listening
+				if (error.message && error.message.includes('destroyed')) {
+					break
+				}
 				console.error("kkrpc: failed to handle incoming message", error)
 			}
 		}
@@ -736,6 +745,20 @@ export class RPCChannel<
 	 */
 	public getAPI(): RemoteAPI {
 		return this.createNestedProxy() as RemoteAPI
+	}
+
+
+	/**
+	 * Destroys the RPC channel and underlying IO interface if it's destroyable
+	 */
+	destroy(): void {
+		// Free callbacks first
+		this.freeCallbacks()
+
+		// Clean up IO adapters
+		if (this.io && this.io.destroy) {
+			this.io.destroy()
+		}
 	}
 
 	/**

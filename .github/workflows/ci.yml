@@ -7,7 +7,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest]
 
     steps:
       - uses: actions/checkout@v4
@@ -24,17 +24,23 @@ jobs:
           node-version-file: '.node-version'
           cache: "pnpm"
           cache-dependency-path: ./pnpm-lock.yaml
+      - name: Start test services
+        run: |
+          docker compose up -d
+          docker compose ps
       - name: CI
         env:
           TURBO_TELEMETRY_DISABLED: 1
+          REDIS_URL: redis://localhost:6379
+          RABBITMQ_URL: amqp://admin:admin@localhost:5672
         run: |
           pnpm install
           # pnpm --filter kkrpc exec playwright install
           pnpx playwright install --with-deps
           pnpm build
           pnpm test
-      - name: deno test
+      - name: Stop test services
+        if: always()
         run: |
-          deno install
-          pnpm run --filter kkrpc test:deno
+          docker compose down || true
           

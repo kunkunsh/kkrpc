@@ -1,5 +1,5 @@
 import type {
-	DestroyableIoInterface,
+	IoInterface,
 	IoMessage,
 	IoCapabilities
 } from "../interface.ts"
@@ -14,7 +14,7 @@ interface WebSocketClientOptions {
 /**
  * WebSocket Client implementation of IoInterface
  */
-export class WebSocketClientIO implements DestroyableIoInterface {
+export class WebSocketClientIO implements IoInterface {
 	name = "websocket-client-io"
 	private messageQueue: string[] = []
 	private resolveRead: ((value: string | null) => void) | null = null
@@ -83,6 +83,11 @@ export class WebSocketClientIO implements DestroyableIoInterface {
 	}
 
 	destroy(): void {
+		// 解决 pending Promise，防止 listen loop 永久挂起
+		if (this.resolveRead) {
+			this.resolveRead(null)
+			this.resolveRead = null
+		}
 		this.ws.close()
 	}
 
@@ -94,7 +99,7 @@ export class WebSocketClientIO implements DestroyableIoInterface {
 /**
  * WebSocket Server implementation of IoInterface
  */
-export class WebSocketServerIO implements DestroyableIoInterface {
+export class WebSocketServerIO implements IoInterface {
 	name = "websocket-server-io"
 	private messageQueue: string[] = []
 	private resolveRead: ((value: string | null) => void) | null = null
@@ -148,6 +153,11 @@ export class WebSocketServerIO implements DestroyableIoInterface {
 	}
 
 	destroy(): void {
+		// 解决 pending Promise，防止 listen loop 永久挂起
+		if (this.resolveRead) {
+			this.resolveRead(null)
+			this.resolveRead = null
+		}
 		this.ws.close()
 	}
 

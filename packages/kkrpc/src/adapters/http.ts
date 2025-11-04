@@ -1,6 +1,5 @@
 import superjson from "superjson"
 import type {
-	DestroyableIoInterface,
 	IoInterface,
 	IoMessage,
 	IoCapabilities

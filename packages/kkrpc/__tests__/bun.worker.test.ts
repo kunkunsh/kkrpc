@@ -1,11 +1,11 @@
 import { expect, test } from "bun:test"
-import { RPCChannel, WorkerParentIO, transfer, type DestroyableIoInterface } from "../mod.ts"
+import { RPCChannel, WorkerParentIO, transfer, type IoInterface } from "../mod.ts"
 import { apiMethods, type API } from "./scripts/api.ts"
 
 function createRpc() {
 	const worker = new Worker(new URL("./scripts/worker.ts", import.meta.url).href, { type: "module" })
 	const io = new WorkerParentIO(worker)
-	const rpc = new RPCChannel<API, API, DestroyableIoInterface>(io, { expose: apiMethods })
+	const rpc = new RPCChannel<API, API, IoInterface>(io, { expose: apiMethods })
 	const api = rpc.getAPI()
 	return { worker, io, rpc, api }
 }
