@@ -24,6 +24,8 @@ jobs:
           node-version-file: '.node-version'
           cache: "pnpm"
           cache-dependency-path: ./pnpm-lock.yaml
+      - name: Set up Docker Compose
+        uses: docker/setup-compose-action@v1
       - name: Start test services
         run: |
           docker compose up -d
