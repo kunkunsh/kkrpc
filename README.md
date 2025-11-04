@@ -103,6 +103,9 @@ graph LR
 | **Socket.IO**        | Enhanced real-time with rooms/namespaces          | All runtimes                           |
 | **Elysia WebSocket** | Modern TypeScript framework WebSocket integration | Bun, Node.js, Deno                     |
 | **Chrome Extension** | Extension component communication                 | Chrome Extension contexts              |
+| **RabbitMQ**         | Message queue communication                       | Node.js, Deno, Bun                   |
+| **Redis Streams**    | Stream-based messaging with persistence           | Node.js, Deno, Bun                   |
+| **Kafka**            | Distributed streaming platform                    | Node.js, Deno, Bun                   |
 
 The core of **kkrpc** design is in `RPCChannel` and `IoInterface`.
 
@@ -674,6 +677,217 @@ backgroundAPI.getExtensionVersion().then((version) => {
 - **Bidirectional**: Both sides can expose and call APIs.
 - **Type-safe**: Full TypeScript support for your APIs.
 - **Reliable**: Handles connection lifecycle and cleanup.
+
+### RabbitMQ Example
+
+RabbitMQ adapter provides reliable message queue communication with support for topic exchanges and durable messaging.
+
+#### `producer.ts`
+
+```ts
+import { RabbitMQIO, RPCChannel } from "kkrpc"
+import { apiMethods, type API } from "./api"
+
+const rabbitmqIO = new RabbitMQIO({
+  url: "amqp://localhost",
+  exchange: "kkrpc-exchange",
+  exchangeType: "topic",
+  durable: true
+})
+
+const producerRPC = new RPCChannel<API, API>(rabbitmqIO, {
+  expose: apiMethods
+})
+
+const api = producerRPC.getAPI()
+
+// Test basic RPC calls
+console.log(await api.add(5, 3)) // 8
+console.log(await api.echo("Hello from RabbitMQ!")) // "Hello from RabbitMQ!"
+
+rabbitmqIO.destroy()
+```
+
+#### `consumer.ts`
+
+```ts
+import { RabbitMQIO, RPCChannel } from "kkrpc"
+import { apiMethods, type API } from "./api"
+
+const rabbitmqIO = new RabbitMQIO({
+  url: "amqp://localhost",
+  exchange: "kkrpc-exchange",
+  exchangeType: "topic",
+  durable: true,
+  sessionId: "consumer-session"
+})
+
+const consumerRPC = new RPCChannel<API, API>(rabbitmqIO, {
+  expose: apiMethods
+})
+
+const api = consumerRPC.getAPI()
+
+// Process messages from producer
+console.log(await api.add(10, 20)) // 30
+console.log(await api.echo("Hello from consumer!")) // "Hello from consumer!"
+
+rabbitmqIO.destroy()
+```
+
+**RabbitMQ Features:**
+
+- **Topic Exchange**: Flexible routing with wildcard patterns
+- **Durable Messaging**: Messages survive broker restarts
+- **Load Balancing**: Multiple consumers can share workload
+- **Reliable Delivery**: Acknowledgments and redelivery support
+- **Session Management**: Unique sessions prevent message conflicts
+
+### Redis Streams Example
+
+Redis Streams adapter provides high-performance stream-based messaging with persistence and consumer group support.
+
+#### `publisher.ts`
+
+```ts
+import { RedisStreamsIO, RPCChannel } from "kkrpc"
+import { apiMethods, type API } from "./api"
+
+const redisIO = new RedisStreamsIO({
+  url: "redis://localhost:6379",
+  stream: "kkrpc-stream",
+  maxLen: 10000, // Keep only last 10k messages
+  maxQueueSize: 1000
+})
+
+const publisherRPC = new RPCChannel<API, API>(redisIO, {
+  expose: apiMethods
+})
+
+const api = publisherRPC.getAPI()
+
+// Test basic RPC calls
+console.log(await api.add(7, 8)) // 15
+console.log(await api.echo("Hello from Redis Streams!")) // "Hello from Redis Streams!"
+
+// Get stream information
+const streamInfo = await redisIO.getStreamInfo()
+console.log("Stream length:", streamInfo.length)
+
+redisIO.destroy()
+```
+
+#### `subscriber.ts`
+
+```ts
+import { RedisStreamsIO, RPCChannel } from "kkrpc"
+import { apiMethods, type API } from "./api"
+
+// Using consumer group for load balancing
+const redisIO = new RedisStreamsIO({
+  url: "redis://localhost:6379",
+  stream: "kkrpc-stream",
+  consumerGroup: "kkrpc-group",
+  consumerName: "worker-1",
+  useConsumerGroup: true, // Enable load balancing
+  maxQueueSize: 1000
+})
+
+const subscriberRPC = new RPCChannel<API, API>(redisIO, {
+  expose: apiMethods
+})
+
+const api = subscriberRPC.getAPI()
+
+// Process messages with load balancing
+console.log(await api.multiply(4, 6)) // 24
+console.log(await api.echo("Hello from subscriber!")) // "Hello from subscriber!"
+
+redisIO.destroy()
+```
+
+**Redis Streams Features:**
+
+- **Two Modes**: Pub/Sub (all consumers) or Consumer Groups (load balancing)
+- **Persistence**: Messages stored in Redis with configurable retention
+- **Memory Protection**: Queue size limits prevent memory issues
+- **Consumer Groups**: Load balancing with message acknowledgment
+- **Stream Management**: Built-in tools for monitoring and trimming streams
+
+### Kafka Example
+
+Kafka adapter provides distributed streaming with high throughput and fault tolerance for large-scale systems.
+
+#### `producer.ts`
+
+```ts
+import { KafkaIO, RPCChannel } from "kkrpc"
+import { apiMethods, type API } from "./api"
+
+const kafkaIO = new KafkaIO({
+  brokers: ["localhost:9092"],
+  topic: "kkrpc-topic",
+  clientId: "kkrpc-producer",
+  numPartitions: 3,
+  replicationFactor: 1,
+  maxQueueSize: 1000
+})
+
+const producerRPC = new RPCChannel<API, API>(kafkaIO, {
+  expose: apiMethods
+})
+
+const api = producerRPC.getAPI()
+
+// Test basic RPC calls
+console.log(await api.add(12, 18)) // 30
+console.log(await api.echo("Hello from Kafka!")) // "Hello from Kafka!"
+
+console.log("Topic:", kafkaIO.getTopic())
+console.log("Session ID:", kafkaIO.getSessionId())
+
+kafkaIO.destroy()
+```
+
+#### `consumer.ts`
+
+```ts
+import { KafkaIO, RPCChannel } from "kkrpc"
+import { apiMethods, type API } from "./api"
+
+const kafkaIO = new KafkaIO({
+  brokers: ["localhost:9092"],
+  topic: "kkrpc-topic",
+  clientId: "kkrpc-consumer",
+  groupId: "kkrpc-consumer-group",
+  fromBeginning: false, // Only read new messages
+  maxQueueSize: 1000
+})
+
+const consumerRPC = new RPCChannel<API, API>(kafkaIO, {
+  expose: apiMethods
+})
+
+const api = consumerRPC.getAPI()
+
+// Process messages from Kafka
+console.log(await api.divide(100, 4)) // 25
+console.log(await api.echo("Hello from Kafka consumer!")) // "Hello from Kafka consumer!"
+
+console.log("Topic:", kafkaIO.getTopic())
+console.log("Group ID:", kafkaIO.getGroupId())
+
+kafkaIO.destroy()
+```
+
+**Kafka Features:**
+
+- **Distributed**: Built-in replication and partitioning
+- **High Throughput**: Optimized for high-volume message streaming
+- **Fault Tolerant**: Replication and automatic failover
+- **Scalable**: Horizontal scaling with partitions
+- **Persistent**: Durable message storage with configurable retention
+- **Consumer Groups**: Load balancing across consumer instances
 
 ### Tauri Example
 

@@ -59,6 +59,25 @@ To adapt to a new environment, simply implement `IoInterface` and pass it to `RP
 
 `RPCChannel` does all the underlying magic, including serialization/deserialization, request-response matching, callback managing, proxy generating, etc.
 
+## Supported Adapters
+
+kkrpc includes adapters for various communication protocols:
+
+- **stdio**: Process-to-process communication (Node.js, Deno, Bun)
+- **HTTP/HTTPS**: Web API communication
+- **WebSocket**: Real-time bidirectional communication
+- **Web Worker**: Browser worker communication
+- **iframe**: Cross-frame communication
+- **Chrome Extension**: Extension component communication
+- **Tauri**: Desktop app communication
+- **RabbitMQ**: Message queue communication with AMQP
+- **Redis Streams**: Stream-based messaging with persistence
+- **Kafka**: Distributed streaming platform
+- **Hono/Elysia WebSocket**: Framework-specific WebSocket integration
+- **Socket.IO**: Enhanced real-time communication
+
+Each adapter implements the `IoInterface` to provide consistent behavior across different transport protocols while leveraging the unique features of each system.
+
 ## Extend to Other Languages
 
 JS/TS has the advantage of dynamic typing and super free syntax which allows proxy, eventually allowing calling remote RPC methods like if the are local
