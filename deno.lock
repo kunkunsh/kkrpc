@@ -392,10 +392,12 @@
         "packageJson": {
           "dependencies": [
             "npm:@tauri-apps/plugin-shell@^2.2.0",
+            "npm:@types/amqplib@~0.10.8",
             "npm:@types/bun@^1.2.20",
             "npm:@types/chrome@~0.1.4",
             "npm:@types/node@^24.3.0",
             "npm:@types/ws@^8.18.0",
+            "npm:amqplib@~0.10.9",
             "npm:socket.io-client@^4.8.1",
             "npm:socket.io@^4.8.1",
             "npm:superjson@^2.2.2",
