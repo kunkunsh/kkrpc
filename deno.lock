@@ -398,6 +398,8 @@
             "npm:@types/node@^24.3.0",
             "npm:@types/ws@^8.18.0",
             "npm:amqplib@~0.10.9",
+            "npm:ioredis@^5.8.2",
+            "npm:kafkajs@^2.2.4",
             "npm:socket.io-client@^4.8.1",
             "npm:socket.io@^4.8.1",
             "npm:superjson@^2.2.2",

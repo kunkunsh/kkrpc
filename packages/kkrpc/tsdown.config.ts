@@ -8,7 +8,8 @@ export default defineConfig({
 		"./deno-mod.ts",
 		"./chrome-extension.ts",
 		"./socketio.ts",
-		"./rabbitmq.ts"
+		"./rabbitmq.ts",
+		"./kafka.ts"
 	],
 	dts: true,
 	format: ["cjs", "esm"],

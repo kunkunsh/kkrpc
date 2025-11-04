@@ -108,7 +108,7 @@ describe("RedisStreamsIO", () => {
 				consumerGroup: TEST_GROUP
 			})
 			// Wait for connection to establish
-			await new Promise(resolve => setTimeout(resolve, 1000))
+			await new Promise((resolve) => setTimeout(resolve, 1000))
 		})
 
 		afterAll(() => {
@@ -176,7 +176,7 @@ describe("RedisStreamsIO", () => {
 			})
 
 			// Wait for connections to establish
-			await new Promise(resolve => setTimeout(resolve, 1000))
+			await new Promise((resolve) => setTimeout(resolve, 1000))
 
 			// Create RPC channels
 			serverRPC = new RPCChannel<API, API>(serverAdapter, {
@@ -291,12 +291,12 @@ describe("RedisStreamsIO", () => {
 			}
 
 			// Wait for all connections to establish
-			await new Promise(resolve => setTimeout(resolve, 1000))
+			await new Promise((resolve) => setTimeout(resolve, 1000))
 		})
 
 		afterAll(() => {
-			rpcs.forEach(rpc => rpc.destroy?.())
-			adapters.forEach(adapter => adapter.destroy())
+			rpcs.forEach((rpc) => rpc.destroy?.())
+			adapters.forEach((adapter) => adapter.destroy())
 		})
 
 		it("should handle multiple consumers concurrently", async () => {
@@ -308,7 +308,7 @@ describe("RedisStreamsIO", () => {
 				sessionId: "server-" + Math.random().toString(36).substring(2, 8)
 			})
 
-			await new Promise(resolve => setTimeout(resolve, 1000))
+			await new Promise((resolve) => setTimeout(resolve, 1000))
 
 			const serverRPC = new RPCChannel<API, {}>(serverAdapter, {
 				expose: apiMethods
@@ -317,13 +317,9 @@ describe("RedisStreamsIO", () => {
 			try {
 				// Test concurrent calls from multiple consumers
 				const results = await Promise.all(
-					rpcs.flatMap(rpc => {
+					rpcs.flatMap((rpc) => {
 						const api = rpc.getAPI()
-						return [
-							api.add(10, 20),
-							api.subtract(50, 25),
-							api.echo("multi-consumer test")
-						]
+						return [api.add(10, 20), api.subtract(50, 25), api.echo("multi-consumer test")]
 					})
 				)
 
@@ -352,7 +348,9 @@ describe("RedisStreamsIO", () => {
 			expect(() => adapter.destroy()).not.toThrow()
 
 			// Should handle operations after destroy
-			await expect(adapter.write("test")).rejects.toThrow("Redis Streams adapter has been destroyed")
+			await expect(adapter.write("test")).rejects.toThrow(
+				"Redis Streams adapter has been destroyed"
+			)
 		})
 
 		it("should handle destroy signaling", async () => {
@@ -370,13 +368,13 @@ describe("RedisStreamsIO", () => {
 				sessionId: "destroy-test-2"
 			})
 
-			await new Promise(resolve => setTimeout(resolve, 1000))
+			await new Promise((resolve) => setTimeout(resolve, 1000))
 
 			// Send destroy signal
 			await adapter1.signalDestroy()
 
 			// Wait for signal to be processed
-			await new Promise(resolve => setTimeout(resolve, 1000))
+			await new Promise((resolve) => setTimeout(resolve, 1000))
 
 			// Cleanup
 			adapter1.destroy()
@@ -393,7 +391,7 @@ describe("RedisStreamsIO", () => {
 			})
 
 			// Wait for connection
-			await new Promise(resolve => setTimeout(resolve, 1000))
+			await new Promise((resolve) => setTimeout(resolve, 1000))
 
 			// Write many messages without reading them
 			for (let i = 0; i < 10; i++) {
@@ -401,16 +399,16 @@ describe("RedisStreamsIO", () => {
 			}
 
 			// Wait for messages to be processed
-			await new Promise(resolve => setTimeout(resolve, 2000))
+			await new Promise((resolve) => setTimeout(resolve, 2000))
 
 			// Read all available messages - should only get the last 5
 			const messages: string[] = []
-			
+
 			// Try to read with timeout to avoid hanging
 			const readWithTimeout = async (timeout: number) => {
 				return Promise.race([
 					smallQueueAdapter.read(),
-					new Promise<null>(resolve => setTimeout(() => resolve(null), timeout))
+					new Promise<null>((resolve) => setTimeout(() => resolve(null), timeout))
 				])
 			}
 
@@ -431,54 +429,65 @@ describe("RedisStreamsIO", () => {
 	describe("Consumer Group Mode", () => {
 		it("should use XREADGROUP when useConsumerGroup is true", async () => {
 			const stream = TEST_STREAM + "-cg-test-" + Math.random().toString(36).substring(2, 8)
-			
-			// Create two consumers with consumer group mode
-			const consumer1 = new RedisStreamsIO({
+
+			// Consumer group mode 适用于工作队列场景:
+			// - 一个客户端发送任务
+			// - 多个 worker 从同一个消费组中竞争处理任务 (每个任务只被处理一次)
+
+			// Create a client that sends requests (not in consumer group)
+			const client = new RedisStreamsIO({
 				url: REDIS_URL,
 				stream,
-				consumerGroup: "test-cg",
-				consumerName: "consumer-1",
+				useConsumerGroup: false
+			})
+
+			// Create two workers in the same consumer group
+			const worker1 = new RedisStreamsIO({
+				url: REDIS_URL,
+				stream,
+				consumerGroup: "workers",
+				consumerName: "worker-1",
 				useConsumerGroup: true
 			})
 
-			const consumer2 = new RedisStreamsIO({
+			const worker2 = new RedisStreamsIO({
 				url: REDIS_URL,
 				stream,
-				consumerGroup: "test-cg",
-				consumerName: "consumer-2",
+				consumerGroup: "workers",
+				consumerName: "worker-2",
 				useConsumerGroup: true
 			})
 
 			// Wait for connections
-			await new Promise(resolve => setTimeout(resolve, 1500))
+			await new Promise((resolve) => setTimeout(resolve, 1500))
 
-			// Create RPC channels
-			const rpc1 = new RPCChannel<API, API>(consumer1, { expose: apiMethods })
-			const rpc2 = new RPCChannel<API, API>(consumer2, { expose: apiMethods })
+			// Create RPC channels - workers expose the API
+			const clientRPC = new RPCChannel<{}, API>(client)
+			const worker1RPC = new RPCChannel<API, {}>(worker1, { expose: apiMethods })
+			const worker2RPC = new RPCChannel<API, {}>(worker2, { expose: apiMethods })
 
-			// In consumer group mode, each message should only be processed by one consumer
-			// Send multiple messages and verify they are distributed
-			const api1 = rpc1.getAPI()
-			const api2 = rpc2.getAPI()
+			// Client sends requests, workers process them
+			const api = clientRPC.getAPI()
 
-			// Call methods from both consumers
+			// Send multiple requests - they should be distributed between workers
 			const results = await Promise.all([
-				api1.add(1, 2),
-				api2.add(3, 4),
-				api1.echo("test1"),
-				api2.echo("test2")
+				api.add(1, 2),
+				api.add(3, 4),
+				api.echo("test1"),
+				api.echo("test2")
 			])
 
 			expect(results).toEqual([3, 7, "test1", "test2"])
 
 			// Cleanup
-			consumer1.destroy()
-			consumer2.destroy()
-		})
+			client.destroy()
+			worker1.destroy()
+			worker2.destroy()
+		}, 10000)
 
 		it("should handle messages in pub/sub mode when useConsumerGroup is false", async () => {
 			const stream = TEST_STREAM + "-pubsub-test-" + Math.random().toString(36).substring(2, 8)
-			
+
 			// Create two consumers without consumer group mode (default)
 			const consumer1 = new RedisStreamsIO({
 				url: REDIS_URL,
@@ -493,7 +502,7 @@ describe("RedisStreamsIO", () => {
 			})
 
 			// Wait for connections
-			await new Promise(resolve => setTimeout(resolve, 1500))
+			await new Promise((resolve) => setTimeout(resolve, 1500))
 
 			// Create RPC channels
 			const rpc1 = new RPCChannel<API, API>(consumer1, { expose: apiMethods })
@@ -504,10 +513,7 @@ describe("RedisStreamsIO", () => {
 			const api2 = rpc2.getAPI()
 
 			// Call methods from both consumers
-			const results = await Promise.all([
-				api1.add(5, 10),
-				api2.add(7, 8)
-			])
+			const results = await Promise.all([api1.add(5, 10), api2.add(7, 8)])
 
 			expect(results).toEqual([15, 15])
 

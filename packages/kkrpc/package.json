@@ -110,6 +110,15 @@
 			},
 			"import": "./dist/redis-streams.js",
 			"require": "./dist/redis-streams.cjs"
+		},
+		"./kafka": {
+			"types": {
+				"import": "./dist/kafka.d.ts",
+				"require": "./dist/kafka.cjs",
+				"default": "./dist/kafka.js"
+			},
+			"import": "./dist/kafka.js",
+			"require": "./dist/kafka.cjs"
 		}
 	},
 	"devDependencies": {
@@ -129,6 +138,7 @@
 		"ioredis": "^5.0.0",
 		"socket.io": "^4.0.0",
 		"socket.io-client": "^4.0.0",
+		"kafkajs": "^2.2.4",
 		"typescript": "^5.0.0"
 	},
 	"peerDependenciesMeta": {
@@ -149,12 +159,16 @@
 		},
 		"ioredis": {
 			"optional": true
+		},
+		"kafkajs": {
+			"optional": true
 		}
 	},
 	"dependencies": {
 		"@tauri-apps/plugin-shell": "^2.2.0",
 		"amqplib": "^0.10.9",
 		"ioredis": "^5.8.2",
+		"kafkajs": "^2.2.4",
 		"socket.io": "^4.8.1",
 		"socket.io-client": "^4.8.1",
 		"superjson": "^2.2.2",

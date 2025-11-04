@@ -24,15 +24,15 @@ interface RedisStreamsOptions {
 
 /**
  * Redis Streams implementation of IoInterface
- * 
+ *
  * 支持两种消息消费模式:
  * 1. Pub/Sub 模式 (默认): 使用 XREAD，所有 consumer 都能收到所有消息
  * 2. Consumer Group 模式: 使用 XREADGROUP，每条消息只被一个 consumer 处理 (负载均衡)
- * 
+ *
  * 内存管理:
  * - 支持最大队列大小限制 (maxQueueSize)，防止消息积压导致内存问题
  * - 队列满时自动丢弃最老的消息并记录警告
- * 
+ *
  * 配置验证:
  * - 构造时验证所有配置选项的类型和范围
  * - 无效配置会立即抛出异常
@@ -79,15 +79,24 @@ export class RedisStreamsIO implements IoInterface {
 	}
 
 	private validateOptions(options: RedisStreamsOptions): void {
-		if (options.blockTimeout !== undefined && (options.blockTimeout < 0 || !Number.isInteger(options.blockTimeout))) {
+		if (
+			options.blockTimeout !== undefined &&
+			(options.blockTimeout < 0 || !Number.isInteger(options.blockTimeout))
+		) {
 			throw new Error("blockTimeout must be a non-negative integer")
 		}
 
-		if (options.maxLen !== undefined && (options.maxLen <= 0 || !Number.isInteger(options.maxLen))) {
+		if (
+			options.maxLen !== undefined &&
+			(options.maxLen <= 0 || !Number.isInteger(options.maxLen))
+		) {
 			throw new Error("maxLen must be a positive integer")
 		}
 
-		if (options.maxQueueSize !== undefined && (options.maxQueueSize <= 0 || !Number.isInteger(options.maxQueueSize))) {
+		if (
+			options.maxQueueSize !== undefined &&
+			(options.maxQueueSize <= 0 || !Number.isInteger(options.maxQueueSize))
+		) {
 			throw new Error("maxQueueSize must be a positive integer")
 		}
 
@@ -111,7 +120,7 @@ export class RedisStreamsIO implements IoInterface {
 	private async connect(): Promise<void> {
 		try {
 			// Dynamic import to avoid dependency issues for non-Redis users
-			const { default: IORedis } = await import('ioredis')
+			const { default: IORedis } = await import("ioredis")
 
 			const url = this.options.url || "redis://localhost:6379"
 
@@ -190,12 +199,14 @@ export class RedisStreamsIO implements IoInterface {
 
 							if (messageData) {
 								this.handleMessage(messageData)
-								
+
 								// Acknowledge the message (XACK)
-								try {
-									await this.subscriber.xack(this.stream, this.consumerGroup, messageId)
-								} catch (ackError) {
-									console.error("Error acknowledging message:", ackError)
+								if (this.subscriber && !this.isDestroyed) {
+									try {
+										await this.subscriber.xack(this.stream, this.consumerGroup, messageId)
+									} catch (ackError) {
+										console.error("Error acknowledging message:", ackError)
+									}
 								}
 							}
 						}
@@ -257,7 +268,7 @@ export class RedisStreamsIO implements IoInterface {
 			if (this.messageQueue.length >= this.maxQueueSize) {
 				console.warn(
 					`Message queue full (${this.maxQueueSize} messages), dropping oldest message. ` +
-					`Consider increasing maxQueueSize or processing messages faster.`
+						`Consider increasing maxQueueSize or processing messages faster.`
 				)
 				this.messageQueue.shift() // 丢弃最老的消息
 			}
@@ -306,8 +317,11 @@ export class RedisStreamsIO implements IoInterface {
 				await this.publisher.xadd(
 					this.stream,
 					"*",
-					"MAXLEN", "~", this.maxLen.toString(),
-					"data", message
+					"MAXLEN",
+					"~",
+					this.maxLen.toString(),
+					"data",
+					message
 				)
 			} else {
 				// Simple XADD without length limit
@@ -394,7 +408,7 @@ export class RedisStreamsIO implements IoInterface {
 
 		try {
 			const info = await this.publisher.xinfo("stream", this.stream)
-			
+
 			// Parse the info correctly - Redis returns an array of key-value pairs
 			let length = 0
 			let groups = 0
@@ -406,18 +420,18 @@ export class RedisStreamsIO implements IoInterface {
 					const value = info[i + 1]
 
 					switch (key) {
-						case 'length':
+						case "length":
 							length = parseInt(value) || 0
 							break
-						case 'groups':
+						case "groups":
 							groups = parseInt(value) || 0
 							break
-						case 'last-generated-id':
+						case "last-generated-id":
 							lastEntry = value
 							break
 					}
 				}
-			} else if (typeof info === 'object') {
+			} else if (typeof info === "object") {
 				// Handle object format if Redis returns it that way
 				length = parseInt(info.length) || 0
 				groups = parseInt(info.groups) || 0
