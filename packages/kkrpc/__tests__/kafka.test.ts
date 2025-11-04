@@ -6,7 +6,7 @@ import { apiMethods, type API } from "./scripts/api.ts"
 const TEST_TOPIC = "kkrpc-test-topic-" + Math.random().toString(36).substring(2, 8)
 const KAFKA_BROKERS = (process.env.KAFKA_BROKERS || "localhost:9092")
 	.split(",")
-	.map(broker => broker.trim())
+	.map((broker) => broker.trim())
 	.filter(Boolean)
 
 describe("KafkaIO", () => {
@@ -54,7 +54,7 @@ describe("KafkaIO", () => {
 			})
 
 			// 等待 Kafka consumer 完成订阅，避免 race condition
-			await new Promise(resolve => setTimeout(resolve, 1500))
+			await new Promise((resolve) => setTimeout(resolve, 1500))
 		})
 
 		afterAll(() => {
@@ -91,7 +91,7 @@ describe("KafkaIO", () => {
 			})
 
 			// 等 Kafka 建立连接
-			await new Promise(resolve => setTimeout(resolve, 2000))
+			await new Promise((resolve) => setTimeout(resolve, 2000))
 
 			serverRPC = new RPCChannel<API, API>(serverAdapter, {
 				expose: apiMethods
@@ -142,11 +142,13 @@ describe("KafkaIO", () => {
 				sessionId: "destroy-" + Math.random().toString(36).substring(2, 8)
 			})
 
-			await new Promise(resolve => setTimeout(resolve, 1000))
+			await new Promise((resolve) => setTimeout(resolve, 1000))
 
 			adapter.destroy()
 
-			await expect(adapter.write("after-destroy")).rejects.toThrow("Kafka adapter has been destroyed")
+			await expect(adapter.write("after-destroy")).rejects.toThrow(
+				"Kafka adapter has been destroyed"
+			)
 		}, 10000)
 	})
 })

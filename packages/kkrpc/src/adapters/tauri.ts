@@ -1,5 +1,5 @@
 import { Child, EventEmitter, type OutputEvents } from "@tauri-apps/plugin-shell"
-import type { IoInterface, IoMessage, IoCapabilities } from "../interface"
+import type { IoCapabilities, IoInterface, IoMessage } from "../interface"
 
 export class TauriShellStdio implements IoInterface {
 	name = "tauri-shell-stdio"

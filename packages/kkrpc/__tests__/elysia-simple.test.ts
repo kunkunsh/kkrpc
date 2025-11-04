@@ -1,7 +1,7 @@
-import { describe, it, expect, beforeAll, afterAll } from "bun:test"
+import { afterAll, beforeAll, describe, expect, it } from "bun:test"
 import { Elysia } from "elysia"
-import { ElysiaWebSocketServerIO, ElysiaWebSocketClientIO } from "../src/adapters/elysia-websocket"
 import { RPCChannel } from "../mod"
+import { ElysiaWebSocketClientIO, ElysiaWebSocketServerIO } from "../src/adapters/elysia-websocket"
 
 describe("Elysia WebSocket Simple Test", () => {
 	let server: any
@@ -31,7 +31,7 @@ describe("Elysia WebSocket Simple Test", () => {
 					})
 					.listen({ port: candidate, hostname: "127.0.0.1" })
 				// Give server time to start
-				await new Promise(resolve => setTimeout(resolve, 100))
+				await new Promise((resolve) => setTimeout(resolve, 100))
 				return
 			} catch (error) {
 				lastError = error

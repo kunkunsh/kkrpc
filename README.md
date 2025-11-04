@@ -1,6 +1,5 @@
 <div align="center">
 
-
 # 🚀 kkrpc
 
 ## TypeScript-First RPC Library
@@ -46,19 +45,19 @@ kkrpc stands out in the crowded RPC landscape by offering **true cross-runtime c
 
 <div align="center">
 
-| Feature | Description |
-|---------|-------------|
-| **🔄 Cross-runtime** | Works seamlessly across Node.js, Deno, Bun, browsers, and more |
-| **🛡️ Type-safe** | Full TypeScript inference and IDE autocompletion support |
-| **↔️ Bidirectional** | Both endpoints can expose and call APIs simultaneously |
-| **🏠 Property Access** | Remote getters/setters with dot notation (`await api.prop`) |
-| **💥 Error Preservation** | Complete error objects across RPC boundaries |
-| **🌐 Multiple Transports** | stdio, HTTP, WebSocket, postMessage, Chrome extensions |
-| **📞 Callback Support** | Remote functions can accept callback functions |
-| **🔗 Nested Calls** | Deep method chaining like `api.math.operations.calculate()` |
-| **📦 Auto Serialization** | Intelligent JSON/superjson detection |
-| **⚡ Zero Config** | No schema files or code generation required |
-| **🚀 Transferable Objects** | Zero-copy transfers for large data (40-100x faster) |
+| Feature                     | Description                                                    |
+| --------------------------- | -------------------------------------------------------------- |
+| **🔄 Cross-runtime**        | Works seamlessly across Node.js, Deno, Bun, browsers, and more |
+| **🛡️ Type-safe**            | Full TypeScript inference and IDE autocompletion support       |
+| **↔️ Bidirectional**        | Both endpoints can expose and call APIs simultaneously         |
+| **🏠 Property Access**      | Remote getters/setters with dot notation (`await api.prop`)    |
+| **💥 Error Preservation**   | Complete error objects across RPC boundaries                   |
+| **🌐 Multiple Transports**  | stdio, HTTP, WebSocket, postMessage, Chrome extensions         |
+| **📞 Callback Support**     | Remote functions can accept callback functions                 |
+| **🔗 Nested Calls**         | Deep method chaining like `api.math.operations.calculate()`    |
+| **📦 Auto Serialization**   | Intelligent JSON/superjson detection                           |
+| **⚡ Zero Config**          | No schema files or code generation required                    |
+| **🚀 Transferable Objects** | Zero-copy transfers for large data (40-100x faster)            |
 
 </div>
 
@@ -74,19 +73,19 @@ graph LR
     A --> E[Browser]
     A --> F[Chrome Extension]
     A --> G[Tauri]
-    
+
     B -.-> H[stdio]
     C -.-> H
     D -.-> H
-    
+
     E -.-> I[postMessage]
     E -.-> J[Web Workers]
     E -.-> K[iframes]
-    
+
     F -.-> L[Chrome Ports]
-    
+
     G -.-> M[Shell Plugin]
-    
+
     style A fill:#ff6b6b,stroke:#333,stroke-width:2px
 ```
 
@@ -94,16 +93,16 @@ graph LR
 
 ### 📡 Transport Protocols
 
-| Transport | Use Case | Supported Runtimes |
-|-----------|----------|-------------------|
-| **stdio** | Process-to-process communication | Node.js ↔ Deno ↔ Bun |
-| **postMessage** | Browser context communication | Browser ↔ Web Workers ↔ iframes |
-| **HTTP** | Web API communication | All runtimes |
-| **WebSocket** | Real-time communication | All runtimes |
-| **Hono WebSocket** | High-performance WebSocket with Hono framework | Node.js, Deno, Bun, Cloudflare Workers |
-| **Socket.IO** | Enhanced real-time with rooms/namespaces | All runtimes |
-| **Elysia WebSocket** | Modern TypeScript framework WebSocket integration | Bun, Node.js, Deno |
-| **Chrome Extension** | Extension component communication | Chrome Extension contexts |
+| Transport            | Use Case                                          | Supported Runtimes                     |
+| -------------------- | ------------------------------------------------- | -------------------------------------- |
+| **stdio**            | Process-to-process communication                  | Node.js ↔ Deno ↔ Bun                 |
+| **postMessage**      | Browser context communication                     | Browser ↔ Web Workers ↔ iframes      |
+| **HTTP**             | Web API communication                             | All runtimes                           |
+| **WebSocket**        | Real-time communication                           | All runtimes                           |
+| **Hono WebSocket**   | High-performance WebSocket with Hono framework    | Node.js, Deno, Bun, Cloudflare Workers |
+| **Socket.IO**        | Enhanced real-time with rooms/namespaces          | All runtimes                           |
+| **Elysia WebSocket** | Modern TypeScript framework WebSocket integration | Bun, Node.js, Deno                     |
+| **Chrome Extension** | Extension component communication                 | Chrome Extension contexts              |
 
 The core of **kkrpc** design is in `RPCChannel` and `IoInterface`.
 
@@ -187,29 +186,29 @@ import { RPCChannel } from "jsr:@kunkun/kkrpc"
 
 ```typescript
 // server.ts
-import { RPCChannel, NodeIo } from "kkrpc"
+import { NodeIo, RPCChannel } from "kkrpc"
 
 const api = {
-  greet: (name: string) => `Hello, ${name}!`,
-  add: (a: number, b: number) => a + b
+	greet: (name: string) => `Hello, ${name}!`,
+	add: (a: number, b: number) => a + b
 }
 
 const rpc = new RPCChannel(new NodeIo(process.stdin, process.stdout), {
-  expose: api
+	expose: api
 })
 ```
 
 ```typescript
 // client.ts
-import { RPCChannel, NodeIo } from "kkrpc"
 import { spawn } from "child_process"
+import { NodeIo, RPCChannel } from "kkrpc"
 
 const worker = spawn("deno", ["run", "server.ts"])
 const rpc = new RPCChannel(new NodeIo(worker.stdout, worker.stdin))
 const api = rpc.getAPI<typeof api>()
 
 console.log(await api.greet("World")) // "Hello, World!"
-console.log(await api.add(5, 3))      // 8
+console.log(await api.add(5, 3)) // 8
 ```
 
 </div>
@@ -280,9 +279,13 @@ kkrpc preserves complete error information across RPC boundaries:
 ```ts
 // Custom error class
 class DatabaseError extends Error {
-	constructor(message: string, public code: number, public query: string) {
+	constructor(
+		message: string,
+		public code: number,
+		public query: string
+	) {
 		super(message)
-		this.name = 'DatabaseError'
+		this.name = "DatabaseError"
 	}
 }
 
@@ -304,11 +307,11 @@ try {
 	await api.getUserById("")
 } catch (error) {
 	// All error properties are preserved:
-	console.log(error.name)      // "DatabaseError"
-	console.log(error.message)   // "Invalid user ID"
-	console.log(error.code)      // 400
-	console.log(error.query)     // "SELECT * FROM users WHERE id = ?"
-	console.log(error.stack)     // Full stack trace
+	console.log(error.name) // "DatabaseError"
+	console.log(error.message) // "Invalid user ID"
+	console.log(error.code) // 400
+	console.log(error.query) // "SELECT * FROM users WHERE id = ?"
+	console.log(error.stack) // Full stack trace
 	console.log(error.timestamp) // ISO timestamp
 	console.log(error.requestId) // Request ID
 }
@@ -343,14 +346,14 @@ expect(sum).toBe(3)
 kkrpc supports zero-copy transfer of large data structures using browser's native transferable objects. This provides 40-100x performance improvement for large binary data transfers.
 
 ```ts
-import { RPCChannel, WorkerParentIO, transfer } from "kkrpc/browser"
+import { RPCChannel, transfer, WorkerParentIO } from "kkrpc/browser"
 
 const worker = new Worker("worker.js")
 const io = new WorkerParentIO(worker)
 const rpc = new RPCChannel(io)
 const api = rpc.getAPI<{
-  processBuffer(buffer: ArrayBuffer): Promise<number>
-  generateData(size: number): Promise<ArrayBuffer>
+	processBuffer(buffer: ArrayBuffer): Promise<number>
+	generateData(size: number): Promise<ArrayBuffer>
 }>()
 
 // Create a large buffer (10MB)
@@ -376,23 +379,26 @@ Hono WebSocket adapter provides seamless integration with the Hono framework's h
 #### `server.ts`
 
 ```ts
-import { Hono } from 'hono'
-import { upgradeWebSocket, websocket } from 'hono/bun'
-import { createHonoWebSocketHandler } from 'kkrpc'
-import { apiMethods, type API } from './api'
+import { Hono } from "hono"
+import { upgradeWebSocket, websocket } from "hono/bun"
+import { createHonoWebSocketHandler } from "kkrpc"
+import { apiMethods, type API } from "./api"
 
 const app = new Hono()
 
-app.get('/ws', upgradeWebSocket(() => {
-  return createHonoWebSocketHandler<API>({
-    expose: apiMethods
-  })
-}))
+app.get(
+	"/ws",
+	upgradeWebSocket(() => {
+		return createHonoWebSocketHandler<API>({
+			expose: apiMethods
+		})
+	})
+)
 
 const server = Bun.serve({
-  port: 3000,
-  fetch: app.fetch,
-  websocket
+	port: 3000,
+	fetch: app.fetch,
+	websocket
 })
 
 console.log(`Server running on port ${server.port}`)
@@ -401,15 +407,15 @@ console.log(`Server running on port ${server.port}`)
 #### `client.ts`
 
 ```ts
-import { WebSocketClientIO, RPCChannel } from 'kkrpc'
-import { apiMethods, type API } from './api'
+import { RPCChannel, WebSocketClientIO } from "kkrpc"
+import { apiMethods, type API } from "./api"
 
 const clientIO = new WebSocketClientIO({
-  url: 'ws://localhost:3000/ws'
+	url: "ws://localhost:3000/ws"
 })
 
 const clientRPC = new RPCChannel<API, API>(clientIO, {
-  expose: apiMethods
+	expose: apiMethods
 })
 
 const api = clientRPC.getAPI()
@@ -429,6 +435,7 @@ clientIO.destroy()
 ```
 
 **Hono WebSocket Features:**
+
 - **High Performance**: Built on Hono's ultra-fast WebSocket implementation
 - **Cross-runtime**: Works across Bun, Deno, Node.js, and Cloudflare Workers
 - **Type-safe**: Full TypeScript support with Hono integration
@@ -444,54 +451,54 @@ Elysia WebSocket adapter provides seamless integration with the modern TypeScrip
 #### `server.ts`
 
 ```ts
-import { Elysia } from 'elysia'
-import { ElysiaWebSocketServerIO, RPCChannel } from 'kkrpc'
-import { apiMethods, type API } from './api'
+import { Elysia } from "elysia"
+import { ElysiaWebSocketServerIO, RPCChannel } from "kkrpc"
+import { apiMethods, type API } from "./api"
 
 // Extend API for Elysia-specific features
 interface ElysiaAPI extends API {
-  getConnectionInfo(): Promise<{
-    remoteAddress: string | undefined
-    query: Record<string, string>
-    headers: Record<string, string>
-  }>
+	getConnectionInfo(): Promise<{
+		remoteAddress: string | undefined
+		query: Record<string, string>
+		headers: Record<string, string>
+	}>
 }
 
 const app = new Elysia()
-  .ws('/rpc', {
-    open(ws) {
-      const io = new ElysiaWebSocketServerIO(ws)
-      const elysiaApiMethods: ElysiaAPI = {
-        ...apiMethods,
-        getConnectionInfo: async () => ({
-          remoteAddress: io.getRemoteAddress(),
-          query: io.getQuery(),
-          headers: io.getHeaders()
-        })
-      }
+	.ws("/rpc", {
+		open(ws) {
+			const io = new ElysiaWebSocketServerIO(ws)
+			const elysiaApiMethods: ElysiaAPI = {
+				...apiMethods,
+				getConnectionInfo: async () => ({
+					remoteAddress: io.getRemoteAddress(),
+					query: io.getQuery(),
+					headers: io.getHeaders()
+				})
+			}
 
-      const rpc = new RPCChannel<ElysiaAPI, ElysiaAPI>(io, {
-        expose: elysiaApiMethods
-      })
-    },
-    message(ws, message) {
-      ElysiaWebSocketServerIO.feedMessage(ws, message)
-    }
-  })
-  .listen(3000)
+			const rpc = new RPCChannel<ElysiaAPI, ElysiaAPI>(io, {
+				expose: elysiaApiMethods
+			})
+		},
+		message(ws, message) {
+			ElysiaWebSocketServerIO.feedMessage(ws, message)
+		}
+	})
+	.listen(3000)
 
-console.log('Elysia server running on port 3000')
+console.log("Elysia server running on port 3000")
 ```
 
 #### `client.ts`
 
 ```ts
-import { ElysiaWebSocketClientIO, RPCChannel } from 'kkrpc'
-import { apiMethods, type API } from './api'
+import { ElysiaWebSocketClientIO, RPCChannel } from "kkrpc"
+import { apiMethods, type API } from "./api"
 
-const clientIO = new ElysiaWebSocketClientIO('ws://localhost:3000/rpc')
+const clientIO = new ElysiaWebSocketClientIO("ws://localhost:3000/rpc")
 const clientRPC = new RPCChannel<API, any>(clientIO, {
-  expose: apiMethods
+	expose: apiMethods
 })
 
 const api = clientRPC.getAPI()
@@ -506,14 +513,15 @@ console.log(await api.math.grade3.divide(20, 4)) // 5
 
 // Test Elysia-specific features
 const connInfo = await api.getConnectionInfo()
-console.log('Connected from:', connInfo.remoteAddress)
-console.log('Query params:', connInfo.query)
-console.log('Headers:', connInfo.headers)
+console.log("Connected from:", connInfo.remoteAddress)
+console.log("Query params:", connInfo.query)
+console.log("Headers:", connInfo.headers)
 
 clientIO.destroy()
 ```
 
 **Elysia WebSocket Features:**
+
 - **Modern Framework**: Built on Elysia's TypeScript-first design
 - **Ultra-fast**: Powered by uWebSocket for maximum performance
 - **Rich Metadata**: Access to connection info, query params, and headers
@@ -524,12 +532,14 @@ clientIO.destroy()
 **Learn more:** [Elysia WebSocket Documentation](https://elysiajs.com/patterns/websocket)
 
 **Key Benefits:**
+
 - **Zero-copy performance**: No serialization/deserialization overhead
 - **Memory efficient**: Ownership transfers without copying
 - **Automatic fallback**: Graceful degradation for non-transferable transports
 - **Type-safe**: Full TypeScript support
 
 **Supported Transferable Types:**
+
 - `ArrayBuffer` - Binary data buffers
 - `MessagePort` - Communication channels
 - `ImageBitmap` - Decoded image data
@@ -615,50 +625,51 @@ For Chrome extensions, use the dedicated `ChromePortIO` adapter for reliable, po
 #### `background.ts`
 
 ```ts
-import { ChromePortIO, RPCChannel } from "kkrpc/chrome-extension";
-import type { BackgroundAPI, ContentAPI } from "./types";
+import { ChromePortIO, RPCChannel } from "kkrpc/chrome-extension"
+import type { BackgroundAPI, ContentAPI } from "./types"
 
 const backgroundAPI: BackgroundAPI = {
-  async getExtensionVersion() {
-    return chrome.runtime.getManifest().version;
-  },
-};
+	async getExtensionVersion() {
+		return chrome.runtime.getManifest().version
+	}
+}
 
 chrome.runtime.onConnect.addListener((port) => {
-  if (port.name === "content-to-background") {
-    const io = new ChromePortIO(port);
-    const rpc = new RPCChannel(io, { expose: backgroundAPI });
-    // Handle disconnect
-    port.onDisconnect.addListener(() => io.destroy());
-  }
-});
+	if (port.name === "content-to-background") {
+		const io = new ChromePortIO(port)
+		const rpc = new RPCChannel(io, { expose: backgroundAPI })
+		// Handle disconnect
+		port.onDisconnect.addListener(() => io.destroy())
+	}
+})
 ```
 
 #### `content.ts`
 
 ```ts
-import { ChromePortIO, RPCChannel } from "kkrpc/chrome-extension";
-import type { BackgroundAPI, ContentAPI } from "./types";
+import { ChromePortIO, RPCChannel } from "kkrpc/chrome-extension"
+import type { BackgroundAPI, ContentAPI } from "./types"
 
 const contentAPI: ContentAPI = {
-  async getPageTitle() {
-    return document.title;
-  },
-};
+	async getPageTitle() {
+		return document.title
+	}
+}
 
-const port = chrome.runtime.connect({ name: "content-to-background" });
-const io = new ChromePortIO(port);
-const rpc = new RPCChannel<ContentAPI, BackgroundAPI>(io, { expose: contentAPI });
+const port = chrome.runtime.connect({ name: "content-to-background" })
+const io = new ChromePortIO(port)
+const rpc = new RPCChannel<ContentAPI, BackgroundAPI>(io, { expose: contentAPI })
 
-const backgroundAPI = rpc.getAPI();
+const backgroundAPI = rpc.getAPI()
 
 // Example call
-backgroundAPI.getExtensionVersion().then(version => {
-  console.log("Extension version:", version);
-});
+backgroundAPI.getExtensionVersion().then((version) => {
+	console.log("Extension version:", version)
+})
 ```
 
 **Chrome Extension Features:**
+
 - **Port-based**: Uses `chrome.runtime.Port` for stable, long-lived connections.
 - **Bidirectional**: Both sides can expose and call APIs.
 - **Type-safe**: Full TypeScript support for your APIs.
@@ -738,17 +749,17 @@ I provided a sample tauri app in `examples/tauri-demo`.
 
 <div align="center">
 
-| Feature | kkrpc | tRPC | Comlink |
-|---------|-------|------|---------|
-| **Cross-runtime** | ✅ Node.js, Deno, Bun, Browser | ❌ Node.js/Browser only | ❌ Browser only |
-| **Bidirectional** | ✅ Both sides can call APIs | ❌ Client calls server only | ✅ Both sides can call APIs |
-| **Type Safety** | ✅ Full TypeScript support | ✅ Full TypeScript support | ✅ TypeScript support |
-| **Transport Layers** | ✅ stdio, HTTP, WebSocket, postMessage, Chrome Extension | ❌ HTTP only | ❌ postMessage only |
-| **Error Preservation** | ✅ Complete error objects | ⚠️ Limited error serialization | ⚠️ Limited error serialization |
-| **Property Access** | ✅ Remote getters/setters | ❌ Methods only | ❌ Methods only |
-| **Zero Config** | ✅ No code generation | ✅ No code generation | ✅ No code generation |
-| **Callbacks** | ✅ Function parameters | ❌ No callbacks | ✅ Function parameters |
-| **Transferable Objects** | ✅ Zero-copy transfers (40-100x faster) | ❌ Not supported | ✅ Basic support |
+| Feature                  | kkrpc                                                    | tRPC                           | Comlink                        |
+| ------------------------ | -------------------------------------------------------- | ------------------------------ | ------------------------------ |
+| **Cross-runtime**        | ✅ Node.js, Deno, Bun, Browser                           | ❌ Node.js/Browser only        | ❌ Browser only                |
+| **Bidirectional**        | ✅ Both sides can call APIs                              | ❌ Client calls server only    | ✅ Both sides can call APIs    |
+| **Type Safety**          | ✅ Full TypeScript support                               | ✅ Full TypeScript support     | ✅ TypeScript support          |
+| **Transport Layers**     | ✅ stdio, HTTP, WebSocket, postMessage, Chrome Extension | ❌ HTTP only                   | ❌ postMessage only            |
+| **Error Preservation**   | ✅ Complete error objects                                | ⚠️ Limited error serialization | ⚠️ Limited error serialization |
+| **Property Access**      | ✅ Remote getters/setters                                | ❌ Methods only                | ❌ Methods only                |
+| **Zero Config**          | ✅ No code generation                                    | ✅ No code generation          | ✅ No code generation          |
+| **Callbacks**            | ✅ Function parameters                                   | ❌ No callbacks                | ✅ Function parameters         |
+| **Transferable Objects** | ✅ Zero-copy transfers (40-100x faster)                  | ❌ Not supported               | ✅ Basic support               |
 
 </div>
 
@@ -787,13 +798,13 @@ I provided a sample tauri app in `examples/tauri-demo`.
 
 <div align="center">
 
-| Platform | Package | Link |
-|----------|---------|------|
-| **NPM** | `kkrpc` | [![NPM](https://img.shields.io/badge/npm-kkrpc-red?style=flat-square&logo=npm)](https://www.npmjs.com/package/kkrpc) |
-| **JSR** | `@kunkun/kkrpc` | [![JSR](https://img.shields.io/badge/jsr-@kunkun/kkrpc-blue?style=flat-square&logo=deno)](https://jsr.io/@kunkun/kkrpc) |
-| **GitHub** | Repository | [![GitHub](https://img.shields.io/badge/github-kkrpc-black?style=flat-square&logo=github)](https://github.com/kunkunsh/kkrpc) |
-| **Docs** | Typedoc | [![Docs](https://img.shields.io/badge/docs-typedoc-blue?style=flat-square&logo=typescript)](https://kunkunsh.github.io/kkrpc/) |
-| **Examples** | Code Samples | [![Examples](https://img.shields.io/badge/examples-code-green?style=flat-square&logo=github)](https://github.com/kunkunsh/kkrpc/tree/main/examples) |
+| Platform     | Package         | Link                                                                                                                                                |
+| ------------ | --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **NPM**      | `kkrpc`         | [![NPM](https://img.shields.io/badge/npm-kkrpc-red?style=flat-square&logo=npm)](https://www.npmjs.com/package/kkrpc)                                |
+| **JSR**      | `@kunkun/kkrpc` | [![JSR](https://img.shields.io/badge/jsr-@kunkun/kkrpc-blue?style=flat-square&logo=deno)](https://jsr.io/@kunkun/kkrpc)                             |
+| **GitHub**   | Repository      | [![GitHub](https://img.shields.io/badge/github-kkrpc-black?style=flat-square&logo=github)](https://github.com/kunkunsh/kkrpc)                       |
+| **Docs**     | Typedoc         | [![Docs](https://img.shields.io/badge/docs-typedoc-blue?style=flat-square&logo=typescript)](https://kunkunsh.github.io/kkrpc/)                      |
+| **Examples** | Code Samples    | [![Examples](https://img.shields.io/badge/examples-code-green?style=flat-square&logo=github)](https://github.com/kunkunsh/kkrpc/tree/main/examples) |
 
 </div>
 

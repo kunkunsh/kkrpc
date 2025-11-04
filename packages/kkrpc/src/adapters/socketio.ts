@@ -1,9 +1,5 @@
 import { io } from "socket.io-client"
-import type {
-	IoInterface,
-	IoMessage,
-	IoCapabilities
-} from "../interface.ts"
+import type { IoCapabilities, IoInterface, IoMessage } from "../interface.ts"
 
 const DESTROY_SIGNAL = "__DESTROY__"
 
@@ -23,16 +19,16 @@ export class SocketIOClientIO implements IoInterface {
 	private socket: any // Socket.IO client socket
 	private connected: Promise<void>
 	private connectResolve: (() => void) | null = null
- 	capabilities: IoCapabilities = {
+	capabilities: IoCapabilities = {
 		structuredClone: false,
 		transfer: false
 	}
 
 	constructor(private options: SocketIOClientOptions) {
-		const url = this.options.namespace 
+		const url = this.options.namespace
 			? `${this.options.url}/${this.options.namespace}`
 			: this.options.url
-		
+
 		this.socket = io(url, this.options.opts)
 		this.connected = new Promise((resolve) => {
 			this.connectResolve = resolve
@@ -107,7 +103,7 @@ export class SocketIOServerIO implements IoInterface {
 	private messageQueue: string[] = []
 	private resolveRead: ((value: string | null) => void) | null = null
 	private socket: any // Socket.IO server socket
- 	capabilities: IoCapabilities = {
+	capabilities: IoCapabilities = {
 		structuredClone: false,
 		transfer: false
 	}

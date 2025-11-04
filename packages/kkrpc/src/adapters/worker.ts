@@ -1,8 +1,4 @@
-import type {
-	IoInterface,
-	IoMessage,
-	IoCapabilities
-} from "../interface.ts"
+import type { IoCapabilities, IoInterface, IoMessage } from "../interface.ts"
 import type { WireEnvelope } from "../serialization.ts"
 
 const DESTROY_SIGNAL = "__DESTROY__"
@@ -12,7 +8,7 @@ export class WorkerParentIO implements IoInterface {
 	private messageQueue: Array<string | IoMessage> = []
 	private resolveRead: ((value: string | IoMessage | null) => void) | null = null
 	private worker: Worker
- 	capabilities: IoCapabilities = {
+	capabilities: IoCapabilities = {
 		structuredClone: true,
 		transfer: true,
 		transferTypes: ["ArrayBuffer", "MessagePort", "ImageBitmap", "OffscreenCanvas"]
@@ -98,7 +94,7 @@ export class WorkerChildIO implements IoInterface {
 	name = "worker-child-io"
 	private messageQueue: Array<string | IoMessage> = []
 	private resolveRead: ((value: string | IoMessage | null) => void) | null = null
- 	capabilities: IoCapabilities = {
+	capabilities: IoCapabilities = {
 		structuredClone: true,
 		transfer: true,
 		transferTypes: ["ArrayBuffer", "MessagePort", "ImageBitmap", "OffscreenCanvas"]

@@ -6,7 +6,11 @@ export interface API {
 	subtract(a: number, b: number): Promise<number>
 	addCallback(a: number, b: number, callback: (result: number) => void): void
 	processBuffer(buffer: ArrayBuffer): Promise<number>
-	processMultiTransfer(obj: { buf1: ArrayBuffer; buf2: ArrayBuffer; c: number }): Promise<{ b1: number; b2: number; c: number }>
+	processMultiTransfer(obj: {
+		buf1: ArrayBuffer
+		buf2: ArrayBuffer
+		c: number
+	}): Promise<{ b1: number; b2: number; c: number }>
 	createBuffer(size: number): Promise<ArrayBuffer>
 	math: {
 		grade1: {
@@ -35,9 +39,12 @@ export interface API {
 }
 
 class CustomError extends Error {
-	constructor(message: string, public code: number) {
+	constructor(
+		message: string,
+		public code: number
+	) {
 		super(message)
-		this.name = 'CustomError'
+		this.name = "CustomError"
 	}
 }
 
@@ -55,10 +62,14 @@ export const apiMethods: API = {
 	processBuffer: async (buffer: ArrayBuffer) => buffer.byteLength,
 	processMultiTransfer: async (obj: { buf1: ArrayBuffer; buf2: ArrayBuffer; c: number }) => {
 		if (!(obj.buf1 instanceof ArrayBuffer)) {
-			throw new Error(`obj.buf1 is not an ArrayBuffer, but ${(obj.buf1 as unknown as any)?.constructor.name}`)
+			throw new Error(
+				`obj.buf1 is not an ArrayBuffer, but ${(obj.buf1 as unknown as any)?.constructor.name}`
+			)
 		}
 		if (!(obj.buf2 instanceof ArrayBuffer)) {
-			throw new Error(`obj.buf2 is not an ArrayBuffer, but ${(obj.buf2 as unknown as any)?.constructor.name}`)
+			throw new Error(
+				`obj.buf2 is not an ArrayBuffer, but ${(obj.buf2 as unknown as any)?.constructor.name}`
+			)
 		}
 		return {
 			b1: obj.buf1.byteLength,

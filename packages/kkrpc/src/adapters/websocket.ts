@@ -1,8 +1,4 @@
-import type {
-	IoInterface,
-	IoMessage,
-	IoCapabilities
-} from "../interface.ts"
+import type { IoCapabilities, IoInterface, IoMessage } from "../interface.ts"
 
 const DESTROY_SIGNAL = "__DESTROY__"
 
@@ -21,7 +17,7 @@ export class WebSocketClientIO implements IoInterface {
 	private ws: WebSocket
 	private connected: Promise<void>
 	private connectResolve: (() => void) | null = null
- 	capabilities: IoCapabilities = {
+	capabilities: IoCapabilities = {
 		structuredClone: false,
 		transfer: false
 	}
@@ -103,7 +99,7 @@ export class WebSocketServerIO implements IoInterface {
 	name = "websocket-server-io"
 	private messageQueue: string[] = []
 	private resolveRead: ((value: string | null) => void) | null = null
- 	capabilities: IoCapabilities = {
+	capabilities: IoCapabilities = {
 		structuredClone: false,
 		transfer: false
 	}

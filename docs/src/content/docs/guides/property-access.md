@@ -32,57 +32,57 @@ Property access is implemented using JavaScript Proxy objects with custom get an
 ```typescript
 // Define your API interface with properties
 export interface API {
-  // Methods
-  add(a: number, b: number): Promise<number>
-  
-  // Simple properties
-  counter: number
-  status: string
-  
-  // Nested objects
-  config: {
-    theme: string
-    language: string
-    notifications: {
-      enabled: boolean
-      sound: boolean
-    }
-  }
-  
-  // Mixed properties and methods
-  database: {
-    connectionCount: number
-    connect(): Promise<void>
-    query(sql: string): Promise<any[]>
-  }
+	// Methods
+	add(a: number, b: number): Promise<number>
+
+	// Simple properties
+	counter: number
+	status: string
+
+	// Nested objects
+	config: {
+		theme: string
+		language: string
+		notifications: {
+			enabled: boolean
+			sound: boolean
+		}
+	}
+
+	// Mixed properties and methods
+	database: {
+		connectionCount: number
+		connect(): Promise<void>
+		query(sql: string): Promise<any[]>
+	}
 }
 
 // Implementation
 export const apiImplementation: API = {
-  add: async (a, b) => a + b,
-  
-  counter: 0,
-  status: "ready",
-  
-  config: {
-    theme: "light",
-    language: "en",
-    notifications: {
-      enabled: true,
-      sound: false
-    }
-  },
-  
-  database: {
-    connectionCount: 0,
-    connect: async () => {
-      // Connection logic
-    },
-    query: async (sql) => {
-      // Query logic
-      return []
-    }
-  }
+	add: async (a, b) => a + b,
+
+	counter: 0,
+	status: "ready",
+
+	config: {
+		theme: "light",
+		language: "en",
+		notifications: {
+			enabled: true,
+			sound: false
+		}
+	},
+
+	database: {
+		connectionCount: 0,
+		connect: async () => {
+			// Connection logic
+		},
+		query: async (sql) => {
+			// Query logic
+			return []
+		}
+	}
 }
 ```
 
@@ -97,10 +97,10 @@ const theme = await api.config.theme
 const notificationsEnabled = await api.config.notifications.enabled
 const dbConnections = await api.database.connectionCount
 
-console.log(currentCount)        // 0
-console.log(theme)              // "light"
+console.log(currentCount) // 0
+console.log(theme) // "light"
 console.log(notificationsEnabled) // true
-console.log(dbConnections)      // 0
+console.log(dbConnections) // 0
 
 // Property setters (direct assignment)
 api.counter = 42
@@ -109,10 +109,10 @@ api.config.notifications.sound = true
 api.database.connectionCount = 5
 
 // Verify changes
-console.log(await api.counter)              // 42
-console.log(await api.config.theme)         // "dark"
+console.log(await api.counter) // 42
+console.log(await api.config.theme) // "dark"
 console.log(await api.config.notifications.sound) // true
-console.log(await api.database.connectionCount)    // 5
+console.log(await api.database.connectionCount) // 5
 ```
 
 ### Mixing Properties and Methods
@@ -148,8 +148,8 @@ api.config.notifications.enabled = !enabled
 // Update nested objects
 const config = await api.config
 api.config = {
-  ...config,
-  theme: config.theme === "light" ? "dark" : "light"
+	...config,
+	theme: config.theme === "light" ? "dark" : "light"
 }
 ```
 
@@ -158,25 +158,25 @@ api.config = {
 ```typescript
 // You can add validation in your API implementation
 export const apiImplementation: API = {
-  _counter: 0,
-  
-  get counter() {
-    return this._counter
-  },
-  
-  set counter(value: number) {
-    if (typeof value !== 'number' || value < 0) {
-      throw new Error('Counter must be a non-negative number')
-    }
-    this._counter = value
-  }
+	_counter: 0,
+
+	get counter() {
+		return this._counter
+	},
+
+	set counter(value: number) {
+		if (typeof value !== "number" || value < 0) {
+			throw new Error("Counter must be a non-negative number")
+		}
+		this._counter = value
+	}
 }
 
 // Client side error handling
 try {
-  api.counter = -5 // This will throw an error
+	api.counter = -5 // This will throw an error
 } catch (error) {
-  console.error('Invalid counter value:', error.message)
+	console.error("Invalid counter value:", error.message)
 }
 ```
 
@@ -185,31 +185,31 @@ try {
 ```typescript
 // API with property change notifications
 export const apiImplementation = {
-  _config: { theme: "light", language: "en" },
-  _listeners: new Set<(config: any) => void>(),
-  
-  get config() {
-    return this._config
-  },
-  
-  set config(newConfig) {
-    this._config = { ...newConfig }
-    // Notify all listeners
-    this._listeners.forEach(listener => listener(this._config))
-  },
-  
-  onConfigChange(callback: (config: any) => void) {
-    this._listeners.add(callback)
-  },
-  
-  offConfigChange(callback: (config: any) => void) {
-    this._listeners.delete(callback)
-  }
+	_config: { theme: "light", language: "en" },
+	_listeners: new Set<(config: any) => void>(),
+
+	get config() {
+		return this._config
+	},
+
+	set config(newConfig) {
+		this._config = { ...newConfig }
+		// Notify all listeners
+		this._listeners.forEach((listener) => listener(this._config))
+	},
+
+	onConfigChange(callback: (config: any) => void) {
+		this._listeners.add(callback)
+	},
+
+	offConfigChange(callback: (config: any) => void) {
+		this._listeners.delete(callback)
+	}
 }
 
 // Client side
 api.onConfigChange((newConfig) => {
-  console.log('Config changed:', newConfig)
+	console.log("Config changed:", newConfig)
 })
 
 api.config = { theme: "dark", language: "es" } // Triggers notification
@@ -221,25 +221,25 @@ kkrpc provides full TypeScript support for property access:
 
 ```typescript
 interface UserAPI {
-  currentUser: {
-    id: number
-    name: string
-    preferences: {
-      theme: 'light' | 'dark'
-      notifications: boolean
-    }
-  }
+	currentUser: {
+		id: number
+		name: string
+		preferences: {
+			theme: "light" | "dark"
+			notifications: boolean
+		}
+	}
 }
 
 const api = rpc.getAPI<UserAPI>()
 
 // TypeScript knows the exact types
 const userId: number = await api.currentUser.id
-const theme: 'light' | 'dark' = await api.currentUser.preferences.theme
+const theme: "light" | "dark" = await api.currentUser.preferences.theme
 
 // TypeScript prevents invalid assignments
 api.currentUser.preferences.theme = "invalid" // ❌ TypeScript error
-api.currentUser.preferences.theme = "dark"    // ✅ Valid
+api.currentUser.preferences.theme = "dark" // ✅ Valid
 ```
 
 ## Performance Considerations
@@ -256,11 +256,11 @@ const age = await api.user.age
 
 // More efficient: Single RPC call
 const getUserInfo = async () => {
-  return {
-    name: this.user.name,
-    email: this.user.email,
-    age: this.user.age
-  }
+	return {
+		name: this.user.name,
+		email: this.user.email,
+		age: this.user.age
+	}
 }
 
 const userInfo = await api.getUserInfo()
@@ -286,15 +286,15 @@ const userInfo = await api.getUserInfo()
 
 ```typescript
 try {
-  const value = await api.someProperty
+	const value = await api.someProperty
 } catch (error) {
-  if (error.name === 'PropertyNotFoundError') {
-    console.log('Property does not exist')
-  } else if (error.name === 'ValidationError') {
-    console.log('Invalid property value')
-  } else {
-    console.log('Network or other error:', error.message)
-  }
+	if (error.name === "PropertyNotFoundError") {
+		console.log("Property does not exist")
+	} else if (error.name === "ValidationError") {
+		console.log("Invalid property value")
+	} else {
+		console.log("Network or other error:", error.message)
+	}
 }
 ```
 

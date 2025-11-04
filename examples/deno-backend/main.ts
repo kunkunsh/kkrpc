@@ -1,5 +1,5 @@
-import { DenoIo, RPCChannel } from "kkrpc/deno"
 import { parseArgs } from "jsr:@std/cli/parse-args"
+import { DenoIo, RPCChannel } from "kkrpc/deno"
 import pkg from "../../packages/kkrpc/package.json" with { type: "json" }
 
 const flags = parseArgs(Deno.args, {

@@ -1,15 +1,11 @@
-import type {
-	IoInterface,
-	IoMessage,
-	IoCapabilities
-} from "../interface.ts"
-import * as amqplib from 'amqplib'
-import type { ChannelModel, Channel, ConsumeMessage } from 'amqplib'
+import * as amqplib from "amqplib"
+import type { Channel, ChannelModel, ConsumeMessage } from "amqplib"
+import type { IoCapabilities, IoInterface, IoMessage } from "../interface.ts"
 
 interface RabbitMQOptions {
 	url?: string
 	exchange?: string
-	exchangeType?: 'topic' | 'direct' | 'fanout'
+	exchangeType?: "topic" | "direct" | "fanout"
 	durable?: boolean
 	sessionId?: string
 	routingKeyPrefix?: string
@@ -25,7 +21,7 @@ export class RabbitMQIO implements IoInterface {
 	private resolveRead: ((value: string | null) => void) | null = null
 	private connection: ChannelModel | null = null
 	private channel: Channel | null = null
-	private inboundQueue: string = ''
+	private inboundQueue: string = ""
 	private sharedRoutingKey: string
 	private sessionId: string
 	private exchange: string
@@ -40,8 +36,8 @@ export class RabbitMQIO implements IoInterface {
 
 	constructor(private options: RabbitMQOptions = {}) {
 		this.sessionId = options.sessionId || this.generateSessionId()
-		this.exchange = options.exchange || 'kkrpc-exchange'
-		this.routingKeyPrefix = options.routingKeyPrefix || 'kkrpc'
+		this.exchange = options.exchange || "kkrpc-exchange"
+		this.routingKeyPrefix = options.routingKeyPrefix || "kkrpc"
 		this.sharedRoutingKey = `${this.routingKeyPrefix}.messages`
 
 		// Initialize connection promise
@@ -51,17 +47,17 @@ export class RabbitMQIO implements IoInterface {
 	private async connect(): Promise<void> {
 		try {
 			// Dynamic import to avoid dependency issues for non-RabbitMQ users
-			const amqplib = await import('amqplib')
+			const amqplib = await import("amqplib")
 
-			const url = this.options.url || 'amqp://localhost'
+			const url = this.options.url || "amqp://localhost"
 			this.connection = await amqplib.connect(url)
 			this.channel = await this.connection.createChannel()
 
 			// Assert exchange
-			const exchangeType = this.options.exchangeType || 'topic'
+			const exchangeType = this.options.exchangeType || "topic"
 			const durable = this.options.durable !== false // default to true
 			if (!this.channel) {
-				throw new Error('Failed to create RabbitMQ channel')
+				throw new Error("Failed to create RabbitMQ channel")
 			}
 			await this.channel.assertExchange(this.exchange, exchangeType, { durable })
 
@@ -83,15 +79,14 @@ export class RabbitMQIO implements IoInterface {
 				if (this.isDestroyed) return
 
 				if (msg !== null) {
-					const content = msg.content.toString('utf8')
+					const content = msg.content.toString("utf8")
 					this.handleMessage(content)
 					// We've already checked that msg is not null
 					this.channel!.ack(msg)
 				}
 			})
-
 		} catch (error) {
-			console.error('RabbitMQ connection error:', error)
+			console.error("RabbitMQ connection error:", error)
 			throw error
 		}
 	}
@@ -99,7 +94,7 @@ export class RabbitMQIO implements IoInterface {
 	private handleMessage(message: string): void {
 		if (this.isDestroyed) return
 
-		if (message === '__DESTROY__') {
+		if (message === "__DESTROY__") {
 			this.destroy()
 			return
 		}
@@ -116,7 +111,7 @@ export class RabbitMQIO implements IoInterface {
 		// Generate exactly 26 characters
 		const part1 = Math.random().toString(36).substring(2, 15)
 		const part2 = Math.random().toString(36).substring(2, 15)
-		return (part1 + part2).padEnd(26, '0').substring(0, 26)
+		return (part1 + part2).padEnd(26, "0").substring(0, 26)
 	}
 
 	async read(): Promise<string | null> {
@@ -124,7 +119,7 @@ export class RabbitMQIO implements IoInterface {
 
 		if (this.isDestroyed) {
 			// Return a special value that RPCChannel will treat as termination
-			throw new Error('RabbitMQ adapter has been destroyed')
+			throw new Error("RabbitMQ adapter has been destroyed")
 		}
 
 		if (this.messageQueue.length > 0) {
@@ -140,25 +135,24 @@ export class RabbitMQIO implements IoInterface {
 		await this.connectionPromise
 
 		if (this.isDestroyed) {
-			throw new Error('RabbitMQ adapter has been destroyed')
+			throw new Error("RabbitMQ adapter has been destroyed")
 		}
 
-		if (typeof message !== 'string') {
-			throw new Error('RabbitMQIO only supports string messages')
+		if (typeof message !== "string") {
+			throw new Error("RabbitMQIO only supports string messages")
 		}
 
 		try {
 			// Publish to shared routing key so all adapters can receive the message
 			if (!this.channel) {
-				throw new Error('RabbitMQ channel is not initialized')
+				throw new Error("RabbitMQ channel is not initialized")
 			}
-			
+
 			this.channel.publish(this.exchange, this.sharedRoutingKey, Buffer.from(message), {
 				persistent: this.options.durable !== false
 			})
-
 		} catch (error) {
-			console.error('RabbitMQ publish error:', error)
+			console.error("RabbitMQ publish error:", error)
 			throw error
 		}
 	}
@@ -186,10 +180,10 @@ export class RabbitMQIO implements IoInterface {
 
 	async signalDestroy(): Promise<void> {
 		try {
-			await this.write('__DESTROY__')
+			await this.write("__DESTROY__")
 		} catch (error) {
 			// Ignore errors during destroy signaling
-			console.debug('Error sending destroy signal:', error)
+			console.debug("Error sending destroy signal:", error)
 		}
 	}
 

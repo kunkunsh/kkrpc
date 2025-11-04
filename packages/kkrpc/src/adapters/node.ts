@@ -4,7 +4,7 @@
  */
 import { type Buffer } from "node:buffer"
 import { Readable, Writable } from "node:stream"
-import { type IoInterface, type IoMessage, type IoCapabilities } from "../interface.ts"
+import { type IoCapabilities, type IoInterface, type IoMessage } from "../interface.ts"
 
 /**
  * Stdio implementation for Node.js

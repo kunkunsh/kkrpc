@@ -1,16 +1,16 @@
 import type { IoInterface, IoMessage } from "./interface.ts"
 import {
-	encodeMessage,
 	decodeMessage,
+	deserializeError,
+	encodeMessage,
 	processValueForTransfer,
 	reconstructValueFromTransfer,
+	serializeError,
+	type EnhancedError,
 	type Message,
 	type Response,
 	type SerializationOptions,
-	type EnhancedError,
-	type TransferSlot,
-	deserializeError,
-	serializeError
+	type TransferSlot
 } from "./serialization.ts"
 import { generateUUID } from "./utils.ts"
 
@@ -55,7 +55,11 @@ export class RPCChannel<
 		this.apiImplementation = options?.expose
 		this.serializationOptions = options?.serialization || {}
 		this.structuredClone = io.capabilities?.structuredClone === true
-		if (this.structuredClone && io.capabilities?.transfer === true && options?.enableTransfer !== false) {
+		if (
+			this.structuredClone &&
+			io.capabilities?.transfer === true &&
+			options?.enableTransfer !== false
+		) {
 			this.supportsTransfer = true
 		}
 		this.listen()
@@ -83,7 +87,7 @@ export class RPCChannel<
 	private async listen(): Promise<void> {
 		while (true) {
 			// Check if IO interface is destroyable and has been destroyed
-			if ('isDestroyed' in this.io && (this.io as any).isDestroyed) {
+			if ("isDestroyed" in this.io && (this.io as any).isDestroyed) {
 				break
 			}
 
@@ -95,7 +99,7 @@ export class RPCChannel<
 				await this.handleIncomingMessage(incoming)
 			} catch (error: any) {
 				// If the error indicates the adapter is destroyed, stop listening
-				if (error.message && error.message.includes('destroyed')) {
+				if (error.message && error.message.includes("destroyed")) {
 					break
 				}
 				console.error("kkrpc: failed to handle incoming message", error)
@@ -135,7 +139,7 @@ export class RPCChannel<
 		const lastChar = this.messageStr[this.messageStr.length - 1]
 		const msgsSplit = this.messageStr.split("\n")
 		const msgs = lastChar === "\n" ? msgsSplit : msgsSplit.slice(0, -1)
-		this.messageStr = lastChar === "\n" ? "" : msgsSplit.at(-1) ?? ""
+		this.messageStr = lastChar === "\n" ? "" : (msgsSplit.at(-1) ?? "")
 
 		for (const msgStr of msgs.map((msg) => msg.trim()).filter(Boolean)) {
 			if (msgStr.startsWith("{")) {
@@ -207,12 +211,7 @@ export class RPCChannel<
 
 			if (this.supportsTransfer) {
 				finalArgs = argsWithCallbacks.map((arg) =>
-					processValueForTransfer(
-						arg,
-						transferables,
-						transferSlots,
-						transferredValues
-					)
+					processValueForTransfer(arg, transferables, transferSlots, transferredValues)
 				)
 			}
 
@@ -324,12 +323,7 @@ export class RPCChannel<
 
 			if (this.supportsTransfer) {
 				finalArgs = argsWithCallbacks.map((arg) =>
-					processValueForTransfer(
-						arg,
-						transferables,
-						transferSlots,
-						transferredValues
-					)
+					processValueForTransfer(arg, transferables, transferSlots, transferredValues)
 				)
 			}
 
@@ -357,7 +351,7 @@ export class RPCChannel<
 		if (this.pendingRequests[id]) {
 			if (error) {
 				// Handle enhanced error objects
-				if (typeof error === 'object' && error.name && error.message) {
+				if (typeof error === "object" && error.name && error.message) {
 					this.pendingRequests[id].reject(deserializeError(error as EnhancedError))
 				} else {
 					// Fall back to simple string errors for backward compatibility
@@ -451,12 +445,7 @@ export class RPCChannel<
 
 		if (this.supportsTransfer) {
 			finalArgs = args.map((arg) =>
-				processValueForTransfer(
-					arg,
-					transferables,
-					transferSlots,
-					transferredValues
-				)
+				processValueForTransfer(arg, transferables, transferSlots, transferredValues)
 			)
 		}
 
@@ -746,7 +735,6 @@ export class RPCChannel<
 	public getAPI(): RemoteAPI {
 		return this.createNestedProxy() as RemoteAPI
 	}
-
 
 	/**
 	 * Destroys the RPC channel and underlying IO interface if it's destroyable

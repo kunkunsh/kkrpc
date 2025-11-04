@@ -24,7 +24,8 @@ await Bun.build({
 })
 
 // Determine platform and arch for pkg target
-const platform = process.platform === "win32" ? "win" : process.platform === "darwin" ? "macos" : "linux"
+const platform =
+	process.platform === "win32" ? "win" : process.platform === "darwin" ? "macos" : "linux"
 const arch = process.arch === "x64" ? "x64" : process.arch === "arm64" ? "arm64" : "x64"
 const pkgTarget = `node22-${platform}-${arch}`
 

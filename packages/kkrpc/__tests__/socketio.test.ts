@@ -1,5 +1,5 @@
-import { afterAll, beforeAll, expect, test } from "bun:test"
 import { createServer } from "http"
+import { afterAll, beforeAll, expect, test } from "bun:test"
 import { Server as SocketIOServer } from "socket.io"
 import { RPCChannel } from "../mod.ts"
 import { SocketIOClientIO, SocketIOServerIO } from "../src/adapters/socketio.ts"
@@ -14,7 +14,7 @@ let serverRPC: RPCChannel<API, API>
 beforeAll(() => {
 	// Create HTTP server
 	httpServer = createServer()
-	
+
 	// Create Socket.IO server
 	io = new SocketIOServer(httpServer, {
 		cors: {
@@ -82,10 +82,10 @@ test("Socket.IO RPC", async () => {
 
 test("Socket.IO with namespace", async () => {
 	const NAMESPACE = "/test"
-	
+
 	// Create namespace
 	const testNamespace = io.of(NAMESPACE)
-	
+
 	testNamespace.on("connection", (socket) => {
 		const serverIO = new SocketIOServerIO(socket)
 		const serverRPC = new RPCChannel<API, API>(serverIO, { expose: apiMethods })

@@ -1,4 +1,4 @@
-import { type IoInterface, type IoMessage, type IoCapabilities } from "../interface.ts"
+import { type IoCapabilities, type IoInterface, type IoMessage } from "../interface.ts"
 
 export class BunIo implements IoInterface {
 	name = "bun-io"

@@ -22,9 +22,9 @@ export const apiMethods: API = {
 
 ```ts title="server.ts"
 import { createServer } from "http"
-import { Server as SocketIOServer } from "socket.io"
-import { SocketIOClientIO, SocketIOServerIO } from "kkrpc/socketio"
 import { RPCChannel } from "kkrpc"
+import { SocketIOClientIO, SocketIOServerIO } from "kkrpc/socketio"
+import { Server as SocketIOServer } from "socket.io"
 
 const httpServer = createServer()
 const io = new SocketIOServer(httpServer, {
@@ -50,8 +50,8 @@ httpServer.listen(PORT, () => {
 ### Client
 
 ```ts title="client.ts"
-import { SocketIOClientIO } from "kkrpc/socketio"
 import { RPCChannel, type DestroyableIoInterface } from "kkrpc"
+import { SocketIOClientIO } from "kkrpc/socketio"
 
 const clientIO = new SocketIOClientIO({
 	url: `http://localhost:${PORT}`
@@ -71,8 +71,8 @@ await api.add(10, 20, (sum) => {
 ### With Namespace
 
 ```ts title="client-with-namespace.ts"
-import { SocketIOClientIO } from "kkrpc/socketio"
 import { RPCChannel, type DestroyableIoInterface } from "kkrpc"
+import { SocketIOClientIO } from "kkrpc/socketio"
 
 const clientIO = new SocketIOClientIO({
 	url: `http://localhost:${PORT}`,
@@ -93,9 +93,9 @@ expect(sum).toBe(8)
 
 ```ts title="server-with-namespace.ts"
 import { createServer } from "http"
-import { Server as SocketIOServer } from "socket.io"
-import { SocketIOClientIO, SocketIOServerIO } from "kkrpc/socketio"
 import { RPCChannel } from "kkrpc"
+import { SocketIOClientIO, SocketIOServerIO } from "kkrpc/socketio"
+import { Server as SocketIOServer } from "socket.io"
 
 const httpServer = createServer()
 const io = new SocketIOServer(httpServer, {
@@ -119,6 +119,7 @@ httpServer.listen(PORT, () => {
 ```
 
 **Socket.IO Features:**
+
 - **Real-time communication**: Built on top of WebSocket with fallback support
 - **Namespace support**: Organize connections into different namespaces
 - **Room support**: Broadcast to specific groups of clients

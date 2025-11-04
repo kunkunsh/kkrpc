@@ -157,7 +157,7 @@ export function encodeMessage<T>(
 			mode: "string",
 			data: serializeMessage(message, options)
 		}
-}
+	}
 
 	const envelope: WireEnvelope = {
 		version: 2,

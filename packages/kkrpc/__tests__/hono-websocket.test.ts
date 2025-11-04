@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, expect, test } from "bun:test"
 import { Hono } from "hono"
 import { upgradeWebSocket, websocket } from "hono/bun"
-import { RPCChannel, WebSocketClientIO, createHonoWebSocketHandler } from "../mod.ts"
+import { createHonoWebSocketHandler, RPCChannel, WebSocketClientIO } from "../mod.ts"
 import type { IoInterface } from "../src/interface.ts"
 import { apiMethods, type API } from "./scripts/api.ts"
 
@@ -12,11 +12,14 @@ beforeAll(() => {
 	// Create Hono app with WebSocket support
 	const app = new Hono()
 
-	app.get("/ws", upgradeWebSocket(() => {
-		return createHonoWebSocketHandler<API>({
-			expose: apiMethods
+	app.get(
+		"/ws",
+		upgradeWebSocket(() => {
+			return createHonoWebSocketHandler<API>({
+				expose: apiMethods
+			})
 		})
-	}))
+	)
 
 	// Start server
 	server = Bun.serve({

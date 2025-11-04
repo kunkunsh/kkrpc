@@ -10,11 +10,13 @@ sides to verify that ownership actually moves across the worker boundary.
 Transferable objects are a browser feature that allows **zero-copy** transfer of data between different contexts. Instead of copying large amounts of data (which can be slow and memory-intensive), ownership of the data is transferred directly.
 
 **Key Benefits:**
+
 - **40-100x faster** for large data transfers (>1MB)
 - **Memory efficient** - no duplicate data in memory
 - **Zero-copy** - ownership moves without copying
 
 **What gets transferred?**
+
 - `ArrayBuffer` - Binary data buffers
 - `MessagePort` - Communication channels
 - `ImageBitmap` - Decoded image data
@@ -52,6 +54,7 @@ Two helpful scripts live in `package.json` as well:
 ### Key Components
 
 - **`src/lib/worker/transfer-worker.ts`** - Worker implementation
+
   - Initialises an `RPCChannel` inside a dedicated worker
   - Exposes two RPC methods: `processBuffer` (main → worker) and `provideBuffer` (worker → main)
   - When sending data back, marks payload with `transfer(...)` for zero-copy transfer
@@ -65,25 +68,27 @@ Two helpful scripts live in `package.json` as well:
 ### Transfer Flow
 
 1. **Main → Worker Transfer:**
+
    ```typescript
    // Create buffer
-   const buffer = new ArrayBuffer(size)
-   console.log(buffer.byteLength) // e.g., 10485760
-   
+   const buffer = new ArrayBuffer(size);
+   console.log(buffer.byteLength); // e.g., 10485760
+
    // Transfer to worker (zero-copy)
-   await api.processBuffer(transfer(buffer, [buffer]))
-   console.log(buffer.byteLength) // 0 (neutered!)
+   await api.processBuffer(transfer(buffer, [buffer]));
+   console.log(buffer.byteLength); // 0 (neutered!)
    ```
 
 2. **Worker → Main Transfer:**
+
    ```typescript
    // Worker generates data and transfers back
-   const newBuffer = new ArrayBuffer(size)
-   return transfer(newBuffer, [newBuffer])
-   
+   const newBuffer = new ArrayBuffer(size);
+   return transfer(newBuffer, [newBuffer]);
+
    // Main receives transferred buffer
-   const received = await api.provideBuffer()
-   console.log(received.byteLength) // Full size
+   const received = await api.provideBuffer();
+   console.log(received.byteLength); // Full size
    ```
 
 ## 🎮 Using the Demo
@@ -108,16 +113,21 @@ When testing transfers, watch for these key indicators:
 ## 🧪 Testing
 
 ### Unit Tests
+
 ```sh
 pnpm test
 ```
+
 Runs component tests with mocked worker to verify UI logic.
 
 ### E2E Tests
+
 ```sh
 pnpm test:e2e
 ```
+
 Launches Playwright to test real browser behavior:
+
 - ArrayBuffer transfer verification
 - Performance benchmarking
 - UI interaction validation
@@ -127,24 +137,27 @@ Launches Playwright to test real browser behavior:
 Based on testing in this demo:
 
 | Buffer Size | Copy Time | Transfer Time | Speedup |
-|-------------|------------|---------------|----------|
-| 1MB         | 15ms       | 2ms           | 7.5x     |
-| 10MB        | 150ms      | 3ms           | 50x       |
-| 100MB       | 1500ms     | 15ms          | 100x      |
+| ----------- | --------- | ------------- | ------- |
+| 1MB         | 15ms      | 2ms           | 7.5x    |
+| 10MB        | 150ms     | 3ms           | 50x     |
+| 100MB       | 1500ms    | 15ms          | 100x    |
 
-*Results vary by hardware and browser*
+_Results vary by hardware and browser_
 
 ## 🐛 Troubleshooting
 
 **Buffer not neutered?**
+
 - Ensure you're using `transfer(buffer, [buffer])` syntax
 - Check browser supports transferable objects (all modern browsers do)
 
 **Slow transfers?**
+
 - Verify buffer size is large enough (>100KB) to see benefits
 - Check if other extensions are interfering with worker communication
 
 **Errors in console?**
+
 - Open browser DevTools and check Network/Console tabs
 - Ensure worker file is served correctly (no 404 errors)
 

@@ -9,6 +9,7 @@ kkrpc 是一个基于 TypeScript 的 RPC 库，实现了跨运行时环境的双
 ### 1. 核心组件 (Core Components)
 
 #### RPCChannel (`src/channel.ts`)
+
 - **职责**: 中央调度器，管理 RPC 通信的整个生命周期
 - **关键数据结构**:
   - `pendingRequests`: 等待响应的请求映射表 (`Record<string, PendingRequest>`)
@@ -17,6 +18,7 @@ kkrpc 是一个基于 TypeScript 的 RPC 库，实现了跨运行时环境的双
   - `messageStr`: 消息缓冲区，用于处理分片消息
 
 #### IoInterface (`src/interface.ts`)
+
 - **职责**: 定义统一的 IO 抽象接口
 - **核心方法**:
   - `read(): Promise<string | IoMessage | null>` - 读取数据
@@ -31,6 +33,7 @@ kkrpc 是一个基于 TypeScript 的 RPC 库，实现了跨运行时环境的双
 每个适配器都实现了 `IoInterface`，将 kkrpc 与不同的传输层协议对接：
 
 #### String-based 适配器
+
 - **NodeIo**: Node.js stdio 通信
 - **WebSocketClientIO/ServerIO**: WebSocket 通信
 - **HTTPClientIO/ServerIO**: HTTP 请求-响应模式
@@ -38,6 +41,7 @@ kkrpc 是一个基于 TypeScript 的 RPC 库，实现了跨运行时环境的双
 - **RedisStreamsIO**: 基于 Redis Streams 的流式通信
 
 #### Structured Clone 适配器
+
 - **WorkerParentIO/ChildIO**: Web Worker 通信，支持零拷贝传输
 
 ## 通信协议 (Communication Protocol)
@@ -46,45 +50,48 @@ kkrpc 是一个基于 TypeScript 的 RPC 库，实现了跨运行时环境的双
 
 ```typescript
 interface Message<T = any> {
-    id: string                    // UUID 唯一标识
-    method: string               // 方法名或路径
-    args: T                      // 参数
-    type: "request" | "response" | "callback" | "get" | "set" | "construct"
-    callbackIds?: string[]       // 回调函数 ID 列表
-    version?: "json" | "superjson"  // 序列化版本
-    path?: string[]              // 属性访问路径
-    value?: any                  // 属性设置值
-    transferSlots?: TransferSlot[]  // 传输槽信息
+	id: string // UUID 唯一标识
+	method: string // 方法名或路径
+	args: T // 参数
+	type: "request" | "response" | "callback" | "get" | "set" | "construct"
+	callbackIds?: string[] // 回调函数 ID 列表
+	version?: "json" | "superjson" // 序列化版本
+	path?: string[] // 属性访问路径
+	value?: any // 属性设置值
+	transferSlots?: TransferSlot[] // 传输槽信息
 }
 ```
 
 ### 2. 序列化机制 (Serialization Mechanism)
 
 #### 双格式支持
+
 - **JSON**: 标准序列化，向后兼容
 - **SuperJSON**: 增强序列化，支持更多类型（Date, Map, Set, BigInt, Uint8Array）
 
 #### 自动检测
+
 ```typescript
 // 发送时可以选择序列化格式
 const message: Message = {
-    id: generateUUID(),
-    method: "echo",
-    args: ["hello"],
-    type: "request"
+	id: generateUUID(),
+	method: "echo",
+	args: ["hello"],
+	type: "request"
 }
 
 // 接收时自动检测格式
 if (message.startsWith('{"json":')) {
-    const parsed = superjson.parse<Message>(message)
+	const parsed = superjson.parse<Message>(message)
 } else {
-    const parsed = JSON.parse(message) as Message
+	const parsed = JSON.parse(message) as Message
 }
 ```
 
 ### 3. 零拷贝传输 (Zero-Copy Transfer)
 
 #### Transfer Slot 机制
+
 ```typescript
 interface TransferSlot {
     type: "raw" | "handler"
@@ -271,16 +278,16 @@ public setProperty(path: string | string[], value: any): Promise<void> {
 ```typescript
 // 发送端：检测并替换回调函数
 const argsWithCallbacks = args.map((arg) => {
-    if (typeof arg === "function") {
-        let callbackId = this.callbackCache.get(arg)
-        if (!callbackId) {
-            callbackId = generateUUID()
-            this.callbacks[callbackId] = arg
-            this.callbackCache.set(arg, callbackId)
-        }
-        return `__callback__${callbackId}`
-    }
-    return arg
+	if (typeof arg === "function") {
+		let callbackId = this.callbackCache.get(arg)
+		if (!callbackId) {
+			callbackId = generateUUID()
+			this.callbacks[callbackId] = arg
+			this.callbackCache.set(arg, callbackId)
+		}
+		return `__callback__${callbackId}`
+	}
+	return arg
 })
 ```
 
@@ -316,34 +323,34 @@ private invokeCallback(callbackId: string, args: any[]): void {
 
 ```typescript
 export function serializeError(error: Error): EnhancedError {
-    const enhanced: EnhancedError = {
-        name: error.name,
-        message: error.message
-    }
+	const enhanced: EnhancedError = {
+		name: error.name,
+		message: error.message
+	}
 
-    // 保留所有错误属性
-    if (error.stack) enhanced.stack = error.stack
-    if ("cause" in error) enhanced.cause = error.cause
-    for (const key in error) {
-        if (!["name", "message", "stack", "cause"].includes(key)) {
-            enhanced[key] = error[key]
-        }
-    }
+	// 保留所有错误属性
+	if (error.stack) enhanced.stack = error.stack
+	if ("cause" in error) enhanced.cause = error.cause
+	for (const key in error) {
+		if (!["name", "message", "stack", "cause"].includes(key)) {
+			enhanced[key] = error[key]
+		}
+	}
 
-    return enhanced
+	return enhanced
 }
 
 // 反序列化重建完整错误对象
 export function deserializeError(enhanced: EnhancedError): Error {
-    const error = new Error(enhanced.message)
-    error.name = enhanced.name
+	const error = new Error(enhanced.message)
+	error.name = enhanced.name
 
-    // 恢复所有属性
-    for (const key in enhanced) {
-        (error as any)[key] = enhanced[key]
-    }
+	// 恢复所有属性
+	for (const key in enhanced) {
+		;(error as any)[key] = enhanced[key]
+	}
 
-    return error
+	return error
 }
 ```
 
@@ -353,25 +360,25 @@ export function deserializeError(enhanced: EnhancedError): Error {
 
 ```typescript
 class RabbitMQIO implements IoInterface {
-    // 使用 topic exchange 分离 kkrpc 流量
-    private exchange = 'kkrpc-exchange'
-    private routingKey = 'kkrpc.messages'
+	// 使用 topic exchange 分离 kkrpc 流量
+	private exchange = "kkrpc-exchange"
+	private routingKey = "kkrpc.messages"
 
-    async write(message: string): Promise<void> {
-        // 发布到共享路由键，所有适配器都能接收
-        await this.channel.publish(this.exchange, this.routingKey, Buffer.from(message))
-    }
+	async write(message: string): Promise<void> {
+		// 发布到共享路由键，所有适配器都能接收
+		await this.channel.publish(this.exchange, this.routingKey, Buffer.from(message))
+	}
 
-    private async connect(): Promise<void> {
-        // 创建独占队列接收消息
-        await this.channel.assertQueue(this.inboundQueue, { exclusive: true })
-        await this.channel.bindQueue(this.inboundQueue, this.exchange, this.routingKey)
+	private async connect(): Promise<void> {
+		// 创建独占队列接收消息
+		await this.channel.assertQueue(this.inboundQueue, { exclusive: true })
+		await this.channel.bindQueue(this.inboundQueue, this.exchange, this.routingKey)
 
-        // 设置消费者
-        await this.channel.consume(this.inboundQueue, (msg) => {
-            this.handleMessage(msg.content.toString('utf8'))
-        })
-    }
+		// 设置消费者
+		await this.channel.consume(this.inboundQueue, (msg) => {
+			this.handleMessage(msg.content.toString("utf8"))
+		})
+	}
 }
 ```
 
@@ -379,28 +386,31 @@ class RabbitMQIO implements IoInterface {
 
 ```typescript
 class RedisStreamsIO implements IoInterface {
-    // 使用 XADD 发布，XREAD 消费
-    async write(message: string): Promise<void> {
-        await this.publisher.xadd(this.stream, "*", "data", message)
-    }
+	// 使用 XADD 发布，XREAD 消费
+	async write(message: string): Promise<void> {
+		await this.publisher.xadd(this.stream, "*", "data", message)
+	}
 
-    private async listenForMessages(): Promise<void> {
-        while (!this.isDestroyed) {
-            // 读取新消息
-            const results = await this.subscriber.xread(
-                "BLOCK", this.blockTimeout,
-                "STREAMS", this.stream, "$"
-            )
+	private async listenForMessages(): Promise<void> {
+		while (!this.isDestroyed) {
+			// 读取新消息
+			const results = await this.subscriber.xread(
+				"BLOCK",
+				this.blockTimeout,
+				"STREAMS",
+				this.stream,
+				"$"
+			)
 
-            if (results) {
-                const [, messages] = results[0]
-                for (const [, fields] of messages) {
-                    const messageData = fields.find(([k, v]) => k === "data")?.[1]
-                    if (messageData) this.handleMessage(messageData)
-                }
-            }
-        }
-    }
+			if (results) {
+				const [, messages] = results[0]
+				for (const [, fields] of messages) {
+					const messageData = fields.find(([k, v]) => k === "data")?.[1]
+					if (messageData) this.handleMessage(messageData)
+				}
+			}
+		}
+	}
 }
 ```
 
@@ -408,31 +418,31 @@ class RedisStreamsIO implements IoInterface {
 
 ```typescript
 class WorkerParentIO implements IoInterface {
-    capabilities = {
-        structuredClone: true,
-        transfer: true,
-        transferTypes: ["ArrayBuffer", "MessagePort", "ImageBitmap"]
-    }
+	capabilities = {
+		structuredClone: true,
+		transfer: true,
+		transferTypes: ["ArrayBuffer", "MessagePort", "ImageBitmap"]
+	}
 
-    write(message: string | IoMessage): Promise<void> {
-        if (message.transfers?.length > 0) {
-            // 零拷贝传输
-            this.worker.postMessage(message.data, message.transfers)
-        } else {
-            this.worker.postMessage(message.data)
-        }
-    }
+	write(message: string | IoMessage): Promise<void> {
+		if (message.transfers?.length > 0) {
+			// 零拷贝传输
+			this.worker.postMessage(message.data, message.transfers)
+		} else {
+			this.worker.postMessage(message.data)
+		}
+	}
 
-    private normalizeIncoming(message: any): string | IoMessage {
-        if (message?.version === 2) {
-            // 处理传输信封
-            return {
-                data: message,
-                transfers: message.__transferredValues || []
-            }
-        }
-        return message
-    }
+	private normalizeIncoming(message: any): string | IoMessage {
+		if (message?.version === 2) {
+			// 处理传输信封
+			return {
+				data: message,
+				transfers: message.__transferredValues || []
+			}
+		}
+		return message
+	}
 }
 ```
 
@@ -442,20 +452,20 @@ class WorkerParentIO implements IoInterface {
 
 ```typescript
 class RPCChannel {
-    destroy(): void {
-        // 1. 清理回调
-        this.freeCallbacks()
+	destroy(): void {
+		// 1. 清理回调
+		this.freeCallbacks()
 
-        // 2. 清理 IO 适配器
-        if (this.io?.destroy) {
-            this.io.destroy()
-        }
-    }
+		// 2. 清理 IO 适配器
+		if (this.io?.destroy) {
+			this.io.destroy()
+		}
+	}
 
-    freeCallbacks() {
-        this.callbacks = {}
-        this.callbackCache.clear()
-    }
+	freeCallbacks() {
+		this.callbacks = {}
+		this.callbackCache.clear()
+	}
 }
 ```
 
@@ -502,9 +512,9 @@ private bufferString(chunk: string): void {
 // 缓存回调函数避免重复注册
 let callbackId = this.callbackCache.get(arg)
 if (!callbackId) {
-    callbackId = generateUUID()
-    this.callbacks[callbackId] = arg
-    this.callbackCache.set(arg, callbackId)
+	callbackId = generateUUID()
+	this.callbacks[callbackId] = arg
+	this.callbackCache.set(arg, callbackId)
 }
 ```
 
@@ -513,8 +523,8 @@ if (!callbackId) {
 ```typescript
 // 避免重复传输同一对象
 if (slotMap.has(value)) {
-    const slotIndex = slotMap.get(value)!
-    return `${TRANSFER_SLOT_PREFIX}${slotIndex}`
+	const slotIndex = slotMap.get(value)!
+	return `${TRANSFER_SLOT_PREFIX}${slotIndex}`
 }
 ```
 
@@ -571,11 +581,11 @@ public callMethod<T extends keyof RemoteAPI>(method: T, args: any[]): Promise<vo
 ```typescript
 // 任何实现了 IoInterface 的适配器都可以接入
 interface IoInterface {
-    name: string
-    read(): Promise<string | IoMessage | null>
-    write(message: string | IoMessage): Promise<void>
-    capabilities?: IoCapabilities
-    destroy?(): void
+	name: string
+	read(): Promise<string | IoMessage | null>
+	write(message: string | IoMessage): Promise<void>
+	capabilities?: IoCapabilities
+	destroy?(): void
 }
 ```
 
@@ -584,10 +594,10 @@ interface IoInterface {
 ```typescript
 // 可扩展的传输处理器系统
 for (const [name, handler] of transferHandlers) {
-    if (handler.canHandle(value)) {
-        const [serialized, handlerTransferables] = handler.serialize(value)
-        // ... 处理传输
-    }
+	if (handler.canHandle(value)) {
+		const [serialized, handlerTransferables] = handler.serialize(value)
+		// ... 处理传输
+	}
 }
 ```
 

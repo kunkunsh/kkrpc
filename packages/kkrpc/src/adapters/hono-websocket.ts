@@ -1,5 +1,5 @@
-import type { IoInterface, IoCapabilities, IoMessage } from "../interface.ts"
 import { RPCChannel } from "../channel.ts"
+import type { IoCapabilities, IoInterface, IoMessage } from "../interface.ts"
 
 /**
  * Options for creating a Hono WebSocket handler
@@ -33,7 +33,7 @@ class HonoWebSocketIO implements IoInterface {
 	 */
 	feedMessage(message: string): void {
 		const DESTROY_SIGNAL = "__DESTROY__"
-		
+
 		if (message === DESTROY_SIGNAL) {
 			this.destroy()
 			return
@@ -75,48 +75,48 @@ class HonoWebSocketIO implements IoInterface {
 
 /**
  * Creates a Hono WebSocket handler that integrates kkrpc with Hono's upgradeWebSocket
- * 
+ *
  * This function works with Hono's upgradeWebSocket from:
  * - hono/bun
- * - hono/deno  
+ * - hono/deno
  * - hono/cloudflare-workers
- * 
+ *
  * @example
  * ```ts
  * // Bun example
  * import { Hono } from 'hono'
  * import { upgradeWebSocket, websocket } from 'hono/bun'
  * import { createHonoWebSocketHandler } from 'kkrpc'
- * 
+ *
  * const app = new Hono()
- * 
+ *
  * app.get('/ws', upgradeWebSocket(() => {
  *   return createHonoWebSocketHandler({
  *     expose: myAPI
  *   })
  * }))
- * 
+ *
  * Bun.serve({
  *   fetch: app.fetch,
  *   websocket
  * })
  * ```
- * 
+ *
  * @example
  * ```ts
  * // Deno example
  * import { Hono } from 'hono'
  * import { upgradeWebSocket } from 'hono/deno'
  * import { createHonoWebSocketHandler } from 'kkrpc'
- * 
+ *
  * const app = new Hono()
- * 
+ *
  * app.get('/ws', upgradeWebSocket(() => {
  *   return createHonoWebSocketHandler({
  *     expose: myAPI
  *   })
  * }))
- * 
+ *
  * Deno.serve({ fetch: app.fetch, port: 8000 })
  * ```
  */

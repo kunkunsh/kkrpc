@@ -35,7 +35,7 @@ describe("RabbitMQIO", () => {
 			})
 
 			// 等待连接 ready，避免消费队列还没创建就写入
-			await new Promise(resolve => setTimeout(resolve, 1500))
+			await new Promise((resolve) => setTimeout(resolve, 1500))
 		})
 
 		afterAll(() => {
@@ -72,7 +72,7 @@ describe("RabbitMQIO", () => {
 			})
 
 			// RabbitMQ 需要一点时间建队列，先休眠
-			await new Promise(resolve => setTimeout(resolve, 2000))
+			await new Promise((resolve) => setTimeout(resolve, 2000))
 
 			serverRPC = new RPCChannel<API, API>(serverAdapter, {
 				expose: apiMethods
@@ -116,11 +116,13 @@ describe("RabbitMQIO", () => {
 				exchange: EXCHANGE_BASE + "-destroy"
 			})
 
-			await new Promise(resolve => setTimeout(resolve, 1000))
+			await new Promise((resolve) => setTimeout(resolve, 1000))
 
 			adapter.destroy()
 
-			await expect(adapter.write("after-destroy")).rejects.toThrow("RabbitMQ adapter has been destroyed")
+			await expect(adapter.write("after-destroy")).rejects.toThrow(
+				"RabbitMQ adapter has been destroyed"
+			)
 		}, 10000)
 	})
 })

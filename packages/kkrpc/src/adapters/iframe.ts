@@ -2,11 +2,7 @@
  * This file contains the implementation of the IframeParentIO and IframeChildIO classes.
  * They are used to create a bidirectional communication channel between a parent window and a child iframe.
  */
-import type {
-	IoInterface,
-	IoMessage,
-	IoCapabilities
-} from "../interface.ts"
+import type { IoCapabilities, IoInterface, IoMessage } from "../interface.ts"
 import type { WireEnvelope } from "../serialization.ts"
 
 const DESTROY_SIGNAL = "__DESTROY__"
@@ -29,7 +25,7 @@ export class IframeParentIO implements IoInterface {
 	private messageQueue: Array<string | IoMessage> = []
 	private resolveRead: ((value: string | IoMessage | null) => void) | null = null
 	private port: MessagePort | null = null
- 	capabilities: IoCapabilities = {
+	capabilities: IoCapabilities = {
 		structuredClone: true,
 		transfer: true,
 		transferTypes: ["ArrayBuffer", "MessagePort"]
@@ -121,8 +117,8 @@ export class IframeParentIO implements IoInterface {
 		}
 		if (typeof message === "string") {
 			this.port.postMessage(message)
-	} else if (message.transfers && message.transfers.length > 0) {
-		this.port.postMessage(message.data, message.transfers as Transferable[])
+		} else if (message.transfers && message.transfers.length > 0) {
+			this.port.postMessage(message.data, message.transfers as Transferable[])
 		} else {
 			this.port.postMessage(message.data)
 		}
@@ -151,7 +147,7 @@ export class IframeChildIO implements IoInterface {
 	private pendingMessages: Array<string | IoMessage> = []
 	private initialized: Promise<void>
 	private channel: MessageChannel
- 	capabilities: IoCapabilities = {
+	capabilities: IoCapabilities = {
 		structuredClone: true,
 		transfer: true,
 		transferTypes: ["ArrayBuffer", "MessagePort"]
@@ -217,8 +213,8 @@ export class IframeChildIO implements IoInterface {
 		if (this.port) {
 			if (typeof message === "string") {
 				this.port.postMessage(message)
-	} else if (message.transfers && message.transfers.length > 0) {
-		this.port.postMessage(message.data, message.transfers as Transferable[])
+			} else if (message.transfers && message.transfers.length > 0) {
+				this.port.postMessage(message.data, message.transfers as Transferable[])
 			} else {
 				this.port.postMessage(message.data)
 			}

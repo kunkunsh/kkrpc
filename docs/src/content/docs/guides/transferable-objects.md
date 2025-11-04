@@ -11,11 +11,11 @@ Transferable objects enable **zero-copy** data transfers between different conte
 
 ### Performance Benefits
 
-| Buffer Size | Traditional Copy | Transferable | Speedup |
-|-------------|------------------|---------------|-----------|
-| 1MB         | ~15ms           | ~2ms          | **7.5x**  |
-| 10MB        | ~150ms          | ~3ms          | **50x**    |
-| 100MB       | ~1500ms         | ~15ms         | **100x**   |
+| Buffer Size | Traditional Copy | Transferable | Speedup  |
+| ----------- | ---------------- | ------------ | -------- |
+| 1MB         | ~15ms            | ~2ms         | **7.5x** |
+| 10MB        | ~150ms           | ~3ms         | **50x**  |
+| 100MB       | ~1500ms          | ~15ms        | **100x** |
 
 ### Memory Efficiency
 
@@ -27,18 +27,18 @@ Transferable objects enable **zero-copy** data transfers between different conte
 
 Browser natively supports these transferable types:
 
-| Type | Description | Use Case |
-|-------|-------------|-----------|
-| `ArrayBuffer` | Raw binary data | File uploads, image processing, audio/video data |
-| `MessagePort` | Communication channel | Multi-worker coordination |
-| `ImageBitmap` | Decoded image data | Image processing, canvas rendering |
-| `OffscreenCanvas` | Off-screen rendering | Graphics processing, filters |
-| `ReadableStream` | Streaming data source | File downloads, real-time data |
-| `WritableStream` | Streaming data sink | File uploads, data processing |
-| `TransformStream` | Stream transformer | Data compression, encryption |
-| `AudioData` | Audio frame data | Audio processing, analysis |
-| `VideoFrame` | Video frame data | Video processing, streaming |
-| `RTCDataChannel` | WebRTC data channel | Peer-to-peer communication |
+| Type              | Description           | Use Case                                         |
+| ----------------- | --------------------- | ------------------------------------------------ |
+| `ArrayBuffer`     | Raw binary data       | File uploads, image processing, audio/video data |
+| `MessagePort`     | Communication channel | Multi-worker coordination                        |
+| `ImageBitmap`     | Decoded image data    | Image processing, canvas rendering               |
+| `OffscreenCanvas` | Off-screen rendering  | Graphics processing, filters                     |
+| `ReadableStream`  | Streaming data source | File downloads, real-time data                   |
+| `WritableStream`  | Streaming data sink   | File uploads, data processing                    |
+| `TransformStream` | Stream transformer    | Data compression, encryption                     |
+| `AudioData`       | Audio frame data      | Audio processing, analysis                       |
+| `VideoFrame`      | Video frame data      | Video processing, streaming                      |
+| `RTCDataChannel`  | WebRTC data channel   | Peer-to-peer communication                       |
 
 [See MDN for complete list](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Transferable_objects)
 
@@ -47,14 +47,14 @@ Browser natively supports these transferable types:
 ### Simple Transfer
 
 ```typescript
-import { RPCChannel, WorkerParentIO, transfer } from "kkrpc/browser"
+import { RPCChannel, transfer, WorkerParentIO } from "kkrpc/browser"
 
 // Setup RPC channel
 const worker = new Worker("worker.js")
 const io = new WorkerParentIO(worker)
 const rpc = new RPCChannel(io)
 const api = rpc.getAPI<{
-  processBuffer(buffer: ArrayBuffer): Promise<number>
+	processBuffer(buffer: ArrayBuffer): Promise<number>
 }>()
 
 // Create buffer to transfer
@@ -76,10 +76,10 @@ const videoBuffer = new ArrayBuffer(1920 * 1080 * 4) // RGBA video frame
 const audioBuffer = new ArrayBuffer(44100 * 2 * 2) // Stereo audio
 
 const frameData = {
-  video: videoBuffer,
-  audio: audioBuffer,
-  timestamp: Date.now(),
-  metadata: { width: 1920, height: 1080 }
+	video: videoBuffer,
+	audio: audioBuffer,
+	timestamp: Date.now(),
+	metadata: { width: 1920, height: 1080 }
 }
 
 // Transfer both buffers together
@@ -95,7 +95,7 @@ console.log(audioBuffer.byteLength) // 0
 ```typescript
 // Worker can transfer data back to caller
 const api = rpc.getAPI<{
-  generateData(size: number): Promise<ArrayBuffer>
+	generateData(size: number): Promise<ArrayBuffer>
 }>()
 
 // Request data from worker (also transferred)
@@ -114,32 +114,30 @@ import { registerTransferHandler } from "kkrpc/browser"
 
 // Custom class with transferable buffer
 class VideoFrame {
-  constructor(
-    public yBuffer: ArrayBuffer,
-    public uBuffer: ArrayBuffer, 
-    public vBuffer: ArrayBuffer,
-    public width: number,
-    public height: number
-  ) {}
+	constructor(
+		public yBuffer: ArrayBuffer,
+		public uBuffer: ArrayBuffer,
+		public vBuffer: ArrayBuffer,
+		public width: number,
+		public height: number
+	) {}
 }
 
 // Register handler for automatic transfer
 registerTransferHandler("videoFrame", {
-  canHandle: (value): value is VideoFrame => value instanceof VideoFrame,
-  serialize: (frame) => [
-    {
-      width: frame.width,
-      height: frame.height,
-      yBuffer: frame.yBuffer,
-      uBuffer: frame.uBuffer,
-      vBuffer: frame.vBuffer
-    },
-    [frame.yBuffer, frame.uBuffer, frame.vBuffer] // Transfer all buffers
-  ],
-  deserialize: (data) => new VideoFrame(
-    data.yBuffer, data.uBuffer, data.vBuffer,
-    data.width, data.height
-  )
+	canHandle: (value): value is VideoFrame => value instanceof VideoFrame,
+	serialize: (frame) => [
+		{
+			width: frame.width,
+			height: frame.height,
+			yBuffer: frame.yBuffer,
+			uBuffer: frame.uBuffer,
+			vBuffer: frame.vBuffer
+		},
+		[frame.yBuffer, frame.uBuffer, frame.vBuffer] // Transfer all buffers
+	],
+	deserialize: (data) =>
+		new VideoFrame(data.yBuffer, data.uBuffer, data.vBuffer, data.width, data.height)
 })
 
 // Now VideoFrame instances are automatically transferred
@@ -152,7 +150,7 @@ await api.processVideo(frame) // No need to call transfer() manually
 ```typescript
 // Both directions can transfer data
 const api = rpc.getAPI<{
-  exchangeData(buffer: ArrayBuffer): Promise<ArrayBuffer>
+	exchangeData(buffer: ArrayBuffer): Promise<ArrayBuffer>
 }>()
 
 const sendBuffer = new ArrayBuffer(1024)
@@ -170,42 +168,42 @@ console.log(receiveBuffer.byteLength) // 1024
 
 ```typescript
 // worker.ts
-import { RPCChannel, WorkerChildIO, transfer } from "kkrpc/browser"
+import { RPCChannel, transfer, WorkerChildIO } from "kkrpc/browser"
 
 const api = {
-  // Process transferred buffer
-  processBuffer(buffer: ArrayBuffer): number {
-    console.log("Worker received:", buffer.byteLength)
-    // Process data...
-    return buffer.byteLength
-  },
+	// Process transferred buffer
+	processBuffer(buffer: ArrayBuffer): number {
+		console.log("Worker received:", buffer.byteLength)
+		// Process data...
+		return buffer.byteLength
+	},
 
-  // Generate and transfer new buffer
-  generateData(size: number): ArrayBuffer {
-    const buffer = new ArrayBuffer(size)
-    // Fill with data...
-    const view = new Uint8Array(buffer)
-    for (let i = 0; i < size; i++) {
-      view[i] = Math.floor(Math.random() * 256)
-    }
-    
-    // Transfer back to main thread
-    return transfer(buffer, [buffer])
-  },
+	// Generate and transfer new buffer
+	generateData(size: number): ArrayBuffer {
+		const buffer = new ArrayBuffer(size)
+		// Fill with data...
+		const view = new Uint8Array(buffer)
+		for (let i = 0; i < size; i++) {
+			view[i] = Math.floor(Math.random() * 256)
+		}
 
-  // Exchange data (bidirectional)
-  exchangeData(buffer: ArrayBuffer): ArrayBuffer {
-    console.log("Worker received:", buffer.byteLength)
-    
-    // Create new buffer to send back
-    const response = new ArrayBuffer(buffer.byteLength)
-    const responseView = new Uint8Array(response)
-    const originalView = new Uint8Array(buffer)
-    
-    // Process and return
-    responseView.set(originalView.map(x => x * 2))
-    return transfer(response, [response])
-  }
+		// Transfer back to main thread
+		return transfer(buffer, [buffer])
+	},
+
+	// Exchange data (bidirectional)
+	exchangeData(buffer: ArrayBuffer): ArrayBuffer {
+		console.log("Worker received:", buffer.byteLength)
+
+		// Create new buffer to send back
+		const response = new ArrayBuffer(buffer.byteLength)
+		const responseView = new Uint8Array(response)
+		const originalView = new Uint8Array(buffer)
+
+		// Process and return
+		responseView.set(originalView.map((x) => x * 2))
+		return transfer(response, [response])
+	}
 }
 
 const io = new WorkerChildIO()
@@ -225,9 +223,9 @@ await api.process(transfer(originalBuffer, [originalBuffer]))
 
 // If transferred, buffer should be neutered
 if (originalBuffer.byteLength === 0) {
-  console.log("✅ Zero-copy transfer successful")
+	console.log("✅ Zero-copy transfer successful")
 } else {
-  console.log("❌ Transfer failed, data was copied")
+	console.log("❌ Transfer failed, data was copied")
 }
 ```
 
@@ -235,27 +233,27 @@ if (originalBuffer.byteLength === 0) {
 
 ```typescript
 async function benchmarkTransfer(size: number) {
-  // Test with transfer
-  const buffer1 = new ArrayBuffer(size)
-  const start1 = performance.now()
-  await api.process(transfer(buffer1, [buffer1]))
-  const transferTime = performance.now() - start1
+	// Test with transfer
+	const buffer1 = new ArrayBuffer(size)
+	const start1 = performance.now()
+	await api.process(transfer(buffer1, [buffer1]))
+	const transferTime = performance.now() - start1
 
-  // Test without transfer (copy)
-  const buffer2 = new ArrayBuffer(size)
-  const start2 = performance.now()
-  await api.process(buffer2) // No transfer()
-  const copyTime = performance.now() - start2
+	// Test without transfer (copy)
+	const buffer2 = new ArrayBuffer(size)
+	const start2 = performance.now()
+	await api.process(buffer2) // No transfer()
+	const copyTime = performance.now() - start2
 
-  console.log(`Size: ${size/1024/1024}MB`)
-  console.log(`Transfer: ${transferTime.toFixed(2)}ms`)
-  console.log(`Copy: ${copyTime.toFixed(2)}ms`)
-  console.log(`Speedup: ${(copyTime/transferTime).toFixed(1)}x`)
+	console.log(`Size: ${size / 1024 / 1024}MB`)
+	console.log(`Transfer: ${transferTime.toFixed(2)}ms`)
+	console.log(`Copy: ${copyTime.toFixed(2)}ms`)
+	console.log(`Speedup: ${(copyTime / transferTime).toFixed(1)}x`)
 }
 
 // Run benchmarks
-await benchmarkTransfer(1 * 1024 * 1024)   // 1MB
-await benchmarkTransfer(10 * 1024 * 1024)  // 10MB
+await benchmarkTransfer(1 * 1024 * 1024) // 1MB
+await benchmarkTransfer(10 * 1024 * 1024) // 10MB
 await benchmarkTransfer(100 * 1024 * 1024) // 100MB
 ```
 
@@ -264,12 +262,14 @@ await benchmarkTransfer(100 * 1024 * 1024) // 100MB
 ### When to Use Transfers
 
 ✅ **Use transfers when:**
+
 - Transferring large binary data (>100KB)
 - Using postMessage-based transports (Workers, iframes)
 - Performance is critical
 - You don't need the original buffer after transfer
 
 ❌ **Don't use transfers when:**
+
 - Data is small (<1KB)
 - You need to reuse the buffer
 - Using text-based transports (HTTP, stdio)
@@ -286,9 +286,9 @@ await api.process(transfer(buffer, [buffer]))
 // Bad: Keep references to transferred buffers
 const buffers = []
 for (let i = 0; i < 10; i++) {
-  const buf = new ArrayBuffer(size)
-  buffers.push(buf)
-  await api.process(transfer(buf, [buf]))
+	const buf = new ArrayBuffer(size)
+	buffers.push(buf)
+	await api.process(transfer(buf, [buf]))
 }
 // All buffers in array are neutered (byteLength = 0)
 // But array still holds references, preventing GC
@@ -298,17 +298,17 @@ for (let i = 0; i < 10; i++) {
 
 ```typescript
 try {
-  const buffer = new ArrayBuffer(size)
-  await api.process(transfer(buffer, [buffer]))
-  
-  // Buffer is neutered after successful transfer
-  console.log(buffer.byteLength) // 0
+	const buffer = new ArrayBuffer(size)
+	await api.process(transfer(buffer, [buffer]))
+
+	// Buffer is neutered after successful transfer
+	console.log(buffer.byteLength) // 0
 } catch (error) {
-  // On error, buffer might not be neutered
-  console.log(buffer.byteLength) // Still > 0
-  
-  // Handle error appropriately
-  console.error("Transfer failed:", error)
+	// On error, buffer might not be neutered
+	console.log(buffer.byteLength) // Still > 0
+
+	// Handle error appropriately
+	console.error("Transfer failed:", error)
 }
 ```
 
@@ -317,6 +317,7 @@ try {
 ### Common Issues
 
 **Buffer not neutered:**
+
 ```typescript
 // Wrong: Not actually transferring
 await api.process(buffer) // Copied, not transferred
@@ -326,6 +327,7 @@ await api.process(transfer(buffer, [buffer])) // Transferred
 ```
 
 **Transfer array mismatch:**
+
 ```typescript
 // Wrong: Missing buffer in transfer array
 await api.process(transfer(data, [otherBuffer])) // Error
@@ -335,15 +337,16 @@ await api.process(transfer(data, [data.buffer, otherBuffer])) // Works
 ```
 
 **Browser compatibility:**
+
 ```typescript
 // Check if transfer is supported
-if (typeof Worker !== 'undefined' && typeof postMessage === 'function') {
-  // Transferable objects supported
-  const buffer = new ArrayBuffer(size)
-  await api.process(transfer(buffer, [buffer]))
+if (typeof Worker !== "undefined" && typeof postMessage === "function") {
+	// Transferable objects supported
+	const buffer = new ArrayBuffer(size)
+	await api.process(transfer(buffer, [buffer]))
 } else {
-  // Fallback to copying
-  await api.process(buffer)
+	// Fallback to copying
+	await api.process(buffer)
 }
 ```
 
@@ -351,9 +354,9 @@ if (typeof Worker !== 'undefined' && typeof postMessage === 'function') {
 
 ```typescript
 // Enable debug mode to see transfer details
-const rpc = new RPCChannel(io, { 
-  expose: api,
-  debug: true // Logs transfer operations
+const rpc = new RPCChannel(io, {
+	expose: api,
+	debug: true // Logs transfer operations
 })
 
 // Console output:

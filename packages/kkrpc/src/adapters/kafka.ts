@@ -1,8 +1,3 @@
-import type {
-	IoCapabilities,
-	IoInterface,
-	IoMessage
-} from "../interface.ts"
 import {
 	type Admin,
 	type Consumer,
@@ -12,6 +7,7 @@ import {
 	type Producer,
 	type ProducerConfig
 } from "kafkajs"
+import type { IoCapabilities, IoInterface, IoMessage } from "../interface.ts"
 
 interface KafkaAdapterOptions {
 	/**
@@ -227,7 +223,7 @@ export class KafkaIO implements IoInterface {
 			return this.messageQueue.shift() ?? null
 		}
 
-		return new Promise(resolve => {
+		return new Promise((resolve) => {
 			this.resolveRead = resolve
 		})
 	}
@@ -267,9 +263,7 @@ export class KafkaIO implements IoInterface {
 		}
 
 		if (this.consumerRunPromise) {
-			this.consumer
-				?.stop()
-				.catch(console.error)
+			this.consumer?.stop().catch(console.error)
 		}
 
 		if (this.consumer) {

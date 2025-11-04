@@ -203,18 +203,15 @@ describe("ElysiaWebSocket", () => {
 
 		it("should handle complex data types", async () => {
 			const clientIO = new ElysiaWebSocketClientIO(`ws://localhost:${port}/rpc`)
-			const clientRPC = new RPCChannel<ComplexDataClientAPI, ElysiaAPI, IoInterface>(
-				clientIO,
-				{
-					expose: {
-						processArray: (arr: number[]) => arr.map((n) => n * 2),
-						processObject: (obj: { a: number; b: string }) => ({
-							doubled: obj.a * 2,
-							uppercased: obj.b.toUpperCase()
-						})
-					}
+			const clientRPC = new RPCChannel<ComplexDataClientAPI, ElysiaAPI, IoInterface>(clientIO, {
+				expose: {
+					processArray: (arr: number[]) => arr.map((n) => n * 2),
+					processObject: (obj: { a: number; b: string }) => ({
+						doubled: obj.a * 2,
+						uppercased: obj.b.toUpperCase()
+					})
 				}
-			)
+			})
 
 			const serverAPI = clientRPC.getAPI()
 
@@ -236,12 +233,9 @@ describe("ElysiaWebSocket", () => {
 		it("should handle connection errors gracefully", async () => {
 			// Try to connect to a non-existent server
 			const clientIO = new ElysiaWebSocketClientIO("ws://localhost:9999/nonexistent")
-			const clientRPC = new RPCChannel<TestClientAPI, TestServerAPI, IoInterface>(
-				clientIO,
-				{
-					expose: { test: () => "ok" }
-				}
-			)
+			const clientRPC = new RPCChannel<TestClientAPI, TestServerAPI, IoInterface>(clientIO, {
+				expose: { test: () => "ok" }
+			})
 
 			const serverAPI = clientRPC.getAPI()
 
@@ -283,24 +277,21 @@ describe("ElysiaWebSocket", () => {
 	describe("Integration with Elysia server", () => {
 		it("should handle bidirectional communication", async () => {
 			const clientIO = new ElysiaWebSocketClientIO(`ws://localhost:${port}/rpc`)
-			const clientRPC = new RPCChannel<BidirectionalClientAPI, ElysiaAPI, IoInterface>(
-				clientIO,
-				{
-					expose: {
-						getClientInfo: () => ({ type: "test-client", version: "1.0.0" }),
-						calculate: (operation: string, a: number, b: number) => {
-							switch (operation) {
-								case "add":
-									return a + b
-								case "multiply":
-									return a * b
-								default:
-									throw new Error(`Unknown operation: ${operation}`)
-							}
+			const clientRPC = new RPCChannel<BidirectionalClientAPI, ElysiaAPI, IoInterface>(clientIO, {
+				expose: {
+					getClientInfo: () => ({ type: "test-client", version: "1.0.0" }),
+					calculate: (operation: string, a: number, b: number) => {
+						switch (operation) {
+							case "add":
+								return a + b
+							case "multiply":
+								return a * b
+							default:
+								throw new Error(`Unknown operation: ${operation}`)
 						}
 					}
 				}
-			)
+			})
 
 			const serverAPI = clientRPC.getAPI()
 
@@ -322,16 +313,13 @@ describe("ElysiaWebSocket", () => {
 
 		it("should handle errors properly", async () => {
 			const clientIO = new ElysiaWebSocketClientIO(`ws://localhost:${port}/rpc`)
-			const clientRPC = new RPCChannel<ErrorTestClientAPI, ElysiaAPI, IoInterface>(
-				clientIO,
-				{
-					expose: {
-						throwError: (message: string) => {
-							throw new Error(`Client error: ${message}`)
-						}
+			const clientRPC = new RPCChannel<ErrorTestClientAPI, ElysiaAPI, IoInterface>(clientIO, {
+				expose: {
+					throwError: (message: string) => {
+						throw new Error(`Client error: ${message}`)
 					}
 				}
-			)
+			})
 
 			const serverAPI = clientRPC.getAPI()
 
@@ -349,43 +337,40 @@ describe("ElysiaWebSocket", () => {
 			const clientIO = new ElysiaWebSocketClientIO(
 				`ws://localhost:${port}/rpc?token=abc123&userId=456`
 			)
-			const clientRPC = new RPCChannel<RealWorldClientAPI, ElysiaAPI, IoInterface>(
-				clientIO,
-				{
-					expose: {
-						// User management
-						getUserProfile: (userId: string) => ({
-							id: userId,
-							name: `User ${userId}`,
-							email: `user${userId}@example.com`,
-							avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${userId}`
-						}),
+			const clientRPC = new RPCChannel<RealWorldClientAPI, ElysiaAPI, IoInterface>(clientIO, {
+				expose: {
+					// User management
+					getUserProfile: (userId: string) => ({
+						id: userId,
+						name: `User ${userId}`,
+						email: `user${userId}@example.com`,
+						avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${userId}`
+					}),
 
-						// Data processing
-						processData: (data: number[], operation: "sum" | "average" | "max") => {
-							switch (operation) {
-								case "sum":
-									return data.reduce((a, b) => a + b, 0)
-								case "average":
-									return data.reduce((a, b) => a + b, 0) / data.length
-								case "max":
-									return Math.max(...data)
-							}
-						},
-
-						// Streaming simulation
-						generateSequence: async (start: number, count: number) => {
-							const result: number[] = []
-							for (let i = 0; i < count; i++) {
-								result.push(start + i)
-								// Simulate async work
-								await new Promise((resolve) => setTimeout(resolve, 10))
-							}
-							return result
+					// Data processing
+					processData: (data: number[], operation: "sum" | "average" | "max") => {
+						switch (operation) {
+							case "sum":
+								return data.reduce((a, b) => a + b, 0)
+							case "average":
+								return data.reduce((a, b) => a + b, 0) / data.length
+							case "max":
+								return Math.max(...data)
 						}
+					},
+
+					// Streaming simulation
+					generateSequence: async (start: number, count: number) => {
+						const result: number[] = []
+						for (let i = 0; i < count; i++) {
+							result.push(start + i)
+							// Simulate async work
+							await new Promise((resolve) => setTimeout(resolve, 10))
+						}
+						return result
 					}
 				}
-			)
+			})
 
 			const serverAPI = clientRPC.getAPI()
 

@@ -1,5 +1,5 @@
 // Use global Buffer type for better compatibility with DTS generation
-import type { IoInterface, IoMessage, IoCapabilities } from "../interface.ts"
+import type { IoCapabilities, IoInterface, IoMessage } from "../interface.ts"
 
 /**
  * Stdio implementation for Deno

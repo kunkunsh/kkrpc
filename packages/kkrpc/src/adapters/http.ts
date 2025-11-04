@@ -1,9 +1,5 @@
 import superjson from "superjson"
-import type {
-	IoInterface,
-	IoMessage,
-	IoCapabilities
-} from "../interface.ts"
+import type { IoCapabilities, IoInterface, IoMessage } from "../interface.ts"
 
 interface HTTPClientOptions {
 	url: string
@@ -17,7 +13,7 @@ export class HTTPClientIO implements IoInterface {
 	name = "http-client-io"
 	private messageQueue: string[] = []
 	private resolveRead: ((value: string | null) => void) | null = null
- 	capabilities: IoCapabilities = {
+	capabilities: IoCapabilities = {
 		structuredClone: false,
 		transfer: false
 	}
@@ -54,20 +50,20 @@ export class HTTPClientIO implements IoInterface {
 
 			const responseText = await response.text()
 
-		if (this.resolveRead) {
-			this.resolveRead(responseText)
-			this.resolveRead = null
-		} else {
-			this.messageQueue.push(responseText)
-		}
-	} catch (error) {
-		console.error("HTTP request failed:", error)
-		if (this.resolveRead) {
-			this.resolveRead(null)
-			this.resolveRead = null
+			if (this.resolveRead) {
+				this.resolveRead(responseText)
+				this.resolveRead = null
+			} else {
+				this.messageQueue.push(responseText)
+			}
+		} catch (error) {
+			console.error("HTTP request failed:", error)
+			if (this.resolveRead) {
+				this.resolveRead(null)
+				this.resolveRead = null
+			}
 		}
 	}
-}
 }
 
 /**
@@ -78,7 +74,7 @@ export class HTTPServerIO implements IoInterface {
 	private messageQueue: string[] = []
 	private resolveRead: ((value: string | null) => void) | null = null
 	private pendingResponses = new Map<string, (response: string) => void>()
- 	capabilities: IoCapabilities = {
+	capabilities: IoCapabilities = {
 		structuredClone: false,
 		transfer: false
 	}
