@@ -26,6 +26,7 @@ Call remote functions as if they were local, with full TypeScript type safety an
 
 [**Quick Start**](#-quick-start) • [**Documentation**](https://kunkunsh.github.io/kkrpc/) • [**Examples**](#-examples) • [**API Reference**](https://jsr.io/@kunkun/kkrpc/doc) • [**中文文档**](./README.zh.md)
 
+
 <div align="center">
 
 <img src="https://imgur.com/vR3Lmv0.png" style="max-height: 200px; margin: 10px;"/>
@@ -165,6 +166,8 @@ For backward compatibility, the receiving side will automatically detect the ser
 
 ### Installation
 
+<div align="center">
+
 ```bash
 # npm
 npm install kkrpc
@@ -179,7 +182,11 @@ pnpm add kkrpc
 import { RPCChannel } from "jsr:@kunkun/kkrpc"
 ```
 
+</div>
+
 ### Basic Example
+
+<div align="center">
 
 ```typescript
 // server.ts
@@ -207,6 +214,8 @@ const api = rpc.getAPI<typeof api>()
 console.log(await api.greet("World")) // "Hello, World!"
 console.log(await api.add(5, 3)) // 8
 ```
+
+</div>
 
 ## 📚 Examples
 

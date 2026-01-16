@@ -1,15 +1,15 @@
 // @ts-check
 import starlight from "@astrojs/starlight"
 import { defineConfig } from "astro/config"
+import starlightLlmsTxt from "starlight-llms-txt"
 
 // https://astro.build/config
 export default defineConfig({
+	site: "https://docs.kkrpc.kunkun.sh",
 	integrations: [
 		starlight({
 			title: "kkRPC",
-			social: {
-				github: "https://github.com/kunkunsh/kkrpc"
-			},
+			social: [{ icon: "github", label: "GitHub", href: "https://github.com/withastro/starlight" }],
 			sidebar: [
 				{
 					label: "Guides",
@@ -23,7 +23,8 @@ export default defineConfig({
 					label: "Reference",
 					autogenerate: { directory: "reference" }
 				}
-			]
+			],
+			plugins: [starlightLlmsTxt()]
 		})
 	]
 })
