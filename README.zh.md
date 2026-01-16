@@ -165,7 +165,6 @@ const rpc = new RPCChannel(io, {
 
 ### 安装
 
-<div align="center">
 
 ```bash
 # npm
@@ -181,11 +180,8 @@ pnpm add kkrpc
 import { RPCChannel } from "jsr:@kunkun/kkrpc"
 ```
 
-</div>
-
 ### 基本示例
 
-<div align="center">
 
 ```typescript
 // server.ts
@@ -213,8 +209,6 @@ const api = rpc.getAPI<typeof api>()
 console.log(await api.greet("World")) // "Hello, World!"
 console.log(await api.add(5, 3)) // 8
 ```
-
-</div>
 
 ## 📚 示例
 
