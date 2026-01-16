@@ -8,6 +8,10 @@ hero:
     - text: Get Started
       link: /guides/get-started/
       icon: right-arrow
+    - text: LLM Docs
+      link: https://docs.kkrpc.kunkun.sh/llms.txt
+      icon: external
+      variant: secondary
     - text: Source Code
       link: https://github.com/kunkunsh/kkrpc
       icon: external
@@ -18,13 +22,20 @@ hero:
       variant: minimal
 ---
 
+![kkRPC Banner](https://imgur.com/19XswxO.jpg)
+
 import { Card, CardGrid } from "@astrojs/starlight/components"
 
-## Next steps
+## Features
 
 <CardGrid stagger>
-	<Card title="Property Access">Remote property getters and setters with dot notation (`await api.prop`, `api.prop = value`)</Card>
-	<Card title="Enhanced Error Preservation">Complete error object preservation across RPC boundaries including stack traces and custom properties</Card>
+	<Card title="Property Access">
+		Remote property getters and setters with dot notation (`await api.prop`, `api.prop = value`)
+	</Card>
+	<Card title="Enhanced Error Preservation">
+		Complete error object preservation across RPC boundaries including stack traces and custom
+		properties
+	</Card>
 	<Card title="HTTP">Call API over HTTP like calling local functions (similar to tRPC)</Card>
 	<Card title="WebSocket">Call API over WebSocket (with callback support and bidirectional)</Card>
 	<Card title="Web Worker">Bidirectional communication between Web Worker and main thread</Card>

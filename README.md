@@ -11,6 +11,7 @@
 [![GitHub stars](https://img.shields.io/github/stars/kunkunsh/kkrpc?style=for-the-badge&logo=github)](https://github.com/kunkunsh/kkrpc)
 [![Typedoc Documentation](https://img.shields.io/badge/Docs-Typedoc-blue?style=for-the-badge&logo=typescript)](https://kunkunsh.github.io/kkrpc/)
 [![Excalidraw Diagrams](https://img.shields.io/badge/Diagrams-Excalidraw-orange?style=for-the-badge&logo=drawio)](https://excalidraw.com/#json=xp6GbAJVAx3nU-h3PhaxW,oYBNvYmCRsQ2XR3MQo73Ug)
+[![LLM Docs](https://img.shields.io/badge/LLM-Docs-green?style=for-the-badge&logo=openai)](https://docs.kkrpc.kunkun.sh/llms.txt)
 
 </div>
 
@@ -24,11 +25,11 @@ Call remote functions as if they were local, with full TypeScript type safety an
 
 **Similar to Comlink but with bidirectional communication** and support for multiple environments - both client and server can expose functions for the other to call across Node.js, Deno, Bun, and browser environments.
 
-[**Quick Start**](#-quick-start) • [**Documentation**](https://kunkunsh.github.io/kkrpc/) • [**Examples**](#-examples) • [**API Reference**](https://jsr.io/@kunkun/kkrpc/doc) • [**中文文档**](./README.zh.md)
-
+[**Quick Start**](#-quick-start) • [**Documentation**](https://kunkunsh.github.io/kkrpc/) • [**Examples**](#-examples) • [**API Reference**](https://jsr.io/@kunkun/kkrpc/doc) • [**LLM Docs**](https://docs.kkrpc.kunkun.sh/llms.txt) • [**中文文档**](./README.zh.md)
 
 <div align="center">
 
+<img src="https://imgur.com/19XswxO.jpg" style="max-width: 800px; width: 100%; margin-bottom: 20px;"/>
 <img src="https://imgur.com/vR3Lmv0.png" style="max-height: 200px; margin: 10px;"/>
 <img src="https://i.imgur.com/zmOHNfu.png" style="max-height: 250px; margin: 10px;"/>
 <img src="https://imgur.com/u728aVv.png" style="max-height: 400px; margin: 10px;"/>
@@ -68,26 +69,26 @@ kkrpc stands out in the crowded RPC landscape by offering **true cross-runtime c
 
 ```mermaid
 graph LR
-    A[kkrpc] --> B[Node.js]
-    A --> C[Deno]
-    A --> D[Bun]
-    A --> E[Browser]
-    A --> F[Chrome Extension]
-    A --> G[Tauri]
+	A[kkrpc] --> B[Node.js]
+	A --> C[Deno]
+	A --> D[Bun]
+	A --> E[Browser]
+	A --> F[Chrome Extension]
+	A --> G[Tauri]
 
-    B -.-> H[stdio]
-    C -.-> H
-    D -.-> H
+	B -.-> H[stdio]
+	C -.-> H
+	D -.-> H
 
-    E -.-> I[postMessage]
-    E -.-> J[Web Workers]
-    E -.-> K[iframes]
+	E -.-> I[postMessage]
+	E -.-> J[Web Workers]
+	E -.-> K[iframes]
 
-    F -.-> L[Chrome Ports]
+	F -.-> L[Chrome Ports]
 
-    G -.-> M[Shell Plugin]
+	G -.-> M[Shell Plugin]
 
-    style A fill:#ff6b6b,stroke:#333,stroke-width:2px
+	style A fill:#ff6b6b,stroke:#333,stroke-width:2px
 ```
 
 </div>
@@ -104,9 +105,9 @@ graph LR
 | **Socket.IO**        | Enhanced real-time with rooms/namespaces          | All runtimes                           |
 | **Elysia WebSocket** | Modern TypeScript framework WebSocket integration | Bun, Node.js, Deno                     |
 | **Chrome Extension** | Extension component communication                 | Chrome Extension contexts              |
-| **RabbitMQ**         | Message queue communication                       | Node.js, Deno, Bun                   |
-| **Redis Streams**    | Stream-based messaging with persistence           | Node.js, Deno, Bun                   |
-| **Kafka**            | Distributed streaming platform                    | Node.js, Deno, Bun                   |
+| **RabbitMQ**         | Message queue communication                       | Node.js, Deno, Bun                     |
+| **Redis Streams**    | Stream-based messaging with persistence           | Node.js, Deno, Bun                     |
+| **Kafka**            | Distributed streaming platform                    | Node.js, Deno, Bun                     |
 
 The core of **kkrpc** design is in `RPCChannel` and `IoInterface`.
 
@@ -690,14 +691,14 @@ import { RabbitMQIO, RPCChannel } from "kkrpc"
 import { apiMethods, type API } from "./api"
 
 const rabbitmqIO = new RabbitMQIO({
-  url: "amqp://localhost",
-  exchange: "kkrpc-exchange",
-  exchangeType: "topic",
-  durable: true
+	url: "amqp://localhost",
+	exchange: "kkrpc-exchange",
+	exchangeType: "topic",
+	durable: true
 })
 
 const producerRPC = new RPCChannel<API, API>(rabbitmqIO, {
-  expose: apiMethods
+	expose: apiMethods
 })
 
 const api = producerRPC.getAPI()
@@ -716,15 +717,15 @@ import { RabbitMQIO, RPCChannel } from "kkrpc"
 import { apiMethods, type API } from "./api"
 
 const rabbitmqIO = new RabbitMQIO({
-  url: "amqp://localhost",
-  exchange: "kkrpc-exchange",
-  exchangeType: "topic",
-  durable: true,
-  sessionId: "consumer-session"
+	url: "amqp://localhost",
+	exchange: "kkrpc-exchange",
+	exchangeType: "topic",
+	durable: true,
+	sessionId: "consumer-session"
 })
 
 const consumerRPC = new RPCChannel<API, API>(rabbitmqIO, {
-  expose: apiMethods
+	expose: apiMethods
 })
 
 const api = consumerRPC.getAPI()
@@ -755,14 +756,14 @@ import { RedisStreamsIO, RPCChannel } from "kkrpc"
 import { apiMethods, type API } from "./api"
 
 const redisIO = new RedisStreamsIO({
-  url: "redis://localhost:6379",
-  stream: "kkrpc-stream",
-  maxLen: 10000, // Keep only last 10k messages
-  maxQueueSize: 1000
+	url: "redis://localhost:6379",
+	stream: "kkrpc-stream",
+	maxLen: 10000, // Keep only last 10k messages
+	maxQueueSize: 1000
 })
 
 const publisherRPC = new RPCChannel<API, API>(redisIO, {
-  expose: apiMethods
+	expose: apiMethods
 })
 
 const api = publisherRPC.getAPI()
@@ -786,16 +787,16 @@ import { apiMethods, type API } from "./api"
 
 // Using consumer group for load balancing
 const redisIO = new RedisStreamsIO({
-  url: "redis://localhost:6379",
-  stream: "kkrpc-stream",
-  consumerGroup: "kkrpc-group",
-  consumerName: "worker-1",
-  useConsumerGroup: true, // Enable load balancing
-  maxQueueSize: 1000
+	url: "redis://localhost:6379",
+	stream: "kkrpc-stream",
+	consumerGroup: "kkrpc-group",
+	consumerName: "worker-1",
+	useConsumerGroup: true, // Enable load balancing
+	maxQueueSize: 1000
 })
 
 const subscriberRPC = new RPCChannel<API, API>(redisIO, {
-  expose: apiMethods
+	expose: apiMethods
 })
 
 const api = subscriberRPC.getAPI()
@@ -826,16 +827,16 @@ import { KafkaIO, RPCChannel } from "kkrpc"
 import { apiMethods, type API } from "./api"
 
 const kafkaIO = new KafkaIO({
-  brokers: ["localhost:9092"],
-  topic: "kkrpc-topic",
-  clientId: "kkrpc-producer",
-  numPartitions: 3,
-  replicationFactor: 1,
-  maxQueueSize: 1000
+	brokers: ["localhost:9092"],
+	topic: "kkrpc-topic",
+	clientId: "kkrpc-producer",
+	numPartitions: 3,
+	replicationFactor: 1,
+	maxQueueSize: 1000
 })
 
 const producerRPC = new RPCChannel<API, API>(kafkaIO, {
-  expose: apiMethods
+	expose: apiMethods
 })
 
 const api = producerRPC.getAPI()
@@ -857,16 +858,16 @@ import { KafkaIO, RPCChannel } from "kkrpc"
 import { apiMethods, type API } from "./api"
 
 const kafkaIO = new KafkaIO({
-  brokers: ["localhost:9092"],
-  topic: "kkrpc-topic",
-  clientId: "kkrpc-consumer",
-  groupId: "kkrpc-consumer-group",
-  fromBeginning: false, // Only read new messages
-  maxQueueSize: 1000
+	brokers: ["localhost:9092"],
+	topic: "kkrpc-topic",
+	clientId: "kkrpc-consumer",
+	groupId: "kkrpc-consumer-group",
+	fromBeginning: false, // Only read new messages
+	maxQueueSize: 1000
 })
 
 const consumerRPC = new RPCChannel<API, API>(kafkaIO, {
-  expose: apiMethods
+	expose: apiMethods
 })
 
 const api = consumerRPC.getAPI()
