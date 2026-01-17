@@ -108,6 +108,7 @@ graph LR
 | **RabbitMQ**         | Message queue communication                       | Node.js, Deno, Bun                     |
 | **Redis Streams**    | Stream-based messaging with persistence           | Node.js, Deno, Bun                     |
 | **Kafka**            | Distributed streaming platform                    | Node.js, Deno, Bun                     |
+| **NATS**             | High-performance messaging system                 | Node.js, Deno, Bun                     |
 
 The core of **kkrpc** design is in `RPCChannel` and `IoInterface`.
 
@@ -890,6 +891,73 @@ kafkaIO.destroy()
 - **Scalable**: Horizontal scaling with partitions
 - **Persistent**: Durable message storage with configurable retention
 - **Consumer Groups**: Load balancing across consumer instances
+
+### NATS Example
+
+NATS adapter provides high-performance messaging with publish/subscribe patterns and optional queue groups for load balancing.
+
+#### `publisher.ts`
+
+```ts
+import { NatsIO, RPCChannel } from "kkrpc"
+import { apiMethods, type API } from "./api"
+
+const natsIO = new NatsIO({
+	servers: "nats://localhost:4222",
+	subject: "kkrpc-messages",
+	queueGroup: "kkrpc-group" // Optional: enables load balancing
+})
+
+const publisherRPC = new RPCChannel<API, API>(natsIO, {
+	expose: apiMethods
+})
+
+const api = publisherRPC.getAPI()
+
+// Test basic RPC calls
+console.log(await api.add(5, 3)) // 8
+console.log(await api.echo("Hello from NATS!")) // "Hello from NATS!"
+
+console.log("Subject:", natsIO.getSubject())
+console.log("Session ID:", natsIO.getSessionId())
+
+natsIO.destroy()
+```
+
+#### `subscriber.ts`
+
+```ts
+import { NatsIO, RPCChannel } from "kkrpc"
+import { apiMethods, type API } from "./api"
+
+const natsIO = new NatsIO({
+	servers: "nats://localhost:4222",
+	subject: "kkrpc-messages",
+	queueGroup: "kkrpc-group", // Optional: enables load balancing
+	sessionId: "subscriber-session"
+})
+
+const subscriberRPC = new RPCChannel<API, API>(natsIO, {
+	expose: apiMethods
+})
+
+const api = subscriberRPC.getAPI()
+
+// Process messages from publisher
+console.log(await api.add(10, 20)) // 30
+console.log(await api.echo("Hello from subscriber!")) // "Hello from subscriber!"
+
+natsIO.destroy()
+```
+
+**NATS Features:**
+
+- **High Performance**: Ultra-low latency messaging system
+- **Subject-Based**: Flexible subject hierarchy for routing
+- **Queue Groups**: Optional load balancing across subscribers
+- **Simple Model**: Pub/Sub with request/reply support
+- **Cross-Platform**: Works across Node.js, Deno, and Bun
+- **No Schema Required**: Dynamic message routing without upfront configuration
 
 ### Tauri Example
 
