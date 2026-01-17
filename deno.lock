@@ -391,6 +391,7 @@
         ],
         "packageJson": {
           "dependencies": [
+            "npm:@nats-io/transport-node@^3.3.0",
             "npm:@tauri-apps/plugin-shell@^2.2.0",
             "npm:@types/amqplib@~0.10.8",
             "npm:@types/bun@^1.2.20",

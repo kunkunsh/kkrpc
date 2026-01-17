@@ -10,7 +10,8 @@ export default defineConfig({
 		"./socketio.ts",
 		"./rabbitmq.ts",
 		"./kafka.ts",
-		"./redis-streams.ts"
+		"./redis-streams.ts",
+		"./nats.ts"
 	],
 	dts: true,
 	format: ["cjs", "esm"],

@@ -128,6 +128,15 @@
 			},
 			"import": "./dist/rabbitmq.js",
 			"require": "./dist/rabbitmq.cjs"
+		},
+		"./nats": {
+			"types": {
+				"import": "./dist/nats.d.ts",
+				"require": "./dist/nats.cjs",
+				"default": "./dist/nats.js"
+			},
+			"import": "./dist/nats.js",
+			"require": "./dist/nats.cjs"
 		}
 	},
 	"devDependencies": {
@@ -145,9 +154,9 @@
 		"elysia": "^1.0.0",
 		"hono": "^4.10.4",
 		"ioredis": "^5.0.0",
+		"kafkajs": "^2.2.4",
 		"socket.io": "^4.0.0",
 		"socket.io-client": "^4.0.0",
-		"kafkajs": "^2.2.4",
 		"typescript": "^5.0.0"
 	},
 	"peerDependenciesMeta": {
@@ -174,6 +183,7 @@
 		}
 	},
 	"dependencies": {
+		"@nats-io/transport-node": "^3.3.0",
 		"@tauri-apps/plugin-shell": "^2.2.0",
 		"amqplib": "^0.10.9",
 		"ioredis": "^5.8.2",
