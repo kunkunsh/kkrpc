@@ -3,6 +3,7 @@
 # 🚀 kkrpc
 
 ## TypeScript-First RPC Library
+
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/kunkunsh/kkrpc)
 [![zread](https://img.shields.io/badge/Ask_Zread-_.svg?style=for-the-badge&color=00b0aa&labelColor=000000&logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTQuOTYxNTYgMS42MDAxSDIuMjQxNTZDMS44ODgxIDEuNjAwMSAxLjYwMTU2IDEuODg2NjQgMS42MDE1NiAyLjI0MDFWNC45NjAxQzEuNjAxNTYgNS4zMTM1NiAxLjg4ODEgNS42MDAxIDIuMjQxNTYgNS42MDAxSDQuOTYxNTZDNS4zMTUwMiA1LjYwMDEgNS42MDE1NiA1LjMxMzU2IDUuNjAxNTYgNC45NjAxVjIuMjQwMUM1LjYwMTU2IDEuODg2NjQgNS4zMTUwMiAxLjYwMDEgNC45NjE1NiAxLjYwMDFaIiBmaWxsPSIjZmZmIi8%2BCjxwYXRoIGQ9Ik00Ljk2MTU2IDEwLjM5OTlIMi4yNDE1NkMxLjg4ODEgMTAuMzk5OSAxLjYwMTU2IDEwLjY4NjQgMS42MDE1NiAxMS4wMzk5VjEzLjc1OTlDMS42MDE1NiAxNC4xMTM0IDEuODg4MSAxNC4zOTk5IDIuMjQxNTYgMTQuMzk5OUg0Ljk2MTU2QzUuMzE1MDIgMTQuMzk5OSA1LjYwMTU2IDE0LjExMzQgNS42MDE1NiAxMy43NTk5VjExLjAzOTlDNS42MDE1NiAxMC42ODY0IDUuMzE1MDIgMTAuMzk5OSA0Ljk2MTU2IDEwLjM5OTlaIiBmaWxsPSIjZmZmIi8%2BCjxwYXRoIGQ9Ik0xMy43NTg0IDEuNjAwMUgxMS4wMzg0QzEwLjY4NSAxLjYwMDEgMTAuMzk4NCAxLjg4NjY0IDEwLjM5ODQgMi4yNDAxVjQuOTYwMUMxMC4zOTg0IDUuMzEzNTYgMTAuNjg1IDUuNjAwMSAxMS4wMzg0IDUuNjAwMUgxMy43NTg0QzE0LjExMTkgNS42MDAxIDE0LjM5ODQgNS4zMTM1NiAxNC4zOTg0IDQuOTYwMVYyLjI0MDFDMTQuMzk4NCAxLjg4NjY0IDE0LjExMTkgMS42MDAxIDEzLjc1ODQgMS42MDAxWiIgZmlsbD0iI2ZmZiIvPgo8cGF0aCBkPSJNNCAxMkwxMiA0TDQgMTJaIiBmaWxsPSIjZmZmIi8%2BCjxwYXRoIGQ9Ik00IDEyTDEyIDQiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8L3N2Zz4K&logoColor=ffffff)](https://zread.ai/kunkunsh/kkrpc)
 [![NPM Version](https://img.shields.io/npm/v/kkrpc?style=for-the-badge&logo=npm)](https://www.npmjs.com/package/kkrpc)
@@ -96,20 +97,21 @@ graph LR
 
 ### 📡 Transport Protocols
 
-| Transport            | Use Case                                          | Supported Runtimes                     |
-| -------------------- | ------------------------------------------------- | -------------------------------------- |
-| **stdio**            | Process-to-process communication                  | Node.js ↔ Deno ↔ Bun                 |
-| **postMessage**      | Browser context communication                     | Browser ↔ Web Workers ↔ iframes      |
-| **HTTP**             | Web API communication                             | All runtimes                           |
-| **WebSocket**        | Real-time communication                           | All runtimes                           |
-| **Hono WebSocket**   | High-performance WebSocket with Hono framework    | Node.js, Deno, Bun, Cloudflare Workers |
-| **Socket.IO**        | Enhanced real-time with rooms/namespaces          | All runtimes                           |
-| **Elysia WebSocket** | Modern TypeScript framework WebSocket integration | Bun, Node.js, Deno                     |
-| **Chrome Extension** | Extension component communication                 | Chrome Extension contexts              |
-| **RabbitMQ**         | Message queue communication                       | Node.js, Deno, Bun                     |
-| **Redis Streams**    | Stream-based messaging with persistence           | Node.js, Deno, Bun                     |
-| **Kafka**            | Distributed streaming platform                    | Node.js, Deno, Bun                     |
-| **NATS**             | High-performance messaging system                 | Node.js, Deno, Bun                     |
+| Transport            | Use Case                                              | Supported Runtimes                     |
+| -------------------- | ----------------------------------------------------- | -------------------------------------- |
+| **stdio**            | Process-to-process communication                      | Node.js ↔ Deno ↔ Bun                 |
+| **postMessage**      | Browser context communication                         | Browser ↔ Web Workers ↔ iframes      |
+| **HTTP**             | Web API communication                                 | All runtimes                           |
+| **WebSocket**        | Real-time communication                               | All runtimes                           |
+| **Hono WebSocket**   | High-performance WebSocket with Hono framework        | Node.js, Deno, Bun, Cloudflare Workers |
+| **Socket.IO**        | Enhanced real-time with rooms/namespaces              | All runtimes                           |
+| **Elysia WebSocket** | Modern TypeScript framework WebSocket integration     | Bun, Node.js, Deno                     |
+| **Chrome Extension** | Extension component communication                     | Chrome Extension contexts              |
+| **RabbitMQ**         | Message queue communication                           | Node.js, Deno, Bun                     |
+| **Redis Streams**    | Stream-based messaging with persistence               | Node.js, Deno, Bun                     |
+| **Kafka**            | Distributed streaming platform                        | Node.js, Deno, Bun                     |
+| **NATS**             | High-performance messaging system                     | Node.js, Deno, Bun                     |
+| **Electron**         | Desktop app IPC (Renderer ↔ Main ↔ Utility Process) | Electron                               |
 
 The core of **kkrpc** design is in `RPCChannel` and `IoInterface`.
 
@@ -1030,21 +1032,225 @@ I provided a sample tauri app in `examples/tauri-demo`.
 
 ![Sample Tauri App](https://i.imgur.com/nkDwRHk.png)
 
+### Electron Example
+
+Electron adapter provides type-safe bidirectional RPC communication between Renderer process, Main process, and Utility Process.
+
+There are two sets of adapters for Electron:
+
+1. **Renderer ↔ Main IPC**: `ElectronIpcMainIO` (Main side) + `ElectronIpcRendererIO` (Renderer side)
+2. **Main ↔ Utility Process**: `ElectronUtilityProcessIO` (Main side) + `ElectronUtilityProcessChildIO` (Utility Process side)
+
+#### Preload Script Setup
+
+First, expose `ipcRenderer` via `contextBridge` in your preload script:
+
+```ts title="preload.ts"
+import { contextBridge, ipcRenderer } from "electron"
+
+contextBridge.exposeInMainWorld("electron", {
+	ipcRenderer: {
+		send: (channel: string, ...args: any[]) => ipcRenderer.send(channel, ...args),
+		on: (channel: string, listener: (...args: any[]) => void) => ipcRenderer.on(channel, listener),
+		off: (channel: string, listener: (...args: any[]) => void) => ipcRenderer.off(channel, listener)
+	}
+})
+```
+
+#### Main Process
+
+```ts title="main.ts"
+import { app, BrowserWindow, ipcMain, utilityProcess } from "electron"
+import { ElectronUtilityProcessIO, RPCChannel } from "kkrpc/electron"
+import { ElectronIpcMainIO } from "kkrpc/electron-ipc"
+
+interface MainAPI {
+	showNotification(message: string): Promise<void>
+	getAppVersion(): Promise<string>
+}
+
+interface WorkerAPI {
+	add(a: number, b: number): Promise<number>
+	multiply(a: number, b: number): Promise<number>
+}
+
+const mainAPI: MainAPI = {
+	showNotification: async (message: string) => {
+		console.log(`[Main] Notification: ${message}`)
+	},
+	getAppVersion: async () => app.getVersion()
+}
+
+// 1. Setup Renderer ↔ Main IPC
+const win = new BrowserWindow({
+	webPreferences: {
+		preload: path.join(__dirname, "preload.js"),
+		contextIsolation: true,
+		nodeIntegration: false
+	}
+})
+
+const ipcIO = new ElectronIpcMainIO(ipcMain, win.webContents)
+const ipcRPC = new RPCChannel<MainAPI, object>(ipcIO, { expose: mainAPI })
+
+// 2. Setup Main ↔ Utility Process
+const workerPath = path.join(__dirname, "./worker.js")
+const workerProcess = utilityProcess.fork(workerPath)
+const workerIO = new ElectronUtilityProcessIO(workerProcess)
+const workerRPC = new RPCChannel<MainAPI, WorkerAPI>(workerIO, { expose: mainAPI })
+const workerAPI = workerRPC.getAPI()
+
+// Now you can call worker methods from main
+const result = await workerAPI.add(2, 3) // 5
+```
+
+#### Renderer Process
+
+```ts title="renderer.ts"
+import { ElectronIpcRendererIO, RPCChannel } from "kkrpc/electron-ipc"
+
+interface MainAPI {
+	showNotification(message: string): Promise<void>
+	getAppVersion(): Promise<string>
+}
+
+const ipcIO = new ElectronIpcRendererIO()
+const ipcRPC = new RPCChannel<object, MainAPI>(ipcIO, { expose: {} })
+const mainAPI = ipcRPC.getAPI()
+
+// Call main process methods from renderer
+await mainAPI.showNotification("Hello from renderer!")
+const version = await mainAPI.getAppVersion()
+```
+
+#### Utility Process (Worker)
+
+```ts title="worker.ts"
+import { ElectronUtilityProcessChildIO, RPCChannel } from "kkrpc/electron"
+
+interface MainAPI {
+	showNotification(message: string): Promise<void>
+}
+
+const io = new ElectronUtilityProcessChildIO()
+
+const workerMethods = {
+	add: async (a: number, b: number) => a + b,
+	multiply: async (a: number, b: number) => a * b
+}
+
+const rpc = new RPCChannel<typeof workerMethods, MainAPI>(io, {
+	expose: workerMethods
+})
+
+const mainAPI = rpc.getAPI()
+
+// Call back to main process
+await mainAPI.showNotification("Hello from worker!")
+```
+
+**Electron Features:**
+
+- **Type-safe IPC**: Full TypeScript support across Renderer ↔ Main ↔ Utility Process
+- **Bidirectional**: All processes can expose and call APIs
+- **Secure**: Works with `contextIsolation: true` (recommended)
+- **Multiple Patterns**: Supports both IPC and Utility Process communication
+- **Nested API Support**: Full support for nested method calls like `api.math.add()`
+
+**Learn more:** [Electron Documentation](https://www.electronjs.org/docs/latest/)
+
+### Relay Example
+
+The `createRelay` function creates a transparent bidirectional relay between two IoInterfaces. This is useful when you want to connect two different transport layers without the intermediary process knowing the API details.
+
+A common use case is connecting a Renderer process to an external Node.js process through Electron's Main process:
+
+```
+Renderer (IPC) → Main (relay) → External Node Process (stdio)
+```
+
+With relay, Main acts as a transparent byte pipe - it forwards messages without parsing them.
+
+#### Main Process (with relay)
+
+```ts title="main.ts"
+import { spawn } from "child_process"
+import { createRelay, NodeIo } from "kkrpc"
+import { ElectronIpcMainIO } from "kkrpc/electron-ipc"
+
+// Spawn external Node.js process
+const worker = spawn("node", ["./worker.js"])
+
+// Create relay: IPC channel "worker-relay" <-> stdio
+const relay = createRelay(
+	new ElectronIpcMainIO(ipcMain, webContents, "worker-relay"),
+	new NodeIo(worker.stdout, worker.stdin)
+)
+
+// Cleanup when done
+app.on("window-all-closed", () => {
+	relay.destroy()
+	worker.kill()
+})
+```
+
+#### Renderer Process
+
+```ts title="renderer.ts"
+import { ElectronIpcRendererIO, RPCChannel } from "kkrpc/electron-ipc"
+
+// Connect via the relay channel (not the default "kkrpc-ipc" channel)
+const io = new ElectronIpcRendererIO("worker-relay")
+const rpc = new RPCChannel<{}, WorkerAPI>(io)
+const workerAPI = rpc.getAPI()
+
+// Calls go directly to the external worker process
+const result = await workerAPI.calculate(42)
+```
+
+#### External Worker Process
+
+```ts title="worker.ts"
+import { NodeIo, RPCChannel } from "kkrpc"
+
+const io = new NodeIo(process.stdin, process.stdout)
+const rpc = new RPCChannel<WorkerAPI, {}>(io, {
+	expose: {
+		calculate: async (n: number) => n * 2
+	}
+})
+```
+
+**Relay Scenarios:**
+
+| Scenario                        | From                    | Through                | To       | Use Case                               |
+| ------------------------------- | ----------------------- | ---------------------- | -------- | -------------------------------------- |
+| **Renderer → External Process** | `ElectronIpcRendererIO` | Main (`createRelay`)   | `NodeIo` | Call external Node.js/Bun/Deno scripts |
+| **Browser → Server Process**    | `WebSocketClientIO`     | Server (`createRelay`) | `NodeIo` | Browser to shell process via WebSocket |
+| **Worker → External Process**   | `WorkerChildIO`         | Main (`createRelay`)   | `NodeIo` | Web Worker to external script          |
+
+**Benefits:**
+
+- **Transparent**: Intermediary doesn't need to know the API
+- **Clean separation**: Main doesn't expose worker methods
+- **Multiple channels**: Can create multiple relays on different IPC channels
+- **Composable**: Can chain relays through multiple processes
+
 ## 🆚 Comparison with Alternatives
 
 <div align="center">
 
-| Feature                  | kkrpc                                                    | tRPC                           | Comlink                        |
-| ------------------------ | -------------------------------------------------------- | ------------------------------ | ------------------------------ |
-| **Cross-runtime**        | ✅ Node.js, Deno, Bun, Browser                           | ❌ Node.js/Browser only        | ❌ Browser only                |
-| **Bidirectional**        | ✅ Both sides can call APIs                              | ❌ Client calls server only    | ✅ Both sides can call APIs    |
-| **Type Safety**          | ✅ Full TypeScript support                               | ✅ Full TypeScript support     | ✅ TypeScript support          |
-| **Transport Layers**     | ✅ stdio, HTTP, WebSocket, postMessage, Chrome Extension | ❌ HTTP only                   | ❌ postMessage only            |
-| **Error Preservation**   | ✅ Complete error objects                                | ⚠️ Limited error serialization | ⚠️ Limited error serialization |
-| **Property Access**      | ✅ Remote getters/setters                                | ❌ Methods only                | ❌ Methods only                |
-| **Zero Config**          | ✅ No code generation                                    | ✅ No code generation          | ✅ No code generation          |
-| **Callbacks**            | ✅ Function parameters                                   | ❌ No callbacks                | ✅ Function parameters         |
-| **Transferable Objects** | ✅ Zero-copy transfers (40-100x faster)                  | ❌ Not supported               | ✅ Basic support               |
+| Feature                  | kkrpc                                                              | tRPC                           | Comlink                        |
+| ------------------------ | ------------------------------------------------------------------ | ------------------------------ | ------------------------------ |
+| **Cross-runtime**        | ✅ Node.js, Deno, Bun, Browser                                     | ❌ Node.js/Browser only        | ❌ Browser only                |
+| **Bidirectional**        | ✅ Both sides can call APIs                                        | ❌ Client calls server only    | ✅ Both sides can call APIs    |
+| **Type Safety**          | ✅ Full TypeScript support                                         | ✅ Full TypeScript support     | ✅ TypeScript support          |
+| **Transport Layers**     | ✅ stdio, HTTP, WebSocket, postMessage, Chrome Extension, Electron | ❌ HTTP only                   | ❌ postMessage only            |
+| **Error Preservation**   | ✅ Complete error objects                                          | ⚠️ Limited error serialization | ⚠️ Limited error serialization |
+| **Property Access**      | ✅ Remote getters/setters                                          | ❌ Methods only                | ❌ Methods only                |
+| **Zero Config**          | ✅ No code generation                                              | ✅ No code generation          | ✅ No code generation          |
+| **Callbacks**            | ✅ Function parameters                                             | ❌ No callbacks                | ✅ Function parameters         |
+| **Transferable Objects** | ✅ Zero-copy transfers (40-100x faster)                            | ❌ Not supported               | ✅ Basic support               |
 
 </div>
 

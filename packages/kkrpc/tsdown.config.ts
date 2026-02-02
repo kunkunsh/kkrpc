@@ -11,7 +11,9 @@ export default defineConfig({
 		"./rabbitmq.ts",
 		"./kafka.ts",
 		"./redis-streams.ts",
-		"./nats.ts"
+		"./nats.ts",
+		"./electron.ts",
+		"./electron-ipc.ts"
 	],
 	dts: true,
 	format: ["cjs", "esm"],

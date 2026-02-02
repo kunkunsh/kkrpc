@@ -283,6 +283,28 @@
           ]
         }
       },
+      "examples/electron-demo": {
+        "packageJson": {
+          "dependencies": [
+            "npm:@types/react-dom@^18.2.21",
+            "npm:@types/react@^18.2.64",
+            "npm:@typescript-eslint/eslint-plugin@^7.1.1",
+            "npm:@typescript-eslint/parser@^7.1.1",
+            "npm:@vitejs/plugin-react@^4.2.1",
+            "npm:electron-builder@^26.7.0",
+            "npm:electron@^40.1.0",
+            "npm:eslint-plugin-react-hooks@^4.6.0",
+            "npm:eslint-plugin-react-refresh@~0.4.5",
+            "npm:eslint@^8.57.0",
+            "npm:react-dom@^18.2.0",
+            "npm:react@^18.2.0",
+            "npm:typescript@^5.2.2",
+            "npm:vite-plugin-electron-renderer@~0.14.5",
+            "npm:vite-plugin-electron@0.29",
+            "npm:vite@^5.1.6"
+          ]
+        }
+      },
       "examples/http-demo": {
         "packageJson": {
           "dependencies": [
