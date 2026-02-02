@@ -6,36 +6,38 @@ layoutClass: gap-4
 
 # Chrome Extension
 
-> Content ↔ Background ↔ Popup Communication
+> Content ↔ Background Communication
 
 ::left::
 
 ### Traditional Messaging
 
-```ts
+```ts {maxHeight:'300px'}
 // content.ts - Send message
-chrome.runtime.sendMessage({ type: "GET_VERSION" }, (response) => {
-	console.log(response.version)
-	// No type safety!
-})
+chrome.runtime.sendMessage({ type: "GET_VERSION" }, 
+	(response) => {
+		console.log(response.version)
+		// No type safety!
+	})
 
 // background.ts - Handle message
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-	if (message.type === "GET_VERSION") {
-		sendResponse({
-			version: chrome.runtime.getManifest().version
-		})
-	}
-	// Must manually check types
-	return true // Keep channel open
-})
+chrome.runtime.onMessage.addListener(
+	(message, sender, sendResponse) => {
+		if (message.type === "GET_VERSION") {
+			sendResponse({
+				version: chrome.runtime.getManifest().version
+			})
+		}
+		// Must manually check types
+		return true // Keep channel open
+	})
 ```
 
 ::right::
 
-### With kkRPC (Port-Based)
+### With kkRPC
 
-```ts
+```ts {maxHeight:'300px'}
 // content.ts - Direct function call
 import { ChromePortIO, RPCChannel } from "kkrpc/chrome-extension"
 import type { BackgroundAPI } from "./types"
@@ -49,13 +51,37 @@ const version = await bg.getExtensionVersion()
 // Full type safety! ✨
 ```
 
-```ts
+---
+transition: slide-up
+layout: two-cols-header
+layoutClass: gap-4
+---
+
+# Background Script
+
+::left::
+
+### Traditional Approach
+
+- String-based message types
+- Manual response handling
+- No TypeScript autocomplete
+- Complex state management
+- Error-prone message matching
+
+::right::
+
+### With kkRPC (Port-Based)
+
+```ts {maxHeight:'300px'}
 // background.ts - Expose API
 chrome.runtime.onConnect.addListener((port) => {
 	const io = new ChromePortIO(port)
 	new RPCChannel(io, {
 		expose: {
-			getExtensionVersion: () => chrome.runtime.getManifest().version
+			getExtensionVersion: () => {
+				return chrome.runtime.getManifest().version
+			}
 		}
 	})
 })
@@ -63,7 +89,7 @@ chrome.runtime.onConnect.addListener((port) => {
 
 <v-click>
 <div class="mt-4 p-4 bg-purple-900/30 rounded-lg">
-  <strong>Long-lived connections:</strong> Bidirectional, type-safe communication between all extension contexts
+  <strong>Long-lived connections:</strong> Bidirectional, type-safe communication between all extension contexts (Content, Background, Popup, Sidepanel)
 </div>
 </v-click>
 
