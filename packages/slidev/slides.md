@@ -5,6 +5,10 @@ src: ./pages/intro.md
 ---
 
 ---
+src: ./pages/socketio.md
+---
+
+---
 src: ./pages/electron.md
 ---
 
