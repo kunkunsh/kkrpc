@@ -16,7 +16,7 @@ importers:
         version: 4.4.1(@vue/compiler-sfc@3.5.27)(prettier@3.5.3)
       '@types/bun':
         specifier: latest
-        version: 1.3.6
+        version: 1.3.8
       husky:
         specifier: ^9.1.7
         version: 9.1.7
@@ -169,7 +169,7 @@ importers:
     devDependencies:
       '@types/bun':
         specifier: latest
-        version: 1.3.6
+        version: 1.3.8
       '@types/express':
         specifier: ^5.0.0
         version: 5.0.0
@@ -404,7 +404,7 @@ importers:
     devDependencies:
       '@types/bun':
         specifier: latest
-        version: 1.3.6
+        version: 1.3.8
 
   packages/kkrpc:
     dependencies:
@@ -475,6 +475,24 @@ importers:
 
   packages/slidev:
     dependencies:
+      '@iconify-json/carbon':
+        specifier: ^1.2.18
+        version: 1.2.18
+      '@iconify-json/devicon':
+        specifier: ^1.2.57
+        version: 1.2.57
+      '@iconify-json/logos':
+        specifier: ^1.2.10
+        version: 1.2.10
+      '@iconify-json/simple-icons':
+        specifier: ^1.2.69
+        version: 1.2.69
+      '@iconify-json/skill-icons':
+        specifier: ^1.2.3
+        version: 1.2.3
+      '@iconify-json/streamline-ultimate-color':
+        specifier: ^1.2.2
+        version: 1.2.2
       '@slidev/cli':
         specifier: ^52.11.5
         version: 52.11.5(@nuxt/kit@3.21.0(magicast@0.5.1))(@types/markdown-it@14.1.2)(@types/node@24.9.1)(@vue/compiler-sfc@3.5.27)(lightningcss@1.30.2)(magicast@0.5.1)(markdown-it-async@2.2.0)(postcss@8.5.6)(react@19.1.1)(svelte@5.42.1)(terser@5.43.1)
@@ -1530,8 +1548,23 @@ packages:
   '@iconify-json/carbon@1.2.18':
     resolution: {integrity: sha512-Grb13E6r/RqTEV4Sqd/BQR2FUt57U2WLuticJ5H8JbTdHLop1LmdePu3EJJA3Xi8DcWRbD6OnC133hKfOwlgtg==}
 
+  '@iconify-json/devicon@1.2.57':
+    resolution: {integrity: sha512-I8oMarkVgcCtSDzYFTVf7WlKSFAXMh5qECEeXsf5+J/MUSu3t76QsvNolfRVwui9LjJAzrZ7EHQFXXIlQ3hIjw==}
+
+  '@iconify-json/logos@1.2.10':
+    resolution: {integrity: sha512-qxaXKJ6fu8jzTMPQdHtNxlfx6tBQ0jXRbHZIYy5Ilh8Lx9US9FsAdzZWUR8MXV8PnWTKGDFO4ZZee9VwerCyMA==}
+
   '@iconify-json/ph@1.2.2':
     resolution: {integrity: sha512-PgkEZNtqa8hBGjHXQa4pMwZa93hmfu8FUSjs/nv4oUU6yLsgv+gh9nu28Kqi8Fz9CCVu4hj1MZs9/60J57IzFw==}
+
+  '@iconify-json/simple-icons@1.2.69':
+    resolution: {integrity: sha512-T/rhy5n7pzE0ZOxQVlF68SNPCYYjRBpddjgjrJO5WWVRG8es5BQmvxIE9kKF+t2hhPGvuGQFpXmUyqbOtnxirQ==}
+
+  '@iconify-json/skill-icons@1.2.3':
+    resolution: {integrity: sha512-wyoP8uwox80jEi1ABZ3Z+I+ETtIr2brAERPPDzpJ9iALk8hyeg4/kdoC7M8HduhNkSkyq5kwBF8xvbqjNldnBQ==}
+
+  '@iconify-json/streamline-ultimate-color@1.2.2':
+    resolution: {integrity: sha512-NAbD3xLtg3069865B5CLUulp/eowPNCiDfJBxVAmA+LKLPpxU7EIEJ2+mSfWriPd+ahORWyqjRnoPVkTJopEgg==}
 
   '@iconify-json/svg-spinners@1.2.4':
     resolution: {integrity: sha512-ayn0pogFPwJA1WFZpDnoq9/hjDxN+keeCMyThaX4d3gSJ3y0mdKUxIA/b1YXWGtY9wVtZmxwcvOIeEieG4+JNg==}
@@ -2698,8 +2731,8 @@ packages:
   '@types/bun@1.2.5':
     resolution: {integrity: sha512-w2OZTzrZTVtbnJew1pdFmgV99H0/L+Pvw+z1P67HaR18MHOzYnTYOi6qzErhK8HyT+DB782ADVPPE92Xu2/Opg==}
 
-  '@types/bun@1.3.6':
-    resolution: {integrity: sha512-uWCv6FO/8LcpREhenN1d1b6fcspAB+cefwD7uti8C8VffIv0Um08TKMn98FynpTiU38+y2dUO55T11NgDt8VAA==}
+  '@types/bun@1.3.8':
+    resolution: {integrity: sha512-3LvWJ2q5GerAXYxO2mffLTqOzEu5qnhEAlh48Vnu8WQfnmSwbgagjGZV6BoHKJztENYEDn6QmVd949W4uESRJA==}
 
   '@types/cacheable-request@6.0.3':
     resolution: {integrity: sha512-IQ3EbTzGxIigb1I3qPZc1rWJnH0BmSKv5QYTalEwweFvyBDLSAe24zP0le/hyi7ecGfZVlIVAg4BZqb8WBwKqw==}
@@ -3775,8 +3808,8 @@ packages:
   bun-types@1.2.5:
     resolution: {integrity: sha512-3oO6LVGGRRKI4kHINx5PIdIgnLRb7l/SprhzqXapmoYkFl5m4j6EvALvbDVuuBFaamB46Ap6HCUxIXNLCGy+tg==}
 
-  bun-types@1.3.6:
-    resolution: {integrity: sha512-OlFwHcnNV99r//9v5IIOgQ9Uk37gZqrNMCcqEaExdkVq3Avwqok1bJFmvGMCkCE0FqzdY8VMOZpfpR3lwI+CsQ==}
+  bun-types@1.3.8:
+    resolution: {integrity: sha512-fL99nxdOWvV4LqjmC+8Q9kW3M4QTtTR1eePs94v5ctGqU8OeceWrSUaRw3JYb7tU3FkMIAjkueehrHPPPGKi5Q==}
 
   bundle-name@4.1.0:
     resolution: {integrity: sha512-tjwM5exMg6BGRI+kNmTntNsvdZS1X8BFYS6tnJ2hdH0kVxM6/eVZ2xy+FqStSWvYmtfFMDLIxurorHwDKfDz5Q==}
@@ -4361,9 +4394,6 @@ packages:
   daisyui@4.12.14:
     resolution: {integrity: sha512-hA27cdBasdwd4/iEjn+aidoCrRroDuo3G5W9NDKaVCJI437Mm/3eSL/2u7MkZ0pt8a+TrYF3aT2pFVemTS3how==}
     engines: {node: '>=16.9.0'}
-
-  dayjs@1.11.13:
-    resolution: {integrity: sha512-oaMBel6gjolK862uaPQOVTA7q3TZhuSvuMQAAglQDOWYO9A91IrAOUJEyKVlqJlHE0vq5p5UXxzdPfMH/x6xNg==}
 
   dayjs@1.11.19:
     resolution: {integrity: sha512-t5EcLVS6QPBNqM2z8fakk/NKel+Xzshgt8FFKAn+qwlD1pzZWxh0nVCrvFK7ZDb6XucZeF9z8C7CBWTRIVApAw==}
@@ -8236,6 +8266,7 @@ packages:
   tar@7.4.3:
     resolution: {integrity: sha512-5S7Va8hKfV7W5U6g3aYxXmlPoZVAwUMy9AOKyF2fVuZa2UD3qZjg578OrLRt8PcNN1PleVaL/5/yYATNL0ICUw==}
     engines: {node: '>=18'}
+    deprecated: Old versions of tar are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exhorbitant rates) by contacting i@izs.me
 
   tar@7.5.7:
     resolution: {integrity: sha512-fov56fJiRuThVFXD6o6/Q354S7pnWMJIVlDBYijsTNx6jKSE4pvrDTs6lUnmGvNyfJwFQQwWy3owKz1ucIhveQ==}
@@ -10779,8 +10810,8 @@ snapshots:
       valibot: 0.31.1
     optionalDependencies:
       '@types/json-schema': 7.0.15
-      esbuild: 0.25.1
-      esbuild-runner: 2.2.2(esbuild@0.25.1)
+      esbuild: 0.27.2
+      esbuild-runner: 2.2.2(esbuild@0.27.2)
     optional: true
 
   '@gerrit0/mini-shiki@3.9.2':
@@ -10842,7 +10873,27 @@ snapshots:
     dependencies:
       '@iconify/types': 2.0.0
 
+  '@iconify-json/devicon@1.2.57':
+    dependencies:
+      '@iconify/types': 2.0.0
+
+  '@iconify-json/logos@1.2.10':
+    dependencies:
+      '@iconify/types': 2.0.0
+
   '@iconify-json/ph@1.2.2':
+    dependencies:
+      '@iconify/types': 2.0.0
+
+  '@iconify-json/simple-icons@1.2.69':
+    dependencies:
+      '@iconify/types': 2.0.0
+
+  '@iconify-json/skill-icons@1.2.3':
+    dependencies:
+      '@iconify/types': 2.0.0
+
+  '@iconify-json/streamline-ultimate-color@1.2.2':
     dependencies:
       '@iconify/types': 2.0.0
 
@@ -12246,9 +12297,9 @@ snapshots:
     dependencies:
       bun-types: 1.2.5
 
-  '@types/bun@1.3.6':
+  '@types/bun@1.3.8':
     dependencies:
-      bun-types: 1.3.6
+      bun-types: 1.3.8
 
   '@types/cacheable-request@6.0.3':
     dependencies:
@@ -12846,7 +12897,7 @@ snapshots:
       '@types/validator': 13.12.2
       '@vinejs/compiler': 3.0.0
       camelcase: 8.0.0
-      dayjs: 1.11.13
+      dayjs: 1.11.19
       dlv: 1.1.3
       normalize-url: 8.0.1
       validator: 13.12.0
@@ -13850,7 +13901,7 @@ snapshots:
       '@types/node': 24.9.1
       '@types/ws': 8.5.13
 
-  bun-types@1.3.6:
+  bun-types@1.3.8:
     dependencies:
       '@types/node': 24.9.1
 
@@ -14490,9 +14541,6 @@ snapshots:
     transitivePeerDependencies:
       - postcss
 
-  dayjs@1.11.13:
-    optional: true
-
   dayjs@1.11.19: {}
 
   debug@2.6.9:
@@ -14952,9 +15000,9 @@ snapshots:
       esast-util-from-estree: 2.0.0
       vfile-message: 4.0.2
 
-  esbuild-runner@2.2.2(esbuild@0.25.1):
+  esbuild-runner@2.2.2(esbuild@0.27.2):
     dependencies:
-      esbuild: 0.25.1
+      esbuild: 0.27.2
       source-map-support: 0.5.21
       tslib: 2.4.0
     optional: true
