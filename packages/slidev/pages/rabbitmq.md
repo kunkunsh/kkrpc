@@ -6,14 +6,15 @@ layoutClass: gap-4
 
 # RabbitMQ RPC
 
+## Client Side
+
 > From Callback Hell to Type-Safe Functions
 
 ::left::
 
 ### Traditional RabbitMQ RPC
 
-````md magic-move {lines: true}
-```js
+```js {*}{maxHeight:'340px'}
 // rpc_client.js - Complex setup
 var correlationId = generateUuid()
 
@@ -39,26 +40,10 @@ channel.assertQueue("", { exclusive: true }, function (error2, q) {
 })
 ```
 
-```js
-// rpc_server.js - Manual response
-channel.consume("rpc_queue", function reply(msg) {
-	var n = parseInt(msg.content.toString())
-	var r = fibonacci(n)
-
-	// Manual reply with correlation
-	channel.sendToQueue(msg.properties.replyTo, Buffer.from(r.toString()), {
-		correlationId: msg.properties.correlationId
-	})
-	channel.ack(msg)
-})
-```
-````
-
 ::right::
 
 ### With kkRPC
 
-````md magic-move {lines: true}
 ```ts
 // client.ts - Just call the function
 import { RabbitMQIO, RPCChannel } from "kkrpc"
@@ -77,6 +62,39 @@ const result = await math.fibonacci(30)
 // TypeScript knows result is a number ✨
 ```
 
+---
+transition: slide-left
+layout: two-cols-header
+layoutClass: gap-4
+---
+
+# RabbitMQ RPC
+
+## Server Side
+
+::left::
+
+### Traditional RPC Server
+
+```js
+// rpc_server.js - Manual response
+channel.consume("rpc_queue", function reply(msg) {
+	var n = parseInt(msg.content.toString())
+	var r = fibonacci(n)
+
+	// Manual reply with correlation
+	channel.sendToQueue(msg.properties.replyTo, 
+						Buffer.from(r.toString()), {
+		correlationId: msg.properties.correlationId
+	})
+	channel.ack(msg)
+})
+```
+
+::right::
+
+### With kkRPC
+
 ```ts
 // server.ts - Expose your API
 import { RabbitMQIO, RPCChannel } from "kkrpc"
@@ -92,7 +110,6 @@ new RPCChannel(io, {
 	}
 })
 ```
-````
 
 <v-click>
 <div class="mt-4 p-4 bg-blue-900/30 rounded-lg">
@@ -113,6 +130,4 @@ With kkRPC:
 - Automatic correlation ID management
 - Automatic queue/exchange setup
 - Bidirectional communication - both sides can call each other
-
-The magic-move animation shows the progression from complex callback-based code to simple async/await function calls.
 -->
