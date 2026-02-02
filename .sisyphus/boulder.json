@@ -1,9 +1,6 @@
 {
-	"active_plan": "/Users/hk/Dev/kkrpc/.sisyphus/plans/implement-event-driven-relay.md",
-	"started_at": "2026-02-02T02:09:46.201Z",
-	"session_ids": ["ses_3eda811e5ffecNE7cB2t1fexby"],
-	"plan_name": "implement-event-driven-relay",
-	"status": "in_progress",
-	"tasks_completed": 3,
-	"tasks_total": 6
+  "active_plan": "/Users/hk/Dev/kkrpc/.sisyphus/plans/kkrpc-slides-plan.md",
+  "started_at": "2026-02-02T10:09:27.396Z",
+  "session_ids": ["ses_3e23343c2ffeyG9ebnGVBbfO2M"],
+  "plan_name": "kkrpc-slides-plan"
 }

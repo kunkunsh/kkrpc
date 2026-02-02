@@ -1,637 +1,745 @@
 ---
-# try also 'default' to start simple
 theme: seriph
-# random image from a curated Unsplash collection by Anthony
-# like them? see https://unsplash.com/collections/94734566/slidev
-background: https://cover.sli.dev
-# some information about your slides (markdown enabled)
-title: Welcome to Slidev
+title: kkRPC - Type-Safe Cross-Runtime RPC
 info: |
-  ## Slidev Starter Template
-  Presentation slides for developers.
+  ## TypeScript-First RPC Library
 
-  Learn more at [Sli.dev](https://sli.dev)
-# apply UnoCSS classes to the current slide
+  Seamless bi-directional communication between processes, workers, and contexts.
+
+  Call remote functions as if they were local, with full TypeScript type safety.
 class: text-center
-# https://sli.dev/features/drawing
 drawings:
   persist: false
-# slide transition: https://sli.dev/guide/animations.html#slide-transitions
 transition: slide-left
-# enable MDC Syntax: https://sli.dev/features/mdc
 mdc: true
-# duration of the presentation
-duration: 35min
+duration: 15min
 ---
 
-# Welcome to Slidev
+# 🚀 kkRPC
 
-Presentation slides for developers
+## Type-Safe Cross-Runtime RPC
+
+Seamless bi-directional communication for TypeScript/JavaScript
 
 <div @click="$slidev.nav.next" class="mt-12 py-1" hover:bg="white op-10">
-  Press Space for next page <carbon:arrow-right />
-</div>
-
-<div class="abs-br m-6 text-xl">
-  <button @click="$slidev.nav.openInEditor()" title="Open in Editor" class="slidev-icon-btn">
-    <carbon:edit />
-  </button>
-  <a href="https://github.com/slidevjs/slidev" target="_blank" class="slidev-icon-btn">
-    <carbon:logo-github />
-  </a>
+  Press Space to continue <carbon:arrow-right />
 </div>
 
 <!--
-The last comment block of each slide will be treated as slide notes. It will be visible and editable in Presenter Mode along with the slide. [Read more in the docs](https://sli.dev/guide/syntax.html#notes)
+Welcome! Today I'm going to show you kkRPC, a TypeScript-first RPC library that makes cross-context communication incredibly simple and type-safe.
+
+If you've ever struggled with IPC in Electron, Tauri, Web Workers, or iframes - this is for you.
 -->
 
 ---
-transition: fade-out
----
 
-# What is Slidev?
+## transition: fade-out
 
-Slidev is a slides maker and presenter designed for developers, consist of the following features
+# The Problem
 
-- 📝 **Text-based** - focus on the content with Markdown, and then style them later
-- 🎨 **Themable** - themes can be shared and re-used as npm packages
-- 🧑‍💻 **Developer Friendly** - code highlighting, live coding with autocompletion
-- 🤹 **Interactive** - embed Vue components to enhance your expressions
-- 🎥 **Recording** - built-in recording and camera view
-- 📤 **Portable** - export to PDF, PPTX, PNGs, or even a hostable SPA
-- 🛠 **Hackable** - virtually anything that's possible on a webpage is possible in Slidev
-<br>
-<br>
+## Cross-Context Communication is Painful
 
-Read more about [Why Slidev?](https://sli.dev/guide/why)
+<v-clicks>
+
+- ❌ **No Type Safety** - Event names as strings, manual parsing
+- ❌ **Boilerplate Heavy** - Handlers for every single method
+- ❌ **No Autocomplete** - Guess the API, check at runtime
+- ❌ **Error Prone** - Easy to break, hard to refactor
+- ❌ **Limited Features** - No nested APIs, no callbacks
+
+</v-clicks>
+
+<div v-click class="mt-8 text-2xl text-red-400 font-bold">
+  When you have hundreds of API calls, this becomes unmaintainable.
+</div>
 
 <!--
-You can have `style` tag in markdown to override the style for the current page.
-Learn more: https://sli.dev/features/slide-scope-style
--->
+Let me paint a picture. You're building a desktop app with Electron. You need to communicate between the renderer and main process.
 
-<style>
-h1 {
-  background-color: #2B90B6;
-  background-image: linear-gradient(45deg, #4EC5D4 10%, #146b8c 20%);
-  background-size: 100%;
-  -webkit-background-clip: text;
-  -moz-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  -moz-text-fill-color: transparent;
-}
-</style>
+You end up with:
+- String-based event names
+- Manual message parsing
+- No type checking
+- Tons of boilerplate
 
-<!--
-Here is another comment.
+And when your app grows to hundreds of API calls? Good luck maintaining that.
 -->
 
 ---
+
 transition: slide-up
-level: 2
----
-
-# Navigation
-
-Hover on the bottom-left corner to see the navigation's controls panel, [learn more](https://sli.dev/guide/ui#navigation-bar)
-
-## Keyboard Shortcuts
-
-|                                                     |                             |
-| --------------------------------------------------- | --------------------------- |
-| <kbd>right</kbd> / <kbd>space</kbd>                 | next animation or slide     |
-| <kbd>left</kbd>  / <kbd>shift</kbd><kbd>space</kbd> | previous animation or slide |
-| <kbd>up</kbd>                                       | previous slide              |
-| <kbd>down</kbd>                                     | next slide                  |
-
-<!-- https://sli.dev/guide/animations.html#click-animation -->
-<img
-  v-click
-  class="absolute -bottom-9 -left-7 w-80 opacity-50"
-  src="https://sli.dev/assets/arrow-bottom-left.svg"
-  alt=""
-/>
-<p v-after class="absolute bottom-23 left-45 opacity-30 transform -rotate-10">Here!</p>
-
----
 layout: two-cols
-layoutClass: gap-16
+class: "gap-8"
+
 ---
 
-# Table of contents
+# Electron - The Old Way
 
-You can use the `Toc` component to generate a table of contents for your slides:
+## Painful IPC
 
-```html
-<Toc minDepth="1" maxDepth="1" />
+::left::
+
+### ❌ Without kkRPC
+
+```ts {*|1-4|6-9|11-13}
+// Preload - Expose methods one by one
+contextBridge.exposeInMainWorld("api", {
+	getVersion: () => ipcRenderer.invoke("get-version"),
+	showDialog: (msg) => ipcRenderer.invoke("show-dialog", msg)
+})
+
+// Main - Handler for every method
+ipcMain.handle("get-version", () => app.getVersion())
+ipcMain.handle("show-dialog", (e, msg) => dialog.show(msg))
+
+// Renderer - No types!
+const version = await window.api.getVersion()
+// Is it a string? Number? Who knows!
 ```
-
-The title will be inferred from your slide content, or you can override it with `title` and `level` in your frontmatter.
 
 ::right::
 
-<Toc text-sm minDepth="1" maxDepth="2" />
+### ✅ With kkRPC
 
----
-layout: image-right
-image: https://cover.sli.dev
----
+```ts {*|1-4|6-8|10-13}
+// Define API once
+type MainAPI = {
+	getVersion(): Promise<string>
+	showDialog(msg: string): Promise<void>
+}
 
-# Code
+// Main - One line setup
+const rpc = new RPCChannel(io, {
+	expose: { getVersion: () => app.getVersion() }
+})
 
-Use code snippets and get the highlighting directly, and even types hover!
-
-```ts [filename-example.ts] {all|4|6|6-7|9|all} twoslash
-// TwoSlash enables TypeScript hover information
-// and errors in markdown code blocks
-// More at https://shiki.style/packages/twoslash
-import { computed, ref } from 'vue'
-
-const count = ref(0)
-const doubled = computed(() => count.value * 2)
-
-doubled.value = 2
+// Renderer - Full autocomplete!
+const api = rpc.getAPI<MainAPI>()
+const version = await api.getVersion() // ✓ Typed!
 ```
 
-<arrow v-click="[4, 5]" x1="350" y1="310" x2="195" y2="342" color="#953" width="2" arrowSize="1" />
-
-<!-- This allow you to embed external code blocks -->
-<<< @/snippets/external.ts#snippet
-
-<!-- Footer -->
-
-[Learn more](https://sli.dev/features/line-highlighting)
-
-<!-- Inline style -->
-<style>
-.footnotes-sep {
-  @apply mt-5 opacity-10;
-}
-.footnotes {
-  @apply text-sm opacity-75;
-}
-.footnote-backref {
-  display: none;
-}
-</style>
-
 <!--
-Notes can also sync with clicks
+Here's a concrete example with Electron.
 
-[click] This will be highlighted after the first click
+On the left - the traditional way. You expose methods one by one in the preload, create handlers for each in main, and in the renderer... you have no type safety. You just hope the method exists and returns what you expect.
 
-[click] Highlighted with `count = ref(0)`
-
-[click:3] Last click (skip two clicks)
+On the right - with kkRPC. Define your API types once. Set up the channel in one line. Get full autocomplete and type checking. Beautiful.
 -->
 
 ---
-level: 2
+
+transition: slide-left
+layout: two-cols
+class: "gap-8"
+
 ---
 
-# Shiki Magic Move
+# Tauri - The Old Way
 
-Powered by [shiki-magic-move](https://shiki-magic-move.netlify.app/), Slidev supports animations across multiple code snippets.
+## Limited to Rust Commands
 
-Add multiple code blocks and wrap them with <code>````md magic-move</code> (four backticks) to enable the magic move. For example:
+::left::
 
-````md magic-move {lines: true}
-```ts {*|2|*}
-// step 1
-const author = reactive({
-  name: 'John Doe',
-  books: [
-    'Vue 2 - Advanced Guide',
-    'Vue 3 - Basic Guide',
-    'Vue 4 - The Mystery'
-  ]
-})
+### ❌ Native Tauri
+
+```ts {*|1-6|8-10}
+// Rust - Write commands in Rust
+#[tauri::command]
+fn greet(name: &str) -> String {
+    format!("Hello, {}!", name)
+}
+
+// Frontend - Call Rust
+import { invoke } from '@tauri-apps/api/core'
+const response = await invoke('greet', { name: 'World' })
+// Limited type inference
 ```
 
-```ts {*|1-2|3-4|3-4,8}
-// step 2
-export default {
-  data() {
-    return {
-      author: {
-        name: 'John Doe',
-        books: [
-          'Vue 2 - Advanced Guide',
-          'Vue 3 - Basic Guide',
-          'Vue 4 - The Mystery'
-        ]
-      }
-    }
-  }
+::right::
+
+### ✅ With kkRPC
+
+```ts {*|1-5|7-11|13-16}
+// Spawn ANY JS runtime
+const cmd = Command.create("deno", ["api.ts"])
+const process = await cmd.spawn()
+
+// Full TypeScript API!
+type API = {
+	greet(name: string): Promise<string>
+	db: { query(sql: string): Promise<any[]> }
+}
+
+const rpc = new RPCChannel(io, { expose: localAPI })
+const api = rpc.getAPI<API>()
+
+// Perfect autocomplete!
+const result = await api.greet("World")
+const data = await api.db.query("SELECT *")
+```
+
+<!--
+Tauri is great, but you're limited to Rust commands for backend logic.
+
+With kkRPC, you can spawn a Deno, Bun, or Node process as a sidecar and get full TypeScript support on both sides. It's like having Electron's flexibility with Tauri's performance.
+
+The Tauri demo in the examples folder shows this exact pattern.
+-->
+
+---
+
+transition: slide-up
+layout: two-cols
+class: "gap-8"
+
+---
+
+# Web Workers
+
+## Message Passing Nightmare
+
+::left::
+
+### ❌ Manual postMessage
+
+```ts {*|1-4|6-10}
+// main.ts
+worker.postMessage({
+	type: "add",
+	data: [1, 2]
+})
+
+worker.onmessage = (e) => {
+	if (e.data.type === "result") {
+		console.log(e.data.result) // 3
+	}
 }
 ```
 
 ```ts
-// step 3
-export default {
-  data: () => ({
-    author: {
-      name: 'John Doe',
-      books: [
-        'Vue 2 - Advanced Guide',
-        'Vue 3 - Basic Guide',
-        'Vue 4 - The Mystery'
-      ]
-    }
-  })
+// worker.ts
+self.onmessage = (e) => {
+	if (e.data.type === "add") {
+		const [a, b] = e.data.data
+		self.postMessage({ type: "result", result: a + b })
+	}
 }
 ```
 
-Non-code blocks are ignored.
+::right::
 
-```vue
-<!-- step 4 -->
-<script setup>
-const author = {
-  name: 'John Doe',
-  books: [
-    'Vue 2 - Advanced Guide',
-    'Vue 3 - Basic Guide',
-    'Vue 4 - The Mystery'
-  ]
-}
-</script>
-```
-````
+### ✅ Direct Function Calls
 
----
-
-# Components
-
-<div grid="~ cols-2 gap-4">
-<div>
-
-You can use Vue components directly inside your slides.
-
-We have provided a few built-in components like `<Tweet/>` and `<Youtube/>` that you can use directly. And adding your custom components is also super easy.
-
-```html
-<Counter :count="10" />
+```ts {*|1-4|6-8}
+// main.ts
+const api = rpc.getAPI()
+const result = await api.add(1, 2) // 3
+await api.math.grade1.add(2, 3) // Nested!
 ```
 
-<!-- ./components/Counter.vue -->
-<Counter :count="10" m="t-4" />
-
-Check out [the guides](https://sli.dev/builtin/components.html) for more.
-
-</div>
-<div>
-
-```html
-<Tweet id="1390115482657726468" />
+```ts
+// worker.ts
+const rpc = new RPCChannel(io, {
+	expose: {
+		add: (a, b) => a + b,
+		math: { grade1: { add: (a, b) => a + b } }
+	}
+})
 ```
 
-<Tweet id="1390115482657726468" scale="0.65" />
-
+<v-click>
+<div class="mt-4 p-4 bg-green-900/30 rounded-lg">
+  <strong>🎉 Bidirectional:</strong> Worker can call main thread too!
 </div>
-</div>
+</v-click>
 
 <!--
-Presenter note with **bold**, *italic*, and ~~striked~~ text.
+Web Workers are powerful but the postMessage API is tedious. You have to:
+- Define message types
+- Parse messages manually
+- Handle errors yourself
+- No nested APIs
 
-Also, HTML elements are valid:
-<div class="flex w-full">
-  <span style="flex-grow: 1;">Left content</span>
-  <span>Right content</span>
-</div>
+With kkRPC? Just call functions directly. And it's bidirectional - the worker can call methods exposed by the main thread too.
 -->
 
 ---
-class: px-20
+
+transition: slide-left
+layout: two-cols
+class: "gap-8"
+
 ---
 
-# Themes
+# iframes
 
-Slidev comes with powerful theming support. Themes can provide styles, layouts, components, or even configurations for tools. Switching between themes by just **one edit** in your frontmatter:
+## Manual Origin Checking
 
-<div grid="~ cols-2 gap-2" m="t-2">
+::left::
 
-```yaml
----
-theme: default
----
+### ❌ postMessage Hell
+
+```ts {*|1-8|10-16}
+// Parent
+iframe.contentWindow.postMessage({ action: "calc", data: 42 }, "https://child.com")
+
+window.addEventListener("message", (e) => {
+	if (e.origin !== "https://child.com") return
+	console.log(e.data.result)
+})
+
+// iframe
+window.addEventListener("message", (e) => {
+	if (e.origin !== "https://parent.com") return
+	// manual action parsing...
+})
 ```
 
-```yaml
----
-theme: seriph
----
+::right::
+
+### ✅ Type-Safe RPC
+
+```ts {*|1-7|9-14}
+// Parent
+const io = new IframeParentIO(iframe.contentWindow)
+const rpc = new RPCChannel(io, { expose: apiImpl })
+const api = rpc.getAPI()
+
+// Just call it!
+const result = await api.calculate(42)
 ```
 
-<img border="rounded" src="https://github.com/slidevjs/themes/blob/main/screenshots/theme-default/01.png?raw=true" alt="">
+```ts
+// iframe
+const io = new IframeChildIO()
+const rpc = new RPCChannel(io, { expose: childApi })
 
-<img border="rounded" src="https://github.com/slidevjs/themes/blob/main/screenshots/theme-seriph/01.png?raw=true" alt="">
+// Can call parent methods too!
+const data = await api.getParentData()
+```
+
+<!--
+iframes are even worse. You have to check origins manually, parse actions, and maintain the protocol.
+
+kkRPC handles all of that. You get type-safe, bidirectional communication out of the box.
+-->
+
+---
+
+## transition: slide-up
+
+# How Does It Work?
+
+## Simple Architecture
+
+```mermaid {scale: 0.9}
+graph TB
+    subgraph "Your API"
+        A[LocalAPI] -->|expose| B[RPCChannel]
+        B -->|getAPI| C[RemoteAPI Proxy]
+    end
+
+    B -->|uses| D[IoInterface]
+
+    subgraph "Transport Adapters"
+        D --> E[Electron IPC]
+        D --> F[WebSocket]
+        D --> G[postMessage]
+        D --> H[stdio]
+        D --> I[HTTP]
+        D --> J[...15+ more]
+    end
+
+    style B fill:#ff6b6b,stroke:#333,stroke-width:3px
+    style D fill:#4ecdc4,stroke:#333,stroke-width:2px
+```
+
+<v-clicks>
+
+- **RPCChannel** - The core bidirectional RPC handler
+- **IoInterface** - Abstracts any transport (stdio, HTTP, postMessage...)
+- **Adapters** - 15+ ready-to-use transport implementations
+- **Zero Config** - No code generation, no schema files
+
+</v-clicks>
+
+<!--
+The architecture is beautifully simple.
+
+RPCChannel is the heart - it handles the bidirectional communication.
+
+IoInterface is the abstraction layer - it doesn't care if you're using stdio, HTTP, or postMessage.
+
+We have 15+ adapters ready to use. And best of all - zero configuration. No code generation, no schema files.
+-->
+
+---
+
+## transition: slide-left
+
+# ✨ Key Features
+
+<div class="grid grid-cols-2 gap-6 mt-4">
+
+<div v-click class="p-4 bg-blue-900/20 rounded-lg">
+<h3 class="text-xl font-bold text-blue-400">🔄 Cross-Runtime</h3>
+<p>Node.js ↔ Deno ↔ Bun ↔ Browser</p>
+</div>
+
+<div v-click class="p-4 bg-green-900/20 rounded-lg">
+<h3 class="text-xl font-bold text-green-400">🛡️ Type-Safe</h3>
+<p>Full TypeScript inference & autocomplete</p>
+</div>
+
+<div v-click class="p-4 bg-purple-900/20 rounded-lg">
+<h3 class="text-xl font-bold text-purple-400">↔️ Bidirectional</h3>
+<p>Both sides expose & call APIs</p>
+</div>
+
+<div v-click class="p-4 bg-yellow-900/20 rounded-lg">
+<h3 class="text-xl font-bold text-yellow-400">🔗 Nested APIs</h3>
+<p><code>api.math.grade1.add()</code></p>
+</div>
+
+<div v-click class="p-4 bg-red-900/20 rounded-lg">
+<h3 class="text-xl font-bold text-red-400">💥 Error Preservation</h3>
+<p>Complete error objects across boundaries</p>
+</div>
+
+<div v-click class="p-4 bg-cyan-900/20 rounded-lg">
+<h3 class="text-xl font-bold text-cyan-400">📞 Callbacks</h3>
+<p>Pass functions as parameters</p>
+</div>
+
+<div v-click class="p-4 bg-orange-900/20 rounded-lg">
+<h3 class="text-xl font-bold text-orange-400">🚀 Transferable</h3>
+<p>Zero-copy for large data (40-100x faster)</p>
+</div>
+
+<div v-click class="p-4 bg-pink-900/20 rounded-lg">
+<h3 class="text-xl font-bold text-pink-400">⚡ Zero Config</h3>
+<p>No code generation needed</p>
+</div>
 
 </div>
 
-Read more about [How to use a theme](https://sli.dev/guide/theme-addon#use-theme) and
-check out the [Awesome Themes Gallery](https://sli.dev/resources/theme-gallery).
+<!--
+Let's quickly run through the key features.
+
+Cross-runtime - works across Node, Deno, Bun, and browsers.
+
+Type-safe - full TypeScript support with autocomplete.
+
+Bidirectional - unlike tRPC, both sides can call each other.
+
+Nested APIs - organize your API with nested objects.
+
+Error preservation - complete error objects cross boundaries.
+
+Callbacks - yes, you can pass functions as parameters.
+
+Transferable objects - zero-copy for large binary data.
+
+Zero config - just install and use. No setup.
+-->
 
 ---
 
-# Clicks Animations
+## transition: slide-up
 
-You can add `v-click` to elements to add a click animation.
+# Supported Environments
 
-<div v-click>
+<div class="flex flex-wrap justify-center gap-4 mt-8">
 
-This shows up when you click the slide:
+<div v-click class="flex flex-col items-center p-6 bg-slate-800 rounded-xl w-32">
+<div class="text-4xl mb-2">🟢</div>
+<div class="font-bold">Node.js</div>
+<div class="text-xs text-gray-400">stdio, HTTP, WS</div>
+</div>
 
-```html
-<div v-click>This shows up when you click the slide.</div>
-```
+<div v-click class="flex flex-col items-center p-6 bg-slate-800 rounded-xl w-32">
+<div class="text-4xl mb-2">🦕</div>
+<div class="font-bold">Deno</div>
+<div class="text-xs text-gray-400">stdio, HTTP, WS</div>
+</div>
+
+<div v-click class="flex flex-col items-center p-6 bg-slate-800 rounded-xl w-32">
+<div class="text-4xl mb-2">🥯</div>
+<div class="font-bold">Bun</div>
+<div class="text-xs text-gray-400">stdio, HTTP, WS</div>
+</div>
+
+<div v-click class="flex flex-col items-center p-6 bg-slate-800 rounded-xl w-32">
+<div class="text-4xl mb-2">🌐</div>
+<div class="font-bold">Browser</div>
+<div class="text-xs text-gray-400">Workers, iframes</div>
+</div>
+
+<div v-click class="flex flex-col items-center p-6 bg-slate-800 rounded-xl w-32">
+<div class="text-4xl mb-2">⚛️</div>
+<div class="font-bold">Electron</div>
+<div class="text-xs text-gray-400">IPC, Utility</div>
+</div>
+
+<div v-click class="flex flex-col items-center p-6 bg-slate-800 rounded-xl w-32">
+<div class="text-4xl mb-2">🦀</div>
+<div class="font-bold">Tauri</div>
+<div class="text-xs text-gray-400">Sidecar processes</div>
+</div>
+
+<div v-click class="flex flex-col items-center p-6 bg-slate-800 rounded-xl w-32">
+<div class="text-4xl mb-2">🔌</div>
+<div class="font-bold">Chrome Ext</div>
+<div class="text-xs text-gray-400">Content, Background</div>
+</div>
 
 </div>
 
-<br>
+<div v-click class="mt-8 text-center">
+<p class="text-lg">Plus: <span class="text-blue-400">WebSocket, Socket.IO, Hono, Elysia, RabbitMQ, Redis, Kafka, NATS...</span></p>
+</div>
+
+<!--
+kkRPC supports virtually every JavaScript environment.
+
+Node, Deno, Bun - with stdio, HTTP, and WebSocket.
+
+Browser - Web Workers and iframes.
+
+Electron - full IPC and utility process support.
+
+Tauri - spawn any JS runtime as a sidecar.
+
+Chrome Extensions - content and background scripts.
+
+And we have adapters for WebSocket variants, message queues, and more.
+-->
+
+---
+
+## transition: slide-left
+
+# Quick Example
+
+## Node.js ↔ Deno via stdio
+
+````md magic-move {lines: true}
+```ts
+// api.ts - Shared API definition
+export type API = {
+	add(a: number, b: number): Promise<number>
+	greet(name: string): Promise<string>
+}
+```
+
+```ts
+// server.ts - Deno process
+import { DenoIo, RPCChannel } from "kkrpc"
+import type { API } from "./api.ts"
+
+const api: API = {
+	add: (a, b) => Promise.resolve(a + b),
+	greet: (name) => Promise.resolve(`Hello, ${name}!`)
+}
+
+const io = new DenoIo(Deno.stdin.readable)
+const rpc = new RPCChannel(io, { expose: api })
+```
+
+```ts
+// client.ts - Node.js process
+import { spawn } from "child_process"
+import { NodeIo, RPCChannel } from "kkrpc"
+import type { API } from "./api.ts"
+
+const worker = spawn("deno", ["run", "server.ts"])
+const io = new NodeIo(worker.stdout, worker.stdin)
+const rpc = new RPCChannel<{}, API>(io)
+const api = rpc.getAPI()
+
+// Type-safe calls!
+console.log(await api.add(2, 3)) // 5
+console.log(await api.greet("World")) // Hello, World!
+```
+````
+
+<!--
+Here's a complete example showing Node.js talking to Deno via stdio.
+
+First, define your API types. Then implement on the server side - this is Deno exposing the API.
+
+On the client side - Node.js spawns the Deno process and gets a fully typed API proxy.
+
+That's it. No boilerplate, no handlers, just type-safe function calls.
+-->
+
+---
+
+## transition: slide-up
+
+# Advanced Features
+
+## Nested APIs + Callbacks
+
+```ts
+// Define nested API
+type API = {
+	math: {
+		grade1: { add(a: number, b: number): Promise<number> }
+		grade2: { multiply(a: number, b: number): Promise<number> }
+	}
+	calculate(n: number, onProgress: (p: number) => void): Promise<number>
+}
+
+// Call with nested path AND callback
+const api = rpc.getAPI<API>()
+
+// Nested method call
+const result = await api.math.grade2.multiply(4, 5)
+
+// With callback
+await api.calculate(100, (progress) => {
+	console.log(`${progress}% complete`)
+})
+```
 
 <v-click>
-
-The <span v-mark.red="3"><code>v-mark</code> directive</span>
-also allows you to add
-<span v-mark.circle.orange="4">inline marks</span>
-, powered by [Rough Notation](https://roughnotation.com/):
-
-```html
-<span v-mark.underline.orange>inline markers</span>
-```
-
+<div class="mt-6 p-4 bg-blue-900/30 rounded-lg text-center">
+<p class="text-lg">🎯 <strong>Property Access:</strong> <code>await api.config.theme</code> works too!</p>
+</div>
 </v-click>
 
-<div mt-20 v-click>
+<!--
+Some advanced features that set kkRPC apart.
 
-[Learn more](https://sli.dev/guide/animations#click-animation)
+Nested APIs - organize your API hierarchically.
+
+Callbacks - pass functions as parameters for progress updates.
+
+Property access - you can even await remote properties like they're local.
+
+These features make kkRPC feel like you're calling local code, not remote.
+-->
+
+---
+
+transition: slide-left
+layout: two-cols
+class: "gap-8"
+
+---
+
+# vs Alternatives
+
+## How kkRPC Compares
+
+::left::
+
+### tRPC
+
+- ✅ Great for HTTP APIs
+- ❌ HTTP only
+- ❌ Client calls server only
+- ❌ No callbacks
+
+### Comlink
+
+- ✅ Good for Workers
+- ❌ Browser only
+- ❌ No stdio/HTTP support
+
+::right::
+
+### kkRPC
+
+- ✅ **15+ transports** (stdio, HTTP, WS, postMessage...)
+- ✅ **Bidirectional** - both sides call each other
+- ✅ **Cross-runtime** (Node, Deno, Bun, Browser)
+- ✅ **Callbacks** supported
+- ✅ **Nested APIs**
+- ✅ **Error preservation**
+
+<v-click>
+<div class="mt-6 p-4 bg-green-900/30 rounded-lg">
+<strong>Choose kkRPC when:</strong> You need type-safe IPC across different contexts and runtimes.
+</div>
+</v-click>
+
+<!--
+How does kkRPC compare to alternatives?
+
+tRPC is excellent for HTTP APIs but it's HTTP-only and unidirectional.
+
+Comlink is great for Web Workers but limited to browsers.
+
+kkRPC gives you the best of both - any transport, bidirectional, cross-runtime.
+
+Choose kkRPC when you need flexible, type-safe IPC across different contexts.
+-->
+
+---
+
+transition: slide-up
+class: text-center
+
+---
+
+# 🚀 Get Started
+
+## Installation
+
+<div class="grid grid-cols-2 gap-8 mt-8 text-left">
+
+<div class="p-4 bg-slate-800 rounded-lg">
+<h3 class="text-red-400 font-bold">NPM</h3>
+<pre class="text-sm">npm install kkrpc</pre>
+</div>
+
+<div class="p-4 bg-slate-800 rounded-lg">
+<h3 class="text-yellow-400 font-bold">JSR</h3>
+<pre class="text-sm">deno add jsr:@kunkun/kkrpc</pre>
+</div>
 
 </div>
 
----
-
-# Motions
-
-Motion animations are powered by [@vueuse/motion](https://motion.vueuse.org/), triggered by `v-motion` directive.
-
-```html
-<div
-  v-motion
-  :initial="{ x: -80 }"
-  :enter="{ x: 0 }"
-  :click-3="{ x: 80 }"
-  :leave="{ x: 1000 }"
->
-  Slidev
-</div>
-```
-
-<div class="w-60 relative">
-  <div class="relative w-40 h-40">
-    <img
-      v-motion
-      :initial="{ x: 800, y: -100, scale: 1.5, rotate: -50 }"
-      :enter="final"
-      class="absolute inset-0"
-      src="https://sli.dev/logo-square.png"
-      alt=""
-    />
-    <img
-      v-motion
-      :initial="{ y: 500, x: -100, scale: 2 }"
-      :enter="final"
-      class="absolute inset-0"
-      src="https://sli.dev/logo-circle.png"
-      alt=""
-    />
-    <img
-      v-motion
-      :initial="{ x: 600, y: 400, scale: 2, rotate: 100 }"
-      :enter="final"
-      class="absolute inset-0"
-      src="https://sli.dev/logo-triangle.png"
-      alt=""
-    />
-  </div>
-
-  <div
-    class="text-5xl absolute top-14 left-40 text-[#2B90B6] -z-1"
-    v-motion
-    :initial="{ x: -80, opacity: 0}"
-    :enter="{ x: 0, opacity: 1, transition: { delay: 2000, duration: 1000 } }">
-    Slidev
-  </div>
+<div class="mt-8">
+<p class="text-xl">📚 <a href="https://kunkunsh.github.io/kkrpc/" target="_blank">Documentation</a></p>
+<p class="text-xl mt-2">💻 <a href="https://github.com/kunkunsh/kkrpc" target="_blank">GitHub</a></p>
+<p class="text-xl mt-2">📦 <a href="https://www.npmjs.com/package/kkrpc" target="_blank">npm: kkrpc</a></p>
 </div>
 
-<!-- vue script setup scripts can be directly used in markdown, and will only affects current page -->
-<script setup lang="ts">
-const final = {
-  x: 0,
-  y: 0,
-  rotate: 0,
-  scale: 1,
-  transition: {
-    type: 'spring',
-    damping: 10,
-    stiffness: 20,
-    mass: 2
-  }
-}
-</script>
+<!--
+Ready to try it?
 
-<div
-  v-motion
-  :initial="{ x:35, y: 30, opacity: 0}"
-  :enter="{ y: 0, opacity: 1, transition: { delay: 3500 } }">
+Install from npm or JSR. The docs have comprehensive examples for every adapter.
 
-[Learn more](https://sli.dev/guide/animations.html#motion)
-
-</div>
+Check out the GitHub repo for the source code and examples.
+-->
 
 ---
 
-# $\LaTeX$
-
-$\LaTeX$ is supported out-of-box. Powered by [$\KaTeX$](https://katex.org/).
-
-<div h-3 />
-
-Inline $\sqrt{3x-1}+(1+x)^2$
-
-Block
-$$ {1|3|all}
-\begin{aligned}
-\nabla \cdot \vec{E} &= \frac{\rho}{\varepsilon_0} \\
-\nabla \cdot \vec{B} &= 0 \\
-\nabla \times \vec{E} &= -\frac{\partial\vec{B}}{\partial t} \\
-\nabla \times \vec{B} &= \mu_0\vec{J} + \mu_0\varepsilon_0\frac{\partial\vec{E}}{\partial t}
-\end{aligned}
-$$
-
-[Learn more](https://sli.dev/features/latex)
-
----
-
-# Diagrams
-
-You can create diagrams / graphs from textual descriptions, directly in your Markdown.
-
-<div class="grid grid-cols-4 gap-5 pt-4 -mb-6">
-
-```mermaid {scale: 0.5, alt: 'A simple sequence diagram'}
-sequenceDiagram
-    Alice->John: Hello John, how are you?
-    Note over Alice,John: A typical interaction
-```
-
-```mermaid {theme: 'neutral', scale: 0.8}
-graph TD
-B[Text] --> C{Decision}
-C -->|One| D[Result 1]
-C -->|Two| E[Result 2]
-```
-
-```mermaid
-mindmap
-  root((mindmap))
-    Origins
-      Long history
-      ::icon(fa fa-book)
-      Popularisation
-        British popular psychology author Tony Buzan
-    Research
-      On effectiveness<br/>and features
-      On Automatic creation
-        Uses
-            Creative techniques
-            Strategic planning
-            Argument mapping
-    Tools
-      Pen and paper
-      Mermaid
-```
-
-```plantuml {scale: 0.7}
-@startuml
-
-package "Some Group" {
-  HTTP - [First Component]
-  [Another Component]
-}
-
-node "Other Groups" {
-  FTP - [Second Component]
-  [First Component] --> FTP
-}
-
-cloud {
-  [Example 1]
-}
-
-database "MySql" {
-  folder "This is my folder" {
-    [Folder 3]
-  }
-  frame "Foo" {
-    [Frame 4]
-  }
-}
-
-[Another Component] --> [Example 1]
-[Example 1] --> [Folder 3]
-[Folder 3] --> [Frame 4]
-
-@enduml
-```
-
-</div>
-
-Learn more: [Mermaid Diagrams](https://sli.dev/features/mermaid) and [PlantUML Diagrams](https://sli.dev/features/plantuml)
-
----
-foo: bar
-dragPos:
-  square: 691,32,167,_,-16
----
-
-# Draggable Elements
-
-Double-click on the draggable elements to edit their positions.
-
-<br>
-
-###### Directive Usage
-
-```md
-<img v-drag="'square'" src="https://sli.dev/logo.png">
-```
-
-<br>
-
-###### Component Usage
-
-```md
-<v-drag text-3xl>
-  <div class="i-carbon:arrow-up" />
-  Use the `v-drag` component to have a draggable container!
-</v-drag>
-```
-
-<v-drag pos="663,206,261,_,-15">
-  <div text-center text-3xl border border-main rounded>
-    Double-click me!
-  </div>
-</v-drag>
-
-<img v-drag="'square'" src="https://sli.dev/logo.png">
-
-###### Draggable Arrow
-
-```md
-<v-drag-arrow two-way />
-```
-
-<v-drag-arrow pos="67,452,253,46" two-way op70 />
-
----
-src: ./pages/imported-slides.md
-hide: false
----
-
----
-
-# Monaco Editor
-
-Slidev provides built-in Monaco Editor support.
-
-Add `{monaco}` to the code block to turn it into an editor:
-
-```ts {monaco}
-import { ref } from 'vue'
-import { emptyArray } from './external'
-
-const arr = ref(emptyArray(10))
-```
-
-Use `{monaco-run}` to create an editor that can execute the code directly in the slide:
-
-```ts {monaco-run}
-import { version } from 'vue'
-import { emptyArray, sayHello } from './external'
-
-sayHello()
-console.log(`vue ${version}`)
-console.log(emptyArray<number>(10).reduce(fib => [...fib, fib.at(-1)! + fib.at(-2)!], [1, 1]))
-```
-
----
 layout: center
 class: text-center
+
 ---
 
-# Learn More
+# Thank You!
 
-[Documentation](https://sli.dev) · [GitHub](https://github.com/slidevjs/slidev) · [Showcases](https://sli.dev/resources/showcases)
+## Stop Writing Boilerplate IPC
 
-<PoweredBySlidev mt-10 />
+### Start Building with Type-Safe RPC
+
+<div class="mt-12">
+<p class="text-2xl">⭐ Star on <a href="https://github.com/kunkunsh/kkrpc" target="_blank">GitHub</a></p>
+<p class="text-lg mt-4 text-gray-400">Built by <a href="https://github.com/kunkunsh">@kunkunsh</a></p>
+</div>
+
+<!--
+Thank you for watching!
+
+Stop writing boilerplate IPC code. Start building with type-safe RPC.
+
+If you found this useful, please star the repo on GitHub.
+
+Questions? Check the docs or open an issue. Happy coding!
+-->
