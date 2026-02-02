@@ -64,7 +64,7 @@ export class NatsIO implements IoInterface {
 			this.nc = await connect({
 				servers: Array.isArray(servers) ? servers : [servers],
 				timeout: this.options.timeout || 10000,
-				rewait: 1000
+				reconnectTimeWait: 1000
 			})
 
 			// Create subscription

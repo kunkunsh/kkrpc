@@ -5,7 +5,7 @@ import { HTTPClientIO, HTTPServerIO } from "../src/adapters/http.ts"
 import { apiMethods, type API } from "./scripts/api.ts"
 
 describe("HTTP RPC", () => {
-	let server: Server
+	let server: Server<unknown>
 	let serverIO: HTTPServerIO
 	let serverRPC: RPCChannel<API, API>
 	let clientIO: HTTPClientIO

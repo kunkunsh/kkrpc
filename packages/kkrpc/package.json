@@ -137,6 +137,24 @@
 			},
 			"import": "./dist/nats.js",
 			"require": "./dist/nats.cjs"
+		},
+		"./electron": {
+			"types": {
+				"import": "./dist/electron.d.ts",
+				"require": "./dist/electron.cjs",
+				"default": "./dist/electron.js"
+			},
+			"import": "./dist/electron.js",
+			"require": "./dist/electron.cjs"
+		},
+		"./electron-ipc": {
+			"types": {
+				"import": "./dist/electron-ipc.d.ts",
+				"require": "./dist/electron-ipc.cjs",
+				"default": "./dist/electron-ipc.js"
+			},
+			"import": "./dist/electron-ipc.js",
+			"require": "./dist/electron-ipc.cjs"
 		}
 	},
 	"devDependencies": {
