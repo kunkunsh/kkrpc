@@ -5,6 +5,7 @@ const DESTROY_SIGNAL = "__DESTROY__"
 
 export class WorkerParentIO implements IoInterface {
 	name = "worker-parent-io"
+	private messageListeners: Set<(message: string | IoMessage) => void> = new Set()
 	private messageQueue: Array<string | IoMessage> = []
 	private resolveRead: ((value: string | IoMessage | null) => void) | null = null
 	private worker: Worker
@@ -19,17 +20,32 @@ export class WorkerParentIO implements IoInterface {
 		this.worker.onmessage = this.handleMessage
 	}
 
+	on(event: "message", listener: (message: string | IoMessage) => void): void
+	on(event: "error", listener: (error: Error) => void): void
+	on(event: "message" | "error", listener: Function): void {
+		if (event === "message") {
+			this.messageListeners.add(listener as (message: string | IoMessage) => void)
+		}
+	}
+
+	off(event: "message" | "error", listener: Function): void {
+		if (event === "message") {
+			this.messageListeners.delete(listener as (message: string | IoMessage) => void)
+		}
+	}
+
 	private handleMessage = (event: MessageEvent) => {
 		const raw = event.data
 		const message = this.normalizeIncoming(raw)
 
-		// Handle destroy signal
 		if (message === DESTROY_SIGNAL) {
 			this.destroy()
 			return
 		}
 
-		if (this.resolveRead) {
+		if (this.messageListeners.size > 0) {
+			this.messageListeners.forEach((listener) => listener(message))
+		} else if (this.resolveRead) {
 			this.resolveRead(message)
 			this.resolveRead = null
 		} else {
@@ -54,12 +70,10 @@ export class WorkerParentIO implements IoInterface {
 	}
 
 	read(): Promise<string | IoMessage | null> {
-		// If there are queued messages, return the first one
 		if (this.messageQueue.length > 0) {
 			return Promise.resolve(this.messageQueue.shift() ?? null)
 		}
 
-		// Otherwise, wait for the next message
 		return new Promise((resolve) => {
 			this.resolveRead = resolve
 		})
@@ -89,9 +103,9 @@ export class WorkerParentIO implements IoInterface {
 	}
 }
 
-// Worker version
 export class WorkerChildIO implements IoInterface {
 	name = "worker-child-io"
+	private messageListeners: Set<(message: string | IoMessage) => void> = new Set()
 	private messageQueue: Array<string | IoMessage> = []
 	private resolveRead: ((value: string | IoMessage | null) => void) | null = null
 	capabilities: IoCapabilities = {
@@ -105,17 +119,32 @@ export class WorkerChildIO implements IoInterface {
 		self.onmessage = this.handleMessage
 	}
 
+	on(event: "message", listener: (message: string | IoMessage) => void): void
+	on(event: "error", listener: (error: Error) => void): void
+	on(event: "message" | "error", listener: Function): void {
+		if (event === "message") {
+			this.messageListeners.add(listener as (message: string | IoMessage) => void)
+		}
+	}
+
+	off(event: "message" | "error", listener: Function): void {
+		if (event === "message") {
+			this.messageListeners.delete(listener as (message: string | IoMessage) => void)
+		}
+	}
+
 	private handleMessage = (event: MessageEvent) => {
 		const raw = event.data
 		const message = this.normalizeIncoming(raw)
 
-		// Handle destroy signal
 		if (message === DESTROY_SIGNAL) {
 			this.destroy()
 			return
 		}
 
-		if (this.resolveRead) {
+		if (this.messageListeners.size > 0) {
+			this.messageListeners.forEach((listener) => listener(message))
+		} else if (this.resolveRead) {
 			this.resolveRead(message)
 			this.resolveRead = null
 		} else {
@@ -165,14 +194,13 @@ export class WorkerChildIO implements IoInterface {
 	}
 
 	destroy(): void {
-		// 解决 pending Promise，防止 listen loop 永久挂起
 		if (this.resolveRead) {
 			this.resolveRead(null)
 			this.resolveRead = null
 		}
 		// @ts-ignore: lack of types in deno
 		self.postMessage(DESTROY_SIGNAL)
-		// In a worker context, we can use close() to terminate the worker
+		// @ts-ignore: lack of types in deno
 		self.close()
 	}
 

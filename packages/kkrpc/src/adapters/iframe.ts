@@ -31,6 +31,22 @@ export class IframeParentIO implements IoInterface {
 		transferTypes: ["ArrayBuffer", "MessagePort"]
 	}
 
+	private messageListeners: Set<(message: string | IoMessage) => void> = new Set()
+
+	on(event: "message", listener: (message: string | IoMessage) => void): void
+	on(event: "error", listener: (error: Error) => void): void
+	on(event: "message" | "error", listener: Function): void {
+		if (event === "message") {
+			this.messageListeners.add(listener as (message: string | IoMessage) => void)
+		}
+	}
+
+	off(event: "message" | "error", listener: Function): void {
+		if (event === "message") {
+			this.messageListeners.delete(listener as (message: string | IoMessage) => void)
+		}
+	}
+
 	/**
 	 * @example
 	 * ```ts
@@ -74,7 +90,9 @@ export class IframeParentIO implements IoInterface {
 			return
 		}
 
-		if (this.resolveRead) {
+		if (this.messageListeners.size > 0) {
+			this.messageListeners.forEach((listener) => listener(message))
+		} else if (this.resolveRead) {
 			this.resolveRead(message)
 			this.resolveRead = null
 		} else {
@@ -153,6 +171,22 @@ export class IframeChildIO implements IoInterface {
 		transferTypes: ["ArrayBuffer", "MessagePort"]
 	}
 
+	private messageListeners: Set<(message: string | IoMessage) => void> = new Set()
+
+	on(event: "message", listener: (message: string | IoMessage) => void): void
+	on(event: "error", listener: (error: Error) => void): void
+	on(event: "message" | "error", listener: Function): void {
+		if (event === "message") {
+			this.messageListeners.add(listener as (message: string | IoMessage) => void)
+		}
+	}
+
+	off(event: "message" | "error", listener: Function): void {
+		if (event === "message") {
+			this.messageListeners.delete(listener as (message: string | IoMessage) => void)
+		}
+	}
+
 	constructor() {
 		this.channel = new MessageChannel()
 		this.port = this.channel.port1
@@ -171,7 +205,9 @@ export class IframeChildIO implements IoInterface {
 			return
 		}
 
-		if (this.resolveRead) {
+		if (this.messageListeners.size > 0) {
+			this.messageListeners.forEach((listener) => listener(message))
+		} else if (this.resolveRead) {
 			this.resolveRead(message)
 			this.resolveRead = null
 		} else {

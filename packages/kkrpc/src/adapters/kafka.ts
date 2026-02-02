@@ -14,16 +14,15 @@ interface KafkaAdapterOptions {
 	 * Kafka broker addresses
 	 */
 	brokers?: string[]
-	/**
-	 * Client identifier, 默认自动拼 session
-	 */
+	/** Client identifier for this Kafka connection (defaults to "kkrpc-<sessionId>") */
 	clientId?: string
 	/**
 	 * Topic name for all RPC traffic
 	 */
 	topic?: string
 	/**
-	 * Optional custom group id. 默认每个 session 一个 group，确保广播 fan-out
+	 * Consumer group ID for load balancing.
+	 * Each session gets its own group by default for broadcast (fan-out) mode.
 	 */
 	groupId?: string
 	/**
@@ -54,9 +53,7 @@ interface KafkaAdapterOptions {
 	 * Replication factor when auto-creating topic
 	 */
 	replicationFactor?: number
-	/**
-	 * 限制消息队列大小，防止积压
-	 */
+	/** Maximum number of messages to buffer in memory (defaults to 1000) */
 	maxQueueSize?: number
 	/**
 	 * Override session id
@@ -70,9 +67,6 @@ interface KafkaAdapterOptions {
 
 /**
  * Kafka implementation of IoInterface
- *
- * - 使用 Kafka topic 作为广播通道，默认每个 session 独立 consumer group
- * - 只支持 string payload，保持和核心 channel 序列化逻辑一致
  */
 export class KafkaIO implements IoInterface {
 	name = "kafka-io"
@@ -92,6 +86,26 @@ export class KafkaIO implements IoInterface {
 	capabilities: IoCapabilities = {
 		structuredClone: false,
 		transfer: false
+	}
+
+	private messageListeners: Set<(message: string | IoMessage) => void> = new Set()
+
+	on(event: "message", listener: (message: string | IoMessage) => void): void
+	on(event: "error", listener: (error: Error) => void): void
+	on(event: "message" | "error", listener: Function): void {
+		if (event === "message") {
+			this.messageListeners.add(listener as (message: string | IoMessage) => void)
+		} else if (event === "error") {
+			// Silently ignore error events
+		}
+	}
+
+	off(event: "message" | "error", listener: Function): void {
+		if (event === "message") {
+			this.messageListeners.delete(listener as (message: string | IoMessage) => void)
+		} else if (event === "error") {
+			// Silently ignore error events
+		}
 	}
 
 	constructor(private options: KafkaAdapterOptions = {}) {

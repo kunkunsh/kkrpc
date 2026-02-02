@@ -11,6 +11,8 @@ interface HTTPClientOptions {
  */
 export class HTTPClientIO implements IoInterface {
 	name = "http-client-io"
+	private messageListeners: Set<(message: string | IoMessage) => void> = new Set()
+	private errorListeners: Set<(error: Error) => void> = new Set()
 	private messageQueue: string[] = []
 	private resolveRead: ((value: string | null) => void) | null = null
 	capabilities: IoCapabilities = {
@@ -19,6 +21,24 @@ export class HTTPClientIO implements IoInterface {
 	}
 
 	constructor(private options: HTTPClientOptions) {}
+
+	on(event: "message", listener: (message: string | IoMessage) => void): void
+	on(event: "error", listener: (error: Error) => void): void
+	on(event: "message" | "error", listener: Function): void {
+		if (event === "message") {
+			this.messageListeners.add(listener as (message: string | IoMessage) => void)
+		} else if (event === "error") {
+			this.errorListeners.add(listener as (error: Error) => void)
+		}
+	}
+
+	off(event: "message" | "error", listener: Function): void {
+		if (event === "message") {
+			this.messageListeners.delete(listener as (message: string | IoMessage) => void)
+		} else if (event === "error") {
+			this.errorListeners.delete(listener as (error: Error) => void)
+		}
+	}
 
 	async read(): Promise<string | null> {
 		if (this.messageQueue.length > 0) {
@@ -50,14 +70,16 @@ export class HTTPClientIO implements IoInterface {
 
 			const responseText = await response.text()
 
-			if (this.resolveRead) {
+			if (this.messageListeners.size > 0) {
+				this.messageListeners.forEach((listener) => listener(responseText))
+			} else if (this.resolveRead) {
 				this.resolveRead(responseText)
 				this.resolveRead = null
 			} else {
 				this.messageQueue.push(responseText)
 			}
 		} catch (error) {
-			console.error("HTTP request failed:", error)
+			this.errorListeners.forEach((listener) => listener(error as Error))
 			if (this.resolveRead) {
 				this.resolveRead(null)
 				this.resolveRead = null
@@ -71,6 +93,8 @@ export class HTTPClientIO implements IoInterface {
  */
 export class HTTPServerIO implements IoInterface {
 	name = "http-server-io"
+	private messageListeners: Set<(message: string | IoMessage) => void> = new Set()
+	private errorListeners: Set<(error: Error) => void> = new Set()
 	private messageQueue: string[] = []
 	private resolveRead: ((value: string | null) => void) | null = null
 	private pendingResponses = new Map<string, (response: string) => void>()
@@ -80,6 +104,24 @@ export class HTTPServerIO implements IoInterface {
 	}
 
 	constructor() {}
+
+	on(event: "message", listener: (message: string | IoMessage) => void): void
+	on(event: "error", listener: (error: Error) => void): void
+	on(event: "message" | "error", listener: Function): void {
+		if (event === "message") {
+			this.messageListeners.add(listener as (message: string | IoMessage) => void)
+		} else if (event === "error") {
+			this.errorListeners.add(listener as (error: Error) => void)
+		}
+	}
+
+	off(event: "message" | "error", listener: Function): void {
+		if (event === "message") {
+			this.messageListeners.delete(listener as (message: string | IoMessage) => void)
+		} else if (event === "error") {
+			this.errorListeners.delete(listener as (error: Error) => void)
+		}
+	}
 
 	async read(): Promise<string | null> {
 		if (this.messageQueue.length > 0) {
@@ -112,7 +154,9 @@ export class HTTPServerIO implements IoInterface {
 			const requestData = superjson.parse<{ id: string }>(reqData)
 			const requestId = requestData.id
 
-			if (this.resolveRead) {
+			if (this.messageListeners.size > 0) {
+				this.messageListeners.forEach((listener) => listener(reqData))
+			} else if (this.resolveRead) {
 				this.resolveRead(reqData)
 				this.resolveRead = null
 			} else {
@@ -123,7 +167,7 @@ export class HTTPServerIO implements IoInterface {
 				this.pendingResponses.set(requestId, resolve)
 			})
 		} catch (error) {
-			console.error("RPC processing error:", error)
+			this.errorListeners.forEach((listener) => listener(error as Error))
 			throw new Error("Internal server error")
 		}
 	}

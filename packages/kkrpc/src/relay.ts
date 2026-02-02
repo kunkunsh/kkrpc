@@ -1,4 +1,4 @@
-import type { IoInterface } from "./interface.ts"
+import type { IoInterface, IoMessage } from "./interface.ts"
 
 export interface Relay {
 	destroy: () => void
@@ -38,27 +38,32 @@ export interface Relay {
  * const result = await api.calculate(42)
  */
 export function createRelay(a: IoInterface, b: IoInterface): Relay {
-	const originalAOnMessage = a.onMessage
-	const originalBOnMessage = b.onMessage
+	let destroyed = false
 
-	a.onMessage = async (message) => {
-		if (originalAOnMessage) {
-			await originalAOnMessage(message)
+	const forwardToB = (message: string | IoMessage) => {
+		if (!destroyed) {
+			b.write(message).catch((err) => {
+				console.error(`[Relay] Failed to forward to ${b.name}:`, err)
+			})
 		}
-		await b.write(message as string)
 	}
 
-	b.onMessage = async (message) => {
-		if (originalBOnMessage) {
-			await originalBOnMessage(message)
+	const forwardToA = (message: string | IoMessage) => {
+		if (!destroyed) {
+			a.write(message).catch((err) => {
+				console.error(`[Relay] Failed to forward to ${a.name}:`, err)
+			})
 		}
-		await a.write(message as string)
 	}
+
+	a.on("message", forwardToB)
+	b.on("message", forwardToA)
 
 	return {
 		destroy: () => {
-			a.onMessage = originalAOnMessage
-			b.onMessage = originalBOnMessage
+			destroyed = true
+			a.off("message", forwardToB)
+			b.off("message", forwardToA)
 			a.destroy?.()
 			b.destroy?.()
 		}

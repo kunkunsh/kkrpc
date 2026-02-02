@@ -34,6 +34,26 @@ export class RabbitMQIO implements IoInterface {
 		transfer: false
 	}
 
+	private messageListeners: Set<(message: string | IoMessage) => void> = new Set()
+
+	on(event: "message", listener: (message: string | IoMessage) => void): void
+	on(event: "error", listener: (error: Error) => void): void
+	on(event: "message" | "error", listener: Function): void {
+		if (event === "message") {
+			this.messageListeners.add(listener as (message: string | IoMessage) => void)
+		} else if (event === "error") {
+			// Silently ignore error events
+		}
+	}
+
+	off(event: "message" | "error", listener: Function): void {
+		if (event === "message") {
+			this.messageListeners.delete(listener as (message: string | IoMessage) => void)
+		} else if (event === "error") {
+			// Silently ignore error events
+		}
+	}
+
 	constructor(private options: RabbitMQOptions = {}) {
 		this.sessionId = options.sessionId || this.generateSessionId()
 		this.exchange = options.exchange || "kkrpc-exchange"
@@ -160,7 +180,6 @@ export class RabbitMQIO implements IoInterface {
 	destroy(): void {
 		this.isDestroyed = true
 
-		// 解决 pending Promise，防止 listen loop 永久挂起
 		if (this.resolveRead) {
 			this.resolveRead(null)
 			this.resolveRead = null

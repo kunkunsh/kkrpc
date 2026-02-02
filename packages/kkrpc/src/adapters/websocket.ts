@@ -12,6 +12,8 @@ interface WebSocketClientOptions {
  */
 export class WebSocketClientIO implements IoInterface {
 	name = "websocket-client-io"
+	private messageListeners: Set<(message: string | IoMessage) => void> = new Set()
+	private errorListeners: Set<(error: Error) => void> = new Set()
 	private messageQueue: string[] = []
 	private resolveRead: ((value: string | null) => void) | null = null
 	private ws: WebSocket
@@ -33,9 +35,7 @@ export class WebSocketClientIO implements IoInterface {
 		}
 
 		this.ws.onmessage = (event) => {
-			// Convert Buffer to string if needed (for Node.js ws library)
 			let message = event.data
-			// if (message instanceof Buffer) {
 			if (typeof message === "object" && message !== null && "toString" in message) {
 				message = message.toString("utf-8")
 			}
@@ -45,16 +45,38 @@ export class WebSocketClientIO implements IoInterface {
 				return
 			}
 
-			if (this.resolveRead) {
-				this.resolveRead(message)
-				this.resolveRead = null
+			if (this.messageListeners.size > 0) {
+				this.messageListeners.forEach((listener) => listener(message))
 			} else {
-				this.messageQueue.push(message)
+				if (this.resolveRead) {
+					this.resolveRead(message)
+					this.resolveRead = null
+				} else {
+					this.messageQueue.push(message)
+				}
 			}
 		}
 
 		this.ws.onerror = (error) => {
-			console.error("WebSocket error:", error)
+			this.errorListeners.forEach((listener) => listener(new Error(String(error))))
+		}
+	}
+
+	on(event: "message", listener: (message: string | IoMessage) => void): void
+	on(event: "error", listener: (error: Error) => void): void
+	on(event: "message" | "error", listener: Function): void {
+		if (event === "message") {
+			this.messageListeners.add(listener as (message: string | IoMessage) => void)
+		} else if (event === "error") {
+			this.errorListeners.add(listener as (error: Error) => void)
+		}
+	}
+
+	off(event: "message" | "error", listener: Function): void {
+		if (event === "message") {
+			this.messageListeners.delete(listener as (message: string | IoMessage) => void)
+		} else if (event === "error") {
+			this.errorListeners.delete(listener as (error: Error) => void)
 		}
 	}
 
@@ -79,7 +101,6 @@ export class WebSocketClientIO implements IoInterface {
 	}
 
 	destroy(): void {
-		// 解决 pending Promise，防止 listen loop 永久挂起
 		if (this.resolveRead) {
 			this.resolveRead(null)
 			this.resolveRead = null
@@ -97,6 +118,8 @@ export class WebSocketClientIO implements IoInterface {
  */
 export class WebSocketServerIO implements IoInterface {
 	name = "websocket-server-io"
+	private messageListeners: Set<(message: string | IoMessage) => void> = new Set()
+	private errorListeners: Set<(error: Error) => void> = new Set()
 	private messageQueue: string[] = []
 	private resolveRead: ((value: string | null) => void) | null = null
 	capabilities: IoCapabilities = {
@@ -106,9 +129,7 @@ export class WebSocketServerIO implements IoInterface {
 
 	constructor(private ws: WebSocket) {
 		this.ws.onmessage = (event) => {
-			// Convert Buffer to string if needed (for Node.js ws library)
 			let message = event.data
-			// if (message instanceof Buffer) {
 			if (typeof message === "object" && message !== null && "toString" in message) {
 				message = message.toString("utf-8")
 			}
@@ -118,16 +139,38 @@ export class WebSocketServerIO implements IoInterface {
 				return
 			}
 
-			if (this.resolveRead) {
-				this.resolveRead(message)
-				this.resolveRead = null
+			if (this.messageListeners.size > 0) {
+				this.messageListeners.forEach((listener) => listener(message))
 			} else {
-				this.messageQueue.push(message)
+				if (this.resolveRead) {
+					this.resolveRead(message)
+					this.resolveRead = null
+				} else {
+					this.messageQueue.push(message)
+				}
 			}
 		}
 
 		this.ws.onerror = (error) => {
-			console.error("WebSocket error:", error)
+			this.errorListeners.forEach((listener) => listener(new Error(String(error))))
+		}
+	}
+
+	on(event: "message", listener: (message: string | IoMessage) => void): void
+	on(event: "error", listener: (error: Error) => void): void
+	on(event: "message" | "error", listener: Function): void {
+		if (event === "message") {
+			this.messageListeners.add(listener as (message: string | IoMessage) => void)
+		} else if (event === "error") {
+			this.errorListeners.add(listener as (error: Error) => void)
+		}
+	}
+
+	off(event: "message" | "error", listener: Function): void {
+		if (event === "message") {
+			this.messageListeners.delete(listener as (message: string | IoMessage) => void)
+		} else if (event === "error") {
+			this.errorListeners.delete(listener as (error: Error) => void)
 		}
 	}
 
@@ -149,7 +192,6 @@ export class WebSocketServerIO implements IoInterface {
 	}
 
 	destroy(): void {
-		// 解决 pending Promise，防止 listen loop 永久挂起
 		if (this.resolveRead) {
 			this.resolveRead(null)
 			this.resolveRead = null
