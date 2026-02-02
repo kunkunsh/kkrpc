@@ -33,6 +33,7 @@
 
 export * from "./src/adapters/electron-ipc-main.ts"
 export * from "./src/adapters/electron-ipc-renderer.ts"
+export * from "./src/adapters/electron-ipc-preload.ts"
 export * from "./src/channel.ts"
 export * from "./src/utils.ts"
 export * from "./src/serialization.ts"

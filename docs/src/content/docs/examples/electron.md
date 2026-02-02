@@ -68,7 +68,52 @@ import { ElectronIpcMainIO, ElectronIpcRendererIO, RPCChannel } from "kkrpc/elec
 
 ## Preload Script Setup
 
-First, expose `ipcRenderer` via `contextBridge` in your preload script. This is REQUIRED for the renderer to communicate with main:
+First, expose `ipcRenderer` via `contextBridge` in your preload script. This is REQUIRED for the renderer to communicate with main.
+
+### Option 1: Secure IPC Bridge (Recommended)
+
+Use the built-in `createSecureIpcBridge` factory for automatic channel whitelisting. This factory accepts the `ipcRenderer` from Electron and returns a secured version:
+
+```ts title="preload.ts"
+import { contextBridge, ipcRenderer } from "electron"
+import { createSecureIpcBridge } from "kkrpc/electron-ipc"
+
+const securedIpcRenderer = createSecureIpcBridge({
+	ipcRenderer,
+	channelPrefix: "kkrpc-"
+})
+
+contextBridge.exposeInMainWorld("electron", {
+	ipcRenderer: securedIpcRenderer
+})
+```
+
+This approach:
+
+- Only allows IPC communication on channels starting with `"kkrpc-"`
+- Blocks any other IPC channels (logged as warnings)
+- Follows Electron security best practices
+- Works with any Electron version (no direct Electron dependency in kkrpc)
+
+You can also whitelist specific channels:
+
+```ts title="preload.ts"
+import { contextBridge, ipcRenderer } from "electron"
+import { createSecureIpcBridge } from "kkrpc/electron-ipc"
+
+const securedIpcRenderer = createSecureIpcBridge({
+	ipcRenderer,
+	allowedChannels: ["kkrpc-ipc", "kkrpc-worker-relay"]
+})
+
+contextBridge.exposeInMainWorld("electron", {
+	ipcRenderer: securedIpcRenderer
+})
+```
+
+### Option 2: Manual Setup
+
+If you need custom behavior, set up the bridge manually:
 
 ```ts title="preload.ts"
 import { contextBridge, ipcRenderer } from "electron"
@@ -82,8 +127,12 @@ contextBridge.exposeInMainWorld("electron", {
 })
 ```
 
+:::caution[Security Warning]
+The manual setup exposes ALL IPC channels to the renderer. Consider using `createSecureIpcBridge` to whitelist only kkrpc channels.
+:::
+
 :::note[Security]
-This setup works with `contextIsolation: true` (recommended) and `nodeIntegration: false` for maximum security. The renderer has NO direct access to Node.js APIs.
+Both setups work with `contextIsolation: true` (recommended) and `nodeIntegration: false` for maximum security. The renderer has NO direct access to Node.js APIs.
 :::
 
 ## API Definition
@@ -379,10 +428,27 @@ app.on("window-all-closed", () => {
 
 ### "window.electron is undefined"
 
-Make sure your preload script is correctly exposing `ipcRenderer`:
+Make sure your preload script is correctly exposing `ipcRenderer`. The recommended approach:
 
 ```ts
-// preload.ts - MUST use contextBridge
+// preload.ts - Use the secure bridge factory
+import { contextBridge, ipcRenderer } from "electron"
+import { createSecureIpcBridge } from "kkrpc/electron-ipc"
+
+const securedIpcRenderer = createSecureIpcBridge({
+	ipcRenderer,
+	channelPrefix: "kkrpc-"
+})
+
+contextBridge.exposeInMainWorld("electron", {
+	ipcRenderer: securedIpcRenderer
+})
+```
+
+Or manually:
+
+```ts
+// preload.ts - Manual setup
 import { contextBridge, ipcRenderer } from "electron"
 
 contextBridge.exposeInMainWorld("electron", {

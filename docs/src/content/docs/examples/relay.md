@@ -55,6 +55,20 @@ const relay = createRelay(
 
 ## Electron Scenarios
 
+:::tip[Preload Setup Required]
+Before using relay in Electron, make sure your preload script is set up. The recommended approach uses `createSecureIpcBridge`:
+
+```ts title="preload.ts"
+import { createSecureIpcBridge } from "kkrpc/electron-ipc"
+
+createSecureIpcBridge({
+	channelPrefix: "kkrpc-"
+})
+```
+
+See the [Electron guide](/examples/electron#preload-script-setup) for details.
+:::
+
 ### Scenario 1: Renderer → External Node Process
 
 Connect Electron's Renderer process to an external Node.js/Bun/Deno process.

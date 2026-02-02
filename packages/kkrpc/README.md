@@ -1043,19 +1043,39 @@ There are two sets of adapters for Electron:
 
 #### Preload Script Setup
 
-First, expose `ipcRenderer` via `contextBridge` in your preload script:
+Use `createSecureIpcBridge` to create a secured `ipcRenderer` with channel whitelisting:
 
 ```ts title="preload.ts"
 import { contextBridge, ipcRenderer } from "electron"
+import { createSecureIpcBridge } from "kkrpc/electron-ipc"
+
+const securedIpcRenderer = createSecureIpcBridge({
+	ipcRenderer,
+	channelPrefix: "kkrpc-"
+})
 
 contextBridge.exposeInMainWorld("electron", {
-	ipcRenderer: {
-		send: (channel: string, ...args: any[]) => ipcRenderer.send(channel, ...args),
-		on: (channel: string, listener: (...args: any[]) => void) => ipcRenderer.on(channel, listener),
-		off: (channel: string, listener: (...args: any[]) => void) => ipcRenderer.off(channel, listener)
-	}
+	ipcRenderer: securedIpcRenderer
 })
 ```
+
+This automatically whitelists only channels starting with `"kkrpc-"`. You can also whitelist specific channels:
+
+```ts title="preload.ts"
+import { contextBridge, ipcRenderer } from "electron"
+import { createSecureIpcBridge } from "kkrpc/electron-ipc"
+
+const securedIpcRenderer = createSecureIpcBridge({
+	ipcRenderer,
+	allowedChannels: ["kkrpc-ipc", "kkrpc-worker-relay"]
+})
+
+contextBridge.exposeInMainWorld("electron", {
+	ipcRenderer: securedIpcRenderer
+})
+```
+
+This approach avoids direct Electron dependencies in kkrpc, making it compatible with any Electron version.
 
 #### Main Process
 
