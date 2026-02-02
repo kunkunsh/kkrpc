@@ -45,7 +45,7 @@ const DESTROY_SIGNAL = "__DESTROY__"
  */
 export class ElectronIpcMainIO implements IoInterface {
 	name = "electron-ipc-main-io"
-	onMessage?: (message: string | IoMessage) => void | Promise<void>
+	private messageListeners: Set<(message: string | IoMessage) => void> = new Set()
 	private messageQueue: Array<string | IoMessage> = []
 	private resolveRead: ((value: string | IoMessage | null) => void) | null = null
 	private handler: ((event: IpcMainEvent, ...args: any[]) => void) | null = null
@@ -75,17 +75,33 @@ export class ElectronIpcMainIO implements IoInterface {
 			return
 		}
 
-		if (this.onMessage) {
-			// Event-driven mode
-			this.onMessage(normalized)
+		if (this.messageListeners.size > 0) {
+			this.messageListeners.forEach((listener) => listener(normalized))
 		} else {
-			// Traditional queue mode
 			if (this.resolveRead) {
 				this.resolveRead(normalized)
 				this.resolveRead = null
 			} else {
 				this.messageQueue.push(normalized)
 			}
+		}
+	}
+
+	on(event: "message", listener: (message: string | IoMessage) => void): void
+	on(event: "error", listener: (error: Error) => void): void
+	on(event: "message" | "error", listener: Function): void {
+		if (event === "message") {
+			this.messageListeners.add(listener as (message: string | IoMessage) => void)
+		} else if (event === "error") {
+			// Silently ignore error events
+		}
+	}
+
+	off(event: "message" | "error", listener: Function): void {
+		if (event === "message") {
+			this.messageListeners.delete(listener as (message: string | IoMessage) => void)
+		} else if (event === "error") {
+			// Silently ignore error events
 		}
 	}
 

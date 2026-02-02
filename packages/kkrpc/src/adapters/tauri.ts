@@ -7,6 +7,27 @@ export class TauriShellStdio implements IoInterface {
 		structuredClone: false,
 		transfer: false
 	}
+
+	private messageListeners: Set<(message: string | IoMessage) => void> = new Set()
+
+	on(event: "message", listener: (message: string | IoMessage) => void): void
+	on(event: "error", listener: (error: Error) => void): void
+	on(event: "message" | "error", listener: Function): void {
+		if (event === "message") {
+			this.messageListeners.add(listener as (message: string | IoMessage) => void)
+		} else if (event === "error") {
+			// Error events not supported by this adapter - silently ignored
+		}
+	}
+
+	off(event: "message" | "error", listener: Function): void {
+		if (event === "message") {
+			this.messageListeners.delete(listener as (message: string | IoMessage) => void)
+		} else if (event === "error") {
+			// Error events not supported by this adapter - silently ignored
+		}
+	}
+
 	constructor(
 		private readStream: EventEmitter<OutputEvents<string>>, // stdout of child process
 		private childProcess: Child

@@ -15,11 +15,30 @@ const DESTROY_SIGNAL = "__DESTROY__"
  */
 export class ChromePortIO implements IoInterface {
 	name = "chrome-port-io"
+	private messageListeners: Set<(message: string | IoMessage) => void> = new Set()
 	private messageQueue: Array<string | IoMessage> = []
 	private resolveRead: ((value: string | IoMessage | null) => void) | null = null
 	capabilities: IoCapabilities = {
 		structuredClone: true,
 		transfer: false
+	}
+
+	on(event: "message", listener: (message: string | IoMessage) => void): void
+	on(event: "error", listener: (error: Error) => void): void
+	on(event: "message" | "error", listener: Function): void {
+		if (event === "message") {
+			this.messageListeners.add(listener as (message: string | IoMessage) => void)
+		} else if (event === "error") {
+			// Error events not supported by this adapter - silently ignored
+		}
+	}
+
+	off(event: "message" | "error", listener: Function): void {
+		if (event === "message") {
+			this.messageListeners.delete(listener as (message: string | IoMessage) => void)
+		} else if (event === "error") {
+			// Error events not supported by this adapter - silently ignored
+		}
 	}
 
 	constructor(private port: chrome.runtime.Port) {
@@ -33,11 +52,14 @@ export class ChromePortIO implements IoInterface {
 			return
 		}
 
-		if (this.resolveRead) {
-			this.resolveRead(message as string | IoMessage)
+		const normalized = message as string | IoMessage
+		if (this.messageListeners.size > 0) {
+			this.messageListeners.forEach((listener) => listener(normalized))
+		} else if (this.resolveRead) {
+			this.resolveRead(normalized)
 			this.resolveRead = null
 		} else {
-			this.messageQueue.push(message as string | IoMessage)
+			this.messageQueue.push(normalized)
 		}
 	}
 

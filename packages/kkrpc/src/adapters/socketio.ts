@@ -24,6 +24,26 @@ export class SocketIOClientIO implements IoInterface {
 		transfer: false
 	}
 
+	private messageListeners: Set<(message: string | IoMessage) => void> = new Set()
+
+	on(event: "message", listener: (message: string | IoMessage) => void): void
+	on(event: "error", listener: (error: Error) => void): void
+	on(event: "message" | "error", listener: Function): void {
+		if (event === "message") {
+			this.messageListeners.add(listener as (message: string | IoMessage) => void)
+		} else if (event === "error") {
+			// Silently ignore error events
+		}
+	}
+
+	off(event: "message" | "error", listener: Function): void {
+		if (event === "message") {
+			this.messageListeners.delete(listener as (message: string | IoMessage) => void)
+		} else if (event === "error") {
+			// Silently ignore error events
+		}
+	}
+
 	constructor(private options: SocketIOClientOptions) {
 		const url = this.options.namespace
 			? `${this.options.url}/${this.options.namespace}`
@@ -106,6 +126,26 @@ export class SocketIOServerIO implements IoInterface {
 	capabilities: IoCapabilities = {
 		structuredClone: false,
 		transfer: false
+	}
+
+	private messageListeners: Set<(message: string | IoMessage) => void> = new Set()
+
+	on(event: "message", listener: (message: string | IoMessage) => void): void
+	on(event: "error", listener: (error: Error) => void): void
+	on(event: "message" | "error", listener: Function): void {
+		if (event === "message") {
+			this.messageListeners.add(listener as (message: string | IoMessage) => void)
+		} else if (event === "error") {
+			// Silently ignore error events
+		}
+	}
+
+	off(event: "message" | "error", listener: Function): void {
+		if (event === "message") {
+			this.messageListeners.delete(listener as (message: string | IoMessage) => void)
+		} else if (event === "error") {
+			// Silently ignore error events
+		}
 	}
 
 	constructor(socket: any) {

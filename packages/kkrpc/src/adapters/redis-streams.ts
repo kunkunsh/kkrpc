@@ -2,40 +2,28 @@ import IORedis from "ioredis"
 import type { IoCapabilities, IoInterface, IoMessage } from "../interface.ts"
 
 interface RedisStreamsOptions {
+	/** Redis connection URL (defaults to redis://localhost:6379) */
 	url?: string
+	/** Stream name for RPC messages (defaults to "kkrpc-stream") */
 	stream?: string
+	/** Consumer group name for load balancing (defaults to "kkrpc-group") */
 	consumerGroup?: string
+	/** Unique consumer name within the group (auto-generated if not provided) */
 	consumerName?: string
+	/** Blocking read timeout in milliseconds (defaults to 5000ms) */
 	blockTimeout?: number
+	/** Maximum stream length to trim old messages (null = unlimited) */
 	maxLen?: number
+	/** Session ID for this adapter instance (auto-generated if not provided) */
 	sessionId?: string
-	/**
-	 * 最大队列大小，防止消息积压导致内存问题
-	 * 默认 1000 条消息
-	 */
+	/** Maximum in-memory message queue size (defaults to 1000, drops oldest when full) */
 	maxQueueSize?: number
-	/**
-	 * 使用 consumer group 模式 (XREADGROUP) 而非简单的 pub/sub (XREAD)
-	 * - false (默认): pub/sub 模式，所有 consumer 都能收到所有消息
-	 * - true: 负载均衡模式，每条消息只会被一个 consumer 处理
-	 */
+	/** Use consumer groups for load balancing (false = pub/sub, true = load balance) */
 	useConsumerGroup?: boolean
 }
 
 /**
  * Redis Streams implementation of IoInterface
- *
- * 支持两种消息消费模式:
- * 1. Pub/Sub 模式 (默认): 使用 XREAD，所有 consumer 都能收到所有消息
- * 2. Consumer Group 模式: 使用 XREADGROUP，每条消息只被一个 consumer 处理 (负载均衡)
- *
- * 内存管理:
- * - 支持最大队列大小限制 (maxQueueSize)，防止消息积压导致内存问题
- * - 队列满时自动丢弃最老的消息并记录警告
- *
- * 配置验证:
- * - 构造时验证所有配置选项的类型和范围
- * - 无效配置会立即抛出异常
  */
 export class RedisStreamsIO implements IoInterface {
 	name = "redis-streams-io"
@@ -61,8 +49,27 @@ export class RedisStreamsIO implements IoInterface {
 		transfer: false
 	}
 
+	private messageListeners: Set<(message: string | IoMessage) => void> = new Set()
+
+	on(event: "message", listener: (message: string | IoMessage) => void): void
+	on(event: "error", listener: (error: Error) => void): void
+	on(event: "message" | "error", listener: Function): void {
+		if (event === "message") {
+			this.messageListeners.add(listener as (message: string | IoMessage) => void)
+		} else if (event === "error") {
+			// Silently ignore error events
+		}
+	}
+
+	off(event: "message" | "error", listener: Function): void {
+		if (event === "message") {
+			this.messageListeners.delete(listener as (message: string | IoMessage) => void)
+		} else if (event === "error") {
+			// Silently ignore error events
+		}
+	}
+
 	constructor(private options: RedisStreamsOptions = {}) {
-		// 配置验证
 		this.validateOptions(options)
 
 		this.sessionId = options.sessionId || this.generateSessionId()
@@ -172,7 +179,7 @@ export class RedisStreamsIO implements IoInterface {
 		while (!this.isDestroyed && this.isListening) {
 			try {
 				if (this.useConsumerGroup) {
-					// Use XREADGROUP for load balancing (每条消息只被一个 consumer 处理)
+					// Use XREADGROUP for load balancing
 					const results = await this.subscriber.xreadgroup(
 						"GROUP",
 						this.consumerGroup,
@@ -236,7 +243,6 @@ export class RedisStreamsIO implements IoInterface {
 							}
 
 							if (messageData) {
-								// 记录 lastId，避免 race condition 丢消息
 								this.lastId = messageId
 								this.handleMessage(messageData)
 							}
@@ -260,17 +266,18 @@ export class RedisStreamsIO implements IoInterface {
 			return
 		}
 
-		if (this.resolveRead) {
+		if (this.messageListeners.size > 0) {
+			this.messageListeners.forEach((listener) => listener(message))
+		} else if (this.resolveRead) {
 			this.resolveRead(message)
 			this.resolveRead = null
 		} else {
-			// 检查队列大小，防止内存溢出
 			if (this.messageQueue.length >= this.maxQueueSize) {
 				console.warn(
 					`Message queue full (${this.maxQueueSize} messages), dropping oldest message. ` +
 						`Consider increasing maxQueueSize or processing messages faster.`
 				)
-				this.messageQueue.shift() // 丢弃最老的消息
+				this.messageQueue.shift()
 			}
 			this.messageQueue.push(message)
 		}
@@ -337,7 +344,6 @@ export class RedisStreamsIO implements IoInterface {
 		this.isDestroyed = true
 		this.isListening = false
 
-		// 解决 pending Promise，防止 listen loop 永久挂起
 		if (this.resolveRead) {
 			this.resolveRead(null)
 			this.resolveRead = null

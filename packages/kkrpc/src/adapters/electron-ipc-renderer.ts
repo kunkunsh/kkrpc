@@ -3,9 +3,6 @@ import type { WireEnvelope } from "../serialization.ts"
 
 const DESTROY_SIGNAL = "__DESTROY__"
 
-/**
- * Type for ipcRenderer (exposed via contextBridge in preload script)
- */
 interface IpcRenderer {
 	send(channel: string, ...args: unknown[]): void
 	on(channel: string, listener: (event: unknown, ...args: unknown[]) => void): void
@@ -20,27 +17,9 @@ declare global {
 	}
 }
 
-/**
- * IO adapter for Electron renderer process using ipcRenderer.
- *
- * This adapter is designed to be used in the renderer process of an Electron app.
- * It communicates with the main process via ipcRenderer which should be exposed
- * via contextBridge in the preload script.
- *
- * Example preload.js:
- * ```js
- * const { contextBridge, ipcRenderer } = require('electron')
- * contextBridge.exposeInMainWorld('electron', {
- *   ipcRenderer: {
- *     send: (channel, ...args) => ipcRenderer.send(channel, ...args),
- *     on: (channel, listener) => ipcRenderer.on(channel, listener),
- *     off: (channel, listener) => ipcRenderer.off(channel, listener)
- *   }
- * })
- * ```
- */
 export class ElectronIpcRendererIO implements IoInterface {
 	name = "electron-ipc-renderer-io"
+	private messageListeners: Set<(message: string | IoMessage) => void> = new Set()
 	private messageQueue: Array<string | IoMessage> = []
 	private resolveRead: ((value: string | IoMessage | null) => void) | null = null
 	private channel: string
@@ -65,6 +44,24 @@ export class ElectronIpcRendererIO implements IoInterface {
 		this.ipcRenderer.on(this.channel, this.handleMessage)
 	}
 
+	on(event: "message", listener: (message: string | IoMessage) => void): void
+	on(event: "error", listener: (error: Error) => void): void
+	on(event: "message" | "error", listener: Function): void {
+		if (event === "message") {
+			this.messageListeners.add(listener as (message: string | IoMessage) => void)
+		} else if (event === "error") {
+			// Silently ignore error events
+		}
+	}
+
+	off(event: "message" | "error", listener: Function): void {
+		if (event === "message") {
+			this.messageListeners.delete(listener as (message: string | IoMessage) => void)
+		} else if (event === "error") {
+			// Silently ignore error events
+		}
+	}
+
 	private handleMessage = (_event: unknown, ...args: unknown[]) => {
 		const raw = args[0]
 		const message = this.normalizeIncoming(raw)
@@ -74,7 +71,9 @@ export class ElectronIpcRendererIO implements IoInterface {
 			return
 		}
 
-		if (this.resolveRead) {
+		if (this.messageListeners.size > 0) {
+			this.messageListeners.forEach((listener) => listener(message))
+		} else if (this.resolveRead) {
 			this.resolveRead(message)
 			this.resolveRead = null
 		} else {

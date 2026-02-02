@@ -2,11 +2,30 @@ import { type IoCapabilities, type IoInterface, type IoMessage } from "../interf
 
 export class BunIo implements IoInterface {
 	name = "bun-io"
+	private messageListeners: Set<(message: string | IoMessage) => void> = new Set()
 	private readStream: ReadableStream<Uint8Array>
 	private reader: ReadableStreamDefaultReader<Uint8Array>
 	capabilities: IoCapabilities = {
 		structuredClone: false,
 		transfer: false
+	}
+
+	on(event: "message", listener: (message: string | IoMessage) => void): void
+	on(event: "error", listener: (error: Error) => void): void
+	on(event: "message" | "error", listener: Function): void {
+		if (event === "message") {
+			this.messageListeners.add(listener as (message: string | IoMessage) => void)
+		} else if (event === "error") {
+			// Silently ignore error events
+		}
+	}
+
+	off(event: "message" | "error", listener: Function): void {
+		if (event === "message") {
+			this.messageListeners.delete(listener as (message: string | IoMessage) => void)
+		} else if (event === "error") {
+			// Silently ignore error events
+		}
 	}
 
 	constructor(readStream: ReadableStream<Uint8Array>) {
@@ -19,9 +38,14 @@ export class BunIo implements IoInterface {
 	async read(): Promise<string | null> {
 		const { value, done } = await this.reader.read()
 		if (done) {
-			return null // End of input
+			return null
 		}
-		return new TextDecoder().decode(value)
+		const message = new TextDecoder().decode(value)
+		if (this.messageListeners.size > 0) {
+			this.messageListeners.forEach((listener) => listener(message))
+			return null
+		}
+		return message
 	}
 
 	async write(message: string | IoMessage): Promise<void> {

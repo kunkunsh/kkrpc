@@ -34,8 +34,9 @@ export interface IoInterface {
 	name: string
 	read(): Promise<string | IoMessage | null>
 	write(message: string | IoMessage): Promise<void>
-	/** Optional callback for event-driven message handling */
-	onMessage?: (message: string) => void | Promise<void>
+	on(event: "message", listener: (message: string | IoMessage) => void): void
+	on(event: "error", listener: (error: Error) => void): void
+	off(event: "message" | "error", listener: Function): void
 	capabilities?: IoCapabilities
 	/** Clean up resources used by the IO adapter */
 	destroy?(): void
