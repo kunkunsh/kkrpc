@@ -171,7 +171,7 @@ For backward compatibility, the receiving side will automatically detect the ser
 
 ### Installation
 
-<div align="center">
+
 
 ```bash
 # npm
@@ -187,11 +187,7 @@ pnpm add kkrpc
 import { RPCChannel } from "jsr:@kunkun/kkrpc"
 ```
 
-</div>
-
 ### Basic Example
-
-<div align="center">
 
 ```typescript
 // server.ts
@@ -219,8 +215,6 @@ const api = rpc.getAPI<typeof api>()
 console.log(await api.greet("World")) // "Hello, World!"
 console.log(await api.add(5, 3)) // 8
 ```
-
-</div>
 
 ## 📚 Examples
 
