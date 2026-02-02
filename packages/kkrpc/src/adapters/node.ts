@@ -21,6 +21,11 @@ export class NodeIo implements IoInterface {
 
 		this.readStream.on("error", (error) => {
 			if (this.errorHandler) this.errorHandler(error)
+			// Resolve pending read to prevent hanging on stream error
+			if (this.resolveRead) {
+				this.resolveRead(null)
+				this.resolveRead = null
+			}
 		})
 
 		this.readStream.on("data", (chunk: Buffer) => {
