@@ -1,6 +1,7 @@
 ---
 transition: slide-left
 title: kkRPC - Type-Safe Cross-Runtime RPC
+mdc: true
 src: ./pages/intro.md
 ---
 

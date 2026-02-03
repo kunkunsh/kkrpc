@@ -6,8 +6,6 @@ layoutClass: gap-4
 
 # Web Workers
 
-> Message Passing Nightmare
-
 ::left::
 
 ### Manual postMessage
@@ -42,6 +40,12 @@ self.onmessage = (e) => {
 
 ```ts
 // main.ts
+import { WorkerChildIO, RPCChannel } from "kkrpc"
+
+const worker = new Worker("./worker.ts")
+const io = new WorkerChildIO(worker)
+const rpc = new RPCChannel(io)
+
 const api = rpc.getAPI()
 const result = await api.add(1, 2) // 3
 await api.math.grade1.add(2, 3) // Nested!
@@ -49,6 +53,9 @@ await api.math.grade1.add(2, 3) // Nested!
 
 ```ts
 // worker.ts
+import { WorkerParentIO, RPCChannel } from "kkrpc"
+
+const io = new WorkerParentIO()
 const rpc = new RPCChannel(io, {
 	expose: {
 		add: (a, b) => a + b,
