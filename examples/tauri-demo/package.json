@@ -37,7 +37,7 @@
 		"@sveltejs/vite-plugin-svelte": "^4.0.1",
 		"@tauri-apps/cli": "^2",
 		"@types/bun": "^1.2.5",
-		"@yao-pkg/pkg": "^6.3.2",
+		"@yao-pkg/pkg": "6.3.2",
 		"autoprefixer": "^10.4.20",
 		"clsx": "^2.1.1",
 		"svelte": "^5.23.1",

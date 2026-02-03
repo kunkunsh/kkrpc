@@ -1,32 +1,33 @@
 {
-	"name": "kkrpc-repo",
-	"private": true,
-	"scripts": {
-		"build": "turbo build",
-		"dev": "turbo dev",
-		"test": "turbo test",
-		"lint": "turbo lint",
-		"copy-readme": "bun scripts/copy-readme.ts",
-		"format": "prettier --write \"**/*.{ts,tsx,md,svelte}\"",
-		"prepare": "husky"
-	},
-	"devDependencies": {
-		"@changesets/cli": "^2.28.1",
-		"@ianvs/prettier-plugin-sort-imports": "^4.4.1",
-		"@types/bun": "latest",
-		"husky": "^9.1.7",
-		"prettier": "^3.5.3",
-		"prettier-plugin-svelte": "^3.3.3",
-		"prettier-plugin-tailwindcss": "^0.6.11",
-		"turbo": "^2.4.4",
-		"typescript": "5.8.2"
-	},
-	"packageManager": "pnpm@10.20.0",
-	"engines": {
-		"node": ">=18"
-	},
-	"workspaces": [
-		"examples/*",
-		"packages/*"
-	]
+  "name": "kkrpc-repo",
+  "private": true,
+  "scripts": {
+    "build": "turbo build",
+    "dev": "turbo dev",
+    "test": "turbo test",
+    "lint": "turbo lint",
+    "copy-readme": "bun scripts/copy-readme.ts",
+    "format": "prettier --write \"**/*.{ts,tsx,md,svelte}\"",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "@changesets/cli": "^2.28.1",
+    "@ianvs/prettier-plugin-sort-imports": "^4.4.1",
+    "@types/bun": "latest",
+    "husky": "^9.1.7",
+    "prettier": "^3.5.3",
+    "prettier-plugin-svelte": "^3.3.3",
+    "prettier-plugin-tailwindcss": "^0.6.11",
+    "turbo": "^2.4.4",
+    "typescript": "5.8.2"
+  },
+  "packageManager": "pnpm@10.20.0",
+  "engines": {
+    "node": ">=18"
+  },
+  "workspaces": [
+    "examples/*",
+    "packages/*",
+    "docs"
+  ]
 }

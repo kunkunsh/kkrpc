@@ -4,5 +4,6 @@
         "titleBar.activeBackground": "#513A3D",
         "titleBar.activeForeground": "#FBFAFA"
     },
-    "deno.enable": false
+    "deno.enable": false,
+    "editor.hover.enabled": "off"
 }

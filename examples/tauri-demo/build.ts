@@ -13,15 +13,12 @@ const denoBackendDir = path.join(cwd, "../deno-backend")
 await $`deno compile -A --unstable-kv -o deno${ext} main.ts`.cwd(denoBackendDir)
 await $`cp deno${ext} ${binariesDir}/deno${ext}`.cwd(denoBackendDir)
 
-// build node from typescript to javascript
+// build node from typescript to javascript (CommonJS format for pkg compatibility)
 await $`rm -rf dist-backend`
-await Bun.build({
-	entrypoints: ["./src/backend/node.ts"],
-	outdir: "./dist-backend",
-	target: "node",
-	splitting: true,
-	minify: true
-})
+await $`mkdir -p dist-backend`
+
+// Use bun build with CJS format - pkg can't handle ESM with import.meta.url
+await $`bun build --format=cjs --target=node ./src/backend/node.ts --outfile=dist-backend/node.js`
 
 // Determine platform and arch for pkg target
 const platform =
