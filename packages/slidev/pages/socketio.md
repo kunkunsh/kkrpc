@@ -6,10 +6,6 @@ layoutClass: gap-4
 
 # Socket.IO
 
-> Real-Time Bidirectional RPC
-> 
-> Automatic reconnection, fallback support, type safety, bidirectional communication
-
 ::left::
 
 ### Traditional Socket.IO
@@ -47,8 +43,8 @@ socket.timeout(5000).emit("getUser",
 
 ### With kkRPC
 
-```ts {*}{maxHeight:'350px'}
-// Client - Direct function calls
+```ts {*}{maxHeight:'200px'}
+// Client
 import { SocketIOClientIO, RPCChannel } 
 	from "kkrpc/socketio"
 
@@ -61,16 +57,28 @@ const math = rpc.getAPI()
 
 // Type-safe function calls!
 const sum = await math.add(5, 3)
-// TypeScript knows sum is a number ✨
-
-// Works with nested APIs too
 const product = await math.grade2.multiply(4, 6)
+```
 
-// Namespaces supported
-const io = new SocketIOClientIO({
-	url: "http://localhost:3000",
-	namespace: "rpc"
+```ts {*}{maxHeight:'180px'}
+// Server
+import { createServer } from "http"
+import { Server as SocketIOServer } from "socket.io"
+import { SocketIOServerIO, RPCChannel } 
+	from "kkrpc/socketio"
+
+const httpServer = createServer()
+const io = new SocketIOServer(httpServer)
+
+io.on("connection", (socket) => {
+  const serverIO = new SocketIOServerIO(socket)
+  const rpc = new RPCChannel<MathAPI, {}>(
+    serverIO, 
+    { expose: mathApiMethods }
+  )
 })
+
+httpServer.listen(3000)
 ```
 
 <!--
@@ -80,6 +88,7 @@ With kkRPC over Socket.IO:
 - Event names become function calls with full TypeScript autocomplete
 - Automatic acknowledgements handled by RPC layer
 - Bidirectional - both client and server can expose APIs
+- Server creates SocketIOServerIO from the socket and wraps with RPCChannel
 - Supports Socket.IO features like namespaces, rooms, auto-reconnection
 - Error preservation across the wire
 

@@ -1,29 +1,9 @@
 ---
-theme: seriph
-title: kkRPC - Type-Safe Cross-Runtime RPC
-info: |
-  ## TypeScript-First RPC Library
-
-  Seamless bi-directional communication between processes, workers, and contexts.
-
-  Call remote functions as if they were local, with full TypeScript type safety.
-class: text-center
-drawings:
-  persist: false
+layout: image
+image: https://imgur.com/19XswxO.jpg
+backgroundSize: contain
 transition: slide-left
-mdc: true
-duration: 15min
 ---
-
-# kkRPC
-
-## Type-Safe Cross-Runtime RPC
-
-Seamless bi-directional communication for TypeScript/JavaScript
-
-<div @click="$slidev.nav.next" class="mt-12 py-1" hover:bg="white op-10">
-  Press Space to continue <carbon:arrow-right />
-</div>
 
 <!--
 Welcome! Today I'm going to show you kkRPC, a TypeScript-first RPC library that makes cross-context communication incredibly simple and type-safe.
@@ -59,3 +39,49 @@ You end up with:
 
 And when your app grows to hundreds of API calls? Good luck maintaining that.
 -->
+
+---
+image: https://imgur.com/vR3Lmv0.png
+backgroundSize: 30em
+layout: two-cols-header
+layoutClass: gap-4
+transition: slide-right
+---
+
+# Environments
+
+::left::
+
+<div class="flex items-center justify-center h-full">
+  <img src="https://imgur.com/vR3Lmv0.png" style="max-height: 200px;">
+</div>
+
+::right::
+
+<div class="flex items-center justify-center h-full">
+  <img src="https://i.imgur.com/zmOHNfu.png" style="max-height: 250px;">
+</div>
+
+---
+transition: slide-right
+layout: center
+class: text-center
+---
+
+# Browser
+
+<div class="flex items-center justify-center h-full">
+  <img src="https://i.imgur.com/Gu7jH1v.png" style="max-height: 450px;">
+</div>
+
+---
+transition: slide-right
+layout: center
+class: text-center
+---
+
+# Kunkun
+
+<div class="flex items-center justify-center h-full">
+  <img src="https://imgur.com/u728aVv.png" style="max-height: 400px;">
+</div>
