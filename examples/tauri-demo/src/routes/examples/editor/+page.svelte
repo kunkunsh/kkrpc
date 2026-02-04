@@ -106,7 +106,7 @@
 	<div class="flex justify-end">
 		<SelectRuntime bind:value={currentRuntime} />
 	</div>
-	{#if currentRuntime === "bun" && platform === "macos"}
+	<!-- {#if currentRuntime === "bun" && platform === "macos"}
 		<Alert.Root class="bg-red-500/50">
 			<Alert.Title>Heads up!</Alert.Title>
 			<Alert.Description>
@@ -120,7 +120,7 @@
 				https://github.com/kunkunsh/kkrpc/issues/11
 			</button>
 		</Alert.Root>
-	{/if}
+	{/if} -->
 	{#key currentRuntime}
 		<CodeEditor class="min-h-96" bind:code />
 	{/key}
