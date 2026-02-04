@@ -87,7 +87,7 @@
 	<h1 class="text-2xl font-bold">
 		Direct <code>bun/node/deno</code> CLI call with <code>kkrpc</code>
 	</h1>
-	<Alert.Root class="bg-blue-500/50">
+	<!-- <Alert.Root class="bg-blue-500/50">
 		<InfoIcon class="size-4" />
 		<Alert.Title>Explanation</Alert.Title>
 		<Alert.Description>
@@ -112,7 +112,7 @@
 				https://github.com/kunkunsh/kkrpc/issues/11
 			</button>
 		</Alert.Description>
-	</Alert.Root>
+	</Alert.Root> -->
 	<div class="flex gap-2">
 		<Input placeholder="Script path" disabled bind:value={scriptPath} />
 		<Button onclick={pickScript}>Pick Script</Button>
