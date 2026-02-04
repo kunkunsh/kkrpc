@@ -266,6 +266,18 @@
       ]
     },
     "members": {
+      "docs": {
+        "packageJson": {
+          "dependencies": [
+            "npm:@astrojs/check@~0.9.6",
+            "npm:@astrojs/starlight@~0.37.3",
+            "npm:astro@^5.16.11",
+            "npm:sharp@~0.32.5",
+            "npm:starlight-llms-txt@0.7",
+            "npm:typescript@^5.6.3"
+          ]
+        }
+      },
       "examples/chrome-extension": {
         "packageJson": {
           "dependencies": [
@@ -354,7 +366,7 @@
             "npm:@tauri-apps/plugin-os@^2.2.1",
             "npm:@tauri-apps/plugin-shell@^2.2.0",
             "npm:@types/bun@^1.2.5",
-            "npm:@yao-pkg/pkg@^6.3.2",
+            "npm:@yao-pkg/pkg@6.3.2",
             "npm:autoprefixer@^10.4.20",
             "npm:clsx@^2.1.1",
             "npm:formsnap@2",
@@ -431,6 +443,22 @@
             "npm:typedoc@~0.28.10",
             "npm:verify-package-export@^0.0.3",
             "npm:ws@^8.18.1"
+          ]
+        }
+      },
+      "packages/slidev": {
+        "packageJson": {
+          "dependencies": [
+            "npm:@iconify-json/carbon@^1.2.18",
+            "npm:@iconify-json/devicon@^1.2.57",
+            "npm:@iconify-json/logos@^1.2.10",
+            "npm:@iconify-json/simple-icons@^1.2.69",
+            "npm:@iconify-json/skill-icons@^1.2.3",
+            "npm:@iconify-json/streamline-ultimate-color@^1.2.2",
+            "npm:@slidev/cli@^52.11.5",
+            "npm:@slidev/theme-default@latest",
+            "npm:@slidev/theme-seriph@latest",
+            "npm:vue@^3.5.27"
           ]
         }
       }
