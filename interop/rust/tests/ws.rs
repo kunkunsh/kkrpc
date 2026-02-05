@@ -1,4 +1,4 @@
-use kkrpc_interop::{Arg, Client, WebSocketTransport};
+use kkrpc::{Arg, Client, WebSocketTransport};
 use serde_json::json;
 use std::io::{BufRead, BufReader};
 use std::process::{Command, Stdio};

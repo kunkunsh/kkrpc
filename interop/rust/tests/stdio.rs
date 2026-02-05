@@ -1,4 +1,4 @@
-use kkrpc_interop::{Arg, Client, StdioTransport};
+use kkrpc::{Arg, Client, StdioTransport};
 use serde_json::json;
 use std::process::{Command, Stdio};
 use std::sync::mpsc;

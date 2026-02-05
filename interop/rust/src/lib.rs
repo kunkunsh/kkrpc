@@ -18,7 +18,7 @@
 //! ### Client Example
 //!
 //! ```rust,no_run
-//! use kkrpc_interop::{Client, StdioTransport, Arg};
+//! use kkrpc::{Client, StdioTransport, Arg};
 //! use serde_json::json;
 //! use std::process::{Command, Stdio};
 //! use std::sync::Arc;
@@ -50,7 +50,7 @@
 //! ### Server Example
 //!
 //! ```rust,no_run
-//! use kkrpc_interop::{Server, RpcApi, StdioTransport, Arg};
+//! use kkrpc::{Server, RpcApi, StdioTransport, Arg};
 //! use serde_json::Value;
 //! use std::sync::Arc;
 //!
@@ -151,7 +151,7 @@ pub const CALLBACK_PREFIX: &str = "__callback__";
 /// # Example
 ///
 /// ```rust
-/// use kkrpc_interop::Transport;
+/// use kkrpc::Transport;
 ///
 /// struct MyTransport;
 ///
@@ -202,7 +202,7 @@ pub trait Transport: Send + Sync {
 /// # Example
 ///
 /// ```rust,no_run
-/// use kkrpc_interop::StdioTransport;
+/// use kkrpc::StdioTransport;
 /// use std::process::{Command, Stdio};
 ///
 /// let mut child = Command::new("server")
@@ -269,7 +269,7 @@ impl<R: std::io::Read + Send + 'static, W: Write + Send + 'static> Transport
 /// # Example
 ///
 /// ```rust,no_run
-/// use kkrpc_interop::WebSocketTransport;
+/// use kkrpc::WebSocketTransport;
 /// use std::sync::Arc;
 ///
 /// let transport = WebSocketTransport::connect("ws://localhost:8789")
@@ -277,7 +277,7 @@ impl<R: std::io::Read + Send + 'static, W: Write + Send + 'static> Transport
 /// ```
 pub struct WebSocketTransport {
     sender: Mutex<websocket::sender::Writer<std::net::TcpStream>>,
-    queue: Arc<(Mutex<VecDeque<String>>, Condvar)>,
+    queue: Arc<(Mutex<VecDeque<Option<String>>>, Condvar)>,
 }
 
 impl WebSocketTransport {
@@ -294,7 +294,7 @@ impl WebSocketTransport {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use kkrpc_interop::WebSocketTransport;
+    /// use kkrpc::WebSocketTransport;
     ///
     /// let transport = WebSocketTransport::connect("ws://localhost:8789")
     ///     .expect("connection failed");
@@ -313,10 +313,14 @@ impl WebSocketTransport {
                     Ok(websocket::OwnedMessage::Text(text)) => {
                         let (lock, cvar) = &*queue_clone;
                         let mut queue = lock.lock().unwrap();
-                        queue.push_back(text);
+                        queue.push_back(Some(text));
                         cvar.notify_one();
                     }
                     Ok(websocket::OwnedMessage::Close(_)) | Err(_) => {
+                        let (lock, cvar) = &*queue_clone;
+                        let mut queue = lock.lock().unwrap();
+                        queue.push_back(None);
+                        cvar.notify_one();
                         break;
                     }
                     _ => {}
@@ -338,7 +342,7 @@ impl Transport for WebSocketTransport {
         while queue.is_empty() {
             queue = cvar.wait(queue).ok()?;
         }
-        queue.pop_front()
+        queue.pop_front().flatten()
     }
 
     fn write(&self, message: &str) -> Result<(), String> {
@@ -365,7 +369,7 @@ impl Transport for WebSocketTransport {
 /// # Example
 ///
 /// ```rust
-/// use kkrpc_interop::RpcError;
+/// use kkrpc::RpcError;
 ///
 /// let error = RpcError {
 ///     name: Some("ValidationError".to_string()),
@@ -411,7 +415,7 @@ struct ResponsePayload {
 /// # Example
 ///
 /// ```rust
-/// use kkrpc_interop::Arg;
+/// use kkrpc::Arg;
 /// use serde_json::json;
 /// use std::sync::Arc;
 ///
@@ -440,7 +444,7 @@ type Callback = Arc<dyn Fn(Vec<Value>) + Send + Sync + 'static>;
 /// # Example
 ///
 /// ```rust,no_run
-/// use kkrpc_interop::{Client, StdioTransport, Arg};
+/// use kkrpc::{Client, StdioTransport, Arg};
 /// use serde_json::json;
 /// use std::process::{Command, Stdio};
 /// use std::sync::Arc;
@@ -486,7 +490,7 @@ impl Client {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use kkrpc_interop::{Client, StdioTransport};
+    /// use kkrpc::{Client, StdioTransport};
     /// use std::io;
     /// use std::sync::Arc;
     ///
@@ -542,7 +546,7 @@ impl Client {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use kkrpc_interop::{Client, Arg};
+    /// use kkrpc::{Client, Arg};
     /// use serde_json::json;
     ///
     /// fn example(client: &Client) {
@@ -571,7 +575,7 @@ impl Client {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use kkrpc_interop::Client;
+    /// use kkrpc::Client;
     ///
     /// fn example(client: &Client) {
     ///     let counter = client.get(&["counter"]).expect("get failed");
@@ -599,7 +603,7 @@ impl Client {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use kkrpc_interop::Client;
+    /// use kkrpc::Client;
     /// use serde_json::json;
     ///
     /// fn example(client: &Client) {
@@ -692,7 +696,7 @@ impl Client {
 /// # Example
 ///
 /// ```rust
-/// use kkrpc_interop::{Handler, Arg};
+/// use kkrpc::{Handler, Arg};
 /// use serde_json::Value;
 /// use std::sync::Arc;
 ///
@@ -721,7 +725,7 @@ pub type Handler = Arc<dyn Fn(Vec<Arg>) -> Value + Send + Sync + 'static>;
 /// # Example
 ///
 /// ```rust
-/// use kkrpc_interop::RpcApi;
+/// use kkrpc::RpcApi;
 /// use serde_json::Value;
 /// use std::sync::Arc;
 ///
@@ -753,7 +757,7 @@ impl RpcApi {
     /// # Example
     ///
     /// ```rust
-    /// use kkrpc_interop::{RpcApi, Arg};
+    /// use kkrpc::{RpcApi, Arg};
     /// use serde_json::Value;
     /// use std::sync::Arc;
     ///
@@ -810,7 +814,7 @@ impl RpcApi {
 /// # Example
 ///
 /// ```rust,no_run
-/// use kkrpc_interop::{Server, RpcApi, StdioTransport};
+/// use kkrpc::{Server, RpcApi, StdioTransport};
 /// use std::io;
 /// use std::sync::Arc;
 ///

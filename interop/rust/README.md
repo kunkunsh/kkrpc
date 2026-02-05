@@ -30,7 +30,7 @@ cargo test
 ### Stdio client
 
 ```rust
-use kkrpc_interop::{Arg, Client, StdioTransport};
+use kkrpc::{Arg, Client, StdioTransport};
 use serde_json::json;
 use std::process::{Command, Stdio};
 use std::sync::Arc;
@@ -59,7 +59,7 @@ fn main() {
 ### WebSocket client
 
 ```rust
-use kkrpc_interop::{Arg, Client, WebSocketTransport};
+use kkrpc::{Arg, Client, WebSocketTransport};
 use serde_json::json;
 
 fn main() {
@@ -77,7 +77,7 @@ fn main() {
 ### Server
 
 ```rust
-use kkrpc_interop::{Arg, RpcApi, Server, StdioTransport};
+use kkrpc::{Arg, RpcApi, Server, StdioTransport};
 use serde_json::Value;
 use std::sync::Arc;
 
