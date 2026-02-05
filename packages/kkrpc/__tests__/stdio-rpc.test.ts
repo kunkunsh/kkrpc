@@ -79,7 +79,6 @@ describe("RPCChannel Test", () => {
 	test("NodeStdio", async () => {
 		const jsScriptPath = path.join(testsPath, "scripts/node-api.js")
 		if (!fs.existsSync(jsScriptPath)) {
-			await fs.unlinkSync(path.join(testsPath, "scripts/node-api.js"))
 			await Bun.build({
 				entrypoints: [path.join(testsPath, "scripts/node-api.ts")],
 				outdir: path.join(testsPath, "scripts"),
@@ -87,7 +86,6 @@ describe("RPCChannel Test", () => {
 				minify: true
 			})
 		}
-		console.log("jsScriptPath", jsScriptPath)
 		const workerNode = spawn("node", [jsScriptPath])
 		await runWorker(workerNode)
 	})
