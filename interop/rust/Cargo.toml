@@ -1,6 +1,6 @@
 [package]
 name = "kkrpc"
-version = "0.6.0"
+version = "0.6.1"
 edition = "2024"
 authors = ["kunkunsh <kunkun.sh@outlook.com>"]
 description = "Rust client/server library for kkrpc JSON-mode interop"
