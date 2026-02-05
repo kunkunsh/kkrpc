@@ -4,6 +4,8 @@
 
 ## TypeScript 优先的 RPC 库
 
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/kunkunsh/kkrpc)
+[![zread](https://img.shields.io/badge/Ask_Zread-_.svg?style=for-the-badge&color=00b0aa&labelColor=000000&logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTQuOTYxNTYgMS42MDAxSDIuMjQxNTZDMS44ODgxIDEuNjAwMSAxLjYwMTU2IDEuODg2NjQgMS42MDE1NiAyLjI0MDFWNC45NjAxQzEuNjAxNTYgNS4zMTM1NiAxLjg4ODEgNS42MDAxIDIuMjQxNTYgNS42MDAxSDQuOTYxNTZDNS4zMTUwMiA1LjYwMDEgNS42MDE1NiA1LjMxMzU2IDUuNjAxNTYgNC45NjAxVjIuMjQwMUM1LjYwMTU2IDEuODg2NjQgNS4zMTUwMiAxLjYwMDEgNC45NjE1NiAxLjYwMDFaIiBmaWxsPSIjZmZmIi8%2BCjxwYXRoIGQ9Ik00Ljk2MTU2IDEwLjM5OTlIMi4yNDE1NkMxLjg4ODEgMTAuMzk5OSAxLjYwMTU2IDEwLjY4NjQgMS42MDE1NiAxMS4wMzk5VjEzLjc1OTlDMS42MDE1NiAxNC4xMTM0IDEuODg4MSAxNC4zOTk5IDIuMjQxNTYgMTQuMzk5OUg0Ljk2MTU2QzUuMzE1MDIgMTQuMzk5OSA1LjYwMTU2IDE0LjExMzQgNS42MDE1NiAxMy43NTk5VjExLjAzOTlDNS42MDE1NiAxMC42ODY0IDUuMzE1MDIgMTAuMzk5OSA0Ljk2MTU2IDEwLjM5OTlaIiBmaWxsPSIjZmZmIi8%2BCjxwYXRoIGQ9Ik0xMy43NTg0IDEuNjAwMUgxMS4wMzg0QzEwLjY4NSAxLjYwMDEgMTAuMzk4NCAxLjg4NjY0IDEwLjM5ODQgMi4yNDAxVjQuOTYwMUMxMC4zOTg0IDUuMzEzNTYgMTAuNjg1IDUuNjAwMSAxMS4wMzg0IDUuNjAwMUgxMy43NTg0QzE0LjExMTkgNS42MDAxIDE0LjM5ODQgNS4zMTM1NiAxNC4zOTg0IDQuOTYwMVYyLjI0MDFDMTQuMzk4NCAxLjg4NjY0IDE0LjExMTkgMS42MDAxIDEzLjc1ODQgMS42MDAxWiIgZmlsbD0iI2ZmZiIvPgo8cGF0aCBkPSJNNCAxMkwxMiA0TDQgMTJaIiBmaWxsPSIjZmZmIi8%2BCjxwYXRoIGQ9Ik00IDEyTDEyIDQiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8L3N2Zz4K&logoColor=ffffff)](https://zread.ai/kunkunsh/kkrpc)
 [![NPM Version](https://img.shields.io/npm/v/kkrpc?style=for-the-badge&logo=npm)](https://www.npmjs.com/package/kkrpc)
 [![JSR Version](https://img.shields.io/jsr/v/@kunkun/kkrpc?style=for-the-badge&logo=deno)](https://jsr.io/@kunkun/kkrpc)
 [![License](https://img.shields.io/npm/l/kkrpc?style=for-the-badge)](https://github.com/kunkunsh/kkrpc/blob/main/LICENSE)
@@ -11,6 +13,7 @@
 [![GitHub stars](https://img.shields.io/github/stars/kunkunsh/kkrpc?style=for-the-badge&logo=github)](https://github.com/kunkunsh/kkrpc)
 [![Typedoc Documentation](https://img.shields.io/badge/Docs-Typedoc-blue?style=for-the-badge&logo=typescript)](https://kunkunsh.github.io/kkrpc/)
 [![Excalidraw Diagrams](https://img.shields.io/badge/Diagrams-Excalidraw-orange?style=for-the-badge&logo=drawio)](https://excalidraw.com/#json=xp6GbAJVAx3nU-h3PhaxW,oYBNvYmCRsQ2XR3MQo73Ug)
+[![LLM Docs](https://img.shields.io/badge/LLM-Docs-green?style=for-the-badge&logo=openai)](https://docs.kkrpc.kunkun.sh/llms.txt)
 
 </div>
 
@@ -24,10 +27,11 @@
 
 **类似于 Comlink 但支持双向通信**，并支持多种环境 - 客户端和服务器都可以在 Node.js、Deno、Bun 和浏览器环境中暴露函数供对方调用。
 
-[**快速开始**](#-快速开始) • [**文档**](https://kunkunsh.github.io/kkrpc/) • [**示例**](#-示例) • [**API 参考**](https://jsr.io/@kunkun/kkrpc/doc)
+[**快速开始**](#-快速开始) • [**文档**](https://kunkunsh.github.io/kkrpc/) • [**示例**](#-示例) • [**API 参考**](https://jsr.io/@kunkun/kkrpc/doc) • [**LLM 文档**](https://docs.kkrpc.kunkun.sh/llms.txt)
 
 <div align="center">
 
+<img src="https://imgur.com/19XswxO.jpg" style="max-width: 800px; width: 100%; margin-bottom: 20px;"/>
 <img src="https://imgur.com/vR3Lmv0.png" style="max-height: 200px; margin: 10px;"/>
 <img src="https://i.imgur.com/zmOHNfu.png" style="max-height: 250px; margin: 10px;"/>
 <img src="https://imgur.com/u728aVv.png" style="max-height: 400px; margin: 10px;"/>
@@ -45,19 +49,19 @@
 
 <div align="center">
 
-| 特性                     | 描述                                                    |
-| --------------------------- | -------------------------------------------------------------- |
-| **🔄 跨运行时**        | 在 Node.js、Deno、Bun、浏览器等环境中无缝工作 |
-| **🛡️ 类型安全**            | 完整的 TypeScript 推断和 IDE 自动补全支持       |
-| **↔️ 双向**        | 两个端点可以同时暴露和调用 API         |
-| **🏠 属性访问**      | 使用点表示法进行远程 getter/setter (`await api.prop`)    |
-| **💥 错误保留**   | 跨 RPC 边界保留完整错误对象                   |
-| **🌐 多种传输协议**  | stdio、HTTP、WebSocket、postMessage、Chrome 扩展         |
-| **📞 回调支持**     | 远程函数可以接受回调函数                 |
-| **🔗 嵌套调用**         | 深度方法链如 `api.math.operations.calculate()`    |
-| **📦 自动序列化**   | 智能的 JSON/superjson 检测                           |
-| **⚡ 零配置**          | 无需架构文件或代码生成                    |
-| **🚀 可传输对象** | 大数据的零拷贝传输（快 40-100 倍）            |
+| 特性                | 描述                                                  |
+| ------------------- | ----------------------------------------------------- |
+| **🔄 跨运行时**     | 在 Node.js、Deno、Bun、浏览器等环境中无缝工作         |
+| **🛡️ 类型安全**     | 完整的 TypeScript 推断和 IDE 自动补全支持             |
+| **↔️ 双向**         | 两个端点可以同时暴露和调用 API                        |
+| **🏠 属性访问**     | 使用点表示法进行远程 getter/setter (`await api.prop`) |
+| **💥 错误保留**     | 跨 RPC 边界保留完整错误对象                           |
+| **🌐 多种传输协议** | stdio、HTTP、WebSocket、postMessage、Chrome 扩展      |
+| **📞 回调支持**     | 远程函数可以接受回调函数                              |
+| **🔗 嵌套调用**     | 深度方法链如 `api.math.operations.calculate()`        |
+| **📦 自动序列化**   | 智能的 JSON/superjson 检测                            |
+| **⚡ 零配置**       | 无需架构文件或代码生成                                |
+| **🚀 可传输对象**   | 大数据的零拷贝传输（快 40-100 倍）                    |
 
 </div>
 
@@ -93,19 +97,20 @@ graph LR
 
 ### 📡 传输协议
 
-| 传输协议            | 使用场景                                          | 支持的运行时                     |
-| -------------------- | ------------------------------------------------- | -------------------------------------- |
-| **stdio**            | 进程间通信                  | Node.js ↔ Deno ↔ Bun                 |
-| **postMessage**      | 浏览器上下文通信                     | Browser ↔ Web Workers ↔ iframes      |
-| **HTTP**             | Web API 通信                             | 所有运行时                           |
-| **WebSocket**        | 实时通信                           | 所有运行时                           |
-| **Hono WebSocket**   | 与 Hono 框架的高性能 WebSocket    | Node.js, Deno, Bun, Cloudflare Workers |
-| **Socket.IO**        | 增强的实时通信，支持房间/命名空间          | 所有运行时                           |
+| 传输协议             | 使用场景                                            | 支持的运行时                           |
+| -------------------- | --------------------------------------------------- | -------------------------------------- |
+| **stdio**            | 进程间通信                                          | Node.js ↔ Deno ↔ Bun                 |
+| **postMessage**      | 浏览器上下文通信                                    | Browser ↔ Web Workers ↔ iframes      |
+| **HTTP**             | Web API 通信                                        | 所有运行时                             |
+| **WebSocket**        | 实时通信                                            | 所有运行时                             |
+| **Hono WebSocket**   | 与 Hono 框架的高性能 WebSocket                      | Node.js, Deno, Bun, Cloudflare Workers |
+| **Socket.IO**        | 增强的实时通信，支持房间/命名空间                   | 所有运行时                             |
 | **Elysia WebSocket** | 与现代 TypeScript 优先 Elysia 框架的 WebSocket 集成 | Bun, Node.js, Deno                     |
-| **Chrome Extension** | 扩展组件通信                 | Chrome Extension 上下文              |
-| **RabbitMQ**         | 消息队列通信                       | Node.js, Deno, Bun                   |
-| **Redis Streams**    | 具有持久性的流式消息传递           | Node.js, Deno, Bun                   |
-| **Kafka**            | 分布式流处理平台                    | Node.js, Deno, Bun                   |
+| **Chrome Extension** | 扩展组件通信                                        | Chrome Extension 上下文                |
+| **RabbitMQ**         | 消息队列通信                                        | Node.js, Deno, Bun                     |
+| **Redis Streams**    | 具有持久性的流式消息传递                            | Node.js, Deno, Bun                     |
+| **Kafka**            | 分布式流处理平台                                    | Node.js, Deno, Bun                     |
+| **NATS**             | 高性能消息系统                                      | Node.js, Deno, Bun                     |
 
 **kkrpc** 设计的核心在于 `RPCChannel` 和 `IoInterface`。
 
@@ -165,7 +170,6 @@ const rpc = new RPCChannel(io, {
 
 ### 安装
 
-
 ```bash
 # npm
 npm install kkrpc
@@ -181,7 +185,6 @@ import { RPCChannel } from "jsr:@kunkun/kkrpc"
 ```
 
 ### 基本示例
-
 
 ```typescript
 // server.ts
@@ -683,14 +686,14 @@ import { RabbitMQIO, RPCChannel } from "kkrpc"
 import { apiMethods, type API } from "./api"
 
 const rabbitmqIO = new RabbitMQIO({
-  url: "amqp://localhost",
-  exchange: "kkrpc-exchange",
-  exchangeType: "topic",
-  durable: true
+	url: "amqp://localhost",
+	exchange: "kkrpc-exchange",
+	exchangeType: "topic",
+	durable: true
 })
 
 const producerRPC = new RPCChannel<API, API>(rabbitmqIO, {
-  expose: apiMethods
+	expose: apiMethods
 })
 
 const api = producerRPC.getAPI()
@@ -709,15 +712,15 @@ import { RabbitMQIO, RPCChannel } from "kkrpc"
 import { apiMethods, type API } from "./api"
 
 const rabbitmqIO = new RabbitMQIO({
-  url: "amqp://localhost",
-  exchange: "kkrpc-exchange",
-  exchangeType: "topic",
-  durable: true,
-  sessionId: "consumer-session"
+	url: "amqp://localhost",
+	exchange: "kkrpc-exchange",
+	exchangeType: "topic",
+	durable: true,
+	sessionId: "consumer-session"
 })
 
 const consumerRPC = new RPCChannel<API, API>(rabbitmqIO, {
-  expose: apiMethods
+	expose: apiMethods
 })
 
 const api = consumerRPC.getAPI()
@@ -748,14 +751,14 @@ import { RedisStreamsIO, RPCChannel } from "kkrpc"
 import { apiMethods, type API } from "./api"
 
 const redisIO = new RedisStreamsIO({
-  url: "redis://localhost:6379",
-  stream: "kkrpc-stream",
-  maxLen: 10000, // 只保留最后 1 万条消息
-  maxQueueSize: 1000
+	url: "redis://localhost:6379",
+	stream: "kkrpc-stream",
+	maxLen: 10000, // 只保留最后 1 万条消息
+	maxQueueSize: 1000
 })
 
 const publisherRPC = new RPCChannel<API, API>(redisIO, {
-  expose: apiMethods
+	expose: apiMethods
 })
 
 const api = publisherRPC.getAPI()
@@ -779,16 +782,16 @@ import { apiMethods, type API } from "./api"
 
 // 使用消费者组进行负载均衡
 const redisIO = new RedisStreamsIO({
-  url: "redis://localhost:6379",
-  stream: "kkrpc-stream",
-  consumerGroup: "kkrpc-group",
-  consumerName: "worker-1",
-  useConsumerGroup: true, // 启用负载均衡
-  maxQueueSize: 1000
+	url: "redis://localhost:6379",
+	stream: "kkrpc-stream",
+	consumerGroup: "kkrpc-group",
+	consumerName: "worker-1",
+	useConsumerGroup: true, // 启用负载均衡
+	maxQueueSize: 1000
 })
 
 const subscriberRPC = new RPCChannel<API, API>(redisIO, {
-  expose: apiMethods
+	expose: apiMethods
 })
 
 const api = subscriberRPC.getAPI()
@@ -819,16 +822,16 @@ import { KafkaIO, RPCChannel } from "kkrpc"
 import { apiMethods, type API } from "./api"
 
 const kafkaIO = new KafkaIO({
-  brokers: ["localhost:9092"],
-  topic: "kkrpc-topic",
-  clientId: "kkrpc-producer",
-  numPartitions: 3,
-  replicationFactor: 1,
-  maxQueueSize: 1000
+	brokers: ["localhost:9092"],
+	topic: "kkrpc-topic",
+	clientId: "kkrpc-producer",
+	numPartitions: 3,
+	replicationFactor: 1,
+	maxQueueSize: 1000
 })
 
 const producerRPC = new RPCChannel<API, API>(kafkaIO, {
-  expose: apiMethods
+	expose: apiMethods
 })
 
 const api = producerRPC.getAPI()
@@ -850,16 +853,16 @@ import { KafkaIO, RPCChannel } from "kkrpc"
 import { apiMethods, type API } from "./api"
 
 const kafkaIO = new KafkaIO({
-  brokers: ["localhost:9092"],
-  topic: "kkrpc-topic",
-  clientId: "kkrpc-consumer",
-  groupId: "kkrpc-consumer-group",
-  fromBeginning: false, // 只读取新消息
-  maxQueueSize: 1000
+	brokers: ["localhost:9092"],
+	topic: "kkrpc-topic",
+	clientId: "kkrpc-consumer",
+	groupId: "kkrpc-consumer-group",
+	fromBeginning: false, // 只读取新消息
+	maxQueueSize: 1000
 })
 
 const consumerRPC = new RPCChannel<API, API>(kafkaIO, {
-  expose: apiMethods
+	expose: apiMethods
 })
 
 const api = consumerRPC.getAPI()
@@ -882,6 +885,73 @@ kafkaIO.destroy()
 - **可扩展**: 具有分区的水平扩展
 - **持久性**: 具有可配置保留期的持久消息存储
 - **消费者组**: 跨消费者实例的负载均衡
+
+### NATS 示例
+
+NATS 适配器提供高性能消息传递，支持发布/订阅模式和可选的队列组以实现负载均衡。
+
+#### `publisher.ts`
+
+```ts
+import { NatsIO, RPCChannel } from "kkrpc"
+import { apiMethods, type API } from "./api"
+
+const natsIO = new NatsIO({
+	servers: "nats://localhost:4222",
+	subject: "kkrpc-messages",
+	queueGroup: "kkrpc-group" // 可选：启用负载均衡
+})
+
+const publisherRPC = new RPCChannel<API, API>(natsIO, {
+	expose: apiMethods
+})
+
+const api = publisherRPC.getAPI()
+
+// 测试基本 RPC 调用
+console.log(await api.add(5, 3)) // 8
+console.log(await api.echo("Hello from NATS!")) // "Hello from NATS!"
+
+console.log("Subject:", natsIO.getSubject())
+console.log("Session ID:", natsIO.getSessionId())
+
+natsIO.destroy()
+```
+
+#### `subscriber.ts`
+
+```ts
+import { NatsIO, RPCChannel } from "kkrpc"
+import { apiMethods, type API } from "./api"
+
+const natsIO = new NatsIO({
+	servers: "nats://localhost:4222",
+	subject: "kkrpc-messages",
+	queueGroup: "kkrpc-group", // 可选：启用负载均衡
+	sessionId: "subscriber-session"
+})
+
+const subscriberRPC = new RPCChannel<API, API>(natsIO, {
+	expose: apiMethods
+})
+
+const api = subscriberRPC.getAPI()
+
+// 处理来自发布者的消息
+console.log(await api.add(10, 20)) // 30
+console.log(await api.echo("Hello from subscriber!")) // "Hello from subscriber!"
+
+natsIO.destroy()
+```
+
+**NATS 特性：**
+
+- **高性能**: 超低延迟消息系统
+- **基于主题**: 用于路由的灵活主题层次结构
+- **队列组**: 订阅者之间的可选负载均衡
+- **简单模型**: 支持请求/回复的发布/订阅
+- **跨平台**: 在 Node.js、Deno 和 Bun 上工作
+- **无需 Schema**: 无需预先配置即可进行动态消息路由
 
 ### Tauri 示例
 
@@ -953,21 +1023,332 @@ async function spawnCmd(runtime: "deno" | "bun" | "node") {
 
 ![示例 Tauri 应用](https://i.imgur.com/nkDwRHk.png)
 
+### Electron 示例
+
+Electron 适配器提供 Renderer 进程、Main 进程和 Utility Process 之间的类型安全双向 RPC 通信。
+
+有两组适配器用于 Electron：
+
+1. **Renderer ↔ Main IPC**: `ElectronIpcMainIO` (Main 端) + `ElectronIpcRendererIO` (Renderer 端)
+2. **Main ↔ Utility Process**: `ElectronUtilityProcessIO` (Main 端) + `ElectronUtilityProcessChildIO` (Utility Process 端)
+
+#### Preload 脚本设置
+
+使用 `createSecureIpcBridge` 创建带有通道白名单的安全 `ipcRenderer`：
+
+```ts title="preload.ts"
+import { contextBridge, ipcRenderer } from "electron"
+import { createSecureIpcBridge } from "kkrpc/electron-ipc"
+
+const securedIpcRenderer = createSecureIpcBridge({
+	ipcRenderer,
+	channelPrefix: "kkrpc-"
+})
+
+contextBridge.exposeInMainWorld("electron", {
+	ipcRenderer: securedIpcRenderer
+})
+```
+
+这会自动白名单仅以前缀 `"kkrpc-"` 开头的通道。您也可以白名单特定通道：
+
+```ts title="preload.ts"
+import { contextBridge, ipcRenderer } from "electron"
+import { createSecureIpcBridge } from "kkrpc/electron-ipc"
+
+const securedIpcRenderer = createSecureIpcBridge({
+	ipcRenderer,
+	allowedChannels: ["kkrpc-ipc", "kkrpc-worker-relay"]
+})
+
+contextBridge.exposeInMainWorld("electron", {
+	ipcRenderer: securedIpcRenderer
+})
+```
+
+这种方法避免了对 Electron 的直接依赖，使其与任何 Electron 版本兼容。
+
+#### Main 进程
+
+```ts title="main.ts"
+import { app, BrowserWindow, ipcMain, utilityProcess } from "electron"
+import { ElectronUtilityProcessIO, RPCChannel } from "kkrpc/electron"
+import { ElectronIpcMainIO } from "kkrpc/electron-ipc"
+
+interface MainAPI {
+	showNotification(message: string): Promise<void>
+	getAppVersion(): Promise<string>
+}
+
+interface WorkerAPI {
+	add(a: number, b: number): Promise<number>
+	multiply(a: number, b: number): Promise<number>
+}
+
+const mainAPI: MainAPI = {
+	showNotification: async (message: string) => {
+		console.log(`[Main] Notification: ${message}`)
+	},
+	getAppVersion: async () => app.getVersion()
+}
+
+// 1. 设置 Renderer ↔ Main IPC
+const win = new BrowserWindow({
+	webPreferences: {
+		preload: path.join(__dirname, "preload.js"),
+		contextIsolation: true,
+		nodeIntegration: false
+	}
+})
+
+const ipcIO = new ElectronIpcMainIO(ipcMain, win.webContents)
+const ipcRPC = new RPCChannel<MainAPI, object>(ipcIO, { expose: mainAPI })
+
+// 2. 设置 Main ↔ Utility Process
+const workerPath = path.join(__dirname, "./worker.js")
+const workerProcess = utilityProcess.fork(workerPath)
+const workerIO = new ElectronUtilityProcessIO(workerProcess)
+const workerRPC = new RPCChannel<MainAPI, WorkerAPI>(workerIO, { expose: mainAPI })
+const workerAPI = workerRPC.getAPI()
+
+// 现在您可以从 main 调用 worker 方法
+const result = await workerAPI.add(2, 3) // 5
+```
+
+#### Renderer 进程
+
+```ts title="renderer.ts"
+import { ElectronIpcRendererIO, RPCChannel } from "kkrpc/electron-ipc"
+
+interface MainAPI {
+	showNotification(message: string): Promise<void>
+	getAppVersion(): Promise<string>
+}
+
+const ipcIO = new ElectronIpcRendererIO()
+const ipcRPC = new RPCChannel<object, MainAPI>(ipcIO, { expose: {} })
+const mainAPI = ipcRPC.getAPI()
+
+// 从 renderer 调用 main 进程方法
+await mainAPI.showNotification("Hello from renderer!")
+const version = await mainAPI.getAppVersion()
+```
+
+#### Utility Process (Worker)
+
+```ts title="worker.ts"
+import { ElectronUtilityProcessChildIO, RPCChannel } from "kkrpc/electron"
+
+interface MainAPI {
+	showNotification(message: string): Promise<void>
+}
+
+const io = new ElectronUtilityProcessChildIO()
+
+const workerMethods = {
+	add: async (a: number, b: number) => a + b,
+	multiply: async (a: number, b: number) => a * b
+}
+
+const rpc = new RPCChannel<typeof workerMethods, MainAPI>(io, {
+	expose: workerMethods
+})
+
+const mainAPI = rpc.getAPI()
+
+// 回调到 main 进程
+await mainAPI.showNotification("Hello from worker!")
+```
+
+**Electron 特性：**
+
+- **类型安全 IPC**: Renderer ↔ Main ↔ Utility Process 的完整 TypeScript 支持
+- **双向**: 所有进程都可以暴露和调用 API
+- **安全**: 适用于 `contextIsolation: true`（推荐）
+- **多种模式**: 支持 IPC 和 Utility Process 通信
+- **嵌套 API 支持**: 完全支持嵌套方法调用如 `api.math.add()`
+
+**了解更多:** [Electron 文档](https://www.electronjs.org/docs/latest/)
+
+### Relay 示例
+
+`createRelay` 函数在两个 IoInterface 之间创建透明的双向中继。当您想要连接两个不同的传输层而中间进程不需要知道 API 细节时，这非常有用。
+
+一个常见的用例是通过 Electron 的 Main 进程将 Renderer 进程连接到外部 Node.js 进程：
+
+```
+Renderer (IPC) → Main (relay) → External Node Process (stdio)
+```
+
+使用中继，Main 充当透明的字节管道 - 它转发消息而不解析它们。
+
+#### Main 进程 (带 relay)
+
+```ts title="main.ts"
+import { spawn } from "child_process"
+import { createRelay, NodeIo } from "kkrpc"
+import { ElectronIpcMainIO } from "kkrpc/electron-ipc"
+
+// 生成外部 Node.js 进程
+const worker = spawn("node", ["./worker.js"])
+
+// 创建中继: IPC 通道 "worker-relay" <-> stdio
+const relay = createRelay(
+	new ElectronIpcMainIO(ipcMain, webContents, "worker-relay"),
+	new NodeIo(worker.stdout, worker.stdin)
+)
+
+// 完成时清理
+app.on("window-all-closed", () => {
+	relay.destroy()
+	worker.kill()
+})
+```
+
+#### Renderer 进程
+
+```ts title="renderer.ts"
+import { ElectronIpcRendererIO, RPCChannel } from "kkrpc/electron-ipc"
+
+// 通过中继通道连接（不是默认的 "kkrpc-ipc" 通道）
+const io = new ElectronIpcRendererIO("worker-relay")
+const rpc = new RPCChannel<{}, WorkerAPI>(io)
+const workerAPI = rpc.getAPI()
+
+// 调用直接转到外部 worker 进程
+const result = await workerAPI.calculate(42)
+```
+
+#### 外部 Worker 进程
+
+```ts title="worker.ts"
+import { NodeIo, RPCChannel } from "kkrpc"
+
+const io = new NodeIo(process.stdin, process.stdout)
+const rpc = new RPCChannel<WorkerAPI, {}>(io, {
+	expose: {
+		calculate: async (n: number) => n * 2
+	}
+})
+```
+
+**Relay 场景：**
+
+| 场景                            | 从                      | 通过                   | 到       | 用例                               |
+| ------------------------------- | ----------------------- | ---------------------- | -------- | ---------------------------------- |
+| **Renderer → External Process** | `ElectronIpcRendererIO` | Main (`createRelay`)   | `NodeIo` | 调用外部 Node.js/Bun/Deno 脚本     |
+| **Browser → Server Process**    | `WebSocketClientIO`     | Server (`createRelay`) | `NodeIo` | 通过 WebSocket 浏览器到 shell 进程 |
+| **Worker → External Process**   | `WorkerChildIO`         | Main (`createRelay`)   | `NodeIo` | Web Worker 到外部脚本              |
+
+**优势：**
+
+- **透明**: 中间人不需要知道 API
+- **干净分离**: Main 不暴露 worker 方法
+- **多通道**: 可以在不同的 IPC 通道上创建多个中继
+- **可组合**: 可以通过多个进程链式连接中继
+
+## 📊 基准测试
+
+kkrpc 包括全面的基准测试，用于测量不同传输和运行时的吞吐量和数据传输性能。
+
+### 运行基准测试
+
+```bash
+# 运行所有基准测试
+bun test __tests__/stdio-benchmark.test.ts
+bun test __tests__/websocket-benchmark.test.ts
+bun test __tests__/stdio-large-data-benchmark.test.ts
+bun test __tests__/websocket-large-data-benchmark.test.ts
+
+# 或运行包括基准测试在内的所有测试
+bun test
+```
+
+### 基准测试设计
+
+基准测试旨在测量 RPC 性能的两个关键方面：
+
+1. **调用吞吐量** (`stdio-benchmark.test.ts`, `websocket-benchmark.test.ts`)
+
+   - **顺序操作**: 测量一个接一个进行阻塞调用时的每次调用延迟
+   - **并发操作**: 测量使用 `Promise.all` 进行多次并行调用时的吞吐量
+   - **批处理操作**: 测试将多个操作批处理到单个 RPC 调用中
+   - **延迟分布**: ping 服务器 1,000 次以计算最小/平均/p99/最大延迟
+
+2. **数据传输吞吐量** (`stdio-large-data-benchmark.test.ts`, `websocket-large-data-benchmark.test.ts`)
+   - **上传**: 客户端向服务器发送大数据负载
+   - **下载**: 服务器生成并向客户端发送大数据
+   - **回显**: 双向传输（客户端发送，服务器回显）
+   - 测试各种负载大小：1KB、10KB、100KB、1MB、10MB
+
+### 基准测试结果
+
+在 MacBook Pro (Apple Silicon) 上运行的结果：
+
+#### Stdio 适配器 (进程间)
+
+| 运行时      | 操作                | 调用/秒      | 延迟 (平均) |
+| ----------- | ------------------- | ------------ | ----------- |
+| **Bun**     | 顺序回显            | 22,234       | 0.046ms     |
+| **Bun**     | 并发回显            | 151,069      | -           |
+| **Bun**     | 批处理 (100 次操作) | 453,042 有效 | -           |
+| **Node.js** | 顺序回显            | 23,985       | 0.038ms     |
+| **Node.js** | 并发回显            | 145,516      | -           |
+| **Deno**    | 顺序回显            | 20,028       | 0.047ms     |
+| **Deno**    | 并发回显            | 123,079      | -           |
+
+#### Stdio 大数据传输
+
+| 运行时      | 操作         | 1MB 负载    | 10MB 负载 |
+| ----------- | ------------ | ----------- | --------- |
+| **Bun**     | 上传         | ~1,010 MB/s | ~658 MB/s |
+| **Bun**     | 下载         | ~134 MB/s   | ~132 MB/s |
+| **Bun**     | echo (100KB) | ~1,132 MB/s | -         |
+| **Node.js** | 上传         | ~382 MB/s   | ~92 MB/s  |
+| **Node.js** | 下载         | ~75 MB/s    | ~30 MB/s  |
+| **Deno**    | 上传         | ~358 MB/s   | ~91 MB/s  |
+| **Deno**    | 下载         | ~74 MB/s    | ~33 MB/s  |
+
+#### WebSocket 适配器
+
+| 操作                | 调用/秒      | 延迟 (平均) |
+| ------------------- | ------------ | ----------- |
+| 顺序回显            | 22,314       | 0.040ms     |
+| 并发回显            | 74,954       | -           |
+| 批处理 (100 次操作) | 483,318 有效 | -           |
+
+#### WebSocket 大数据传输
+
+| 操作         | 1MB 负载  | 10MB 负载 |
+| ------------ | --------- | --------- |
+| 上传         | ~577 MB/s | ~927 MB/s |
+| 下载         | ~137 MB/s | ~149 MB/s |
+| 回显 (100KB) | ~799 MB/s | -         |
+
+### 关键发现
+
+- **Bun** 在 stdio 通信方面始终优于 Node.js 和 Deno，特别是对于大数据传输
+- **Stdio** 对于本地进程通信明显快于 WebSocket（吞吐量高 2-3 倍）
+- **并发操作** 比顺序操作实现 6-7 倍的更高吞吐量
+- **批处理** 非常有效 - 每批 100 次操作实现 400K+ 有效调用/秒
+- **上传** 比下载快，因为响应路径上的 JSON 序列化开销
+- **WebSocket** 性能对于网络通信非常出色，几乎与 stdio 的小负载匹配
+
 ## 🆚 与替代品的比较
 
 <div align="center">
 
-| 特性                  | kkrpc                                                    | tRPC                           | Comlink                        |
-| ------------------------ | -------------------------------------------------------- | ------------------------------ | ------------------------------ |
-| **跨运行时**        | ✅ Node.js、Deno、Bun、浏览器                           | ❌ 仅 Node.js/浏览器        | ❌ 仅浏览器                |
-| **双向**        | ✅ 两边都可以调用 API                              | ❌ 仅客户端调用服务器    | ✅ 两边都可以调用 API    |
-| **类型安全**          | ✅ 完整的 TypeScript 支持                               | ✅ 完整的 TypeScript 支持     | ✅ TypeScript 支持          |
-| **传输层**     | ✅ stdio、HTTP、WebSocket、postMessage、Chrome 扩展 | ❌ 仅 HTTP                   | ❌ 仅 postMessage            |
-| **错误保留**   | ✅ 完整错误对象                                | ⚠️ 有限的错误序列化 | ⚠️ 有限的错误序列化 |
-| **属性访问**      | ✅ 远程 getter/setter                                | ❌ 仅方法                | ❌ 仅方法                |
-| **零配置**          | ✅ 无代码生成                                    | ✅ 无代码生成          | ✅ 无代码生成          |
-| **回调**            | ✅ 函数参数                                   | ❌ 无回调                | ✅ 函数参数         |
-| **可传输对象** | ✅ 零拷贝传输（快 40-100 倍）                  | ❌ 不支持               | ✅ 基本支持               |
+| 特性           | kkrpc                                               | tRPC                      | Comlink               |
+| -------------- | --------------------------------------------------- | ------------------------- | --------------------- |
+| **跨运行时**   | ✅ Node.js、Deno、Bun、浏览器                       | ❌ 仅 Node.js/浏览器      | ❌ 仅浏览器           |
+| **双向**       | ✅ 两边都可以调用 API                               | ❌ 仅客户端调用服务器     | ✅ 两边都可以调用 API |
+| **类型安全**   | ✅ 完整的 TypeScript 支持                           | ✅ 完整的 TypeScript 支持 | ✅ TypeScript 支持    |
+| **传输层**     | ✅ stdio、HTTP、WebSocket、postMessage、Chrome 扩展 | ❌ 仅 HTTP                | ❌ 仅 postMessage     |
+| **错误保留**   | ✅ 完整错误对象                                     | ⚠️ 有限的错误序列化       | ⚠️ 有限的错误序列化   |
+| **属性访问**   | ✅ 远程 getter/setter                               | ❌ 仅方法                 | ❌ 仅方法             |
+| **零配置**     | ✅ 无代码生成                                       | ✅ 无代码生成             | ✅ 无代码生成         |
+| **回调**       | ✅ 函数参数                                         | ❌ 无回调                 | ✅ 函数参数           |
+| **可传输对象** | ✅ 零拷贝传输（快 40-100 倍）                       | ❌ 不支持                 | ✅ 基本支持           |
 
 </div>
 
@@ -1006,13 +1387,13 @@ async function spawnCmd(runtime: "deno" | "bun" | "node") {
 
 <div align="center">
 
-| 平台     | 包         | 链接                                                                                                                                                |
-| ------------ | --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **NPM**      | `kkrpc`         | [![NPM](https://img.shields.io/badge/npm-kkrpc-red?style=flat-square&logo=npm)](https://www.npmjs.com/package/kkrpc)                                |
-| **JSR**      | `@kunkun/kkrpc` | [![JSR](https://img.shields.io/badge/jsr-@kunkun/kkrpc-blue?style=flat-square&logo=deno)](https://jsr.io/@kunkun/kkrpc)                             |
-| **GitHub**   | 仓库      | [![GitHub](https://img.shields.io/badge/github-kkrpc-black?style=flat-square&logo=github)](https://github.com/kunkunsh/kkrpc)                       |
-| **文档**     | Typedoc         | [![文档](https://img.shields.io/badge/docs-typedoc-blue?style=flat-square&logo=typescript)](https://kunkunsh.github.io/kkrpc/)                      |
-| **示例** | 代码示例    | [![示例](https://img.shields.io/badge/examples-code-green?style=flat-square&logo=github)](https://github.com/kunkunsh/kkrpc/tree/main/examples) |
+| 平台       | 包              | 链接                                                                                                                                            |
+| ---------- | --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| **NPM**    | `kkrpc`         | [![NPM](https://img.shields.io/badge/npm-kkrpc-red?style=flat-square&logo=npm)](https://www.npmjs.com/package/kkrpc)                            |
+| **JSR**    | `@kunkun/kkrpc` | [![JSR](https://img.shields.io/badge/jsr-@kunkun/kkrpc-blue?style=flat-square&logo=deno)](https://jsr.io/@kunkun/kkrpc)                         |
+| **GitHub** | 仓库            | [![GitHub](https://img.shields.io/badge/github-kkrpc-black?style=flat-square&logo=github)](https://github.com/kunkunsh/kkrpc)                   |
+| **文档**   | Typedoc         | [![文档](https://img.shields.io/badge/docs-typedoc-blue?style=flat-square&logo=typescript)](https://kunkunsh.github.io/kkrpc/)                  |
+| **示例**   | 代码示例        | [![示例](https://img.shields.io/badge/examples-code-green?style=flat-square&logo=github)](https://github.com/kunkunsh/kkrpc/tree/main/examples) |
 
 </div>
 
