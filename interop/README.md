@@ -49,6 +49,13 @@ message when invoked.
 
 ## Implementations
 
+Each language now ships its own detailed README with install steps, API usage, and
+publishing notes:
+
+- Python: `interop/python/README.md`
+- Go: `interop/go/README.md`
+- Rust: `interop/rust/README.md`
+
 ### Python (library + tests)
 
 - `interop/python/kkrpc/` exposes `RpcClient`, `RpcServer`, and stdio/ws transports.
