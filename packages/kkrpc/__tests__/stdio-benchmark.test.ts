@@ -6,6 +6,8 @@ import { describe, test } from "bun:test"
 import { NodeIo } from "../mod.ts"
 import { RPCChannel } from "../src/channel.ts"
 
+const isCI = process.env.CI === "true" || process.env.GITHUB_ACTIONS === "true"
+
 interface BenchmarkAPI {
 	echo: (message: string) => Promise<string>
 	add: (a: number, b: number) => Promise<number>
@@ -175,6 +177,10 @@ describe("Stdio Adapter Throughput Benchmark", () => {
 	test(
 		"Benchmark Node.js stdio adapter",
 		async () => {
+			if (isCI) {
+				console.log("Skipping Node.js benchmark in CI environment")
+				return
+			}
 			const jsScriptPath = path.join(testsPath, "scripts/benchmark-api.js")
 			if (!fs.existsSync(jsScriptPath)) {
 				await Bun.build({
@@ -194,6 +200,10 @@ describe("Stdio Adapter Throughput Benchmark", () => {
 	test(
 		"Benchmark Bun stdio adapter",
 		async () => {
+			if (isCI) {
+				console.log("Skipping Bun benchmark in CI environment")
+				return
+			}
 			const worker = spawn("bun", [path.join(testsPath, "scripts/benchmark-api.ts")])
 			const results = await runBenchmark(worker, "Bun")
 			printResults(results)
@@ -204,6 +214,10 @@ describe("Stdio Adapter Throughput Benchmark", () => {
 	test(
 		"Benchmark Deno stdio adapter",
 		async () => {
+			if (isCI) {
+				console.log("Skipping Deno benchmark in CI environment")
+				return
+			}
 			const worker = spawn("deno", [
 				"run",
 				"-A",
