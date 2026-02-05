@@ -5,7 +5,7 @@
 
 ## OVERVIEW
 
-Comprehensive Bun test suite covering 15+ transport adapters, stress tests, and regression tests. No mocks - all tests use real client/server setups.
+Comprehensive Bun test suite covering 17+ transport adapters, stress tests, and regression tests. No mocks - all tests use real client/server setups.
 
 ## STRUCTURE
 
@@ -21,25 +21,29 @@ __tests__/
 
 ## TEST FILES
 
-| Test                       | Lines  | Coverage                       |
-| -------------------------- | ------ | ------------------------------ |
-| elysia-websocket.test.ts   | 18,691 | Elysia WebSocket adapter       |
-| transfer.test.ts           | 8,928  | Zero-copy transferable objects |
-| error-preservation.test.ts | 8,904  | Error object serialization     |
-| redis-streams.test.ts      | 15,189 | Redis Streams adapter          |
-| websocket.test.ts          | 2,833  | WebSocket client/server        |
-| http.test.ts               | 2,829  | HTTP adapter                   |
-| kafka.test.ts              | 4,276  | Kafka adapter                  |
-| relay.test.ts              | 4,008  | Relay functionality            |
-| nats.test.ts               | 5,148  | NATS adapter                   |
-| rabbitmq.test.ts           | 3,613  | RabbitMQ adapter               |
-| socketio.test.ts           | 3,922  | Socket.IO adapter              |
-| hono-websocket.test.ts     | 3,488  | Hono WebSocket                 |
-| elysia-simple.test.ts      | 2,789  | Basic Elysia tests             |
-| stdio-rpc.test.ts          | 3,340  | Node.js/Deno/Bun stdio         |
-| property-access.test.ts    | 3,884  | Remote getters/setters         |
-| bun.worker.test.ts         | 1,514  | Bun Worker API                 |
-| serialization.test.ts      | 1,610  | JSON/superjson                 |
+| Test                                   | Coverage                         |
+| -------------------------------------- | -------------------------------- |
+| bun.worker.test.ts                     | Bun Worker API                   |
+| elysia-simple.test.ts                  | Basic Elysia tests               |
+| elysia-websocket.test.ts               | Elysia WebSocket adapter         |
+| error-preservation.test.ts             | Error object serialization       |
+| hono-websocket.test.ts                 | Hono WebSocket                   |
+| http.test.ts                           | HTTP adapter                     |
+| kafka.test.ts                          | Kafka adapter                    |
+| nats.test.ts                           | NATS adapter                     |
+| property-access.test.ts                | Remote getters/setters           |
+| rabbitmq.test.ts                       | RabbitMQ adapter                 |
+| redis-streams.test.ts                  | Redis Streams adapter            |
+| relay.test.ts                          | Relay functionality              |
+| serialization.test.ts                  | JSON/superjson                   |
+| socketio.test.ts                       | Socket.IO adapter                |
+| stdio-benchmark.test.ts                | Stdio performance benchmarks     |
+| stdio-large-data-benchmark.test.ts     | Stdio large data transfer        |
+| stdio-rpc.test.ts                      | Node.js/Deno/Bun stdio           |
+| transfer.test.ts                       | Zero-copy transferable objects   |
+| websocket.test.ts                      | WebSocket client/server          |
+| websocket-benchmark.test.ts            | WebSocket performance benchmarks |
+| websocket-large-data-benchmark.test.ts | WebSocket large data transfer    |
 
 ## CONVENTIONS
 

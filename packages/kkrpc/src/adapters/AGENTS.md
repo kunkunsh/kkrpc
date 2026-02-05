@@ -6,17 +6,19 @@
 
 ## OVERVIEW
 
-15 IoInterface implementations for diverse transport protocols across Node.js, Deno, Bun, Browser, and message queues.
+22 IoInterface implementations for diverse transport protocols across Node.js, Deno, Bun, Browser, Electron, and message queues.
 
 ## ADAPTER_CATEGORIES
 
-| Category                  | Adapters                                                      |
-| ------------------------- | ------------------------------------------------------------- |
-| **Process/IPC**           | NodeIo, DenoIo, BunIo                                         |
-| **Browser/Web**           | WorkerParentIO/ChildIO, IframeParentIO/ChildIO, ChromePortIO  |
-| **Network**               | WebSocketClientIO/ServerIO, HTTPClientIO/ServerIO             |
-| **Framework Integration** | HonoWebSocketIO, ElysiaWebSocketIO, SocketIOClientIO/ServerIO |
-| **Enterprise Messaging**  | RabbitMQIO, RedisStreamsIO, KafkaIO                           |
+| Category                  | Adapters                                                                                          |
+| ------------------------- | ------------------------------------------------------------------------------------------------- |
+| **Process/IPC**           | NodeIo, DenoIo, BunIo                                                                             |
+| **Browser/Web**           | WorkerParentIO/ChildIO, IframeParentIO/ChildIO, ChromePortIO                                      |
+| **Network**               | WebSocketClientIO/ServerIO, HTTPClientIO/ServerIO                                                 |
+| **Framework Integration** | HonoWebSocketIO, ElysiaWebSocketIO, SocketIOClientIO/ServerIO                                     |
+| **Enterprise Messaging**  | RabbitMQIO, RedisStreamsIO, KafkaIO, NatsIO                                                       |
+| **Electron**              | ElectronIpcMainIO, ElectronIpcRendererIO, ElectronUtilityProcessIO, ElectronUtilityProcessChildIO |
+| **Tauri**                 | TauriShellStdio                                                                                   |
 
 ## IMPLEMENTATION_PATTERNS
 
