@@ -1,5 +1,5 @@
 [package]
-name = "kkrpc-interop"
+name = "kkrpc"
 version = "0.6.0"
 edition = "2024"
 authors = ["kunkunsh <kunkun.sh@outlook.com>"]
@@ -8,7 +8,7 @@ readme = "README.md"
 license = "Apache-2.0"
 repository = "https://github.com/kunkunsh/kkrpc"
 homepage = "https://github.com/kunkunsh/kkrpc/tree/main/interop/rust"
-documentation = "https://docs.rs/kkrpc-interop"
+documentation = "https://docs.rs/kkrpc"
 keywords = ["rpc", "json", "ipc", "websocket", "stdio"]
 categories = ["network-programming", "web-programming"]
 rust-version = "1.85"

@@ -344,8 +344,8 @@ dependencies = [
 ]
 
 [[package]]
-name = "kkrpc-interop"
-version = "0.1.0"
+name = "kkrpc"
+version = "0.6.0"
 dependencies = [
  "rand 0.8.5",
  "regex",
