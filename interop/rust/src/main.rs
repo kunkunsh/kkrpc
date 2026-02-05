@@ -26,12 +26,14 @@ fn main() {
         .call("math.add", vec![Arg::Value(json!(3)), Arg::Value(json!(6))])
         .expect("call math.add");
     assert_eq!(result.as_i64(), Some(9));
+    println!("[rust] math.add(3, 6) => {}", result);
 
     let echo_input = json!({"name": "kkrpc", "count": 3});
     let echo_result = client
         .call("echo", vec![Arg::Value(echo_input.clone())])
         .expect("call echo");
     assert!(compare_maps(&echo_input, &echo_result));
+    println!("[rust] echo({}) => {}", echo_input, echo_result);
 
     let (callback_sender, callback_receiver) = mpsc::channel::<String>();
     let callback = move |args: Vec<Value>| {
@@ -50,11 +52,13 @@ fn main() {
         )
         .expect("call withCallback");
     assert_eq!(callback_result.as_str(), Some("callback-sent"));
+    println!("[rust] withCallback(\"pong\", cb) => {}", callback_result);
 
     let callback_value = callback_receiver
         .recv_timeout(Duration::from_secs(2))
         .expect("callback received");
     assert_eq!(callback_value, "callback:pong");
+    println!("[rust] callback received => {}", callback_value);
 
     let _ = child.kill();
     let _ = child.wait();

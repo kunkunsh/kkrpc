@@ -27,10 +27,12 @@ def main() -> int:
 	try:
 		result = client.call("math.add", 2, 3)
 		assert result == 5, f"unexpected add result {result}"
+		print(f"[python] math.add(2, 3) => {result}")
 
 		echo_value = {"name": "kkrpc", "count": 1}
 		echo_result = client.call("echo", echo_value)
 		assert echo_result == echo_value, f"unexpected echo result {echo_result}"
+		print(f"[python] echo({echo_value}) => {echo_result}")
 
 		callback_event = threading.Event()
 		callback_payload = {}
@@ -41,10 +43,12 @@ def main() -> int:
 
 		callback_result = client.call("withCallback", "ping", on_callback)
 		assert callback_result == "callback-sent"
+		print(f"[python] withCallback('ping', cb) => {callback_result}")
 
 		if not callback_event.wait(timeout=2):
 			raise RuntimeError("callback not received")
 		assert callback_payload["value"] == "callback:ping"
+		print(f"[python] callback received => {callback_payload['value']}")
 	finally:
 		client.close()
 		process.terminate()

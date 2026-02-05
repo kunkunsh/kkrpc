@@ -44,6 +44,7 @@ func main() {
 	if number, ok := result.(float64); !ok || number != 11 {
 		panic(fmt.Sprintf("unexpected add result: %#v", result))
 	}
+	fmt.Printf("[go] math.add(4, 7) => %v\n", result)
 
 	echoInput := map[string]any{"name": "kkrpc", "count": 2}
 	echoResult, err := client.Call("echo", echoInput)
@@ -53,6 +54,7 @@ func main() {
 	if !compareMaps(echoInput, echoResult) {
 		panic(fmt.Sprintf("unexpected echo result: %#v", echoResult))
 	}
+	fmt.Printf("[go] echo(%v) => %v\n", echoInput, echoResult)
 
 	callbackCh := make(chan string, 1)
 	callback := Callback(func(args ...any) {
@@ -68,12 +70,14 @@ func main() {
 	if callbackResult != "callback-sent" {
 		panic(fmt.Sprintf("unexpected callback result: %#v", callbackResult))
 	}
+	fmt.Printf("[go] withCallback(\"pong\", cb) => %v\n", callbackResult)
 
 	select {
 	case value := <-callbackCh:
 		if value != "callback:pong" {
 			panic(fmt.Sprintf("unexpected callback payload: %s", value))
 		}
+		fmt.Printf("[go] callback received => %s\n", value)
 	case <-time.After(2 * time.Second):
 		panic(errors.New("callback not received"))
 	}
