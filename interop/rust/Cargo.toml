@@ -1,10 +1,27 @@
 [package]
 name = "kkrpc-interop"
-version = "0.1.0"
-edition = "2021"
+version = "0.6.0"
+edition = "2024"
+authors = ["kunkunsh <kunkun.sh@outlook.com>"]
+description = "Rust client/server library for kkrpc JSON-mode interop"
+readme = "README.md"
+license = "Apache-2.0"
+repository = "https://github.com/kunkunsh/kkrpc"
+homepage = "https://github.com/kunkunsh/kkrpc/tree/main/interop/rust"
+documentation = "https://docs.rs/kkrpc-interop"
+keywords = ["rpc", "json", "ipc", "websocket", "stdio"]
+categories = ["network-programming", "web-programming"]
+rust-version = "1.85"
 
 [dependencies]
 rand = "0.8"
+regex = "1"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 websocket = { version = "0.27", features = ["sync"] }
+
+[dev-dependencies]
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]

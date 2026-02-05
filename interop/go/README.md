@@ -107,3 +107,23 @@ go test ./...
   `WebSocketTransport`.
 
 Set kkrpc JS clients/servers to `serialization.version = "json"` for interop.
+
+## Limitations
+
+### Function Signatures
+
+The Go server implementation uses a strict function signature: `func(...any) any`. All registered methods must conform to this signature:
+
+```go
+// Valid
+api.Register("math.add", func(args ...any) any {
+    return args[0].(float64) + args[1].(float64)
+})
+
+// Invalid - will fail at runtime
+api.Register("math.add", func(a, b int) int {
+    return a + b
+})
+```
+
+This differs from the TypeScript implementation which can handle any callable. If you need more flexible signatures, consider using reflection or wrapper functions.

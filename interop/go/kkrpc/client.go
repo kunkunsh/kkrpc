@@ -31,6 +31,18 @@ func NewClient(transport Transport) *Client {
 }
 
 func (c *Client) Call(method string, args ...any) (any, error) {
+	return c.sendRequest("request", method, args, nil, nil)
+}
+
+func (c *Client) Get(path []string) (any, error) {
+	return c.sendRequest("get", "", nil, path, nil)
+}
+
+func (c *Client) Set(path []string, value any) (any, error) {
+	return c.sendRequest("set", "", nil, path, value)
+}
+
+func (c *Client) sendRequest(messageType, method string, args []any, path []string, value any) (any, error) {
 	requestID := GenerateUUID()
 	responseCh := make(chan responsePayload, 1)
 	c.mu.Lock()
@@ -54,13 +66,23 @@ func (c *Client) Call(method string, args ...any) (any, error) {
 
 	payload := map[string]any{
 		"id":      requestID,
-		"method":  method,
-		"args":    processedArgs,
-		"type":    "request",
+		"type":    messageType,
 		"version": "json",
+	}
+	if method != "" {
+		payload["method"] = method
+	}
+	if len(processedArgs) > 0 {
+		payload["args"] = processedArgs
 	}
 	if len(callbackIDs) > 0 {
 		payload["callbackIds"] = callbackIDs
+	}
+	if path != nil {
+		payload["path"] = path
+	}
+	if value != nil {
+		payload["value"] = value
 	}
 
 	message, err := EncodeMessage(payload)
