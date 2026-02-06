@@ -61,6 +61,7 @@ kkrpc stands out in the crowded RPC landscape by offering **true cross-runtime c
 | **🔗 Nested Calls**         | Deep method chaining like `api.math.operations.calculate()`    |
 | **📦 Auto Serialization**   | Intelligent JSON/superjson detection                           |
 | **⚡ Zero Config**          | No schema files or code generation required                    |
+| **🔒 Data Validation**     | Optional runtime validation with Zod, Valibot, ArkType, etc.  |
 | **🚀 Transferable Objects** | Zero-copy transfers for large data (40-100x faster)            |
 
 </div>
@@ -167,6 +168,91 @@ const rpc = new RPCChannel(io, {
 
 For backward compatibility, the receiving side will automatically detect the serialization format so older clients can communicate with newer servers and vice versa.
 
+## Data Validation
+
+kkrpc supports optional runtime validation of RPC inputs and outputs using any [Standard Schema](https://standardschema.dev)-compatible library (Zod, Valibot, ArkType, etc.). Validation is fully opt-in — without it, kkrpc behaves exactly as before.
+
+There are two approaches:
+
+### Type-first (add validators to existing code)
+
+Define your API as usual, then add a `validators` map that mirrors the API shape:
+
+```ts
+import { z } from "zod"
+import { RPCChannel, type RPCValidators } from "kkrpc"
+
+type MathAPI = {
+	add(a: number, b: number): Promise<number>
+	divide(a: number, b: number): Promise<number>
+}
+
+const api: MathAPI = {
+	add: async (a, b) => a + b,
+	divide: async (a, b) => a / b
+}
+
+const validators: RPCValidators<MathAPI> = {
+	add: {
+		input: z.tuple([z.number(), z.number()]),
+		output: z.number()
+	},
+	divide: {
+		input: z.tuple([
+			z.number(),
+			z.number().refine((n) => n !== 0, "Divisor cannot be zero")
+		]),
+		output: z.number()
+	}
+}
+
+new RPCChannel(io, { expose: api, validators })
+```
+
+### Schema-first (types inferred from schemas)
+
+Use `defineMethod` and `defineAPI` to define your API with schemas — types are inferred automatically:
+
+```ts
+import { z } from "zod"
+import { RPCChannel, defineMethod, defineAPI, extractValidators, type InferAPI } from "kkrpc"
+
+const api = defineAPI({
+	add: defineMethod(
+		{ input: z.tuple([z.number(), z.number()]), output: z.number() },
+		async (a, b) => a + b // a, b are typed as number
+	),
+	greet: defineMethod(
+		{ input: z.tuple([z.string()]), output: z.string() },
+		async (name) => `Hello, ${name}!`
+	)
+})
+
+type MyAPI = InferAPI<typeof api>
+
+new RPCChannel(io, { expose: api, validators: extractValidators(api) })
+```
+
+### Validation errors
+
+When validation fails, the caller receives an `RPCValidationError` with structured issue details:
+
+```ts
+import { isRPCValidationError } from "kkrpc"
+
+try {
+	await api.add("not", "numbers") // wrong types
+} catch (error) {
+	if (isRPCValidationError(error)) {
+		error.phase  // "input" or "output"
+		error.method // "add"
+		error.issues // [{ message: "Expected number, received string", path: [0] }]
+	}
+}
+```
+
+Validators support nested APIs (`math.divide`), custom refinements (`.email()`, `.min(1)`, `.refine()`), and output validation. Since kkrpc is bidirectional, both sides can independently validate their own exposed API.
+
 ## 🚀 Quick Start
 
 ### Installation
@@ -271,6 +357,137 @@ api.settings.notifications.enabled = true
 // Verify changes
 console.log(await api.counter) // 42
 console.log(await api.settings.theme) // "dark"
+```
+
+### Validation Example (Type-first)
+
+Add runtime validation to an existing API using the `validators` option:
+
+```ts
+// api.ts
+import { z } from "zod"
+import type { RPCValidators } from "kkrpc"
+
+export type API = {
+	add(a: number, b: number): Promise<number>
+	createUser(user: { name: string; email: string }): Promise<{ id: string; name: string; email: string }>
+}
+
+export const api: API = {
+	add: async (a, b) => a + b,
+	createUser: async (user) => ({ id: crypto.randomUUID(), ...user })
+}
+
+export const validators: RPCValidators<API> = {
+	add: {
+		input: z.tuple([z.number(), z.number()]),
+		output: z.number()
+	},
+	createUser: {
+		input: z.tuple([z.object({ name: z.string().min(1), email: z.string().email() })]),
+		output: z.object({ id: z.string(), name: z.string(), email: z.string() })
+	}
+}
+```
+
+```ts
+// server.ts
+import { RPCChannel, WebSocketServerIO } from "kkrpc"
+import { api, validators, type API } from "./api"
+
+wss.on("connection", (ws) => {
+	const io = new WebSocketServerIO(ws)
+	new RPCChannel<API, API>(io, { expose: api, validators })
+})
+```
+
+```ts
+// client.ts
+import { RPCChannel, WebSocketClientIO, isRPCValidationError } from "kkrpc"
+import type { API } from "./api"
+
+const io = new WebSocketClientIO({ url: "ws://localhost:3000" })
+const rpc = new RPCChannel<{}, API>(io)
+const api = rpc.getAPI()
+
+// Valid calls work as usual
+console.log(await api.add(1, 2)) // 3
+
+// Invalid calls throw RPCValidationError
+try {
+	await api.createUser({ name: "", email: "not-an-email" })
+} catch (error) {
+	if (isRPCValidationError(error)) {
+		console.log(error.phase)  // "input"
+		console.log(error.issues) // validation issues from Zod
+	}
+}
+```
+
+### Validation Example (Schema-first)
+
+Define your API with schemas — types are inferred automatically, no separate type definition needed:
+
+```ts
+// api.ts
+import { z } from "zod"
+import { defineMethod, defineAPI, extractValidators, type InferAPI } from "kkrpc"
+
+export const api = defineAPI({
+	add: defineMethod(
+		{ input: z.tuple([z.number(), z.number()]), output: z.number() },
+		async (a, b) => a + b
+	),
+	greet: defineMethod(
+		{ input: z.tuple([z.string()]), output: z.string() },
+		async (name) => `Hello, ${name}!`
+	),
+	math: {
+		divide: defineMethod(
+			{
+				input: z.tuple([z.number(), z.number().refine((n) => n !== 0, "Cannot divide by zero")]),
+				output: z.number()
+			},
+			async (a, b) => a / b
+		)
+	}
+})
+
+export type API = InferAPI<typeof api>
+export const validators = extractValidators(api)
+```
+
+```ts
+// server.ts
+import { RPCChannel, WebSocketServerIO } from "kkrpc"
+import { api, validators } from "./api"
+
+wss.on("connection", (ws) => {
+	const io = new WebSocketServerIO(ws)
+	new RPCChannel(io, { expose: api, validators })
+})
+```
+
+```ts
+// client.ts
+import { RPCChannel, WebSocketClientIO, isRPCValidationError } from "kkrpc"
+import type { API } from "./api"
+
+const io = new WebSocketClientIO({ url: "ws://localhost:3000" })
+const rpc = new RPCChannel<{}, API>(io)
+const api = rpc.getAPI()
+
+console.log(await api.greet("World")) // "Hello, World!"
+console.log(await api.math.divide(10, 2)) // 5
+
+try {
+	await api.math.divide(10, 0)
+} catch (error) {
+	if (isRPCValidationError(error)) {
+		console.log(error.method) // "math.divide"
+		console.log(error.issues[0].message) // "Cannot divide by zero"
+	}
+}
 ```
 
 ### Enhanced Error Preservation
@@ -1349,6 +1566,7 @@ Results from running on a MacBook Pro (Apple Silicon):
 | **Property Access**      | ✅ Remote getters/setters                                          | ❌ Methods only                | ❌ Methods only                |
 | **Zero Config**          | ✅ No code generation                                              | ✅ No code generation          | ✅ No code generation          |
 | **Callbacks**            | ✅ Function parameters                                             | ❌ No callbacks                | ✅ Function parameters         |
+| **Data Validation**      | ✅ Optional, any Standard Schema library                           | ✅ Built-in Zod support        | ❌ Not supported               |
 | **Transferable Objects** | ✅ Zero-copy transfers (40-100x faster)                            | ❌ Not supported               | ✅ Basic support               |
 
 </div>

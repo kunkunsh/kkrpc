@@ -166,7 +166,8 @@
 		"tsdown": "^0.15.9",
 		"tslib": "^2.8.1",
 		"typedoc": "^0.28.10",
-		"verify-package-export": "^0.0.3"
+		"verify-package-export": "^0.0.3",
+		"zod": "^4.3.6"
 	},
 	"peerDependencies": {
 		"elysia": "^1.0.0",
