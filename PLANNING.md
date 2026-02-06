@@ -1,7 +1,7 @@
 # kkrpc — Improvement Roadmap
 
 **Created:** 2026-02-07
-**Status:** Planning
+**Status:** In Progress
 **Branch:** main (at current HEAD)
 
 ---
@@ -345,7 +345,7 @@ This is the most impactful change. The protocol extension is straightforward, bu
 
 ---
 
-## 3. Request Timeout
+## 3. Request Timeout ✅ DONE
 
 ### Problem
 
@@ -470,7 +470,7 @@ This is the simplest of the four improvements. Mostly mechanical — add a timer
 
 ---
 
-## 4. Stronger Proxy Type Safety
+## 4. Stronger Proxy Type Safety (4c done ✅)
 
 ### Problem
 
@@ -580,10 +580,11 @@ Recommendation: Start with 4c (`any` → `unknown` cleanup) which is low-risk. T
 ## Suggested Implementation Order
 
 ```
-1. Request Timeout       (Low complexity, standalone, no dependencies)
+1. Request Timeout       ✅ DONE — RPCTimeoutError, timer per pending request, cleanup in destroy()
 2. Middleware System      (Low-Medium complexity, standalone)
 3. Streaming Support      (Medium-High complexity, may benefit from middleware for stream interceptors)
-4. Proxy Type Safety      (Medium complexity, can be done anytime, start with any→unknown)
+4. Proxy Type Safety      4c ✅ DONE (any→unknown in catch blocks, CallbackFunction, isDestroyed cast)
+                          4a pending (recursive path types for callMethod)
 ```
 
-Timeout is the smallest change with immediate reliability benefit. Middleware is a clean addition. Streaming is the biggest change but the most impactful for your other project. Type safety cleanup can happen incrementally alongside the other work.
+Timeout and type safety cleanup (4c) are done. Next: Middleware is a clean addition. Streaming is the biggest change but the most impactful. Recursive path types (4a) can be explored later — requires care to avoid confusing TS error messages.

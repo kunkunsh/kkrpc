@@ -20,13 +20,46 @@ import {
 	type RPCValidators
 } from "./validation.ts"
 
+// ---------------------------------------------------------------------------
+// RPCTimeoutError
+// ---------------------------------------------------------------------------
+
+/**
+ * Error thrown when an RPC call exceeds the configured timeout.
+ *
+ * Custom properties (`method`, `timeoutMs`) survive kkrpc's
+ * `serializeError()` / `deserializeError()` round-trip (same mechanism
+ * as `RPCValidationError`).
+ */
+export class RPCTimeoutError extends Error {
+	public readonly method: string
+	public readonly timeoutMs: number
+
+	constructor(method: string, timeoutMs: number) {
+		super(`RPC call to "${method}" timed out after ${timeoutMs}ms`)
+		this.name = "RPCTimeoutError"
+		this.method = method
+		this.timeoutMs = timeoutMs
+	}
+}
+
+/**
+ * Type guard for RPCTimeoutError.
+ *
+ * Uses `.name` check (not `instanceof`) so it works on deserialized
+ * errors received over the wire.
+ */
+export function isRPCTimeoutError(error: unknown): error is RPCTimeoutError {
+	return error instanceof Error && error.name === "RPCTimeoutError"
+}
+
 interface PendingRequest {
 	resolve: (result: any) => void
 	reject: (error: any) => void
 }
 
 interface CallbackFunction {
-	(...args: any[]): void
+	(...args: unknown[]): void
 }
 
 /**
@@ -40,6 +73,7 @@ export class RPCChannel<
 	Io extends IoInterface = IoInterface
 > {
 	private pendingRequests: Record<string, PendingRequest> = {}
+	private pendingTimers: Record<string, ReturnType<typeof setTimeout>> = {}
 	private callbacks: Record<string, CallbackFunction> = {}
 	private callbackCache: Map<CallbackFunction, string> = new Map()
 	private count: number = 0
@@ -55,6 +89,8 @@ export class RPCChannel<
 	private serializationOptions: SerializationOptions
 	private supportsTransfer = false
 	private structuredClone = false
+	/** Timeout in ms for outgoing RPC calls. 0 or Infinity means no timeout. */
+	private timeout: number
 
 	constructor(
 		private io: Io,
@@ -64,11 +100,13 @@ export class RPCChannel<
 			enableTransfer?: boolean
 			/** Optional validators for the exposed API. Validates inputs/outputs on the receiving side. */
 			validators?: RPCValidators<LocalAPI>
+			/** Timeout in ms for outgoing RPC calls. Default: 0 (no timeout). */
+			timeout?: number
 		}
 	) {
-		// console.warn("RPCChannel constructor")
 		this.apiImplementation = options?.expose
 		this.validators = options?.validators
+		this.timeout = options?.timeout ?? 0
 		this.serializationOptions = options?.serialization || {}
 		this.structuredClone = io.capabilities?.structuredClone === true
 		if (
@@ -104,7 +142,10 @@ export class RPCChannel<
 	private async listen(): Promise<void> {
 		while (true) {
 			// Check if IO interface is destroyable and has been destroyed
-			if ("isDestroyed" in this.io && (this.io as any).isDestroyed) {
+			if (
+				"isDestroyed" in this.io &&
+				(this.io as Record<string, unknown>).isDestroyed
+			) {
 				break
 			}
 
@@ -114,9 +155,9 @@ export class RPCChannel<
 					continue
 				}
 				await this.handleIncomingMessage(incoming)
-			} catch (error: any) {
+			} catch (error: unknown) {
 				// If the error indicates the adapter is destroyed, stop listening
-				if (error.message && error.message.includes("destroyed")) {
+				if (error instanceof Error && error.message.includes("destroyed")) {
 					break
 				}
 				console.error("kkrpc: failed to handle incoming message", error)
@@ -205,6 +246,7 @@ export class RPCChannel<
 		return new Promise((resolve, reject) => {
 			const messageId = generateUUID()
 			this.pendingRequests[messageId] = { resolve, reject }
+			this.startTimeout(messageId, method as string)
 
 			const callbackIds: string[] = []
 			const argsWithCallbacks = args.map((arg) => {
@@ -254,8 +296,8 @@ export class RPCChannel<
 		return new Promise((resolve, reject) => {
 			const messageId = generateUUID()
 			this.pendingRequests[messageId] = { resolve, reject }
-
 			const propertyPath = Array.isArray(path) ? path : path.split(".")
+			this.startTimeout(messageId, `get:${propertyPath.join(".")}`)
 			const message: Message = {
 				id: messageId,
 				method: "",
@@ -277,8 +319,8 @@ export class RPCChannel<
 		return new Promise((resolve, reject) => {
 			const messageId = generateUUID()
 			this.pendingRequests[messageId] = { resolve, reject }
-
 			const propertyPath = Array.isArray(path) ? path : path.split(".")
+			this.startTimeout(messageId, `set:${propertyPath.join(".")}`)
 			let processedValue = value
 			const transferables: Transferable[] = []
 			const transferSlots: TransferSlot[] = []
@@ -317,6 +359,7 @@ export class RPCChannel<
 		return new Promise((resolve, reject) => {
 			const messageId = generateUUID()
 			this.pendingRequests[messageId] = { resolve, reject }
+			this.startTimeout(messageId, constructor as string)
 
 			const callbackIds: string[] = []
 			const argsWithCallbacks = args.map((arg) => {
@@ -366,6 +409,7 @@ export class RPCChannel<
 		const { id } = response
 		const { result, error } = response.args
 		if (this.pendingRequests[id]) {
+			this.clearTimeout(id)
 			if (error) {
 				// Handle enhanced error objects
 				if (typeof error === "object" && error.name && error.message) {
@@ -478,8 +522,8 @@ export class RPCChannel<
 			}
 
 			this.sendResponse(id, result)
-		} catch (error: any) {
-			this.sendError(id, error)
+		} catch (error: unknown) {
+			this.sendError(id, error instanceof Error ? error : new Error(String(error)))
 		}
 	}
 
@@ -556,8 +600,8 @@ export class RPCChannel<
 				}
 			}
 			this.sendResponse(id, target)
-		} catch (error: any) {
-			this.sendError(id, error)
+		} catch (error: unknown) {
+			this.sendError(id, error instanceof Error ? error : new Error(String(error)))
 		}
 	}
 
@@ -598,8 +642,8 @@ export class RPCChannel<
 			const finalProp = path[path.length - 1]
 			target[finalProp] = incomingValue
 			this.sendResponse(id, true) // Return true to indicate success
-		} catch (error: any) {
-			this.sendError(id, error)
+		} catch (error: unknown) {
+			this.sendError(id, error instanceof Error ? error : new Error(String(error)))
 		}
 	}
 
@@ -657,8 +701,8 @@ export class RPCChannel<
 		try {
 			const instance = new ConstructorClass(...processedArgs)
 			this.sendResponse(id, instance)
-		} catch (error: any) {
-			this.sendError(id, error)
+		} catch (error: unknown) {
+			this.sendError(id, error instanceof Error ? error : new Error(String(error)))
 		}
 	}
 
@@ -734,6 +778,31 @@ export class RPCChannel<
 		}
 	}
 
+	// ---------------------------------------------------------------------------
+	// Timeout helpers
+	// ---------------------------------------------------------------------------
+
+	/** Start a timeout timer for a pending request. No-op if timeout is 0 or Infinity. */
+	private startTimeout(messageId: string, method: string): void {
+		if (!this.timeout || this.timeout === Infinity) return
+		this.pendingTimers[messageId] = setTimeout(() => {
+			const pending = this.pendingRequests[messageId]
+			if (pending) {
+				pending.reject(new RPCTimeoutError(method, this.timeout))
+				delete this.pendingRequests[messageId]
+				delete this.pendingTimers[messageId]
+			}
+		}, this.timeout)
+	}
+
+	/** Clear the timeout timer for a request that received a response. */
+	private clearTimeout(messageId: string): void {
+		if (this.pendingTimers[messageId]) {
+			clearTimeout(this.pendingTimers[messageId])
+			delete this.pendingTimers[messageId]
+		}
+	}
+
 	/**
 	 * Creates a nested proxy object for chaining remote method calls, property access, and constructor calls
 	 * @param chain Array of method names in the chain
@@ -792,7 +861,15 @@ export class RPCChannel<
 	 * Destroys the RPC channel and underlying IO interface if it's destroyable
 	 */
 	destroy(): void {
-		// Free callbacks first
+		// Reject all pending requests so callers don't hang forever
+		for (const [id, pending] of Object.entries(this.pendingRequests)) {
+			pending.reject(new Error("RPC channel destroyed"))
+			this.clearTimeout(id)
+		}
+		this.pendingRequests = {}
+		this.pendingTimers = {}
+
+		// Free callbacks
 		this.freeCallbacks()
 
 		// Clean up IO adapters
