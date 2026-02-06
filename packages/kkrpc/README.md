@@ -29,6 +29,23 @@ Call remote functions as if they were local, with full TypeScript type safety an
 
 [**Quick Start**](#-quick-start) • [**Documentation**](https://kunkunsh.github.io/kkrpc/) • [**Examples**](#-examples) • [**API Reference**](https://jsr.io/@kunkun/kkrpc/doc) • [**LLM Docs**](https://docs.kkrpc.kunkun.sh/llms.txt) • [**中文文档**](./README.zh.md)
 
+## 🤖 AI Support
+
+Working with kkrpc in your AI-powered editor? Add these skills to your Claude Code configuration to get intelligent assistance:
+
+```bash
+# Copy kkrpc skills to your global Claude Code skills folder
+cp -r skills/kkrpc ~/.claude/skills/
+cp -r skills/interop ~/.claude/skills/
+```
+
+This provides your AI assistant with:
+
+- **kkrpc skill**: How to use kkrpc in TypeScript projects
+- **interop skill**: How to implement kkrpc clients/servers in other languages (Go, Python, Rust, Swift)
+
+See [`skills/`](./skills/) directory for details.
+
 <div align="center">
 
 <img src="https://imgur.com/19XswxO.jpg" style="max-width: 800px; width: 100%; margin-bottom: 20px;"/>
@@ -61,7 +78,7 @@ kkrpc stands out in the crowded RPC landscape by offering **true cross-runtime c
 | **🔗 Nested Calls**         | Deep method chaining like `api.math.operations.calculate()`    |
 | **📦 Auto Serialization**   | Intelligent JSON/superjson detection                           |
 | **⚡ Zero Config**          | No schema files or code generation required                    |
-| **🔒 Data Validation**     | Optional runtime validation with Zod, Valibot, ArkType, etc.  |
+| **🔒 Data Validation**      | Optional runtime validation with Zod, Valibot, ArkType, etc.   |
 | **🚀 Transferable Objects** | Zero-copy transfers for large data (40-100x faster)            |
 
 </div>
@@ -179,8 +196,8 @@ There are two approaches:
 Define your API as usual, then add a `validators` map that mirrors the API shape:
 
 ```ts
-import { z } from "zod"
 import { RPCChannel, type RPCValidators } from "kkrpc"
+import { z } from "zod"
 
 type MathAPI = {
 	add(a: number, b: number): Promise<number>
@@ -198,10 +215,7 @@ const validators: RPCValidators<MathAPI> = {
 		output: z.number()
 	},
 	divide: {
-		input: z.tuple([
-			z.number(),
-			z.number().refine((n) => n !== 0, "Divisor cannot be zero")
-		]),
+		input: z.tuple([z.number(), z.number().refine((n) => n !== 0, "Divisor cannot be zero")]),
 		output: z.number()
 	}
 }
@@ -214,8 +228,8 @@ new RPCChannel(io, { expose: api, validators })
 Use `defineMethod` and `defineAPI` to define your API with schemas — types are inferred automatically:
 
 ```ts
+import { defineAPI, defineMethod, extractValidators, RPCChannel, type InferAPI } from "kkrpc"
 import { z } from "zod"
-import { RPCChannel, defineMethod, defineAPI, extractValidators, type InferAPI } from "kkrpc"
 
 const api = defineAPI({
 	add: defineMethod(
@@ -244,7 +258,7 @@ try {
 	await api.add("not", "numbers") // wrong types
 } catch (error) {
 	if (isRPCValidationError(error)) {
-		error.phase  // "input" or "output"
+		error.phase // "input" or "output"
 		error.method // "add"
 		error.issues // [{ message: "Expected number, received string", path: [0] }]
 	}
@@ -365,12 +379,15 @@ Add runtime validation to an existing API using the `validators` option:
 
 ```ts
 // api.ts
-import { z } from "zod"
 import type { RPCValidators } from "kkrpc"
+import { z } from "zod"
 
 export type API = {
 	add(a: number, b: number): Promise<number>
-	createUser(user: { name: string; email: string }): Promise<{ id: string; name: string; email: string }>
+	createUser(user: {
+		name: string
+		email: string
+	}): Promise<{ id: string; name: string; email: string }>
 }
 
 export const api: API = {
@@ -403,7 +420,7 @@ wss.on("connection", (ws) => {
 
 ```ts
 // client.ts
-import { RPCChannel, WebSocketClientIO, isRPCValidationError } from "kkrpc"
+import { isRPCValidationError, RPCChannel, WebSocketClientIO } from "kkrpc"
 import type { API } from "./api"
 
 const io = new WebSocketClientIO({ url: "ws://localhost:3000" })
@@ -418,7 +435,7 @@ try {
 	await api.createUser({ name: "", email: "not-an-email" })
 } catch (error) {
 	if (isRPCValidationError(error)) {
-		console.log(error.phase)  // "input"
+		console.log(error.phase) // "input"
 		console.log(error.issues) // validation issues from Zod
 	}
 }
@@ -430,8 +447,8 @@ Define your API with schemas — types are inferred automatically, no separate t
 
 ```ts
 // api.ts
+import { defineAPI, defineMethod, extractValidators, type InferAPI } from "kkrpc"
 import { z } from "zod"
-import { defineMethod, defineAPI, extractValidators, type InferAPI } from "kkrpc"
 
 export const api = defineAPI({
 	add: defineMethod(
@@ -470,7 +487,7 @@ wss.on("connection", (ws) => {
 
 ```ts
 // client.ts
-import { RPCChannel, WebSocketClientIO, isRPCValidationError } from "kkrpc"
+import { isRPCValidationError, RPCChannel, WebSocketClientIO } from "kkrpc"
 import type { API } from "./api"
 
 const io = new WebSocketClientIO({ url: "ws://localhost:3000" })

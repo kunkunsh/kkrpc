@@ -1,6 +1,6 @@
 # kkrpc - PROJECT KNOWLEDGE BASE
 
-**Generated:** 2026-02-05
+**Generated:** 2026-02-06
 **Commit:** (current)
 **Branch:** main
 
@@ -34,14 +34,16 @@ kkrpc/
 
 ## WHERE TO LOOK
 
-| Task                | Location                         | Notes                                      |
-| ------------------- | -------------------------------- | ------------------------------------------ |
-| Core implementation | `packages/kkrpc/src/`            | channel.ts, interface.ts, serialization.ts |
-| Transport adapters  | `packages/kkrpc/src/adapters/`   | 15 transport protocol adapters             |
-| Test code           | `packages/kkrpc/__tests__/`      | Bun tests, covers all adapters             |
-| Deno compatibility  | `packages/kkrpc/__deno_tests__/` | Deno regression tests                      |
-| Usage examples      | `examples/`                      | HTTP, WebSocket, Worker, Chrome Extension  |
-| Build config        | `turbo.json`, `tsdown.config.ts` | Turbo + tsdown build system                |
+| Task                | Location                           | Notes                                      |
+| ------------------- | ---------------------------------- | ------------------------------------------ |
+| Core implementation | `packages/kkrpc/src/`              | channel.ts, interface.ts, serialization.ts |
+| Transport adapters  | `packages/kkrpc/src/adapters/`     | 22 transport protocol adapters             |
+| Validation          | `packages/kkrpc/src/validation.ts` | Standard Schema runtime validation         |
+| Test code           | `packages/kkrpc/__tests__/`        | Bun tests, covers all adapters             |
+| Deno compatibility  | `packages/kkrpc/__deno_tests__/`   | Deno regression tests                      |
+| Usage examples      | `examples/`                        | HTTP, WebSocket, Worker, Chrome Extension  |
+| AI skills           | `skills/`                          | Claude Code SKILL.md files                 |
+| Build config        | `turbo.json`, `tsdown.config.ts`   | Turbo + tsdown build system                |
 
 ## CODE MAP
 
@@ -52,6 +54,10 @@ kkrpc/
 | IoCapabilities                | Interface | src/interface.ts                  | Adapter capability declarations       |
 | serialize/deserialize         | Function  | src/serialization.ts              | Message serialization                 |
 | transfer()                    | Function  | src/transfer.ts                   | Mark zero-copy objects                |
+| RPCValidationError            | Class     | src/validation.ts                 | Validation error with context         |
+| defineMethod()                | Function  | src/validation.ts                 | Schema-first method definition        |
+| defineAPI()                   | Function  | src/validation.ts                 | Schema-first API definition           |
+| extractValidators()           | Function  | src/validation.ts                 | Extract validators from defined API   |
 | NodeIo                        | Class     | adapters/node.ts                  | Node.js stdio                         |
 | DenoIo                        | Class     | adapters/deno.ts                  | Deno stdio                            |
 | BunIo                         | Class     | adapters/bun.ts                   | Bun stdio                             |
@@ -85,6 +91,7 @@ kkrpc/
 - **Turbo**: Unified build pipeline (`pnpm dev/build/test`)
 - **tsdown**: TypeScript to ES module build (ESM + CJS dual output)
 - **Typedoc**: API documentation generation to `docs/`
+- **Changesets**: Version management and changelog generation
 
 ### Testing Strategy
 
@@ -182,6 +189,20 @@ pnpm changeset
 - **superjson** (default): Supports Date, Map, Set, BigInt, Uint8Array
 - **json**: Backward compatible, basic types
 - **Auto-detection**: Receiver auto-detects format
+
+### Data Validation
+
+- **Standard Schema**: Compatible with Zod (v3.24+), Valibot (v1+), ArkType (v2+)
+- **Two patterns**: Type-first (separate validators map) or Schema-first (defineMethod/defineAPI)
+- **Bidirectional**: Each side validates its own exposed API
+- **Error handling**: RPCValidationError with phase (input/output), method path, and issues array
+
+### AI Skills
+
+- **Location**: `skills/` directory contains SKILL.md files for Claude Code
+- **kkrpc skill**: TypeScript usage patterns and best practices
+- **interop skill**: Cross-language RPC implementation (Go, Python, Rust, Swift)
+- **Usage**: Copy to `~/.claude/skills/` for AI-assisted development
 
 ### Transferable Object Performance
 
