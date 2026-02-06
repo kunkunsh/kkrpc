@@ -69,7 +69,7 @@ function createRateLimiter(max: number, windowMs: number = 1000): RPCInterceptor
 	return async (ctx, next) => {
 		const now = Date.now()
 		// Evict timestamps outside the window
-		while (calls.length > 0 && calls[0] <= now - windowMs) {
+		while (calls.length > 0 && calls[0]! <= now - windowMs) {
 			calls.shift()
 		}
 		if (calls.length >= max) {

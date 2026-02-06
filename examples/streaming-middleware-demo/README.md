@@ -21,6 +21,8 @@ Demonstrates kkrpc's AsyncIterable streaming and interceptor middleware over Web
 
 ## Run
 
+### Option 1: `ws` library (works with Node.js, Bun, Deno)
+
 ```bash
 # Terminal 1 — start the server
 bun run server.ts
@@ -28,6 +30,18 @@ bun run server.ts
 # Terminal 2 — run the client
 bun run client.ts
 ```
+
+### Option 2: Bun native WebSocket (Bun only)
+
+```bash
+# Terminal 1 — start the Bun native server
+bun run server-bun.ts
+
+# Terminal 2 — run the client (same client works with both servers)
+bun run client.ts
+```
+
+Both servers are interchangeable — the client connects to `ws://localhost:3100` and works the same way.
 
 ## How middleware works in kkrpc
 

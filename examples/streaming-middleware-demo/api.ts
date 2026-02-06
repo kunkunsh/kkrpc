@@ -61,8 +61,8 @@ export function createApi(session: { authenticated: boolean; username: string })
 			let seq = 0
 			while (true) {
 				await sleep(300 + Math.random() * 700)
-				const level = levels[Math.floor(Math.random() * levels.length)]
-				const message = messages[Math.floor(Math.random() * messages.length)]
+				const level = levels[Math.floor(Math.random() * levels.length)]!
+				const message = messages[Math.floor(Math.random() * messages.length)]!
 				yield {
 					timestamp: new Date().toISOString(),
 					level,

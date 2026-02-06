@@ -3,13 +3,16 @@
 	"private": true,
 	"scripts": {
 		"server": "bun run server.ts",
-		"client": "bun run client.ts"
+		"server:bun": "bun run server-bun.ts",
+		"client": "bun run client.ts",
+		"check-types": "tsc --noEmit"
 	},
 	"dependencies": {
 		"kkrpc": "workspace:*",
 		"ws": "^8.18.0"
 	},
 	"devDependencies": {
-		"@types/bun": "latest"
+		"@types/bun": "latest",
+		"typescript": "^5.0.0"
 	}
 }

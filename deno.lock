@@ -350,6 +350,14 @@
           ]
         }
       },
+      "examples/streaming-middleware-demo": {
+        "packageJson": {
+          "dependencies": [
+            "npm:@types/bun@latest",
+            "npm:ws@^8.18.0"
+          ]
+        }
+      },
       "examples/tauri-demo": {
         "packageJson": {
           "dependencies": [
@@ -425,24 +433,17 @@
         ],
         "packageJson": {
           "dependencies": [
-            "npm:@nats-io/transport-node@^3.3.0",
-            "npm:@tauri-apps/plugin-shell@^2.2.0",
             "npm:@types/amqplib@~0.10.8",
             "npm:@types/bun@^1.2.20",
             "npm:@types/chrome@~0.1.4",
             "npm:@types/node@^24.3.0",
             "npm:@types/ws@^8.18.0",
-            "npm:amqplib@~0.10.9",
-            "npm:ioredis@^5.8.2",
-            "npm:kafkajs@^2.2.4",
-            "npm:socket.io-client@^4.8.1",
-            "npm:socket.io@^4.8.1",
             "npm:superjson@^2.2.2",
             "npm:tsdown@~0.15.9",
             "npm:tslib@^2.8.1",
             "npm:typedoc@~0.28.10",
             "npm:verify-package-export@^0.0.3",
-            "npm:ws@^8.18.1"
+            "npm:zod@^4.3.6"
           ]
         }
       },
