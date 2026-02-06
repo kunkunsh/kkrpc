@@ -81,6 +81,7 @@ kkrpc stands out in the crowded RPC landscape by offering **true cross-runtime c
 | **🔒 Data Validation**      | Optional runtime validation with Zod, Valibot, ArkType, etc.   |
 | **🔌 Middleware**           | Interceptor chain for logging, auth, timing, and more          |
 | **⏱️ Request Timeout**      | Auto-reject pending calls after a configurable deadline         |
+| **🔁 Streaming**            | Return `AsyncIterable` from methods, consume with `for await`  |
 | **🚀 Transferable Objects** | Zero-copy transfers for large data (40-100x faster)            |
 
 </div>
@@ -319,6 +320,52 @@ try {
 ```
 
 When `destroy()` is called, all pending requests are immediately rejected with `"RPC channel destroyed"`. The default is `0` (no timeout).
+
+## Streaming / AsyncIterable
+
+kkrpc supports first-class streaming via `AsyncIterable`. If an RPC method returns an `AsyncIterable` (e.g. an async generator), the values are streamed chunk-by-chunk to the consumer, who can read them with `for await...of`:
+
+```ts
+// Server: return an async generator
+const api = {
+	async *countdown(from: number) {
+		for (let i = from; i >= 0; i--) {
+			yield i
+		}
+	},
+	async *watchFiles(path: string) {
+		const watcher = fs.watch(path)
+		try {
+			for await (const event of watcher) {
+				yield event
+			}
+		} finally {
+			watcher.close()
+		}
+	}
+}
+
+new RPCChannel(io, { expose: api })
+```
+
+```ts
+// Client: consume with for-await-of
+const api = rpc.getAPI()
+
+const values: number[] = []
+for await (const n of await api.countdown(5)) {
+	values.push(n)
+}
+// values = [5, 4, 3, 2, 1, 0]
+
+// Consumer cancellation: break stops the producer
+for await (const event of await api.watchFiles("/tmp")) {
+	console.log(event)
+	if (shouldStop) break // sends cancel signal to producer
+}
+```
+
+Streaming works alongside regular methods, interceptors, and validation. Producer errors propagate to the consumer, and `break` sends a cancel signal back to stop production. When `destroy()` is called, all active streams are cleaned up.
 
 ## 🚀 Quick Start
 
@@ -1639,6 +1686,7 @@ Results from running on a MacBook Pro (Apple Silicon):
 | **Data Validation**      | ✅ Optional, any Standard Schema library                           | ✅ Built-in Zod support        | ❌ Not supported               |
 | **Middleware**           | ✅ Interceptor chain (onion model)                                 | ✅ `.use()` middleware          | ❌ Not supported               |
 | **Request Timeout**      | ✅ Per-channel timeout + destroy cleanup                           | ❌ Not built-in                | ❌ Not supported               |
+| **Streaming**            | ✅ AsyncIterable with cancel + error propagation                   | ✅ SSE subscriptions           | ❌ Not supported               |
 | **Transferable Objects** | ✅ Zero-copy transfers (40-100x faster)                            | ❌ Not supported               | ✅ Basic support               |
 
 </div>

@@ -63,6 +63,50 @@ interface CallbackFunction {
 	(...args: unknown[]): void
 }
 
+// ---------------------------------------------------------------------------
+// Streaming internals
+// ---------------------------------------------------------------------------
+
+/**
+ * Consumer-side state for an active stream.
+ *
+ * Chunks arrive asynchronously from the producer. The consumer reads them
+ * via `for await...of`. We bridge these with a simple queue: chunks that
+ * arrive before the consumer calls `next()` are buffered; `next()` calls
+ * that arrive before a chunk are parked as pending resolvers.
+ */
+interface StreamConsumerState {
+	/** Buffered iterator results (chunks, end, or error) that arrived before the consumer called next(). */
+	buffer: IteratorResult<unknown>[]
+	/** Error received from the producer (stream-error). Stored so subsequent next() calls reject. */
+	error?: Error
+	/** Whether the stream has ended (stream-end or stream-error received). */
+	done: boolean
+	/** Pending next() resolve/reject callbacks waiting for the next chunk. */
+	waiters: Array<{
+		resolve: (result: IteratorResult<unknown>) => void
+		reject: (error: Error) => void
+	}>
+}
+
+/**
+ * Producer-side state for an active stream.
+ */
+interface StreamProducerState {
+	/** AbortController to signal cancellation to the streaming loop. */
+	abortController: AbortController
+}
+
+/** Helper to detect AsyncIterable objects. */
+function isAsyncIterable(value: unknown): value is AsyncIterable<unknown> {
+	return (
+		value !== null &&
+		value !== undefined &&
+		typeof value === "object" &&
+		Symbol.asyncIterator in (value as any)
+	)
+}
+
 /**
  * A bidirectional Stdio IPC channel in RPC style.
  * This allows 2 JS/TS processes to call each other's API like using libraries in RPC style,
@@ -77,6 +121,10 @@ export class RPCChannel<
 	private pendingTimers: Record<string, ReturnType<typeof setTimeout>> = {}
 	private callbacks: Record<string, CallbackFunction> = {}
 	private callbackCache: Map<CallbackFunction, string> = new Map()
+	/** Producer-side: active outgoing streams keyed by request id. */
+	private activeStreams: Map<string, StreamProducerState> = new Map()
+	/** Consumer-side: active incoming streams keyed by request id. */
+	private streamConsumers: Map<string, StreamConsumerState> = new Map()
 	private count: number = 0
 	private messageStr = ""
 	private apiImplementation?: LocalAPI
@@ -237,6 +285,14 @@ export class RPCChannel<
 			this.handleSet(parsedMessage)
 		} else if (parsedMessage.type === "construct") {
 			this.handleConstruct(parsedMessage)
+		} else if (parsedMessage.type === "stream-chunk") {
+			this.handleStreamChunk(parsedMessage)
+		} else if (parsedMessage.type === "stream-end") {
+			this.handleStreamEnd(parsedMessage)
+		} else if (parsedMessage.type === "stream-error") {
+			this.handleStreamError(parsedMessage)
+		} else if (parsedMessage.type === "stream-cancel") {
+			this.handleStreamCancel(parsedMessage)
 		} else {
 			console.error("received unknown message type", parsedMessage, typeof parsedMessage)
 		}
@@ -424,6 +480,12 @@ export class RPCChannel<
 					// Fall back to simple string errors for backward compatibility
 					this.pendingRequests[id].reject(new Error(error as string))
 				}
+				delete this.pendingRequests[id]
+			} else if (result && typeof result === "object" && (result as any).__stream === true) {
+				// Stream response: resolve the pending request with an AsyncIterable
+				const iterable = this.createStreamIterable(id)
+				this.pendingRequests[id].resolve(iterable)
+				delete this.pendingRequests[id]
 			} else {
 				let finalResult = result
 				if (response.transferSlots && response.transferSlots.length > 0) {
@@ -435,8 +497,8 @@ export class RPCChannel<
 					)
 				}
 				this.pendingRequests[id].resolve(finalResult)
+				delete this.pendingRequests[id]
 			}
-			delete this.pendingRequests[id]
 		}
 	}
 
@@ -522,6 +584,15 @@ export class RPCChannel<
 							invokeHandler
 						)
 					: await invokeHandler()
+
+			// If the handler returned an AsyncIterable, stream it instead of
+			// sending a single response. We notify the consumer with a special
+			// "stream" flag on the initial response, then send chunks.
+			if (isAsyncIterable(result)) {
+				this.sendResponse(id, { __stream: true })
+				this.streamResult(id, result, method, methodValidator)
+				return
+			}
 
 			// Output validation: if an output schema is defined, validate the handler's
 			// return value before sending it back. This catches bugs where the handler
@@ -722,6 +793,205 @@ export class RPCChannel<
 		}
 	}
 
+	// ---------------------------------------------------------------------------
+	// Streaming — producer side
+	// ---------------------------------------------------------------------------
+
+	/**
+	 * Iterates an AsyncIterable and sends each yielded value as a stream-chunk.
+	 * Sends stream-end when the iterator completes, or stream-error on failure.
+	 * The loop stops if the consumer sends stream-cancel.
+	 */
+	private async streamResult(
+		requestId: string,
+		iterable: AsyncIterable<unknown>,
+		method: string,
+		methodValidator?: ReturnType<typeof lookupValidator>
+	): Promise<void> {
+		const abortController = new AbortController()
+		this.activeStreams.set(requestId, { abortController })
+
+		try {
+			for await (const value of iterable) {
+				// Check cancellation
+				if (abortController.signal.aborted) break
+
+				let chunk = value
+
+				// Per-chunk output validation
+				if (methodValidator?.output) {
+					const outputResult = await runValidation(methodValidator.output, chunk)
+					if (outputResult.success === false) {
+						this.sendStreamError(
+							requestId,
+							new RPCValidationError("output", method, outputResult.issues)
+						)
+						return
+					}
+					chunk = outputResult.value
+				}
+
+				this.sendMessage({
+					id: requestId,
+					method: "",
+					args: { value: chunk },
+					type: "stream-chunk"
+				})
+			}
+
+			// Stream completed normally
+			if (!abortController.signal.aborted) {
+				this.sendMessage({
+					id: requestId,
+					method: "",
+					args: {},
+					type: "stream-end"
+				})
+			}
+		} catch (error: unknown) {
+			if (!abortController.signal.aborted) {
+				this.sendStreamError(
+					requestId,
+					error instanceof Error ? error : new Error(String(error))
+				)
+			}
+		} finally {
+			this.activeStreams.delete(requestId)
+		}
+	}
+
+	/** Send a stream-error message to the consumer. */
+	private sendStreamError(requestId: string, error: Error): void {
+		this.sendMessage({
+			id: requestId,
+			method: "",
+			args: { error: serializeError(error) },
+			type: "stream-error"
+		})
+	}
+
+	/** Handle a stream-cancel message from the consumer. */
+	private handleStreamCancel(message: Message): void {
+		const state = this.activeStreams.get(message.id)
+		if (state) {
+			state.abortController.abort()
+			this.activeStreams.delete(message.id)
+		}
+	}
+
+	// ---------------------------------------------------------------------------
+	// Streaming — consumer side
+	// ---------------------------------------------------------------------------
+
+	/**
+	 * Creates an AsyncIterable that yields values from incoming stream-chunk
+	 * messages. The consumer calls `break` or `return()` to send stream-cancel.
+	 */
+	private createStreamIterable(requestId: string): AsyncIterable<unknown> {
+		const consumer: StreamConsumerState = {
+			buffer: [],
+			done: false,
+			waiters: []
+		}
+		this.streamConsumers.set(requestId, consumer)
+
+		const channel = this
+		return {
+			[Symbol.asyncIterator]() {
+				return {
+					next(): Promise<IteratorResult<unknown>> {
+						// If there are buffered results, return immediately
+						if (consumer.buffer.length > 0) {
+							return Promise.resolve(consumer.buffer.shift()!)
+						}
+						// If stream is done and buffer is empty, return done
+						if (consumer.done) {
+							if (consumer.error) {
+								return Promise.reject(consumer.error)
+							}
+							return Promise.resolve({ done: true, value: undefined })
+						}
+						// Wait for next chunk
+						return new Promise((resolve, reject) => {
+							consumer.waiters.push({ resolve, reject })
+						})
+					},
+					return(): Promise<IteratorResult<unknown>> {
+						// Consumer is breaking out of for-await — send cancel
+						channel.sendMessage({
+							id: requestId,
+							method: "",
+							args: {},
+							type: "stream-cancel"
+						})
+						consumer.done = true
+						channel.streamConsumers.delete(requestId)
+						return Promise.resolve({ done: true, value: undefined })
+					}
+				}
+			}
+		}
+	}
+
+	/** Handle a stream-chunk message from the producer. */
+	private handleStreamChunk(message: Message): void {
+		const consumer = this.streamConsumers.get(message.id)
+		if (!consumer) return
+
+		const result: IteratorResult<unknown> = {
+			done: false,
+			value: (message.args as any).value
+		}
+
+		if (consumer.waiters.length > 0) {
+			consumer.waiters.shift()!.resolve(result)
+		} else {
+			consumer.buffer.push(result)
+		}
+	}
+
+	/** Handle a stream-end message from the producer. */
+	private handleStreamEnd(message: Message): void {
+		const consumer = this.streamConsumers.get(message.id)
+		if (!consumer) return
+
+		consumer.done = true
+		this.streamConsumers.delete(message.id)
+
+		if (consumer.waiters.length > 0) {
+			// Resolve all waiters with done
+			for (const waiter of consumer.waiters) {
+				waiter.resolve({ done: true, value: undefined })
+			}
+			consumer.waiters.length = 0
+		} else {
+			consumer.buffer.push({ done: true, value: undefined })
+		}
+	}
+
+	/** Handle a stream-error message from the producer. */
+	private handleStreamError(message: Message): void {
+		const consumer = this.streamConsumers.get(message.id)
+		if (!consumer) return
+
+		const rawError = (message.args as any).error
+		const error =
+			typeof rawError === "object" && rawError.name && rawError.message
+				? deserializeError(rawError as EnhancedError)
+				: new Error(typeof rawError === "string" ? rawError : "Stream error")
+
+		consumer.done = true
+		consumer.error = error
+		this.streamConsumers.delete(message.id)
+
+		if (consumer.waiters.length > 0) {
+			for (const waiter of consumer.waiters) {
+				waiter.reject(error)
+			}
+			consumer.waiters.length = 0
+		}
+	}
+
 	/**
 	 * Sends a successful response back to the remote endpoint
 	 * @param id The ID of the request being responded to
@@ -884,6 +1154,23 @@ export class RPCChannel<
 		}
 		this.pendingRequests = {}
 		this.pendingTimers = {}
+
+		// Cancel all active producer-side streams
+		for (const [, state] of this.activeStreams) {
+			state.abortController.abort()
+		}
+		this.activeStreams.clear()
+
+		// Reject all consumer-side stream waiters
+		for (const [, consumer] of this.streamConsumers) {
+			consumer.done = true
+			const error = new Error("RPC channel destroyed")
+			for (const waiter of consumer.waiters) {
+				waiter.reject(error)
+			}
+			consumer.waiters.length = 0
+		}
+		this.streamConsumers.clear()
 
 		// Free callbacks
 		this.freeCallbacks()

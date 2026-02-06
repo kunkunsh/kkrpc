@@ -9,7 +9,17 @@ export interface Message<T = any> {
 	id: string
 	method: string
 	args: T
-	type: "request" | "response" | "callback" | "get" | "set" | "construct"
+	type:
+		| "request"
+		| "response"
+		| "callback"
+		| "get"
+		| "set"
+		| "construct"
+		| "stream-chunk"
+		| "stream-end"
+		| "stream-error"
+		| "stream-cancel"
 	callbackIds?: string[]
 	version?: "json" | "superjson"
 	path?: string[]

@@ -1,0 +1,15 @@
+{
+	"name": "streaming-demo",
+	"private": true,
+	"scripts": {
+		"server": "bun run server.ts",
+		"client": "bun run client.ts"
+	},
+	"dependencies": {
+		"kkrpc": "workspace:*",
+		"ws": "^8.18.0"
+	},
+	"devDependencies": {
+		"@types/bun": "latest"
+	}
+}
