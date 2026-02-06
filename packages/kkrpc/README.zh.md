@@ -61,6 +61,7 @@
 | **🔗 嵌套调用**     | 深度方法链如 `api.math.operations.calculate()`        |
 | **📦 自动序列化**   | 智能的 JSON/superjson 检测                            |
 | **⚡ 零配置**       | 无需架构文件或代码生成                                |
+| **🔒 数据验证**     | 使用 Zod、Valibot、ArkType 等进行可选运行时验证       |
 | **🚀 可传输对象**   | 大数据的零拷贝传输（快 40-100 倍）                    |
 
 </div>
@@ -111,6 +112,7 @@ graph LR
 | **Redis Streams**    | 具有持久性的流式消息传递                            | Node.js, Deno, Bun                     |
 | **Kafka**            | 分布式流处理平台                                    | Node.js, Deno, Bun                     |
 | **NATS**             | 高性能消息系统                                      | Node.js, Deno, Bun                     |
+| **Electron**         | 桌面应用 IPC（渲染进程 ↔ 主进程 ↔ 实用进程）      | Electron                               |
 
 **kkrpc** 设计的核心在于 `RPCChannel` 和 `IoInterface`。
 
@@ -165,6 +167,88 @@ const rpc = new RPCChannel(io, {
 ```
 
 为了向后兼容，接收方将自动检测序列化格式，因此旧客户端可以与新服务器通信，反之亦然。
+
+## 数据验证
+
+kkrpc 支持使用任何兼容 [Standard Schema](https://standardschema.dev) 的库（Zod、Valibot、ArkType 等）对 RPC 输入和输出进行可选的运行时验证。验证是完全可选的——没有它，kkrpc 的行为与之前完全相同。
+
+有两种方法：
+
+### 类型优先（向现有代码添加验证器）
+
+照常定义您的 API，然后添加一个镜像 API 形状的 `validators` 映射：
+
+```ts
+import { RPCChannel, type RPCValidators } from "kkrpc"
+import { z } from "zod"
+
+type MathAPI = {
+	add(a: number, b: number): Promise<number>
+	divide(a: number, b: number): Promise<number>
+}
+
+const api: MathAPI = {
+	add: async (a, b) => a + b,
+	divide: async (a, b) => a / b
+}
+
+const validators: RPCValidators<MathAPI> = {
+	add: {
+		input: z.tuple([z.number(), z.number()]),
+		output: z.number()
+	},
+	divide: {
+		input: z.tuple([z.number(), z.number().refine((n) => n !== 0, "除数不能为零")]),
+		output: z.number()
+	}
+}
+
+new RPCChannel(io, { expose: api, validators })
+```
+
+### 模式优先（从模式推断类型）
+
+使用 `defineMethod` 和 `defineAPI` 用模式定义您的 API —— 类型会自动推断：
+
+```ts
+import { defineAPI, defineMethod, extractValidators, RPCChannel, type InferAPI } from "kkrpc"
+import { z } from "zod"
+
+const api = defineAPI({
+	add: defineMethod(
+		{ input: z.tuple([z.number(), z.number()]), output: z.number() },
+		async (a, b) => a + b // a, b 被类型化为 number
+	),
+	greet: defineMethod(
+		{ input: z.tuple([z.string()]), output: z.string() },
+		async (name) => `Hello, ${name}!`
+	)
+})
+
+type MyAPI = InferAPI<typeof api>
+
+new RPCChannel(io, { expose: api, validators: extractValidators(api) })
+```
+
+### 验证错误
+
+当验证失败时，调用者会收到一个带有结构化问题详细信息的 `RPCValidationError`：
+
+```ts
+import { isRPCValidationError } from "kkrpc"
+
+try {
+	await api.add("not", "numbers") // 错误类型
+} catch (error) {
+	if (isRPCValidationError(error)) {
+		error.phase // "input" 或 "output"
+		error.method // "add"
+		error.issues // [{ message: "Expected number, received string", path: [0] }]
+	}
+}
+```
+
+验证器支持嵌套 API（`math.divide`）、自定义细化（`.email()`、`.min(1)`、`.refine()`）和输出验证。由于 kkrpc 是双向的，两边都可以独立验证自己暴露的 API。
 
 ## 🚀 快速开始
 
@@ -270,6 +354,140 @@ api.settings.notifications.enabled = true
 // 验证更改
 console.log(await api.counter) // 42
 console.log(await api.settings.theme) // "dark"
+```
+
+### 验证示例（类型优先）
+
+使用 `validators` 选项向现有 API 添加运行时验证：
+
+```ts
+// api.ts
+import type { RPCValidators } from "kkrpc"
+import { z } from "zod"
+
+export type API = {
+	add(a: number, b: number): Promise<number>
+	createUser(user: {
+		name: string
+		email: string
+	}): Promise<{ id: string; name: string; email: string }>
+}
+
+export const api: API = {
+	add: async (a, b) => a + b,
+	createUser: async (user) => ({ id: crypto.randomUUID(), ...user })
+}
+
+export const validators: RPCValidators<API> = {
+	add: {
+		input: z.tuple([z.number(), z.number()]),
+		output: z.number()
+	},
+	createUser: {
+		input: z.tuple([z.object({ name: z.string().min(1), email: z.string().email() })]),
+		output: z.object({ id: z.string(), name: z.string(), email: z.string() })
+	}
+}
+```
+
+```ts
+// server.ts
+import { RPCChannel, WebSocketServerIO } from "kkrpc"
+import { api, validators, type API } from "./api"
+
+wss.on("connection", (ws) => {
+	const io = new WebSocketServerIO(ws)
+	new RPCChannel<API, API>(io, { expose: api, validators })
+})
+```
+
+```ts
+// client.ts
+import { isRPCValidationError, RPCChannel, WebSocketClientIO } from "kkrpc"
+import type { API } from "./api"
+
+const io = new WebSocketClientIO({ url: "ws://localhost:3000" })
+const rpc = new RPCChannel<{}, API>(io)
+const api = rpc.getAPI()
+
+// 有效调用正常工作
+console.log(await api.add(1, 2)) // 3
+
+// 无效调用抛出 RPCValidationError
+try {
+	await api.createUser({ name: "", email: "not-an-email" })
+} catch (error) {
+	if (isRPCValidationError(error)) {
+		console.log(error.phase) // "input"
+		console.log(error.issues) // 来自 Zod 的验证问题
+	}
+}
+```
+
+### 验证示例（模式优先）
+
+用模式定义您的 API —— 类型会自动推断，无需单独的类型定义：
+
+```ts
+// api.ts
+import { defineAPI, defineMethod, extractValidators, type InferAPI } from "kkrpc"
+import { z } from "zod"
+
+export const api = defineAPI({
+	add: defineMethod(
+		{ input: z.tuple([z.number(), z.number()]), output: z.number() },
+		async (a, b) => a + b
+	),
+	greet: defineMethod(
+		{ input: z.tuple([z.string()]), output: z.string() },
+		async (name) => `Hello, ${name}!`
+	),
+	math: {
+		divide: defineMethod(
+			{
+				input: z.tuple([z.number(), z.number().refine((n) => n !== 0, "不能除以零")]),
+				output: z.number()
+			},
+			async (a, b) => a / b
+		)
+	}
+})
+
+export type API = InferAPI<typeof api>
+export const validators = extractValidators(api)
+```
+
+```ts
+// server.ts
+import { RPCChannel, WebSocketServerIO } from "kkrpc"
+import { api, validators } from "./api"
+
+wss.on("connection", (ws) => {
+	const io = new WebSocketServerIO(ws)
+	new RPCChannel(io, { expose: api, validators })
+})
+```
+
+```ts
+// client.ts
+import { isRPCValidationError, RPCChannel, WebSocketClientIO } from "kkrpc"
+import type { API } from "./api"
+
+const io = new WebSocketClientIO({ url: "ws://localhost:3000" })
+const rpc = new RPCChannel<{}, API>(io)
+const api = rpc.getAPI()
+
+console.log(await api.greet("World")) // "Hello, World!"
+console.log(await api.math.divide(10, 2)) // 5
+
+try {
+	await api.math.divide(10, 0)
+} catch (error) {
+	if (isRPCValidationError(error)) {
+		console.log(error.method) // "math.divide"
+		console.log(error.issues[0].message) // "不能除以零"
+	}
+}
 ```
 
 ### 增强的错误保留
@@ -1338,17 +1556,18 @@ bun test
 
 <div align="center">
 
-| 特性           | kkrpc                                               | tRPC                      | Comlink               |
-| -------------- | --------------------------------------------------- | ------------------------- | --------------------- |
-| **跨运行时**   | ✅ Node.js、Deno、Bun、浏览器                       | ❌ 仅 Node.js/浏览器      | ❌ 仅浏览器           |
-| **双向**       | ✅ 两边都可以调用 API                               | ❌ 仅客户端调用服务器     | ✅ 两边都可以调用 API |
-| **类型安全**   | ✅ 完整的 TypeScript 支持                           | ✅ 完整的 TypeScript 支持 | ✅ TypeScript 支持    |
-| **传输层**     | ✅ stdio、HTTP、WebSocket、postMessage、Chrome 扩展 | ❌ 仅 HTTP                | ❌ 仅 postMessage     |
-| **错误保留**   | ✅ 完整错误对象                                     | ⚠️ 有限的错误序列化       | ⚠️ 有限的错误序列化   |
-| **属性访问**   | ✅ 远程 getter/setter                               | ❌ 仅方法                 | ❌ 仅方法             |
-| **零配置**     | ✅ 无代码生成                                       | ✅ 无代码生成             | ✅ 无代码生成         |
-| **回调**       | ✅ 函数参数                                         | ❌ 无回调                 | ✅ 函数参数           |
-| **可传输对象** | ✅ 零拷贝传输（快 40-100 倍）                       | ❌ 不支持                 | ✅ 基本支持           |
+| 特性           | kkrpc                                                         | tRPC                      | Comlink               |
+| -------------- | ------------------------------------------------------------- | ------------------------- | --------------------- |
+| **跨运行时**   | ✅ Node.js、Deno、Bun、浏览器                                 | ❌ 仅 Node.js/浏览器      | ❌ 仅浏览器           |
+| **双向**       | ✅ 两边都可以调用 API                                         | ❌ 仅客户端调用服务器     | ✅ 两边都可以调用 API |
+| **类型安全**   | ✅ 完整的 TypeScript 支持                                     | ✅ 完整的 TypeScript 支持 | ✅ TypeScript 支持    |
+| **传输层**     | ✅ stdio、HTTP、WebSocket、postMessage、Chrome 扩展、Electron | ❌ 仅 HTTP                | ❌ 仅 postMessage     |
+| **错误保留**   | ✅ 完整错误对象                                               | ⚠️ 有限的错误序列化       | ⚠️ 有限的错误序列化   |
+| **属性访问**   | ✅ 远程 getter/setter                                         | ❌ 仅方法                 | ❌ 仅方法             |
+| **零配置**     | ✅ 无代码生成                                                 | ✅ 无代码生成             | ✅ 无代码生成         |
+| **回调**       | ✅ 函数参数                                                   | ❌ 无回调                 | ✅ 函数参数           |
+| **数据验证**   | ✅ 可选，任何 Standard Schema 库                              | ✅ 内置 Zod 支持          | ❌ 不支持             |
+| **可传输对象** | ✅ 零拷贝传输（快 40-100 倍）                                 | ❌ 不支持                 | ✅ 基本支持           |
 
 </div>
 

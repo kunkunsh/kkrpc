@@ -13,6 +13,12 @@ import {
 	type TransferSlot
 } from "./serialization.ts"
 import { generateUUID } from "./utils.ts"
+import {
+	lookupValidator,
+	RPCValidationError,
+	runValidation,
+	type RPCValidators
+} from "./validation.ts"
 
 interface PendingRequest {
 	resolve: (result: any) => void
@@ -39,6 +45,13 @@ export class RPCChannel<
 	private count: number = 0
 	private messageStr = ""
 	private apiImplementation?: LocalAPI
+	/**
+	 * Optional validators map that mirrors the LocalAPI shape.
+	 * When set, incoming RPC calls are validated before the handler runs (input)
+	 * and after it returns (output). Validation only applies to the locally
+	 * exposed API — kkrpc is bidirectional, so each side validates its own API.
+	 */
+	private validators?: RPCValidators<LocalAPI>
 	private serializationOptions: SerializationOptions
 	private supportsTransfer = false
 	private structuredClone = false
@@ -49,10 +62,13 @@ export class RPCChannel<
 			expose?: LocalAPI
 			serialization?: SerializationOptions
 			enableTransfer?: boolean
+			/** Optional validators for the exposed API. Validates inputs/outputs on the receiving side. */
+			validators?: RPCValidators<LocalAPI>
 		}
 	) {
 		// console.warn("RPCChannel constructor")
 		this.apiImplementation = options?.expose
+		this.validators = options?.validators
 		this.serializationOptions = options?.serialization || {}
 		this.structuredClone = io.capabilities?.structuredClone === true
 		if (
@@ -69,8 +85,9 @@ export class RPCChannel<
 	 * Exposes a local API implementation that can be called remotely
 	 * @param api The local API implementation to expose
 	 */
-	expose(api: LocalAPI) {
+	expose(api: LocalAPI, validators?: RPCValidators<LocalAPI>) {
 		this.apiImplementation = api
+		if (validators) this.validators = validators
 	}
 
 	/**
@@ -378,7 +395,7 @@ export class RPCChannel<
 	 * @param request The request message to handle
 	 * @private
 	 */
-	private handleRequest(request: Message): void {
+	private async handleRequest(request: Message): Promise<void> {
 		const { id, method } = request
 		let incomingArgs = Array.isArray(request.args) ? request.args : []
 
@@ -409,6 +426,9 @@ export class RPCChannel<
 			return
 		}
 
+		// Restore callback arguments: the caller serialized callback functions as
+		// "__callback__<id>" placeholder strings. Here we convert them back into
+		// real functions that, when called, send a callback message to the remote side.
 		const processedArgs = incomingArgs.map((arg: any) => {
 			if (typeof arg === "string" && arg.startsWith("__callback__")) {
 				const callbackId = arg.slice(12)
@@ -419,13 +439,45 @@ export class RPCChannel<
 			return arg
 		})
 
+		// --- Input / Output Validation ---
+		// Look up the validator for this method path (e.g. "math.divide").
+		// If no validators were configured, or this method has none, this is undefined
+		// and validation is skipped entirely (backward-compatible no-op).
+		const methodValidator = lookupValidator(this.validators, method)
+
+		if (methodValidator?.input) {
+			// Filter out callback arguments before validating. After the .map() above,
+			// callback placeholders have been replaced with real functions, so we filter
+			// by `typeof a !== "function"`. This matches the FilterCallbacks<T> type
+			// utility that strips function params from the schema's expected input tuple.
+			const dataArgs = processedArgs.filter((a: any) => typeof a !== "function")
+			const inputResult = await runValidation(methodValidator.input, dataArgs)
+			// Use `=== false` (not `!`) for discriminated union narrowing — without a
+			// tsconfig, tsc doesn't narrow `!result.success` to the failure branch.
+			if (inputResult.success === false) {
+				this.sendError(id, new RPCValidationError("input", method, inputResult.issues))
+				return
+			}
+		}
+
 		try {
-			const result = targetMethod.apply(target, processedArgs)
-			Promise.resolve(result)
-				.then((res) => {
-					return this.sendResponse(id, res)
-				})
-				.catch((err) => this.sendError(id, err))
+			const result = await targetMethod.apply(target, processedArgs)
+
+			// Output validation: if an output schema is defined, validate the handler's
+			// return value before sending it back. This catches bugs where the handler
+			// returns an unexpected type (e.g. number instead of string).
+			if (methodValidator?.output) {
+				const outputResult = await runValidation(methodValidator.output, result)
+				if (outputResult.success === false) {
+					this.sendError(id, new RPCValidationError("output", method, outputResult.issues))
+					return
+				}
+				// Send the validated value (which may have been transformed/coerced by the schema)
+				this.sendResponse(id, outputResult.value)
+				return
+			}
+
+			this.sendResponse(id, result)
 		} catch (error: any) {
 			this.sendError(id, error)
 		}
