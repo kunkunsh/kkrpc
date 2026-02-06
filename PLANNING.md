@@ -12,7 +12,7 @@ Four architectural improvements identified from design review and competitive an
 
 ---
 
-## 1. Middleware / Interceptor System
+## 1. Middleware / Interceptor System ✅ DONE
 
 ### Problem
 
@@ -581,7 +581,7 @@ Recommendation: Start with 4c (`any` → `unknown` cleanup) which is low-risk. T
 
 ```
 1. Request Timeout       ✅ DONE — RPCTimeoutError, timer per pending request, cleanup in destroy()
-2. Middleware System      (Low-Medium complexity, standalone)
+2. Middleware System      ✅ DONE — RPCInterceptor, runInterceptors(), onion model in handleRequest
 3. Streaming Support      (Medium-High complexity, may benefit from middleware for stream interceptors)
 4. Proxy Type Safety      4c ✅ DONE (any→unknown in catch blocks, CallbackFunction, isDestroyed cast)
                           4a pending (recursive path types for callMethod)
