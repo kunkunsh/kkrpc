@@ -1,5 +1,5 @@
 {
-	"name": "streaming-demo",
+	"name": "streaming-middleware-demo",
 	"private": true,
 	"scripts": {
 		"server": "bun run server.ts",
