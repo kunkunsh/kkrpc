@@ -13,6 +13,7 @@ import {
 	type TransferSlot
 } from "./serialization.ts"
 import { generateUUID } from "./utils.ts"
+import { runInterceptors, type RPCInterceptor } from "./middleware.ts"
 import {
 	lookupValidator,
 	RPCValidationError,
@@ -86,6 +87,8 @@ export class RPCChannel<
 	 * exposed API — kkrpc is bidirectional, so each side validates its own API.
 	 */
 	private validators?: RPCValidators<LocalAPI>
+	/** Interceptor chain that wraps handler invocation in handleRequest. */
+	private interceptors: ReadonlyArray<RPCInterceptor>
 	private serializationOptions: SerializationOptions
 	private supportsTransfer = false
 	private structuredClone = false
@@ -100,12 +103,15 @@ export class RPCChannel<
 			enableTransfer?: boolean
 			/** Optional validators for the exposed API. Validates inputs/outputs on the receiving side. */
 			validators?: RPCValidators<LocalAPI>
+			/** Interceptors that wrap handler invocation on the receiving side. */
+			interceptors?: RPCInterceptor[]
 			/** Timeout in ms for outgoing RPC calls. Default: 0 (no timeout). */
 			timeout?: number
 		}
 	) {
 		this.apiImplementation = options?.expose
 		this.validators = options?.validators
+		this.interceptors = options?.interceptors ?? []
 		this.timeout = options?.timeout ?? 0
 		this.serializationOptions = options?.serialization || {}
 		this.structuredClone = io.capabilities?.structuredClone === true
@@ -505,7 +511,17 @@ export class RPCChannel<
 		}
 
 		try {
-			const result = await targetMethod.apply(target, processedArgs)
+			// Wrap the handler invocation with the interceptor chain.
+			// Interceptors run after input validation, so they see clean args.
+			const invokeHandler = () => targetMethod.apply(target, processedArgs)
+			const result =
+				this.interceptors.length > 0
+					? await runInterceptors(
+							this.interceptors,
+							{ method, args: processedArgs, state: {} },
+							invokeHandler
+						)
+					: await invokeHandler()
 
 			// Output validation: if an output schema is defined, validate the handler's
 			// return value before sending it back. This catches bugs where the handler

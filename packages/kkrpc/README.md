@@ -79,6 +79,8 @@ kkrpc stands out in the crowded RPC landscape by offering **true cross-runtime c
 | **📦 Auto Serialization**   | Intelligent JSON/superjson detection                           |
 | **⚡ Zero Config**          | No schema files or code generation required                    |
 | **🔒 Data Validation**      | Optional runtime validation with Zod, Valibot, ArkType, etc.   |
+| **🔌 Middleware**           | Interceptor chain for logging, auth, timing, and more          |
+| **⏱️ Request Timeout**      | Auto-reject pending calls after a configurable deadline         |
 | **🚀 Transferable Objects** | Zero-copy transfers for large data (40-100x faster)            |
 
 </div>
@@ -266,6 +268,57 @@ try {
 ```
 
 Validators support nested APIs (`math.divide`), custom refinements (`.email()`, `.min(1)`, `.refine()`), and output validation. Since kkrpc is bidirectional, both sides can independently validate their own exposed API.
+
+## Middleware / Interceptors
+
+kkrpc supports an optional interceptor chain that wraps handler invocation on the receiving side. Interceptors use the standard onion model (like Koa or tRPC) — each interceptor calls `next()` to proceed, and can inspect args, transform return values, measure timing, or throw to abort.
+
+```ts
+import { RPCChannel, type RPCInterceptor } from "kkrpc"
+
+const logger: RPCInterceptor = async (ctx, next) => {
+	console.log(`→ ${ctx.method}`, ctx.args)
+	const result = await next()
+	console.log(`← ${ctx.method}`, result)
+	return result
+}
+
+const auth: RPCInterceptor = async (ctx, next) => {
+	if (ctx.method.startsWith("admin.")) throw new Error("Unauthorized")
+	return next()
+}
+
+new RPCChannel(io, {
+	expose: api,
+	interceptors: [logger, auth]
+})
+```
+
+Interceptors run **after** input validation and **before** output validation, so they always see clean, validated data. Each interceptor receives a `ctx` object with `method`, `args`, and a shared `state` bag for passing data between interceptors. When no interceptors are configured, there is zero overhead.
+
+## Request Timeout
+
+kkrpc supports optional request timeouts to prevent pending calls from hanging forever if the remote side crashes or the transport drops:
+
+```ts
+import { RPCChannel, isRPCTimeoutError } from "kkrpc"
+
+const rpc = new RPCChannel(io, {
+	expose: api,
+	timeout: 5000 // 5 second timeout for all outgoing calls
+})
+
+try {
+	await api.slowOperation()
+} catch (error) {
+	if (isRPCTimeoutError(error)) {
+		console.log(error.method)    // "slowOperation"
+		console.log(error.timeoutMs) // 5000
+	}
+}
+```
+
+When `destroy()` is called, all pending requests are immediately rejected with `"RPC channel destroyed"`. The default is `0` (no timeout).
 
 ## 🚀 Quick Start
 
@@ -1584,6 +1637,8 @@ Results from running on a MacBook Pro (Apple Silicon):
 | **Zero Config**          | ✅ No code generation                                              | ✅ No code generation          | ✅ No code generation          |
 | **Callbacks**            | ✅ Function parameters                                             | ❌ No callbacks                | ✅ Function parameters         |
 | **Data Validation**      | ✅ Optional, any Standard Schema library                           | ✅ Built-in Zod support        | ❌ Not supported               |
+| **Middleware**           | ✅ Interceptor chain (onion model)                                 | ✅ `.use()` middleware          | ❌ Not supported               |
+| **Request Timeout**      | ✅ Per-channel timeout + destroy cleanup                           | ❌ Not built-in                | ❌ Not supported               |
 | **Transferable Objects** | ✅ Zero-copy transfers (40-100x faster)                            | ❌ Not supported               | ✅ Basic support               |
 
 </div>
