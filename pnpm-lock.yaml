@@ -424,16 +424,16 @@ importers:
         specifier: ^4.10.4
         version: 4.10.4
       ioredis:
-        specifier: ^5.8.2
+        specifier: ^5.0.0
         version: 5.8.2
       kafkajs:
         specifier: ^2.2.4
         version: 2.2.4
       socket.io:
-        specifier: ^4.8.1
+        specifier: ^4.0.0
         version: 4.8.1
       socket.io-client:
-        specifier: ^4.8.1
+        specifier: ^4.0.0
         version: 4.8.1
       superjson:
         specifier: ^2.2.2
@@ -442,8 +442,8 @@ importers:
         specifier: ^5.0.0
         version: 5.8.2
       ws:
-        specifier: ^8.18.1
-        version: 8.18.1
+        specifier: ^8.18.0
+        version: 8.18.3
     devDependencies:
       '@types/amqplib':
         specifier: ^0.10.8
@@ -9424,18 +9424,6 @@ packages:
 
   ws@8.17.1:
     resolution: {integrity: sha512-6XQFvXTkbfUOZOKKILFG1PDK2NDQs4azKQl26T0YS5CxqWLgXajbPZ+h4gZekJyRqFU8pvnbAbbs/3TgRPy+GQ==}
-    engines: {node: '>=10.0.0'}
-    peerDependencies:
-      bufferutil: ^4.0.1
-      utf-8-validate: '>=5.0.2'
-    peerDependenciesMeta:
-      bufferutil:
-        optional: true
-      utf-8-validate:
-        optional: true
-
-  ws@8.18.1:
-    resolution: {integrity: sha512-RKW2aJZMXeMxVpnZ6bck+RswznaxmzdULiBr6KY7XkTnW8uvt0iT9H5DkHUChXrc+uurzwa0rVI16n/Xzjdz1w==}
     engines: {node: '>=10.0.0'}
     peerDependencies:
       bufferutil: ^4.0.1
@@ -20289,8 +20277,6 @@ snapshots:
   wrappy@1.0.2: {}
 
   ws@8.17.1: {}
-
-  ws@8.18.1: {}
 
   ws@8.18.3: {}
 
