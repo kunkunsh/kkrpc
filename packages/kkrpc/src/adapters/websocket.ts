@@ -114,6 +114,30 @@ export class WebSocketClientIO implements IoInterface {
 }
 
 /**
+ * Minimal WebSocket interface accepted by WebSocketServerIO.
+ *
+ * This is a structural type covering only the members actually used,
+ * so it works with both the DOM WebSocket and the `ws` library's WebSocket
+ * without requiring a cast.
+ */
+/**
+ * Minimal WebSocket interface accepted by WebSocketServerIO.
+ *
+ * This is a structural type covering only the members actually used,
+ * so it works with both the DOM WebSocket and the `ws` library's WebSocket
+ * without requiring a cast.
+ *
+ * NOTE: The handler types use `any` for event parameters to allow assignment
+ * from both DOM WebSocket (MessageEvent) and ws library (any) types.
+ */
+export interface WebSocketLike {
+	onmessage: ((event: any) => void) | null
+	onerror: ((event: any) => void) | null
+	send(data: string): void
+	close(): void
+}
+
+/**
  * WebSocket Server implementation of IoInterface
  */
 export class WebSocketServerIO implements IoInterface {
@@ -127,7 +151,7 @@ export class WebSocketServerIO implements IoInterface {
 		transfer: false
 	}
 
-	constructor(private ws: WebSocket) {
+	constructor(private ws: WebSocketLike) {
 		this.ws.onmessage = (event) => {
 			let message = event.data
 			if (typeof message === "object" && message !== null && "toString" in message) {
