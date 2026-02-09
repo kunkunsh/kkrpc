@@ -71,11 +71,15 @@ export class ElectronUtilityProcessIO implements IoInterface {
 			return
 		}
 
-		if (this.resolveRead) {
-			this.resolveRead(normalized)
-			this.resolveRead = null
+		if (this.messageListeners.size > 0) {
+			this.messageListeners.forEach((listener) => listener(normalized))
 		} else {
-			this.messageQueue.push(normalized)
+			if (this.resolveRead) {
+				this.resolveRead(normalized)
+				this.resolveRead = null
+			} else {
+				this.messageQueue.push(normalized)
+			}
 		}
 	}
 
