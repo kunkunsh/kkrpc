@@ -1,5 +1,0 @@
----
-alwaysApply: true
----
-Always use svelte 5 syntax, not svelte 4. 
-You can fetch https://svelte.dev/llms.txt for more links to different llms.txt
