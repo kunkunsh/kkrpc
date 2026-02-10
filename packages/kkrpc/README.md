@@ -29,6 +29,12 @@ Call remote functions as if they were local, with full TypeScript type safety an
 
 [**Quick Start**](#-quick-start) • [**Documentation**](https://kunkunsh.github.io/kkrpc/) • [**Examples**](#-examples) • [**API Reference**](https://jsr.io/@kunkun/kkrpc/doc) • [**LLM Docs**](https://docs.kkrpc.kunkun.sh/llms.txt) • [**中文文档**](./README.zh.md)
 
+## 🎥 Video Tutorial
+
+[![kkrpc Tutorial](https://img.youtube.com/vi/CF8lji8eB30/0.jpg)](https://youtu.be/CF8lji8eB30)
+
+Watch this video for a comprehensive introduction to kkrpc and how to use it in your projects.
+
 ## 🤖 AI Support
 
 Working with kkrpc in your AI-powered editor? Add these skills to your Claude Code configuration to get intelligent assistance:
@@ -80,7 +86,7 @@ kkrpc stands out in the crowded RPC landscape by offering **true cross-runtime c
 | **⚡ Zero Config**          | No schema files or code generation required                    |
 | **🔒 Data Validation**      | Optional runtime validation with Zod, Valibot, ArkType, etc.   |
 | **🔌 Middleware**           | Interceptor chain for logging, auth, timing, and more          |
-| **⏱️ Request Timeout**      | Auto-reject pending calls after a configurable deadline         |
+| **⏱️ Request Timeout**      | Auto-reject pending calls after a configurable deadline        |
 | **🔁 Streaming**            | Return `AsyncIterable` from methods, consume with `for await`  |
 | **🚀 Transferable Objects** | Zero-copy transfers for large data (40-100x faster)            |
 
@@ -302,7 +308,7 @@ Interceptors run **after** input validation and **before** output validation, so
 kkrpc supports optional request timeouts to prevent pending calls from hanging forever if the remote side crashes or the transport drops:
 
 ```ts
-import { RPCChannel, isRPCTimeoutError } from "kkrpc"
+import { isRPCTimeoutError, RPCChannel } from "kkrpc"
 
 const rpc = new RPCChannel(io, {
 	expose: api,
@@ -313,7 +319,7 @@ try {
 	await api.slowOperation()
 } catch (error) {
 	if (isRPCTimeoutError(error)) {
-		console.log(error.method)    // "slowOperation"
+		console.log(error.method) // "slowOperation"
 		console.log(error.timeoutMs) // 5000
 	}
 }
@@ -1604,7 +1610,6 @@ bun test
 The benchmarks are designed to measure two key aspects of RPC performance:
 
 1. **Call Throughput** (`stdio-benchmark.test.ts`, `websocket-benchmark.test.ts`)
-
    - **Sequential Operations**: Measures latency per call when making blocking calls one after another
    - **Concurrent Operations**: Measures throughput when making many calls in parallel using `Promise.all`
    - **Batch Operations**: Tests batching multiple operations into a single RPC call
@@ -1684,7 +1689,7 @@ Results from running on a MacBook Pro (Apple Silicon):
 | **Zero Config**          | ✅ No code generation                                              | ✅ No code generation          | ✅ No code generation          |
 | **Callbacks**            | ✅ Function parameters                                             | ❌ No callbacks                | ✅ Function parameters         |
 | **Data Validation**      | ✅ Optional, any Standard Schema library                           | ✅ Built-in Zod support        | ❌ Not supported               |
-| **Middleware**           | ✅ Interceptor chain (onion model)                                 | ✅ `.use()` middleware          | ❌ Not supported               |
+| **Middleware**           | ✅ Interceptor chain (onion model)                                 | ✅ `.use()` middleware         | ❌ Not supported               |
 | **Request Timeout**      | ✅ Per-channel timeout + destroy cleanup                           | ❌ Not built-in                | ❌ Not supported               |
 | **Streaming**            | ✅ AsyncIterable with cancel + error propagation                   | ✅ SSE subscriptions           | ❌ Not supported               |
 | **Transferable Objects** | ✅ Zero-copy transfers (40-100x faster)                            | ❌ Not supported               | ✅ Basic support               |
