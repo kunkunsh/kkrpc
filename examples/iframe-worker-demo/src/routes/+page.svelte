@@ -1,12 +1,14 @@
 <script lang="ts">
-	import { apiImplementation, type API, type APINested } from "@kksh/demo-api"
-	import { IframeParentIO, RPCChannel, type DestroyableIoInterface } from "kkrpc/browser"
+	import { apiImplementation } from "@kksh/demo-api"
+	import type { API, APINested } from "@kksh/demo-api"
+	import { IframeParentIO, RPCChannel } from "kkrpc/browser"
+	import type { IoInterface } from "kkrpc/browser"
 	import { onDestroy, onMount } from "svelte"
 	import { toast } from "svelte-sonner"
 
 	let iframeRef: HTMLIFrameElement
 	let io: IframeParentIO | undefined
-	let rpc: RPCChannel<API, APINested, DestroyableIoInterface>
+	let rpc: RPCChannel<API, APINested, IoInterface>
 
 	function onDestroyClicked(e: MouseEvent) {
 		rpc.getIO().destroy()
@@ -18,7 +20,7 @@
 	async function onIframeLoad() {
 		if (!iframeRef.contentWindow) return
 		io = new IframeParentIO(iframeRef.contentWindow)
-		rpc = new RPCChannel<API, APINested, DestroyableIoInterface>(io, { expose: apiImplementation })
+		rpc = new RPCChannel<API, APINested, IoInterface>(io, { expose: apiImplementation })
 	}
 
 	function onMultiplyClicked(e: MouseEvent) {

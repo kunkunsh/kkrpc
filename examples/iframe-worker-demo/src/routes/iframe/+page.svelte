@@ -1,11 +1,13 @@
 <script lang="ts">
-	import { apiImplementationNested, type API, type APINested } from "@kksh/demo-api"
-	import { IframeChildIO, RPCChannel, type DestroyableIoInterface } from "kkrpc/browser"
+	import { apiImplementationNested } from "@kksh/demo-api"
+	import type { API, APINested } from "@kksh/demo-api"
+	import { IframeChildIO, RPCChannel } from "kkrpc/browser"
+	import type { IoInterface } from "kkrpc/browser"
 	import { onDestroy, onMount } from "svelte"
 	import { toast } from "svelte-sonner"
 
 	const io = new IframeChildIO(),
-		rpc = new RPCChannel<APINested, API, DestroyableIoInterface>(io, {
+		rpc = new RPCChannel<APINested, API, IoInterface>(io, {
 			expose: apiImplementationNested
 		})
 
