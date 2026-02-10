@@ -14,6 +14,7 @@ on:
 jobs:
   publish-npm:
     runs-on: ubuntu-latest
+    environment: publish
     permissions:
       contents: read
       id-token: write
@@ -42,5 +43,3 @@ jobs:
         if: steps.check_version.outcome != 'success'
         working-directory: ./packages/kkrpc
         run: npm publish --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
