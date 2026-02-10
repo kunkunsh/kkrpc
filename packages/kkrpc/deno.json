@@ -1,6 +1,6 @@
 {
 	"name": "@kunkun/kkrpc",
-	"version": "0.6.2",
+	"version": "0.6.3",
 	"description": "TypeScript-first RPC library for seamless bi-directional communication between processes, workers, and contexts. Cross-runtime compatible with Node.js, Deno, Bun, and browsers.",
 	"keywords": [
 		"rpc",
@@ -40,7 +40,14 @@
 		"./socketio": "./socketio.ts"
 	},
 	"imports": {
-		"@std/assert": "jsr:@std/assert@1"
+		"@std/assert": "jsr:@std/assert@1",
+		"@tauri-apps/plugin-shell": "npm:@tauri-apps/plugin-shell@^2",
+		"amqplib": "npm:amqplib@^0.10",
+		"superjson": "npm:superjson@^2",
+		"kafkajs": "npm:kafkajs@^2",
+		"ioredis": "npm:ioredis@^5",
+		"socket.io-client": "npm:socket.io-client@^4",
+		"@nats-io/transport-node": "npm:@nats-io/transport-node@^3"
 	},
 	"publish": {
 		"exclude": ["node_modules", "dist", "__tests__", "__deno_tests__", "scripts"]
