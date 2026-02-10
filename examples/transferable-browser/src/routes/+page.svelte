@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { RPCChannel, WorkerParentIO, type DestroyableIoInterface, transfer } from 'kkrpc/browser';
+	import { RPCChannel, WorkerParentIO, transfer } from 'kkrpc/browser';
+	import type { IoInterface } from 'kkrpc/browser';
 	import { onMount } from 'svelte';
 	import type { MainAPI, WorkerAPI, WorkerTransferReport } from '$lib/worker/contracts';
 
@@ -66,7 +67,7 @@
 			type: 'module'
 		});
 		const io = new WorkerParentIO(worker);
-		const rpc = new RPCChannel<MainAPI, WorkerAPI, DestroyableIoInterface>(io, {
+		const rpc = new RPCChannel<MainAPI, WorkerAPI, IoInterface>(io, {
 			expose: localAPI,
 			enableTransfer: true
 		});
