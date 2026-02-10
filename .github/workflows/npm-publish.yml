@@ -34,14 +34,21 @@ jobs:
           pnpm install
           pnpm build
       - name: Check if version is already published
+        id: check_version
         run: |
           PACKAGE_VERSION=$(node -p "require('./packages/kkrpc/package.json').version")
           PACKAGE_NAME=$(jq -r '.name' ./packages/kkrpc/package.json)
-          npm view $PACKAGE_NAME@$PACKAGE_VERSION
-        continue-on-error: true
-        id: check_version
+          # Use curl instead of npm view to avoid interfering with OIDC auth
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://registry.npmjs.org/${PACKAGE_NAME}/${PACKAGE_VERSION}")
+          if [ "$HTTP_STATUS" = "200" ]; then
+            echo "already_published=true" >> "$GITHUB_OUTPUT"
+            echo "Version $PACKAGE_VERSION already published"
+          else
+            echo "already_published=false" >> "$GITHUB_OUTPUT"
+            echo "Version $PACKAGE_VERSION not found, will publish"
+          fi
       - name: Publish
-        if: steps.check_version.outcome != 'success'
+        if: steps.check_version.outputs.already_published == 'false'
         working-directory: ./packages/kkrpc
         run: npm publish --provenance --access public
         env:
