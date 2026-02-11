@@ -1,6 +1,6 @@
 {
 	"name": "kkrpc",
-	"version": "0.6.5",
+	"version": "0.6.6",
 	"description": "TypeScript-first RPC library for seamless bi-directional communication between processes, workers, and contexts. Cross-runtime compatible with Node.js, Deno, Bun, and browsers.",
 	"type": "module",
 	"keywords": [
@@ -43,124 +43,124 @@
 		"postbuild": "pnpm run docs",
 		"dev": "tsdown --watch"
 	},
-	"main": "./dist/mod.js",
+	"main": "./dist/mod.mjs",
 	"types": "./dist/mod.d.ts",
 	"exports": {
 		".": {
 			"types": {
 				"import": "./dist/mod.d.ts",
 				"require": "./dist/mod.cjs",
-				"default": "./dist/mod.js"
+				"default": "./dist/mod.mjs"
 			},
-			"import": "./dist/mod.js",
+			"import": "./dist/mod.mjs",
 			"require": "./dist/mod.cjs"
 		},
 		"./browser": {
 			"types": {
 				"import": "./dist/browser-mod.d.ts",
 				"require": "./dist/browser-mod.cjs",
-				"default": "./dist/browser-mod.js"
+				"default": "./dist/browser-mod.mjs"
 			},
-			"import": "./dist/browser-mod.js",
+			"import": "./dist/browser-mod.mjs",
 			"require": "./dist/browser-mod.cjs"
 		},
 		"./http": {
 			"types": {
 				"import": "./dist/http.d.ts",
 				"require": "./dist/http.cjs",
-				"default": "./dist/http.js"
+				"default": "./dist/http.mjs"
 			},
-			"import": "./dist/http.js",
+			"import": "./dist/http.mjs",
 			"require": "./dist/http.cjs"
 		},
 		"./deno": {
 			"types": {
 				"import": "./dist/deno-mod.d.ts",
 				"require": "./dist/deno-mod.cjs",
-				"default": "./dist/deno-mod.js"
+				"default": "./dist/deno-mod.mjs"
 			},
-			"import": "./dist/deno-mod.js",
+			"import": "./dist/deno-mod.mjs",
 			"require": "./dist/deno-mod.cjs"
 		},
 		"./chrome-extension": {
 			"types": {
 				"import": "./dist/chrome-extension.d.ts",
 				"require": "./dist/chrome-extension.cjs",
-				"default": "./dist/chrome-extension.js"
+				"default": "./dist/chrome-extension.mjs"
 			},
-			"import": "./dist/chrome-extension.js",
+			"import": "./dist/chrome-extension.mjs",
 			"require": "./dist/chrome-extension.cjs"
 		},
 		"./socketio": {
 			"types": {
 				"import": "./dist/socketio.d.ts",
 				"require": "./dist/socketio.cjs",
-				"default": "./dist/socketio.js"
+				"default": "./dist/socketio.mjs"
 			},
-			"import": "./dist/socketio.js",
+			"import": "./dist/socketio.mjs",
 			"require": "./dist/socketio.cjs"
 		},
 		"./redis-streams": {
 			"types": {
 				"import": "./dist/redis-streams.d.ts",
 				"require": "./dist/redis-streams.cjs",
-				"default": "./dist/redis-streams.js"
+				"default": "./dist/redis-streams.mjs"
 			},
-			"import": "./dist/redis-streams.js",
+			"import": "./dist/redis-streams.mjs",
 			"require": "./dist/redis-streams.cjs"
 		},
 		"./kafka": {
 			"types": {
 				"import": "./dist/kafka.d.ts",
 				"require": "./dist/kafka.cjs",
-				"default": "./dist/kafka.js"
+				"default": "./dist/kafka.mjs"
 			},
-			"import": "./dist/kafka.js",
+			"import": "./dist/kafka.mjs",
 			"require": "./dist/kafka.cjs"
 		},
 		"./rabbitmq": {
 			"types": {
 				"import": "./dist/rabbitmq.d.ts",
 				"require": "./dist/rabbitmq.cjs",
-				"default": "./dist/rabbitmq.js"
+				"default": "./dist/rabbitmq.mjs"
 			},
-			"import": "./dist/rabbitmq.js",
+			"import": "./dist/rabbitmq.mjs",
 			"require": "./dist/rabbitmq.cjs"
 		},
 		"./nats": {
 			"types": {
 				"import": "./dist/nats.d.ts",
 				"require": "./dist/nats.cjs",
-				"default": "./dist/nats.js"
+				"default": "./dist/nats.mjs"
 			},
-			"import": "./dist/nats.js",
+			"import": "./dist/nats.mjs",
 			"require": "./dist/nats.cjs"
 		},
 		"./electron": {
 			"types": {
 				"import": "./dist/electron.d.ts",
 				"require": "./dist/electron.cjs",
-				"default": "./dist/electron.js"
+				"default": "./dist/electron.mjs"
 			},
-			"import": "./dist/electron.js",
+			"import": "./dist/electron.mjs",
 			"require": "./dist/electron.cjs"
 		},
 		"./electron-ipc": {
 			"types": {
 				"import": "./dist/electron-ipc.d.ts",
 				"require": "./dist/electron-ipc.cjs",
-				"default": "./dist/electron-ipc.js"
+				"default": "./dist/electron-ipc.mjs"
 			},
-			"import": "./dist/electron-ipc.js",
+			"import": "./dist/electron-ipc.mjs",
 			"require": "./dist/electron-ipc.cjs"
 		},
 		"./inspector": {
 			"types": {
 				"import": "./dist/inspector.d.ts",
 				"require": "./dist/inspector.d.cts",
-				"default": "./dist/inspector.js"
+				"default": "./dist/inspector.mjs"
 			},
-			"import": "./dist/inspector.js",
+			"import": "./dist/inspector.mjs",
 			"require": "./dist/inspector.cjs"
 		}
 	},

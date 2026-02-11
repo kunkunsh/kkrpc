@@ -19,5 +19,17 @@ export default defineConfig({
 	dts: true,
 	format: ["cjs", "esm"],
 	clean: true,
-	minify: true
+	minify: true,
+	external: [
+		"amqplib",
+		"kafkajs",
+		"ioredis",
+		"@nats-io/transport-node",
+		"socket.io",
+		"socket.io-client",
+		"ws",
+		"elysia",
+		"hono",
+		"@tauri-apps/plugin-shell"
+	]
 })
