@@ -3,7 +3,8 @@
 	"scripts": {
 		"server": "bun run --hot server.ts",
 		"client": "bun run --hot client.ts",
-		"test": "bun run --hot test.ts"
+		"test": "bun run --hot test.ts",
+		"check-types": "tsc --noEmit"
 	},
 	"dependencies": {
 		"@kksh/demo-api": "workspace:*",

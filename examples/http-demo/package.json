@@ -7,7 +7,8 @@
 		"http": "bun run --hot src/http.ts",
 		"fastify": "bun run --hot src/fastify.ts",
 		"deno": "deno run -N --watch src/deno.ts",
-		"client": "bun run --hot client.ts"
+		"client": "bun run --hot client.ts",
+		"check-types": "tsc --noEmit"
 	},
 	"dependencies": {
 		"@kksh/demo-api": "workspace:*",

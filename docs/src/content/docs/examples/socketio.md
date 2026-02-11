@@ -50,14 +50,14 @@ httpServer.listen(PORT, () => {
 ### Client
 
 ```ts title="client.ts"
-import { RPCChannel, type DestroyableIoInterface } from "kkrpc"
+import { RPCChannel, type IoInterface } from "kkrpc"
 import { SocketIOClientIO } from "kkrpc/socketio"
 
 const clientIO = new SocketIOClientIO({
 	url: `http://localhost:${PORT}`
 })
 
-const clientRPC = new RPCChannel<API, API, DestroyableIoInterface>(clientIO, { expose: apiMethods })
+const clientRPC = new RPCChannel<API, API, IoInterface>(clientIO, { expose: apiMethods })
 const api = clientRPC.getAPI()
 
 const sum = await api.add(5, 3)
@@ -71,7 +71,7 @@ await api.add(10, 20, (sum) => {
 ### With Namespace
 
 ```ts title="client-with-namespace.ts"
-import { RPCChannel, type DestroyableIoInterface } from "kkrpc"
+import { RPCChannel, type IoInterface } from "kkrpc"
 import { SocketIOClientIO } from "kkrpc/socketio"
 
 const clientIO = new SocketIOClientIO({
@@ -82,7 +82,7 @@ const clientIO = new SocketIOClientIO({
 	}
 })
 
-const clientRPC = new RPCChannel<API, API, DestroyableIoInterface>(clientIO, { expose: apiMethods })
+const clientRPC = new RPCChannel<API, API, IoInterface>(clientIO, { expose: apiMethods })
 const api = clientRPC.getAPI()
 
 const sum = await api.add(5, 3)

@@ -76,14 +76,14 @@ export const apiImplementationNested: APINested = {
 
 ```svelte title="+page.svelte"
 <script lang="ts">
-	import { IframeParentIO, RPCChannel, type DestroyableIoInterface } from "kkrpc/browser"
+	import { IframeParentIO, RPCChannel, type IoInterface } from "kkrpc/browser"
 	import { onDestroy, onMount } from "svelte"
 	import { toast } from "svelte-sonner"
 	import { apiImplementation, type API, type APINested } from "./api"
 
 	let iframeRef: HTMLIFrameElement
 	let io: IframeParentIO | undefined
-	let rpc: RPCChannel<API, APINested, DestroyableIoInterface>
+	let rpc: RPCChannel<API, APINested, IoInterface>
 
 	function onDestroyClicked(e: MouseEvent) {
 		rpc.getIO().destroy()
@@ -95,7 +95,7 @@ export const apiImplementationNested: APINested = {
 	async function onIframeLoad() {
 		if (!iframeRef.contentWindow) return
 		io = new IframeParentIO(iframeRef.contentWindow)
-		rpc = new RPCChannel<API, APINested, DestroyableIoInterface>(io, { expose: apiImplementation })
+		rpc = new RPCChannel<API, APINested, IoInterface>(io, { expose: apiImplementation })
 	}
 
 	function onMultiplyClicked(e: MouseEvent) {
@@ -144,12 +144,12 @@ export const apiImplementationNested: APINested = {
 ```ts title="iframe/+page.svelte"
 <script lang="ts">
 	import { apiImplementationNested, type API, type APINested } from "./api.ts"
-	import { IframeChildIO, RPCChannel, type DestroyableIoInterface } from "kkrpc/browser"
+	import { IframeChildIO, RPCChannel, type IoInterface } from "kkrpc/browser"
 	import { onDestroy, onMount } from "svelte"
 	import { toast } from "svelte-sonner"
 
 	const io = new IframeChildIO(),
-		rpc = new RPCChannel<APINested, API, DestroyableIoInterface>(io, { expose: apiImplementationNested })
+		rpc = new RPCChannel<APINested, API, IoInterface>(io, { expose: apiImplementationNested })
 
 	onMount(() => {})
 	onDestroy(() => {

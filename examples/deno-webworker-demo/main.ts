@@ -1,9 +1,9 @@
 import { apiImplementation, type API, type APINested } from "@kunkun/demo-api"
-import { RPCChannel, WorkerParentIO, type DestroyableIoInterface } from "kkrpc"
+import { RPCChannel, WorkerParentIO, type IoInterface } from "kkrpc"
 
 const worker = new Worker(new URL("./worker.ts", import.meta.url).href, { type: "module" })
 const io = new WorkerParentIO(worker)
-const rpc = new RPCChannel<API, APINested, DestroyableIoInterface>(io, {
+const rpc = new RPCChannel<API, APINested, IoInterface>(io, {
 	expose: apiImplementation
 })
 const api = rpc.getAPI()
