@@ -31,16 +31,16 @@ import { KafkaIO, RPCChannel } from "kkrpc"
 import { apiMethods, type API } from "./api"
 
 const kafkaIO = new KafkaIO({
-  brokers: ["localhost:9092"],
-  topic: "kkrpc-topic",
-  clientId: "kkrpc-producer",
-  numPartitions: 3,
-  replicationFactor: 1,
-  maxQueueSize: 1000
+	brokers: ["localhost:9092"],
+	topic: "kkrpc-topic",
+	clientId: "kkrpc-producer",
+	numPartitions: 3,
+	replicationFactor: 1,
+	maxQueueSize: 1000
 })
 
 const producerRPC = new RPCChannel<API, API>(kafkaIO, {
-  expose: apiMethods
+	expose: apiMethods
 })
 
 const api = producerRPC.getAPI()
@@ -62,16 +62,16 @@ import { KafkaIO, RPCChannel } from "kkrpc"
 import { apiMethods, type API } from "./api"
 
 const kafkaIO = new KafkaIO({
-  brokers: ["localhost:9092"],
-  topic: "kkrpc-topic",
-  clientId: "kkrpc-consumer",
-  groupId: "kkrpc-consumer-group",
-  fromBeginning: false, // Only read new messages
-  maxQueueSize: 1000
+	brokers: ["localhost:9092"],
+	topic: "kkrpc-topic",
+	clientId: "kkrpc-consumer",
+	groupId: "kkrpc-consumer-group",
+	fromBeginning: false, // Only read new messages
+	maxQueueSize: 1000
 })
 
 const consumerRPC = new RPCChannel<API, API>(kafkaIO, {
-  expose: apiMethods
+	expose: apiMethods
 })
 
 const api = consumerRPC.getAPI()
@@ -90,20 +90,20 @@ kafkaIO.destroy()
 
 ```typescript
 interface KafkaAdapterOptions {
-  brokers?: string[]              // Kafka broker addresses (default: ["localhost:9092"])
-  clientId?: string               // Client identifier
-  topic?: string                  // Topic name (default: "kkrpc-topic")
-  groupId?: string                // Consumer group ID
-  fromBeginning?: boolean         // Read from beginning (default: false)
-  producerConfig?: ProducerConfig // Custom producer configuration
-  consumerConfig?: ConsumerConfig // Custom consumer configuration
-  ssl?: KafkaConfig["ssl"]        // SSL configuration
-  sasl?: KafkaConfig["sasl"]      // SASL configuration
-  numPartitions?: number          // Number of partitions for auto-created topics
-  replicationFactor?: number      // Replication factor for auto-created topics
-  maxQueueSize?: number           // Max queue size (default: 1000)
-  sessionId?: string              // Override session ID
-  retry?: KafkaConfig["retry"]    // Retry configuration
+	brokers?: string[] // Kafka broker addresses (default: ["localhost:9092"])
+	clientId?: string // Client identifier
+	topic?: string // Topic name (default: "kkrpc-topic")
+	groupId?: string // Consumer group ID
+	fromBeginning?: boolean // Read from beginning (default: false)
+	producerConfig?: ProducerConfig // Custom producer configuration
+	consumerConfig?: ConsumerConfig // Custom consumer configuration
+	ssl?: KafkaConfig["ssl"] // SSL configuration
+	sasl?: KafkaConfig["sasl"] // SASL configuration
+	numPartitions?: number // Number of partitions for auto-created topics
+	replicationFactor?: number // Replication factor for auto-created topics
+	maxQueueSize?: number // Max queue size (default: 1000)
+	sessionId?: string // Override session ID
+	retry?: KafkaConfig["retry"] // Retry configuration
 }
 ```
 
@@ -113,12 +113,12 @@ interface KafkaAdapterOptions {
 
 ```typescript
 const kafkaIO = new KafkaIO({
-  brokers: ["broker1:9092", "broker2:9092", "broker3:9092"],
-  clientId: "my-kkrpc-service",
-  topic: "my-service-rpc",
-  numPartitions: 6,
-  replicationFactor: 3,
-  maxQueueSize: 2000
+	brokers: ["broker1:9092", "broker2:9092", "broker3:9092"],
+	clientId: "my-kkrpc-service",
+	topic: "my-service-rpc",
+	numPartitions: 6,
+	replicationFactor: 3,
+	maxQueueSize: 2000
 })
 ```
 
@@ -126,14 +126,14 @@ const kafkaIO = new KafkaIO({
 
 ```typescript
 const kafkaIO = new KafkaIO({
-  brokers: ["secure-broker:9093"],
-  ssl: {
-    rejectUnauthorized: false,
-    ca: [fs.readFileSync("/path/to/ca.crt")],
-    key: fs.readFileSync("/path/to/client.key"),
-    cert: fs.readFileSync("/path/to/client.crt")
-  },
-  topic: "secure-rpc"
+	brokers: ["secure-broker:9093"],
+	ssl: {
+		rejectUnauthorized: false,
+		ca: [fs.readFileSync("/path/to/ca.crt")],
+		key: fs.readFileSync("/path/to/client.key"),
+		cert: fs.readFileSync("/path/to/client.crt")
+	},
+	topic: "secure-rpc"
 })
 ```
 
@@ -141,13 +141,13 @@ const kafkaIO = new KafkaIO({
 
 ```typescript
 const kafkaIO = new KafkaIO({
-  brokers: ["sasl-broker:9092"],
-  sasl: {
-    mechanism: "plain",
-    username: "my-user",
-    password: "my-password"
-  },
-  topic: "authenticated-rpc"
+	brokers: ["sasl-broker:9092"],
+	sasl: {
+		mechanism: "plain",
+		username: "my-user",
+		password: "my-password"
+	},
+	topic: "authenticated-rpc"
 })
 ```
 
@@ -155,18 +155,18 @@ const kafkaIO = new KafkaIO({
 
 ```typescript
 const kafkaIO = new KafkaIO({
-  brokers: ["localhost:9092"],
-  topic: "custom-rpc",
-  producerConfig: {
-    maxBatchSize: 100,
-    lingerMs: 10,
-    compression: "gzip"
-  },
-  consumerConfig: {
-    sessionTimeoutMs: 30000,
-    heartbeatIntervalMs: 3000,
-    maxWaitTimeInMs: 5000
-  }
+	brokers: ["localhost:9092"],
+	topic: "custom-rpc",
+	producerConfig: {
+		maxBatchSize: 100,
+		lingerMs: 10,
+		compression: "gzip"
+	},
+	consumerConfig: {
+		sessionTimeoutMs: 30000,
+		heartbeatIntervalMs: 3000,
+		maxWaitTimeInMs: 5000
+	}
 })
 ```
 
@@ -177,21 +177,21 @@ const kafkaIO = new KafkaIO({
 ```typescript
 // Producer
 const producer = new KafkaIO({
-  topic: "load-balanced-topic",
-  numPartitions: 4
+	topic: "load-balanced-topic",
+	numPartitions: 4
 })
 
 // Multiple consumers for load balancing
 const consumer1 = new KafkaIO({
-  topic: "load-balanced-topic",
-  groupId: "processor-group",
-  clientId: "worker-1"
+	topic: "load-balanced-topic",
+	groupId: "processor-group",
+	clientId: "worker-1"
 })
 
 const consumer2 = new KafkaIO({
-  topic: "load-balanced-topic",
-  groupId: "processor-group",
-  clientId: "worker-2"
+	topic: "load-balanced-topic",
+	groupId: "processor-group",
+	clientId: "worker-2"
 })
 
 // Messages distributed across consumers in the group
@@ -201,9 +201,9 @@ const consumer2 = new KafkaIO({
 
 ```typescript
 const consumer = new KafkaIO({
-  topic: "historical-topic",
-  groupId: "history-reader",
-  fromBeginning: true  // Read all messages from the beginning
+	topic: "historical-topic",
+	groupId: "history-reader",
+	fromBeginning: true // Read all messages from the beginning
 })
 ```
 
@@ -213,9 +213,9 @@ The adapter automatically creates topics if they don't exist:
 
 ```typescript
 const kafkaIO = new KafkaIO({
-  topic: "auto-created-topic",
-  numPartitions: 3,      // Number of partitions
-  replicationFactor: 2   // Replication factor
+	topic: "auto-created-topic",
+	numPartitions: 3, // Number of partitions
+	replicationFactor: 2 // Replication factor
 })
 
 // Topic will be created with specified settings
@@ -227,14 +227,14 @@ const kafkaIO = new KafkaIO({
 const kafkaIO = new KafkaIO()
 
 try {
-  const api = kafkaRPC.getAPI()
-  await api.someMethod()
+	const api = kafkaRPC.getAPI()
+	await api.someMethod()
 } catch (error) {
-  if (error.message.includes("Kafka adapter has been destroyed")) {
-    console.log("Adapter was destroyed")
-  } else if (error.message.includes("Kafka connection error")) {
-    console.log("Kafka connection failed - check brokers")
-  }
+	if (error.message.includes("Kafka adapter has been destroyed")) {
+		console.log("Adapter was destroyed")
+	} else if (error.message.includes("Kafka connection error")) {
+		console.log("Kafka connection failed - check brokers")
+	}
 }
 ```
 
@@ -244,8 +244,8 @@ try {
 const kafkaIO = new KafkaIO()
 
 // Get adapter information
-console.log(kafkaIO.getTopic())     // Topic name
-console.log(kafkaIO.getGroupId())   // Consumer group ID
+console.log(kafkaIO.getTopic()) // Topic name
+console.log(kafkaIO.getGroupId()) // Consumer group ID
 console.log(kafkaIO.getSessionId()) // Session ID
 
 // Graceful cleanup
@@ -261,7 +261,7 @@ Prevent memory issues with queue size limits:
 
 ```typescript
 const kafkaIO = new KafkaIO({
-  maxQueueSize: 1000  // Maximum messages in memory
+	maxQueueSize: 1000 // Maximum messages in memory
 })
 
 // When queue is full, oldest messages are dropped with warning
@@ -272,34 +272,39 @@ const kafkaIO = new KafkaIO({
 
 ```typescript
 const kafkaIO = new KafkaIO({
-  retry: {
-    initialRetryTime: 100,
-    retries: 8
-  }
+	retry: {
+		initialRetryTime: 100,
+		retries: 8
+	}
 })
 ```
 
 ## Best Practices
 
 1. **Partition Strategy**:
+
    - More partitions = higher parallelism
    - Consider message ordering requirements
    - Start with 3-6 partitions for most use cases
 
 2. **Consumer Groups**:
+
    - Use unique `groupId` for different consumer applications
    - Same `groupId` for load balancing across instances
    - Different `groupId` for broadcasting to multiple applications
 
 3. **Replication**:
+
    - Use `replicationFactor: 3` for production
    - Ensure you have enough brokers for the replication factor
 
 4. **Memory Management**:
+
    - Set appropriate `maxQueueSize` limits
    - Monitor consumer lag in production
 
 5. **Error Handling**:
+
    - Implement proper error handling and reconnection logic
    - Use retry configurations for resilience
 
@@ -313,6 +318,7 @@ const kafkaIO = new KafkaIO({
 ### Monitoring
 
 Monitor key metrics:
+
 - Consumer lag
 - Throughput per partition
 - Error rates

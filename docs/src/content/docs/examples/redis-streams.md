@@ -31,14 +31,14 @@ import { RedisStreamsIO, RPCChannel } from "kkrpc"
 import { apiMethods, type API } from "./api"
 
 const redisIO = new RedisStreamsIO({
-  url: "redis://localhost:6379",
-  stream: "kkrpc-stream",
-  maxLen: 10000, // Keep only last 10k messages
-  maxQueueSize: 1000
+	url: "redis://localhost:6379",
+	stream: "kkrpc-stream",
+	maxLen: 10000, // Keep only last 10k messages
+	maxQueueSize: 1000
 })
 
 const publisherRPC = new RPCChannel<API, API>(redisIO, {
-  expose: apiMethods
+	expose: apiMethods
 })
 
 const api = publisherRPC.getAPI()
@@ -61,14 +61,14 @@ import { RedisStreamsIO, RPCChannel } from "kkrpc"
 import { apiMethods, type API } from "./api"
 
 const redisIO = new RedisStreamsIO({
-  url: "redis://localhost:6379",
-  stream: "kkrpc-stream",
-  useConsumerGroup: false, // Default: all consumers receive all messages
-  maxQueueSize: 1000
+	url: "redis://localhost:6379",
+	stream: "kkrpc-stream",
+	useConsumerGroup: false, // Default: all consumers receive all messages
+	maxQueueSize: 1000
 })
 
 const subscriberRPC = new RPCChannel<API, API>(redisIO, {
-  expose: apiMethods
+	expose: apiMethods
 })
 
 const api = subscriberRPC.getAPI()
@@ -88,28 +88,28 @@ import { apiMethods, type API } from "./api"
 
 // Worker 1
 const worker1 = new RedisStreamsIO({
-  url: "redis://localhost:6379",
-  stream: "kkrpc-stream",
-  consumerGroup: "kkrpc-group",
-  consumerName: "worker-1",
-  useConsumerGroup: true, // Enable load balancing
-  maxQueueSize: 1000
+	url: "redis://localhost:6379",
+	stream: "kkrpc-stream",
+	consumerGroup: "kkrpc-group",
+	consumerName: "worker-1",
+	useConsumerGroup: true, // Enable load balancing
+	maxQueueSize: 1000
 })
 
 const worker1RPC = new RPCChannel<API, API>(worker1, {
-  expose: apiMethods
+	expose: apiMethods
 })
 
 const api1 = worker1RPC.getAPI()
 
 // Worker 2 (in another process)
 const worker2 = new RedisStreamsIO({
-  url: "redis://localhost:6379",
-  stream: "kkrpc-stream",
-  consumerGroup: "kkrpc-group",
-  consumerName: "worker-2",
-  useConsumerGroup: true,
-  maxQueueSize: 1000
+	url: "redis://localhost:6379",
+	stream: "kkrpc-stream",
+	consumerGroup: "kkrpc-group",
+	consumerName: "worker-2",
+	useConsumerGroup: true,
+	maxQueueSize: 1000
 })
 
 // Each message will be processed by only one worker
@@ -119,15 +119,15 @@ const worker2 = new RedisStreamsIO({
 
 ```typescript
 interface RedisStreamsOptions {
-  url?: string                    // Redis URL (default: "redis://localhost:6379")
-  stream?: string                 // Stream name (default: "kkrpc-stream")
-  consumerGroup?: string          // Consumer group name (default: "kkrpc-group")
-  consumerName?: string           // Consumer name (default: "consumer-{sessionId}")
-  blockTimeout?: number           // Block timeout in ms (default: 5000)
-  maxLen?: number                 // Maximum stream length
-  sessionId?: string              // Unique session identifier
-  maxQueueSize?: number           // Max queue size (default: 1000)
-  useConsumerGroup?: boolean      // Use consumer group mode (default: false)
+	url?: string // Redis URL (default: "redis://localhost:6379")
+	stream?: string // Stream name (default: "kkrpc-stream")
+	consumerGroup?: string // Consumer group name (default: "kkrpc-group")
+	consumerName?: string // Consumer name (default: "consumer-{sessionId}")
+	blockTimeout?: number // Block timeout in ms (default: 5000)
+	maxLen?: number // Maximum stream length
+	sessionId?: string // Unique session identifier
+	maxQueueSize?: number // Max queue size (default: 1000)
+	useConsumerGroup?: boolean // Use consumer group mode (default: false)
 }
 ```
 
@@ -139,8 +139,8 @@ All consumers receive all messages:
 
 ```typescript
 const redisIO = new RedisStreamsIO({
-  stream: "broadcast-stream",
-  useConsumerGroup: false  // Pub/Sub mode
+	stream: "broadcast-stream",
+	useConsumerGroup: false // Pub/Sub mode
 })
 
 // Multiple subscribers all receive the same messages
@@ -154,25 +154,25 @@ Each message is processed by only one consumer:
 
 ```typescript
 const redisIO = new RedisStreamsIO({
-  stream: "work-queue",
-  consumerGroup: "processors",
-  consumerName: "worker-1",
-  useConsumerGroup: true  // Load balancing mode
+	stream: "work-queue",
+	consumerGroup: "processors",
+	consumerName: "worker-1",
+	useConsumerGroup: true // Load balancing mode
 })
 
 // Messages distributed across workers
 const worker1 = new RedisStreamsIO({
-  stream: "work-queue",
-  consumerGroup: "processors",
-  consumerName: "worker-1",
-  useConsumerGroup: true
+	stream: "work-queue",
+	consumerGroup: "processors",
+	consumerName: "worker-1",
+	useConsumerGroup: true
 })
 
 const worker2 = new RedisStreamsIO({
-  stream: "work-queue",
-  consumerGroup: "processors",
-  consumerName: "worker-2",
-  useConsumerGroup: true
+	stream: "work-queue",
+	consumerGroup: "processors",
+	consumerName: "worker-2",
+	useConsumerGroup: true
 })
 ```
 
@@ -182,8 +182,8 @@ Prevent memory issues with queue size limits:
 
 ```typescript
 const redisIO = new RedisStreamsIO({
-  maxQueueSize: 1000,  // Maximum messages in memory
-  stream: "protected-stream"
+	maxQueueSize: 1000, // Maximum messages in memory
+	stream: "protected-stream"
 })
 
 // When queue is full, oldest messages are dropped with warning
@@ -227,12 +227,12 @@ console.log("All stream entries:", entries)
 
 ```typescript
 const redisIO = new RedisStreamsIO({
-  url: "redis://user:pass@localhost:6379",
-  stream: "my-app-stream",
-  maxLen: 50000,        // Keep 50k messages
-  blockTimeout: 1000,   // 1 second timeout
-  maxQueueSize: 2000,   // Allow 2k messages in memory
-  sessionId: "my-session"
+	url: "redis://user:pass@localhost:6379",
+	stream: "my-app-stream",
+	maxLen: 50000, // Keep 50k messages
+	blockTimeout: 1000, // 1 second timeout
+	maxQueueSize: 2000, // Allow 2k messages in memory
+	sessionId: "my-session"
 })
 ```
 
@@ -240,11 +240,11 @@ const redisIO = new RedisStreamsIO({
 
 ```typescript
 const redisIO = new RedisStreamsIO({
-  stream: "task-queue",
-  consumerGroup: "task-processors",
-  consumerName: `processor-${process.pid}`,
-  useConsumerGroup: true,
-  blockTimeout: 10000  // Wait 10 seconds for messages
+	stream: "task-queue",
+	consumerGroup: "task-processors",
+	consumerName: `processor-${process.pid}`,
+	useConsumerGroup: true,
+	blockTimeout: 10000 // Wait 10 seconds for messages
 })
 ```
 
@@ -254,14 +254,14 @@ const redisIO = new RedisStreamsIO({
 const redisIO = new RedisStreamsIO()
 
 try {
-  const api = redisRPC.getAPI()
-  await api.someMethod()
+	const api = redisRPC.getAPI()
+	await api.someMethod()
 } catch (error) {
-  if (error.message.includes("Redis Streams adapter has been destroyed")) {
-    console.log("Adapter was destroyed")
-  } else if (error.message.includes("Redis Streams connection error")) {
-    console.log("Redis connection failed - check Redis server")
-  }
+	if (error.message.includes("Redis Streams adapter has been destroyed")) {
+		console.log("Adapter was destroyed")
+	} else if (error.message.includes("Redis Streams connection error")) {
+		console.log("Redis connection failed - check Redis server")
+	}
 }
 ```
 
@@ -271,10 +271,10 @@ try {
 const redisIO = new RedisStreamsIO()
 
 // Get adapter information
-console.log(redisIO.getStream())      // Stream name
+console.log(redisIO.getStream()) // Stream name
 console.log(redisIO.getConsumerGroup()) // Consumer group name
-console.log(redisIO.getConsumerName())  // Consumer name
-console.log(redisIO.getSessionId())    // Session ID
+console.log(redisIO.getConsumerName()) // Consumer name
+console.log(redisIO.getSessionId()) // Session ID
 
 // Graceful cleanup
 redisIO.destroy()
@@ -286,18 +286,21 @@ await redisIO.signalDestroy()
 ## Best Practices
 
 1. **Choose the right mode**:
+
    - Use `useConsumerGroup: false` for broadcasting
    - Use `useConsumerGroup: true` for load balancing
 
 2. **Set appropriate limits**:
+
    - `maxQueueSize` to prevent memory issues
    - `maxLen` to limit stream growth
 
 3. **Monitor stream health**:
+
    ```typescript
    const info = await redisIO.getStreamInfo()
    if (info.length > 100000) {
-     await redisIO.trimStream(50000)
+   	await redisIO.trimStream(50000)
    }
    ```
 

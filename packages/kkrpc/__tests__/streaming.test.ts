@@ -47,8 +47,8 @@
 
 import { describe, expect, test } from "bun:test"
 import { WebSocketServer } from "ws"
-import { RPCChannel } from "../src/channel.ts"
 import { WebSocketClientIO, WebSocketServerIO } from "../src/adapters/websocket.ts"
+import { RPCChannel } from "../src/channel.ts"
 import type { IoInterface } from "../src/interface.ts"
 import type { RPCInterceptor } from "../src/middleware.ts"
 
@@ -67,7 +67,10 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 // the RPCChannel + typed API proxy.
 // ---------------------------------------------------------------------------
 
-function createTestPair<ServerAPI extends Record<string, any>, ClientAPI extends Record<string, any>>(
+function createTestPair<
+	ServerAPI extends Record<string, any>,
+	ClientAPI extends Record<string, any>
+>(
 	port: number,
 	serverOptions: {
 		expose: ServerAPI

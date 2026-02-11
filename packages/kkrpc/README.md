@@ -1610,6 +1610,7 @@ bun test
 The benchmarks are designed to measure two key aspects of RPC performance:
 
 1. **Call Throughput** (`stdio-benchmark.test.ts`, `websocket-benchmark.test.ts`)
+
    - **Sequential Operations**: Measures latency per call when making blocking calls one after another
    - **Concurrent Operations**: Measures throughput when making many calls in parallel using `Promise.all`
    - **Batch Operations**: Tests batching multiple operations into a single RPC call

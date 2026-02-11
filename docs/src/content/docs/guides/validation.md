@@ -24,61 +24,63 @@ Since kkrpc is bidirectional, both sides can independently have validators for t
 This approach works with existing code — define your API types and implementation as usual, then add a `validators` map:
 
 ```ts
-import { z } from "zod"
 import { RPCChannel, type RPCValidators } from "kkrpc"
+import { z } from "zod"
 
 // 1. Define your API type (existing code, no changes needed)
 type API = {
-  echo(message: string): Promise<string>
-  add(a: number, b: number): Promise<number>
-  createUser(user: { name: string; email: string }): Promise<{ id: string; name: string; email: string }>
-  math: {
-    multiply(a: number, b: number): Promise<number>
-    divide(a: number, b: number): Promise<number>
-  }
+	echo(message: string): Promise<string>
+	add(a: number, b: number): Promise<number>
+	createUser(user: {
+		name: string
+		email: string
+	}): Promise<{ id: string; name: string; email: string }>
+	math: {
+		multiply(a: number, b: number): Promise<number>
+		divide(a: number, b: number): Promise<number>
+	}
 }
 
 // 2. Implement the API (existing code, no changes needed)
 const api: API = {
-  echo: async (message) => message,
-  add: async (a, b) => a + b,
-  createUser: async (user) => ({ id: "123", ...user }),
-  math: {
-    multiply: async (a, b) => a * b,
-    divide: async (a, b) => a / b
-  }
+	echo: async (message) => message,
+	add: async (a, b) => a + b,
+	createUser: async (user) => ({ id: "123", ...user }),
+	math: {
+		multiply: async (a, b) => a * b,
+		divide: async (a, b) => a / b
+	}
 }
 
 // 3. Define validators — mirrors the API shape
 const validators: RPCValidators<API> = {
-  echo: {
-    input: z.tuple([z.string()]),
-    output: z.string()
-  },
-  add: {
-    input: z.tuple([z.number(), z.number()]),
-    output: z.number()
-  },
-  createUser: {
-    input: z.tuple([z.object({
-      name: z.string().min(1),
-      email: z.string().email()
-    })]),
-    output: z.object({ id: z.string(), name: z.string(), email: z.string() })
-  },
-  math: {
-    multiply: {
-      input: z.tuple([z.number(), z.number()]),
-      output: z.number()
-    },
-    divide: {
-      input: z.tuple([
-        z.number(),
-        z.number().refine((n) => n !== 0, "Divisor cannot be zero")
-      ]),
-      output: z.number()
-    }
-  }
+	echo: {
+		input: z.tuple([z.string()]),
+		output: z.string()
+	},
+	add: {
+		input: z.tuple([z.number(), z.number()]),
+		output: z.number()
+	},
+	createUser: {
+		input: z.tuple([
+			z.object({
+				name: z.string().min(1),
+				email: z.string().email()
+			})
+		]),
+		output: z.object({ id: z.string(), name: z.string(), email: z.string() })
+	},
+	math: {
+		multiply: {
+			input: z.tuple([z.number(), z.number()]),
+			output: z.number()
+		},
+		divide: {
+			input: z.tuple([z.number(), z.number().refine((n) => n !== 0, "Divisor cannot be zero")]),
+			output: z.number()
+		}
+	}
 }
 
 // 4. Pass validators to RPCChannel
@@ -97,27 +99,21 @@ new RPCChannel(io, { expose: api, validators })
 For users who want types inferred from schemas (similar to tRPC), use `defineMethod` and `defineAPI`:
 
 ```ts
+import { defineAPI, defineMethod, extractValidators, RPCChannel, type InferAPI } from "kkrpc"
 import { z } from "zod"
-import {
-  RPCChannel,
-  defineMethod,
-  defineAPI,
-  extractValidators,
-  type InferAPI
-} from "kkrpc"
 
 // Define API with schemas — types are inferred automatically
 const api = defineAPI({
-  greet: defineMethod(
-    { input: z.tuple([z.string()]), output: z.string() },
-    async (name) => `Hello, ${name}!` // name is typed as string
-  ),
-  math: {
-    add: defineMethod(
-      { input: z.tuple([z.number(), z.number()]), output: z.number() },
-      async (a, b) => a + b // a, b typed as number
-    )
-  }
+	greet: defineMethod(
+		{ input: z.tuple([z.string()]), output: z.string() },
+		async (name) => `Hello, ${name}!` // name is typed as string
+	),
+	math: {
+		add: defineMethod(
+			{ input: z.tuple([z.number(), z.number()]), output: z.number() },
+			async (a, b) => a + b // a, b typed as number
+		)
+	}
 })
 
 // Extract the plain API type for the client side
@@ -125,19 +121,19 @@ type MyAPI = InferAPI<typeof api>
 
 // extractValidators() collects schema metadata from defineMethod calls
 new RPCChannel(io, {
-  expose: api,
-  validators: extractValidators(api)
+	expose: api,
+	validators: extractValidators(api)
 })
 ```
 
 ### When to use which approach
 
-| | Type-first (validators option) | Schema-first (defineMethod) |
-|---|---|---|
-| **Best for** | Adding validation to existing APIs | New APIs where you want single source of truth |
-| **Types come from** | Your `type API = { ... }` declaration | Schema inference (`InferAPI<typeof api>`) |
-| **Validator definition** | Separate `RPCValidators<API>` object | Inline with `defineMethod()` |
-| **Refactoring cost** | Zero — existing code unchanged | Requires wrapping handlers with `defineMethod` |
+|                          | Type-first (validators option)        | Schema-first (defineMethod)                    |
+| ------------------------ | ------------------------------------- | ---------------------------------------------- |
+| **Best for**             | Adding validation to existing APIs    | New APIs where you want single source of truth |
+| **Types come from**      | Your `type API = { ... }` declaration | Schema inference (`InferAPI<typeof api>`)      |
+| **Validator definition** | Separate `RPCValidators<API>` object  | Inline with `defineMethod()`                   |
+| **Refactoring cost**     | Zero — existing code unchanged        | Requires wrapping handlers with `defineMethod` |
 
 ## Handling Validation Errors
 
@@ -147,25 +143,25 @@ When validation fails, the caller receives an `RPCValidationError`:
 import { isRPCValidationError } from "kkrpc"
 
 try {
-  await api.add("not", "numbers")
+	await api.add("not", "numbers")
 } catch (error) {
-  if (isRPCValidationError(error)) {
-    console.log(error.phase)   // "input" or "output"
-    console.log(error.method)  // "add"
-    console.log(error.issues)  // [{ message: "Expected number, received string", path: [0] }]
-  }
+	if (isRPCValidationError(error)) {
+		console.log(error.phase) // "input" or "output"
+		console.log(error.method) // "add"
+		console.log(error.issues) // [{ message: "Expected number, received string", path: [0] }]
+	}
 }
 ```
 
 ### RPCValidationError properties
 
-| Property | Type | Description |
-|---|---|---|
-| `phase` | `"input" \| "output"` | Whether the input arguments or return value failed |
-| `method` | `string` | Dotted method path (e.g. `"math.divide"`) |
-| `issues` | `Array<{ message: string; path?: Array }>` | Structured validation issues from the schema library |
-| `name` | `string` | Always `"RPCValidationError"` |
-| `message` | `string` | Human-readable summary |
+| Property  | Type                                       | Description                                          |
+| --------- | ------------------------------------------ | ---------------------------------------------------- |
+| `phase`   | `"input" \| "output"`                      | Whether the input arguments or return value failed   |
+| `method`  | `string`                                   | Dotted method path (e.g. `"math.divide"`)            |
+| `issues`  | `Array<{ message: string; path?: Array }>` | Structured validation issues from the schema library |
+| `name`    | `string`                                   | Always `"RPCValidationError"`                        |
+| `message` | `string`                                   | Human-readable summary                               |
 
 ### Error serialization
 
@@ -177,12 +173,14 @@ try {
 
 ```ts
 const validators: RPCValidators<API> = {
-  createUser: {
-    input: z.tuple([z.object({
-      name: z.string().min(1),
-      email: z.string().email()
-    })])
-  }
+	createUser: {
+		input: z.tuple([
+			z.object({
+				name: z.string().min(1),
+				email: z.string().email()
+			})
+		])
+	}
 }
 
 // This will throw RPCValidationError with phase "input"
@@ -193,7 +191,7 @@ await api.createUser({ name: "Bob", email: "not-an-email" })
 
 ```ts
 const validators = {
-  getName: { output: z.string() }
+	getName: { output: z.string() }
 }
 
 // If the handler returns a number instead of a string,
@@ -204,22 +202,19 @@ const validators = {
 
 ```ts
 const validators: RPCValidators<API> = {
-  math: {
-    divide: {
-      input: z.tuple([
-        z.number(),
-        z.number().refine((n) => n !== 0, "Divisor cannot be zero")
-      ])
-    }
-  }
+	math: {
+		divide: {
+			input: z.tuple([z.number(), z.number().refine((n) => n !== 0, "Divisor cannot be zero")])
+		}
+	}
 }
 
 try {
-  await api.math.divide(10, 0)
+	await api.math.divide(10, 0)
 } catch (error) {
-  if (isRPCValidationError(error)) {
-    // error.issues[0].message === "Divisor cannot be zero"
-  }
+	if (isRPCValidationError(error)) {
+		// error.issues[0].message === "Divisor cannot be zero"
+	}
 }
 ```
 

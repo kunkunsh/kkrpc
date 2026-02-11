@@ -30,10 +30,7 @@ export interface RPCCallContext {
  * Return the result — you can transform it before returning.
  * Throw to abort the call (the error propagates to the caller).
  */
-export type RPCInterceptor = (
-	ctx: RPCCallContext,
-	next: () => Promise<unknown>
-) => Promise<unknown>
+export type RPCInterceptor = (ctx: RPCCallContext, next: () => Promise<unknown>) => Promise<unknown>
 
 /**
  * Run an interceptor chain using the onion model.

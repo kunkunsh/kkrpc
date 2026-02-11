@@ -1,20 +1,20 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test"
 import { WebSocketServer } from "ws"
 import { z } from "zod"
-import { RPCChannel } from "../src/channel.ts"
 import { WebSocketClientIO, WebSocketServerIO } from "../src/adapters/websocket.ts"
+import { RPCChannel } from "../src/channel.ts"
 import type { IoInterface } from "../src/interface.ts"
-import { serializeError, deserializeError } from "../src/serialization.ts"
+import { deserializeError, serializeError } from "../src/serialization.ts"
 import {
-	lookupValidator,
-	runValidation,
-	RPCValidationError,
-	isRPCValidationError,
-	defineMethod,
 	defineAPI,
+	defineMethod,
 	extractValidators,
-	type RPCValidators,
-	type InferAPI
+	isRPCValidationError,
+	lookupValidator,
+	RPCValidationError,
+	runValidation,
+	type InferAPI,
+	type RPCValidators
 } from "../src/validation.ts"
 
 // ---------------------------------------------------------------------------
@@ -101,9 +101,7 @@ describe("runValidation", () => {
 
 describe("RPCValidationError", () => {
 	test("constructs with correct properties", () => {
-		const err = new RPCValidationError("input", "add", [
-			{ message: "Expected number" }
-		])
+		const err = new RPCValidationError("input", "add", [{ message: "Expected number" }])
 		expect(err.name).toBe("RPCValidationError")
 		expect(err.phase).toBe("input")
 		expect(err.method).toBe("add")
@@ -156,10 +154,7 @@ describe("defineMethod / defineAPI / extractValidators", () => {
 
 	test("extractValidators collects validators from nested API", () => {
 		const api = defineAPI({
-			echo: defineMethod(
-				{ input: z.tuple([z.string()]), output: z.string() },
-				async (msg) => msg
-			),
+			echo: defineMethod({ input: z.tuple([z.string()]), output: z.string() }, async (msg) => msg),
 			math: {
 				add: defineMethod(
 					{ input: z.tuple([z.number(), z.number()]), output: z.number() },
@@ -199,7 +194,10 @@ describe("defineMethod / defineAPI / extractValidators", () => {
 type TestAPI = {
 	echo(message: string): Promise<string>
 	add(a: number, b: number): Promise<number>
-	createUser(user: { name: string; email: string }): Promise<{ id: string; name: string; email: string }>
+	createUser(user: {
+		name: string
+		email: string
+	}): Promise<{ id: string; name: string; email: string }>
 	math: {
 		multiply(a: number, b: number): Promise<number>
 		divide(a: number, b: number): Promise<number>

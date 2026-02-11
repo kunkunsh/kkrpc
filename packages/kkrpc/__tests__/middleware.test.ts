@@ -1,13 +1,9 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test"
 import { WebSocketServer } from "ws"
-import { RPCChannel } from "../src/channel.ts"
 import { WebSocketClientIO, WebSocketServerIO } from "../src/adapters/websocket.ts"
+import { RPCChannel } from "../src/channel.ts"
 import type { IoInterface } from "../src/interface.ts"
-import {
-	runInterceptors,
-	type RPCCallContext,
-	type RPCInterceptor
-} from "../src/middleware.ts"
+import { runInterceptors, type RPCCallContext, type RPCInterceptor } from "../src/middleware.ts"
 
 // ---------------------------------------------------------------------------
 // Unit tests: runInterceptors
@@ -72,9 +68,9 @@ describe("runInterceptors", () => {
 		}
 
 		const ctx: RPCCallContext = { method: "admin.delete", args: [], state: {} }
-		expect(
-			runInterceptors([guard], ctx, async () => "should not reach")
-		).rejects.toThrow("Unauthorized: admin.delete")
+		expect(runInterceptors([guard], ctx, async () => "should not reach")).rejects.toThrow(
+			"Unauthorized: admin.delete"
+		)
 	})
 
 	test("ctx.state is shared between interceptors", async () => {
@@ -88,11 +84,7 @@ describe("runInterceptors", () => {
 		}
 
 		const ctx: RPCCallContext = { method: "test", args: [], state: {} }
-		const result = await runInterceptors(
-			[setUser, checkUser],
-			ctx,
-			async () => "ok"
-		)
+		const result = await runInterceptors([setUser, checkUser], ctx, async () => "ok")
 		expect(result).toBe("ok")
 		expect(ctx.state.userId).toBe("user-123")
 	})

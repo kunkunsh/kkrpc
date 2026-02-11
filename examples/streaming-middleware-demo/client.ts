@@ -90,7 +90,8 @@ console.log("\n=== Log tail (infinite stream, stopping after 8 entries) ===")
 let logCount = 0
 const logStream = await api.tailLogs("api-gateway")
 for await (const entry of logStream) {
-	const color = entry.level === "ERROR" ? "\x1b[31m" : entry.level === "WARN" ? "\x1b[33m" : "\x1b[0m"
+	const color =
+		entry.level === "ERROR" ? "\x1b[31m" : entry.level === "WARN" ? "\x1b[33m" : "\x1b[0m"
 	console.log(`  ${color}[${entry.level}]\x1b[0m ${entry.message}`)
 	logCount++
 	if (logCount >= 8) break // ← sends stream-cancel to stop the producer
