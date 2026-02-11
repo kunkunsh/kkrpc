@@ -1,6 +1,6 @@
 {
 	"name": "kkrpc",
-	"version": "0.6.4",
+	"version": "0.6.5",
 	"description": "TypeScript-first RPC library for seamless bi-directional communication between processes, workers, and contexts. Cross-runtime compatible with Node.js, Deno, Bun, and browsers.",
 	"type": "module",
 	"keywords": [
