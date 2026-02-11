@@ -38,6 +38,7 @@
 		"test:deno": "deno test -R __deno_tests__",
 		"posttest": "verify-package-export verify",
 		"docs": "typedoc --out docs",
+		"check-types": "tsc --noEmit",
 		"build": "tsdown",
 		"postbuild": "pnpm run docs",
 		"dev": "tsdown --watch"

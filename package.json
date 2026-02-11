@@ -5,6 +5,7 @@
     "build": "turbo build",
     "dev": "turbo dev",
     "test": "turbo test",
+		"check-types": "turbo check-types",
     "lint": "turbo lint",
     "format": "prettier --write \"**/*.{ts,tsx,md,svelte}\"",
     "prepare": "husky"
