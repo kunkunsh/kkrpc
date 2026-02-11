@@ -13,7 +13,8 @@ export default defineConfig({
 		"./redis-streams.ts",
 		"./nats.ts",
 		"./electron.ts",
-		"./electron-ipc.ts"
+		"./electron-ipc.ts",
+		"./inspector.ts"
 	],
 	dts: true,
 	format: ["cjs", "esm"],
