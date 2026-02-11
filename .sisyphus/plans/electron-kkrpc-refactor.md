@@ -241,9 +241,7 @@ interface MainAPI {
 	}
 
 	test: {
-		pingRenderer(
-			message: string
-		): Promise<{
+		pingRenderer(message: string): Promise<{
 			success: boolean
 			message: string
 			rendererInfo: { userAgent: string; language: string; platform: string }

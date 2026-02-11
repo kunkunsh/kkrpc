@@ -21,7 +21,9 @@ const connections = new Map<any, WebSocketLike>()
 // ─── Interceptor factories ───────────────────────────────────────────────────
 
 const logger: RPCInterceptor = async (ctx, next) => {
-	const argsStr = ctx.args.map((a) => (typeof a === "object" ? JSON.stringify(a) : String(a))).join(", ")
+	const argsStr = ctx.args
+		.map((a) => (typeof a === "object" ? JSON.stringify(a) : String(a)))
+		.join(", ")
 	console.log(`  [log]  ${ctx.method}(${argsStr})`)
 	return next()
 }
@@ -34,7 +36,10 @@ const timing: RPCInterceptor = async (ctx, next) => {
 	return result
 }
 
-function createAuthInterceptor(session: { authenticated: boolean; username: string }): RPCInterceptor {
+function createAuthInterceptor(session: {
+	authenticated: boolean
+	username: string
+}): RPCInterceptor {
 	const protectedMethods = new Set(["getSecretData"])
 	return async (ctx, next) => {
 		if (protectedMethods.has(ctx.method) && !session.authenticated) {

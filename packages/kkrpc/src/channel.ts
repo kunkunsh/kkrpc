@@ -1,4 +1,5 @@
 import type { IoInterface, IoMessage } from "./interface.ts"
+import { runInterceptors, type RPCInterceptor } from "./middleware.ts"
 import {
 	decodeMessage,
 	deserializeError,
@@ -13,7 +14,6 @@ import {
 	type TransferSlot
 } from "./serialization.ts"
 import { generateUUID } from "./utils.ts"
-import { runInterceptors, type RPCInterceptor } from "./middleware.ts"
 import {
 	lookupValidator,
 	RPCValidationError,
@@ -196,10 +196,7 @@ export class RPCChannel<
 	private async listen(): Promise<void> {
 		while (true) {
 			// Check if IO interface is destroyable and has been destroyed
-			if (
-				"isDestroyed" in this.io &&
-				(this.io as Record<string, unknown>).isDestroyed
-			) {
+			if ("isDestroyed" in this.io && (this.io as Record<string, unknown>).isDestroyed) {
 				break
 			}
 
@@ -850,10 +847,7 @@ export class RPCChannel<
 			}
 		} catch (error: unknown) {
 			if (!abortController.signal.aborted) {
-				this.sendStreamError(
-					requestId,
-					error instanceof Error ? error : new Error(String(error))
-				)
+				this.sendStreamError(requestId, error instanceof Error ? error : new Error(String(error)))
 			}
 		} finally {
 			this.activeStreams.delete(requestId)

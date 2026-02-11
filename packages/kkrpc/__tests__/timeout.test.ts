@@ -1,9 +1,9 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test"
 import { WebSocketServer } from "ws"
-import { RPCChannel, RPCTimeoutError, isRPCTimeoutError } from "../mod.ts"
+import { isRPCTimeoutError, RPCChannel, RPCTimeoutError } from "../mod.ts"
 import { WebSocketClientIO, WebSocketServerIO } from "../src/adapters/websocket.ts"
 import type { IoInterface } from "../src/interface.ts"
-import { serializeError, deserializeError } from "../src/serialization.ts"
+import { deserializeError, serializeError } from "../src/serialization.ts"
 
 // ---------------------------------------------------------------------------
 // Unit tests

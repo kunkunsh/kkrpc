@@ -16,25 +16,25 @@ speak to a TypeScript kkrpc endpoint over line-delimited JSON (stdio) or WebSock
 
 ```json
 {
-  "id": "<random-id>",
-  "method": "math.add",
-  "args": [1, 2],
-  "type": "request",
-  "version": "json",
-  "callbackIds": ["<optional-callback-id>"]
+	"id": "<random-id>",
+	"method": "math.add",
+	"args": [1, 2],
+	"type": "request",
+	"version": "json",
+	"callbackIds": ["<optional-callback-id>"]
 }
 ```
 
 ### Message Types
 
-| type        | Required fields                     | Notes |
-| ----------- | ----------------------------------- | ----- |
-| `request`   | `id`, `method`, `args`              | Remote function call.
-| `response`  | `id`, `args.result` or `args.error` | Returned by server or client.
-| `callback`  | `method` (callback id), `args`      | Invokes a previously sent callback.
-| `get`       | `id`, `path`                        | Property read.
-| `set`       | `id`, `path`, `value`               | Property write.
-| `construct` | `id`, `method`, `args`              | Remote constructor call.
+| type        | Required fields                     | Notes                               |
+| ----------- | ----------------------------------- | ----------------------------------- |
+| `request`   | `id`, `method`, `args`              | Remote function call.               |
+| `response`  | `id`, `args.result` or `args.error` | Returned by server or client.       |
+| `callback`  | `method` (callback id), `args`      | Invokes a previously sent callback. |
+| `get`       | `id`, `path`                        | Property read.                      |
+| `set`       | `id`, `path`, `value`               | Property write.                     |
+| `construct` | `id`, `method`, `args`              | Remote constructor call.            |
 
 ### Callback Encoding
 
@@ -81,6 +81,7 @@ from kkrpc import RpcClient, WebSocketTransport
 client = RpcClient(WebSocketTransport("ws://localhost:8789"))
 result = client.call("math.add", 1, 2)
 ```
+
 - `interop/python/tests/` contains pytest suites for stdio and ws.
 
 Run tests:
@@ -110,6 +111,7 @@ transport, _ := kkrpc.NewWebSocketTransport("ws://localhost:8789")
 client := kkrpc.NewClient(transport)
 result, _ := client.Call("math.add", 1, 2)
 ```
+
 - `interop/go/kkrpc/*_test.go` runs stdio + ws tests.
 
 Run tests:
@@ -139,6 +141,7 @@ let transport = WebSocketTransport::connect("ws://localhost:8789")?;
 let client = Client::new(transport);
 let result = client.call("math.add", vec![Arg::Value(json!(1)), Arg::Value(json!(2))])?;
 ```
+
 - `interop/rust/tests/` runs stdio + ws tests.
 
 Run tests:

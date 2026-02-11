@@ -48,12 +48,8 @@ export declare namespace StandardSchemaV1 {
 	}
 
 	/** Extract the input type from a Standard Schema. */
-	type InferInput<S extends StandardSchemaV1> = NonNullable<
-		S["~standard"]["types"]
-	>["input"]
+	type InferInput<S extends StandardSchemaV1> = NonNullable<S["~standard"]["types"]>["input"]
 
 	/** Extract the output type from a Standard Schema. */
-	type InferOutput<S extends StandardSchemaV1> = NonNullable<
-		S["~standard"]["types"]
-	>["output"]
+	type InferOutput<S extends StandardSchemaV1> = NonNullable<S["~standard"]["types"]>["output"]
 }

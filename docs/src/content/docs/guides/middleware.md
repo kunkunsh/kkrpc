@@ -26,31 +26,31 @@ import { RPCChannel, type RPCInterceptor } from "kkrpc"
 
 // Logging interceptor
 const logger: RPCInterceptor = async (ctx, next) => {
-  console.log(`→ ${ctx.method}`, ctx.args)
-  const result = await next()
-  console.log(`← ${ctx.method}`, result)
-  return result
+	console.log(`→ ${ctx.method}`, ctx.args)
+	const result = await next()
+	console.log(`← ${ctx.method}`, result)
+	return result
 }
 
 // Timing interceptor
 const timer: RPCInterceptor = async (ctx, next) => {
-  const start = performance.now()
-  const result = await next()
-  console.log(`${ctx.method} took ${(performance.now() - start).toFixed(1)}ms`)
-  return result
+	const start = performance.now()
+	const result = await next()
+	console.log(`${ctx.method} took ${(performance.now() - start).toFixed(1)}ms`)
+	return result
 }
 
 // Auth interceptor (throw to reject)
 const auth: RPCInterceptor = async (ctx, next) => {
-  if (ctx.method.startsWith("admin.") && !isAuthorized()) {
-    throw new Error("Unauthorized")
-  }
-  return next()
+	if (ctx.method.startsWith("admin.") && !isAuthorized()) {
+		throw new Error("Unauthorized")
+	}
+	return next()
 }
 
 new RPCChannel(io, {
-  expose: api,
-  interceptors: [logger, timer, auth]
+	expose: api,
+	interceptors: [logger, timer, auth]
 })
 ```
 
@@ -72,11 +72,11 @@ This means an outer interceptor (like a timer) can measure the total time includ
 
 Each interceptor receives a `ctx` object:
 
-| Property | Type | Description |
-|---|---|---|
-| `method` | `string` | Dotted method path (e.g. `"math.divide"`) |
-| `args` | `unknown[]` | Arguments after callback restoration and input validation |
-| `state` | `Record<string, unknown>` | Shared state bag — interceptors can attach data for downstream interceptors |
+| Property | Type                      | Description                                                                 |
+| -------- | ------------------------- | --------------------------------------------------------------------------- |
+| `method` | `string`                  | Dotted method path (e.g. `"math.divide"`)                                   |
+| `args`   | `unknown[]`               | Arguments after callback restoration and input validation                   |
+| `state`  | `Record<string, unknown>` | Shared state bag — interceptors can attach data for downstream interceptors |
 
 ### Sharing state between interceptors
 
@@ -84,19 +84,19 @@ Use `ctx.state` to pass data between interceptors:
 
 ```ts
 const setUser: RPCInterceptor = async (ctx, next) => {
-  ctx.state.userId = await authenticate(ctx)
-  return next()
+	ctx.state.userId = await authenticate(ctx)
+	return next()
 }
 
 const audit: RPCInterceptor = async (ctx, next) => {
-  const result = await next()
-  await logAudit(ctx.state.userId, ctx.method, ctx.args)
-  return result
+	const result = await next()
+	await logAudit(ctx.state.userId, ctx.method, ctx.args)
+	return result
 }
 
 new RPCChannel(io, {
-  expose: api,
-  interceptors: [setUser, audit]
+	expose: api,
+	interceptors: [setUser, audit]
 })
 ```
 
@@ -106,8 +106,8 @@ Interceptors can modify the handler's return value:
 
 ```ts
 const doubler: RPCInterceptor = async (_ctx, next) => {
-  const result = (await next()) as number
-  return result * 2
+	const result = (await next()) as number
+	return result * 2
 }
 ```
 
@@ -145,33 +145,33 @@ new RPCChannel(io, { expose: api })
 ### Basic Usage
 
 ```ts
-import { RPCChannel, isRPCTimeoutError } from "kkrpc"
+import { isRPCTimeoutError, RPCChannel } from "kkrpc"
 
 const rpc = new RPCChannel(io, {
-  expose: api,
-  timeout: 5000 // 5 second timeout
+	expose: api,
+	timeout: 5000 // 5 second timeout
 })
 
 const api = rpc.getAPI()
 
 try {
-  await api.slowOperation()
+	await api.slowOperation()
 } catch (error) {
-  if (isRPCTimeoutError(error)) {
-    console.log(error.method)    // "slowOperation"
-    console.log(error.timeoutMs) // 5000
-  }
+	if (isRPCTimeoutError(error)) {
+		console.log(error.method) // "slowOperation"
+		console.log(error.timeoutMs) // 5000
+	}
 }
 ```
 
 ### RPCTimeoutError properties
 
-| Property | Type | Description |
-|---|---|---|
-| `method` | `string` | Method path or operation that timed out |
-| `timeoutMs` | `number` | The configured timeout in milliseconds |
-| `name` | `string` | Always `"RPCTimeoutError"` |
-| `message` | `string` | Human-readable summary |
+| Property    | Type     | Description                             |
+| ----------- | -------- | --------------------------------------- |
+| `method`    | `string` | Method path or operation that timed out |
+| `timeoutMs` | `number` | The configured timeout in milliseconds  |
+| `name`      | `string` | Always `"RPCTimeoutError"`              |
+| `message`   | `string` | Human-readable summary                  |
 
 ### Error serialization
 
@@ -197,17 +197,17 @@ Middleware, validation, and timeout work together:
 import { RPCChannel, type RPCInterceptor, type RPCValidators } from "kkrpc"
 
 const logger: RPCInterceptor = async (ctx, next) => {
-  console.log(`→ ${ctx.method}`)
-  const result = await next()
-  console.log(`← ${ctx.method}`)
-  return result
+	console.log(`→ ${ctx.method}`)
+	const result = await next()
+	console.log(`← ${ctx.method}`)
+	return result
 }
 
 new RPCChannel(io, {
-  expose: api,
-  validators,     // Validate inputs/outputs
-  interceptors: [logger],  // Log all calls
-  timeout: 10_000 // 10 second timeout
+	expose: api,
+	validators, // Validate inputs/outputs
+	interceptors: [logger], // Log all calls
+	timeout: 10_000 // 10 second timeout
 })
 ```
 

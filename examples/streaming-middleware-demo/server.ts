@@ -10,8 +10,8 @@
  * Run with: bun run server.ts
  * Then in another terminal: bun run client.ts
  */
-import { WebSocketServer } from "ws"
 import { RPCChannel, WebSocketServerIO, type RPCInterceptor } from "kkrpc"
+import { WebSocketServer } from "ws"
 import { createApi, type StreamingMiddlewareAPI } from "./api.ts"
 
 const PORT = 3100
@@ -22,7 +22,9 @@ const PORT = 3100
  * Logging interceptor — logs method name and stringified args.
  */
 const logger: RPCInterceptor = async (ctx, next) => {
-	const argsStr = ctx.args.map((a) => (typeof a === "object" ? JSON.stringify(a) : String(a))).join(", ")
+	const argsStr = ctx.args
+		.map((a) => (typeof a === "object" ? JSON.stringify(a) : String(a)))
+		.join(", ")
 	console.log(`  [log]  ${ctx.method}(${argsStr})`)
 	return next()
 }
@@ -46,7 +48,10 @@ const timing: RPCInterceptor = async (ctx, next) => {
  * "Unauthorized" unless `session.authenticated` is true. Public methods
  * (including `login`) pass through unconditionally.
  */
-function createAuthInterceptor(session: { authenticated: boolean; username: string }): RPCInterceptor {
+function createAuthInterceptor(session: {
+	authenticated: boolean
+	username: string
+}): RPCInterceptor {
 	const protectedMethods = new Set(["getSecretData"])
 
 	return async (ctx, next) => {
