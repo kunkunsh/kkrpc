@@ -42,7 +42,7 @@ const clientIO = new WebSocketClientIO({
 	url: `ws://localhost:${PORT}`
 })
 
-const clientRPC = new RPCChannel<API, API, DestroyableIoInterface>(clientIO, { expose: apiMethods })
+const clientRPC = new RPCChannel<API, API, IoInterface>(clientIO, { expose: apiMethods })
 const api = clientRPC.getAPI()
 
 const sum = await api.add(5, 3)

@@ -1,8 +1,8 @@
 import { apiImplementationNested, type API, type APINested } from "@kksh/demo-api"
-import { RPCChannel, WorkerChildIO, type DestroyableIoInterface } from "kkrpc/browser"
+import { RPCChannel, WorkerChildIO, type IoInterface } from "kkrpc/browser"
 
-const io: DestroyableIoInterface = new WorkerChildIO()
-const rpc = new RPCChannel<APINested, API, DestroyableIoInterface>(io, {
+const io: IoInterface = new WorkerChildIO()
+const rpc = new RPCChannel<APINested, API, IoInterface>(io, {
 	expose: apiImplementationNested
 })
 const api = rpc.getAPI()

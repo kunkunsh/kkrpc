@@ -21,7 +21,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version-file: '.node-version'
+          node-version-file: ".node-version"
           cache: "pnpm"
           cache-dependency-path: ./pnpm-lock.yaml
       - name: Start test services
@@ -37,10 +37,10 @@ jobs:
           pnpm install
           # pnpm --filter kkrpc exec playwright install
           pnpx playwright install --with-deps
+          pnpm check-types
           pnpm build
           pnpm test -F kkrpc
       - name: Stop test services
         if: always()
         run: |
           docker compose down || true
-          

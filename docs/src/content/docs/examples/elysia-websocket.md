@@ -320,7 +320,7 @@ const app = new Elysia()
 Server-side WebSocket adapter for Elysia applications.
 
 ```typescript
-class ElysiaWebSocketServerIO implements DestroyableIoInterface {
+class ElysiaWebSocketServerIO implements IoInterface {
 	constructor(ws: any)
 
 	// Connection metadata methods
@@ -345,7 +345,7 @@ class ElysiaWebSocketServerIO implements DestroyableIoInterface {
 Client-side WebSocket adapter for connecting to Elysia servers.
 
 ```typescript
-class ElysiaWebSocketClientIO implements DestroyableIoInterface {
+class ElysiaWebSocketClientIO implements IoInterface {
 	constructor(url: string | URL, protocols?: string | string[])
 
 	// Standard IoInterface methods

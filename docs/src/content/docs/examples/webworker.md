@@ -52,7 +52,7 @@ const worker = new Worker(new URL("./worker.ts", import.meta.url).href, {
 	type: "module"
 })
 const io = new WorkerParentIO(worker)
-const rpc = new RPCChannel<API, API2, DestroyableIoInterface>(io, { expose: apiMethods })
+const rpc = new RPCChannel<API, API2, IoInterface>(io, { expose: apiMethods })
 const api = rpc.getAPI()
 const sum = await api.math.grade1.add(2, 3)
 expect(sum).toBe(5)
@@ -62,11 +62,11 @@ io.destroy()
 ```
 
 ```ts title="worker.ts"
-import { RPCChannel, WorkerChildIO, type DestroyableIoInterface } from "kkrpc"
+import { RPCChannel, WorkerChildIO, type IoInterface } from "kkrpc"
 import { apiMethods, type API } from "./api.ts"
 
-const io: DestroyableIoInterface = new WorkerChildIO()
-const rpc = new RPCChannel<API2, API, DestroyableIoInterface>(io, { expose: apiMethods2 })
+const io: IoInterface = new WorkerChildIO()
+const rpc = new RPCChannel<API2, API, IoInterface>(io, { expose: apiMethods2 })
 const api = rpc.getAPI()
 const sum = await api.subtract(2, 3)
 expect(sum).toBe(-1)

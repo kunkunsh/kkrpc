@@ -538,21 +538,21 @@ try {
 ### Web Worker 示例
 
 ```ts
-import { RPCChannel, WorkerChildIO, type DestroyableIoInterface } from "kkrpc"
+import { RPCChannel, WorkerChildIO, type IoInterface } from "kkrpc"
 
 const worker = new Worker(new URL("./scripts/worker.ts", import.meta.url).href, { type: "module" })
 const io = new WorkerChildIO(worker)
-const rpc = new RPCChannel<API, API, DestroyableIoInterface>(io, { expose: apiMethods })
+const rpc = new RPCChannel<API, API, IoInterface>(io, { expose: apiMethods })
 const api = rpc.getAPI()
 
 expect(await api.add(1, 2)).toBe(3)
 ```
 
 ```ts
-import { RPCChannel, WorkerParentIO, type DestroyableIoInterface } from "kkrpc"
+import { RPCChannel, WorkerParentIO, type IoInterface } from "kkrpc"
 
-const io: DestroyableIoInterface = new WorkerChildIO()
-const rpc = new RPCChannel<API, API, DestroyableIoInterface>(io, { expose: apiMethods })
+const io: IoInterface = new WorkerChildIO()
+const rpc = new RPCChannel<API, API, IoInterface>(io, { expose: apiMethods })
 const api = rpc.getAPI()
 
 const sum = await api.add(1, 2)
