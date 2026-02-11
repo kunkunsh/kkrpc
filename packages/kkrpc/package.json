@@ -152,6 +152,15 @@
 			},
 			"import": "./dist/electron-ipc.js",
 			"require": "./dist/electron-ipc.cjs"
+		},
+		"./inspector": {
+			"types": {
+				"import": "./dist/inspector.d.ts",
+				"require": "./dist/inspector.d.cts",
+				"default": "./dist/inspector.js"
+			},
+			"import": "./dist/inspector.js",
+			"require": "./dist/inspector.cjs"
 		}
 	},
 	"devDependencies": {

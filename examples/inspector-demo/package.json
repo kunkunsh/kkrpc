@@ -1,0 +1,15 @@
+{
+	"name": "inspector-demo",
+	"scripts": {
+		"server": "bun run --hot server.ts",
+		"client": "bun run --hot client.ts",
+		"test": "bun run --hot test.ts"
+	},
+	"dependencies": {
+		"@kksh/demo-api": "workspace:*",
+		"kkrpc": "workspace:*"
+	},
+	"devDependencies": {
+		"@types/bun": "latest"
+	}
+}
