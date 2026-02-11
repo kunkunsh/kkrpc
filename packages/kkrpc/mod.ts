@@ -2,7 +2,7 @@
  * @module @kunkun/kkrpc
  * @description kkrpc is a library for building RPC systems.
  * This module is the main entrypoint of the library.
- * It contains all modules of the library.
+ * It contains all core modules of the library.
  *
  * Exported modules includes
  * - web worker
@@ -10,12 +10,17 @@
  * - deno
  * - websocket
  * - http
- * - rabbitmq
- * - redis-streams
- * - kafka
  * - hono-websocket
+ * - elysia-websocket
  * - RPC Channel
  * - serialization
+ *
+ * Optional adapters with peer dependencies (import separately):
+ * - `kkrpc/rabbitmq` - RabbitMQ adapter (requires `amqplib`)
+ * - `kkrpc/kafka` - Kafka adapter (requires `kafkajs`)
+ * - `kkrpc/redis-streams` - Redis Streams adapter (requires `ioredis`)
+ * - `kkrpc/nats` - NATS adapter (requires `@nats-io/transport-node`)
+ * - `kkrpc/socketio` - Socket.IO adapter (requires `socket.io`)
  *
  * If you want to use this library in browser, please use `/browser` instead.
  */
@@ -27,10 +32,6 @@ export * from "./src/adapters/http.ts"
 export * from "./src/adapters/tauri.ts"
 export * from "./src/adapters/hono-websocket.ts"
 export * from "./src/adapters/elysia-websocket.ts"
-export * from "./src/adapters/rabbitmq.ts"
-export * from "./src/adapters/redis-streams.ts"
-export * from "./src/adapters/kafka.ts"
-export * from "./src/adapters/nats.ts"
 export * from "./src/interface.ts"
 export * from "./src/channel.ts"
 export * from "./src/utils.ts"
