@@ -19,6 +19,7 @@ export class WebSocketClientIO implements IoInterface {
 	private ws: WebSocket
 	private connected: Promise<void>
 	private connectResolve: (() => void) | null = null
+	private destroyed = false
 	capabilities: IoCapabilities = {
 		structuredClone: false,
 		transfer: false
@@ -59,6 +60,17 @@ export class WebSocketClientIO implements IoInterface {
 
 		this.ws.onerror = (error) => {
 			this.errorListeners.forEach((listener) => listener(new Error(String(error))))
+		}
+
+		this.ws.onclose = () => {
+			if (this.destroyed) return
+			if (this.resolveRead) {
+				this.resolveRead(null)
+				this.resolveRead = null
+			}
+			this.errorListeners.forEach((listener) =>
+				listener(new Error("WebSocket connection closed")),
+			)
 		}
 	}
 
@@ -101,6 +113,7 @@ export class WebSocketClientIO implements IoInterface {
 	}
 
 	destroy(): void {
+		this.destroyed = true
 		if (this.resolveRead) {
 			this.resolveRead(null)
 			this.resolveRead = null
