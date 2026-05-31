@@ -11,14 +11,20 @@
  * timing, enforce auth, or throw to abort the call.
  */
 
+import type { RPCMessageMetadata } from "./serialization.ts"
+
 /**
  * Context passed to each interceptor.
  */
 export interface RPCCallContext {
+	/** Wire request id for correlating request, response, logs, and traces. */
+	id: string
 	/** Dotted method path, e.g. "math.grade1.add". */
 	method: string
 	/** Arguments after callback restoration and input validation. */
 	args: unknown[]
+	/** Optional wire metadata such as traceparent/tracestate. */
+	meta?: RPCMessageMetadata
 	/** Extensible state bag — interceptors can attach data for downstream interceptors. */
 	state: Record<string, unknown>
 }

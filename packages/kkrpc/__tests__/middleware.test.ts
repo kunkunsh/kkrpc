@@ -11,7 +11,7 @@ import { runInterceptors, type RPCCallContext, type RPCInterceptor } from "../sr
 
 describe("runInterceptors", () => {
 	test("calls handler directly with 0 interceptors", async () => {
-		const ctx: RPCCallContext = { method: "add", args: [1, 2], state: {} }
+		const ctx: RPCCallContext = { id: "test-request", method: "add", args: [1, 2], state: {} }
 		const result = await runInterceptors([], ctx, async () => 42)
 		expect(result).toBe(42)
 	})
@@ -25,7 +25,7 @@ describe("runInterceptors", () => {
 			return result
 		}
 
-		const ctx: RPCCallContext = { method: "echo", args: ["hi"], state: {} }
+		const ctx: RPCCallContext = { id: "test-request", method: "echo", args: ["hi"], state: {} }
 		const result = await runInterceptors([interceptor], ctx, async () => "hello")
 		expect(result).toBe("hello")
 		expect(log).toEqual(["before", "after"])
@@ -46,7 +46,7 @@ describe("runInterceptors", () => {
 			return result
 		}
 
-		const ctx: RPCCallContext = { method: "test", args: [], state: {} }
+		const ctx: RPCCallContext = { id: "test-request", method: "test", args: [], state: {} }
 		await runInterceptors([a, b], ctx, async () => "ok")
 		expect(log).toEqual(["a-before", "b-before", "b-after", "a-after"])
 	})
@@ -57,7 +57,7 @@ describe("runInterceptors", () => {
 			return result * 2
 		}
 
-		const ctx: RPCCallContext = { method: "get", args: [], state: {} }
+		const ctx: RPCCallContext = { id: "test-request", method: "get", args: [], state: {} }
 		const result = await runInterceptors([doubler], ctx, async () => 21)
 		expect(result).toBe(42)
 	})
@@ -67,7 +67,7 @@ describe("runInterceptors", () => {
 			throw new Error(`Unauthorized: ${ctx.method}`)
 		}
 
-		const ctx: RPCCallContext = { method: "admin.delete", args: [], state: {} }
+		const ctx: RPCCallContext = { id: "test-request", method: "admin.delete", args: [], state: {} }
 		expect(runInterceptors([guard], ctx, async () => "should not reach")).rejects.toThrow(
 			"Unauthorized: admin.delete"
 		)
@@ -83,7 +83,7 @@ describe("runInterceptors", () => {
 			return next()
 		}
 
-		const ctx: RPCCallContext = { method: "test", args: [], state: {} }
+		const ctx: RPCCallContext = { id: "test-request", method: "test", args: [], state: {} }
 		const result = await runInterceptors([setUser, checkUser], ctx, async () => "ok")
 		expect(result).toBe("ok")
 		expect(ctx.state.userId).toBe("user-123")
@@ -97,6 +97,7 @@ describe("runInterceptors", () => {
 		}
 
 		const ctx: RPCCallContext = {
+			id: "test-request",
 			method: "math.add",
 			args: [10, 20],
 			state: {}
@@ -129,9 +130,9 @@ const testApiMethods: TestAPI = {
 
 describe("Integration: Interceptors over RPC", () => {
 	test("logging interceptor sees correct method and args", async () => {
-		const logged: { method: string; args: unknown[] }[] = []
+		const logged: { id: string; method: string; args: unknown[] }[] = []
 		const logger: RPCInterceptor = async (ctx, next) => {
-			logged.push({ method: ctx.method, args: [...ctx.args] })
+			logged.push({ id: ctx.id, method: ctx.method, args: [...ctx.args] })
 			return next()
 		}
 
@@ -154,8 +155,10 @@ describe("Integration: Interceptors over RPC", () => {
 			await api.add(3, 4)
 
 			expect(logged).toHaveLength(2)
+			expect(logged[0].id).toBeString()
 			expect(logged[0].method).toBe("echo")
 			expect(logged[0].args).toEqual(["hello"])
+			expect(logged[1].id).toBeString()
 			expect(logged[1].method).toBe("add")
 			expect(logged[1].args).toEqual([3, 4])
 		} finally {

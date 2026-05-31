@@ -22,9 +22,27 @@ export interface Message<T = unknown> {
 		| "stream-cancel"
 	callbackIds?: string[]
 	version?: "json" | "superjson"
+	meta?: RPCMessageMetadata
 	path?: string[]
 	value?: unknown
 	transferSlots?: TransferSlot[]
+}
+
+/**
+ * Optional out-of-band metadata carried with an RPC message.
+ *
+ * This is intentionally protocol-level metadata, not another user argument:
+ * callers can propagate tracing/debug context without changing exposed API
+ * signatures or leaking implementation details into plugin contracts.
+ */
+export interface RPCMessageMetadata {
+	traceparent?: string
+	tracestate?: string
+	baggage?: string
+	requestId?: string
+	sessionId?: string
+	runtime?: Record<string, string | number | boolean | null | undefined>
+	[key: string]: unknown
 }
 
 export interface Response<T = unknown> {

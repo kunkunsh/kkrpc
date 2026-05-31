@@ -640,7 +640,7 @@ export class RPCChannel<
 				this.interceptors.length > 0
 					? await runInterceptors(
 							this.interceptors,
-							{ method, args: processedArgs, state: {} },
+							{ id, method, args: processedArgs, meta: request.meta, state: {} },
 							invokeHandler
 						)
 					: await invokeHandler()
