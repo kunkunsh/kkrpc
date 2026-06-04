@@ -18,6 +18,12 @@ export interface SecureIpcBridgeOptions {
 	channelPrefix?: string
 }
 
+export interface SecureIpcBridge {
+	send(channel: string, ...args: unknown[]): void
+	on(channel: string, listener: (event: unknown, ...args: unknown[]) => void): void
+	off(channel: string, listener: (event: unknown, ...args: unknown[]) => void): void
+}
+
 function isChannelAllowed(
 	channel: string,
 	allowedChannels?: string[],
@@ -50,7 +56,7 @@ function isChannelAllowed(
  *   ipcRenderer: securedIpcRenderer
  * })
  */
-export function createSecureIpcBridge(options: SecureIpcBridgeOptions) {
+export function createSecureIpcBridge(options: SecureIpcBridgeOptions): SecureIpcBridge {
 	const { ipcRenderer, allowedChannels, channelPrefix } = options
 
 	if (!ipcRenderer) {

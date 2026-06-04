@@ -9,8 +9,8 @@ interface IpcRenderer {
 	off(channel: string, listener: (event: unknown, ...args: unknown[]) => void): void
 }
 
-declare global {
-	interface Window {
+interface ElectronPreloadGlobal {
+	window?: {
 		electron?: {
 			ipcRenderer: IpcRenderer
 		}
@@ -32,7 +32,9 @@ export class ElectronIpcRendererIO implements IoInterface {
 	}
 
 	constructor(channel: string = "kkrpc-ipc") {
-		if (!window.electron?.ipcRenderer) {
+		const ipcRenderer = (globalThis as ElectronPreloadGlobal).window?.electron?.ipcRenderer
+
+		if (!ipcRenderer) {
 			throw new Error(
 				"ElectronIpcRendererIO requires window.electron.ipcRenderer to be available. " +
 					"Make sure to expose ipcRenderer via contextBridge in your preload script."
@@ -40,7 +42,7 @@ export class ElectronIpcRendererIO implements IoInterface {
 		}
 
 		this.channel = channel
-		this.ipcRenderer = window.electron.ipcRenderer
+		this.ipcRenderer = ipcRenderer
 		this.ipcRenderer.on(this.channel, this.handleMessage)
 	}
 
