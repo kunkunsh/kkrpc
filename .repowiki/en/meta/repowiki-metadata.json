@@ -1,0 +1,101 @@
+{
+	"version": "2026-06-04",
+	"last_commit": "26bb2e6b03d387b755c2211ef843aa9594ce5914",
+	"wiki_items": [
+		{
+			"id": "2f1c5f89-6c1a-49c2-a0fb-78d997f838f0",
+			"title": "System Overview",
+			"path": "content/System Overview.md"
+		},
+		{
+			"id": "5d2cebd0-7b90-4d47-8e77-2fdd65dd84a9",
+			"title": "Architecture",
+			"path": "content/Architecture/Architecture.md"
+		},
+		{
+			"id": "4e89fd26-7d5a-4e7e-935d-f1711c9b7d70",
+			"title": "Core Features",
+			"path": "content/Core/Core Features.md"
+		},
+		{
+			"id": "b1b5b435-191b-42dd-af62-679080e4a1a3",
+			"title": "Transport Adapters",
+			"path": "content/Transports/Transport Adapters.md"
+		},
+		{
+			"id": "e739c960-d02c-4f07-b60c-8d7da041f0a3",
+			"title": "Inspector and Build Tooling",
+			"path": "content/Tooling/Inspector and Build Tooling.md"
+		},
+		{
+			"id": "192211be-cbd5-4e97-920d-9a9b98fc1938",
+			"title": "Cross Language Interop",
+			"path": "content/Interop/Cross Language Interop.md"
+		}
+	],
+	"knowledge_relations": [
+		{
+			"id": 1,
+			"source_id": "2f1c5f89-6c1a-49c2-a0fb-78d997f838f0",
+			"target_id": "5d2cebd0-7b90-4d47-8e77-2fdd65dd84a9",
+			"source_type": "WIKI_ITEM",
+			"target_type": "WIKI_ITEM",
+			"relationship_type": "PARENT_CHILD",
+			"extra": "Wiki parent-child relationship: System Overview -> Architecture"
+		},
+		{
+			"id": 2,
+			"source_id": "2f1c5f89-6c1a-49c2-a0fb-78d997f838f0",
+			"target_id": "4e89fd26-7d5a-4e7e-935d-f1711c9b7d70",
+			"source_type": "WIKI_ITEM",
+			"target_type": "WIKI_ITEM",
+			"relationship_type": "PARENT_CHILD",
+			"extra": "Wiki parent-child relationship: System Overview -> Core Features"
+		},
+		{
+			"id": 3,
+			"source_id": "2f1c5f89-6c1a-49c2-a0fb-78d997f838f0",
+			"target_id": "b1b5b435-191b-42dd-af62-679080e4a1a3",
+			"source_type": "WIKI_ITEM",
+			"target_type": "WIKI_ITEM",
+			"relationship_type": "PARENT_CHILD",
+			"extra": "Wiki parent-child relationship: System Overview -> Transport Adapters"
+		},
+		{
+			"id": 4,
+			"source_id": "2f1c5f89-6c1a-49c2-a0fb-78d997f838f0",
+			"target_id": "e739c960-d02c-4f07-b60c-8d7da041f0a3",
+			"source_type": "WIKI_ITEM",
+			"target_type": "WIKI_ITEM",
+			"relationship_type": "PARENT_CHILD",
+			"extra": "Wiki parent-child relationship: System Overview -> Inspector and Build Tooling"
+		},
+		{
+			"id": 5,
+			"source_id": "2f1c5f89-6c1a-49c2-a0fb-78d997f838f0",
+			"target_id": "192211be-cbd5-4e97-920d-9a9b98fc1938",
+			"source_type": "WIKI_ITEM",
+			"target_type": "WIKI_ITEM",
+			"relationship_type": "PARENT_CHILD",
+			"extra": "Wiki parent-child relationship: System Overview -> Cross Language Interop"
+		},
+		{
+			"id": 6,
+			"source_id": "5d2cebd0-7b90-4d47-8e77-2fdd65dd84a9",
+			"target_id": "4e89fd26-7d5a-4e7e-935d-f1711c9b7d70",
+			"source_type": "WIKI_ITEM",
+			"target_type": "WIKI_ITEM",
+			"relationship_type": "REFERENCE",
+			"extra": "Architecture references core feature implementation details"
+		},
+		{
+			"id": 7,
+			"source_id": "b1b5b435-191b-42dd-af62-679080e4a1a3",
+			"target_id": "192211be-cbd5-4e97-920d-9a9b98fc1938",
+			"source_type": "WIKI_ITEM",
+			"target_type": "WIKI_ITEM",
+			"relationship_type": "REFERENCE",
+			"extra": "Cross-language interop uses the transport-independent protocol"
+		}
+	]
+}
