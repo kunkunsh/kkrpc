@@ -6,7 +6,7 @@ import type { WireEnvelope } from "../serialization.ts"
  * We define our own interface to avoid requiring electron as a dependency.
  */
 export interface WebContents {
-	send(channel: string, ...args: any[]): void
+	send(channel: string, ...args: unknown[]): void
 	isDestroyed(): boolean
 }
 
@@ -23,8 +23,8 @@ export interface IpcMainEvent {
  * We define our own interface to avoid requiring electron as a dependency.
  */
 export interface IpcMain {
-	on(channel: string, listener: (event: IpcMainEvent, ...args: any[]) => void): this
-	removeListener(channel: string, listener: (event: IpcMainEvent, ...args: any[]) => void): this
+	on(channel: string, listener: (event: IpcMainEvent, ...args: unknown[]) => void): this
+	removeListener(channel: string, listener: (event: IpcMainEvent, ...args: unknown[]) => void): this
 }
 
 const DESTROY_SIGNAL = "__DESTROY__"
@@ -48,7 +48,7 @@ export class ElectronIpcMainIO implements IoInterface {
 	private messageListeners: Set<(message: string | IoMessage) => void> = new Set()
 	private messageQueue: Array<string | IoMessage> = []
 	private resolveRead: ((value: string | IoMessage | null) => void) | null = null
-	private handler: ((event: IpcMainEvent, ...args: any[]) => void) | null = null
+	private handler: ((event: IpcMainEvent, ...args: unknown[]) => void) | null = null
 	capabilities: IoCapabilities = {
 		structuredClone: true,
 		transfer: false
@@ -59,7 +59,7 @@ export class ElectronIpcMainIO implements IoInterface {
 		private webContents: WebContents,
 		private channel: string = "kkrpc-ipc"
 	) {
-		this.handler = (event: IpcMainEvent, ...args: any[]) => {
+		this.handler = (event: IpcMainEvent, ...args: unknown[]) => {
 			if (event.sender !== this.webContents) return
 			if (args.length === 0) return
 			this.handleMessage(args[0])
@@ -67,7 +67,7 @@ export class ElectronIpcMainIO implements IoInterface {
 		this.ipcMain.on(this.channel, this.handler)
 	}
 
-	private handleMessage = (message: any): void => {
+	private handleMessage = (message: unknown): void => {
 		const normalized = this.normalizeIncoming(message)
 
 		if (normalized === DESTROY_SIGNAL) {
@@ -105,12 +105,12 @@ export class ElectronIpcMainIO implements IoInterface {
 		}
 	}
 
-	private normalizeIncoming(message: any): string | IoMessage {
+	private normalizeIncoming(message: unknown): string | IoMessage {
 		if (typeof message === "string") {
 			return message
 		}
 
-		if (message && typeof message === "object" && message.version === 2) {
+		if (message && typeof message === "object" && "version" in message && message.version === 2) {
 			const envelope = message as WireEnvelope
 			return {
 				data: envelope,

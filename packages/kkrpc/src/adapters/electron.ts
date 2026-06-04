@@ -6,9 +6,9 @@ import type { WireEnvelope } from "../serialization.ts"
  * We define our own interface to avoid requiring electron as a dependency.
  */
 export interface UtilityProcess {
-	postMessage(message: any, transfer?: any[]): void
-	on(event: "message", listener: (message: any) => void): this
-	off(event: "message", listener: (message: any) => void): this
+	postMessage(message: unknown, transfer?: unknown[]): void
+	on(event: "message", listener: (message: unknown) => void): this
+	off(event: "message", listener: (message: unknown) => void): this
 	kill(): boolean
 }
 
@@ -63,7 +63,7 @@ export class ElectronUtilityProcessIO implements IoInterface {
 		this.child.on("message", this.handleMessage)
 	}
 
-	private handleMessage = (message: any): void => {
+	private handleMessage = (message: unknown): void => {
 		const normalized = this.normalizeIncoming(message)
 
 		if (normalized === DESTROY_SIGNAL) {
@@ -83,12 +83,12 @@ export class ElectronUtilityProcessIO implements IoInterface {
 		}
 	}
 
-	private normalizeIncoming(message: any): string | IoMessage {
+	private normalizeIncoming(message: unknown): string | IoMessage {
 		if (typeof message === "string") {
 			return message
 		}
 
-		if (message && typeof message === "object" && message.version === 2) {
+		if (message && typeof message === "object" && "version" in message && message.version === 2) {
 			const envelope = message as WireEnvelope
 			return {
 				data: envelope,

@@ -63,6 +63,39 @@ interface CallbackFunction {
 	(...args: unknown[]): void
 }
 
+type MessageWithTransferredValues = Message<unknown> & {
+	__transferredValues?: unknown[]
+}
+
+type StreamMarker = {
+	__stream: true
+}
+
+function isObjectLike(value: unknown): value is object {
+	return value !== null && typeof value === "object"
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return isObjectLike(value)
+}
+
+function getTransferredValues(message: Message): unknown[] {
+	const values = (message as MessageWithTransferredValues).__transferredValues
+	return Array.isArray(values) ? values : []
+}
+
+function getMessageArgs(message: Message): Record<string, unknown> {
+	return isRecord(message.args) ? message.args : {}
+}
+
+function isStreamMarker(value: unknown): value is StreamMarker {
+	return isRecord(value) && value.__stream === true
+}
+
+function isEnhancedError(value: unknown): value is EnhancedError {
+	return isRecord(value) && typeof value.name === "string" && typeof value.message === "string"
+}
+
 // ---------------------------------------------------------------------------
 // Streaming internals
 // ---------------------------------------------------------------------------
@@ -103,7 +136,7 @@ function isAsyncIterable(value: unknown): value is AsyncIterable<unknown> {
 		value !== null &&
 		value !== undefined &&
 		typeof value === "object" &&
-		Symbol.asyncIterator in (value as any)
+		Symbol.asyncIterator in value
 	)
 }
 
@@ -142,6 +175,8 @@ export class RPCChannel<
 	private structuredClone = false
 	/** Timeout in ms for outgoing RPC calls. 0 or Infinity means no timeout. */
 	private timeout: number
+	/** Set after EOF/destroy so new outbound calls reject immediately instead of timing out. */
+	private isClosed = false
 
 	constructor(
 		private io: Io,
@@ -194,21 +229,28 @@ export class RPCChannel<
 	 * Listens for incoming messages on the IO interface and dispatches them.
 	 */
 	private async listen(): Promise<void> {
-		while (true) {
-			// Check if IO interface is destroyable and has been destroyed
+		while (!this.isClosed) {
+			// Check adapters that expose an isDestroyed flag before blocking in read().
 			if ("isDestroyed" in this.io && (this.io as Record<string, unknown>).isDestroyed) {
+				this.closeFromTransport(new Error("RPC transport closed"))
 				break
 			}
 
 			try {
 				const incoming = await this.io.read()
-				if (incoming === null || incoming === undefined) {
+				// null is the IoInterface EOF signal. Treat it as a hard close and reject waiters.
+				if (incoming === null) {
+					this.closeFromTransport(new Error("RPC transport closed"))
+					break
+				}
+				if (incoming === undefined) {
 					continue
 				}
 				await this.handleIncomingMessage(incoming)
 			} catch (error: unknown) {
 				// If the error indicates the adapter is destroyed, stop listening
 				if (error instanceof Error && error.message.includes("destroyed")) {
+					this.closeFromTransport(error)
 					break
 				}
 				console.error("kkrpc: failed to handle incoming message", error)
@@ -271,7 +313,7 @@ export class RPCChannel<
 
 	private async processDecodedMessage(parsedMessage: Message): Promise<void> {
 		if (parsedMessage.type === "response") {
-			this.handleResponse(parsedMessage as Message<Response<any>>)
+			this.handleResponse(parsedMessage as Message<Response<unknown>>)
 		} else if (parsedMessage.type === "request") {
 			this.handleRequest(parsedMessage)
 		} else if (parsedMessage.type === "callback") {
@@ -302,6 +344,9 @@ export class RPCChannel<
 	 * @returns Promise that resolves with the result of the remote call
 	 */
 	public callMethod<T extends keyof RemoteAPI>(method: T, args: any[]): Promise<void> {
+		// Avoid creating a pending request that can never receive a response.
+		if (this.isClosed) return Promise.reject(new Error("RPC channel closed"))
+
 		return new Promise((resolve, reject) => {
 			const messageId = generateUUID()
 			this.pendingRequests[messageId] = { resolve, reject }
@@ -352,6 +397,9 @@ export class RPCChannel<
 	 * @returns Promise that resolves with the property value
 	 */
 	public getProperty(path: string | string[]): Promise<any> {
+		// Avoid creating a pending request that can never receive a response.
+		if (this.isClosed) return Promise.reject(new Error("RPC channel closed"))
+
 		return new Promise((resolve, reject) => {
 			const messageId = generateUUID()
 			this.pendingRequests[messageId] = { resolve, reject }
@@ -375,6 +423,9 @@ export class RPCChannel<
 	 * @returns Promise that resolves when the property is set
 	 */
 	public setProperty(path: string | string[], value: any): Promise<void> {
+		// Avoid creating a pending request that can never receive a response.
+		if (this.isClosed) return Promise.reject(new Error("RPC channel closed"))
+
 		return new Promise((resolve, reject) => {
 			const messageId = generateUUID()
 			this.pendingRequests[messageId] = { resolve, reject }
@@ -415,6 +466,9 @@ export class RPCChannel<
 	 * @returns Promise that resolves with the constructed instance
 	 */
 	public callConstructor<T extends keyof RemoteAPI>(constructor: T, args: any[]): Promise<any> {
+		// Avoid creating a pending request that can never receive a response.
+		if (this.isClosed) return Promise.reject(new Error("RPC channel closed"))
+
 		return new Promise((resolve, reject) => {
 			const messageId = generateUUID()
 			this.pendingRequests[messageId] = { resolve, reject }
@@ -464,7 +518,7 @@ export class RPCChannel<
 	 * @param response The response message to handle
 	 * @private
 	 */
-	private handleResponse(response: Message<Response<any>>): void {
+	private handleResponse(response: Message<Response<unknown>>): void {
 		const { id } = response
 		const { result, error } = response.args
 		if (this.pendingRequests[id]) {
@@ -478,7 +532,7 @@ export class RPCChannel<
 					this.pendingRequests[id].reject(new Error(error as string))
 				}
 				delete this.pendingRequests[id]
-			} else if (result && typeof result === "object" && (result as any).__stream === true) {
+			} else if (isStreamMarker(result)) {
 				// Stream response: resolve the pending request with an AsyncIterable
 				const iterable = this.createStreamIterable(id)
 				this.pendingRequests[id].resolve(iterable)
@@ -486,7 +540,7 @@ export class RPCChannel<
 			} else {
 				let finalResult = result
 				if (response.transferSlots && response.transferSlots.length > 0) {
-					const transferredValues = (response as any).__transferredValues || []
+					const transferredValues = getTransferredValues(response)
 					finalResult = reconstructValueFromTransfer(
 						result,
 						response.transferSlots,
@@ -509,19 +563,25 @@ export class RPCChannel<
 		let incomingArgs = Array.isArray(request.args) ? request.args : []
 
 		if (request.transferSlots && request.transferSlots.length > 0) {
-			const transferredValues = (request as any).__transferredValues || []
+			const transferredValues = getTransferredValues(request)
 			incomingArgs = incomingArgs.map((arg: any) =>
 				reconstructValueFromTransfer(arg, request.transferSlots!, transferredValues)
 			)
 		}
 
 		const methodPath = method.split(".")
-		if (!this.apiImplementation) return
+		if (!this.apiImplementation) {
+			// Broadcast transports deliver each request to every peer; peers with no API are not errors.
+			if (this.shouldIgnoreBroadcastRequestWithoutApi()) return
+			this.sendError(id, "No API implementation available")
+			return
+		}
 		let target: any = this.apiImplementation
 
 		for (let i = 0; i < methodPath.length - 1; i++) {
 			target = target[methodPath[i]]
 			if (!target) {
+				if (this.shouldIgnoreBroadcastResolutionMiss()) return
 				this.sendError(id, `Method path ${method} not found at ${methodPath[i]}`)
 				return
 			}
@@ -531,6 +591,8 @@ export class RPCChannel<
 		const targetMethod = target[finalMethod]
 
 		if (typeof targetMethod !== "function") {
+			// On broadcast transports, another peer may own this method and still respond.
+			if (this.shouldIgnoreBroadcastResolutionMiss()) return
 			this.sendError(id, `Method ${method} is not a function`)
 			return
 		}
@@ -538,7 +600,7 @@ export class RPCChannel<
 		// Restore callback arguments: the caller serialized callback functions as
 		// "__callback__<id>" placeholder strings. Here we convert them back into
 		// real functions that, when called, send a callback message to the remote side.
-		const processedArgs = incomingArgs.map((arg: any) => {
+		let processedArgs = incomingArgs.map((arg: any) => {
 			if (typeof arg === "string" && arg.startsWith("__callback__")) {
 				const callbackId = arg.slice(12)
 				return (...callbackArgs: any[]) => {
@@ -567,6 +629,7 @@ export class RPCChannel<
 				this.sendError(id, new RPCValidationError("input", method, inputResult.issues))
 				return
 			}
+			processedArgs = this.mergeValidatedArgs(processedArgs, inputResult.value)
 		}
 
 		try {
@@ -649,9 +712,9 @@ export class RPCChannel<
 		const callback = this.callbacks[callbackId]
 		if (callback) {
 			let callbackArgs = Array.isArray(message.args) ? message.args : []
-			if (message.transferSlots && message.transferSlots.length > 0) {
-				const transferredValues = (message as any).__transferredValues || []
-				callbackArgs = callbackArgs.map((arg: any) =>
+		if (message.transferSlots && message.transferSlots.length > 0) {
+			const transferredValues = getTransferredValues(message)
+			callbackArgs = callbackArgs.map((arg: any) =>
 					reconstructValueFromTransfer(arg, message.transferSlots!, transferredValues)
 				)
 			}
@@ -668,8 +731,13 @@ export class RPCChannel<
 	 */
 	private handleGet(request: Message): void {
 		const { id, path } = request
-		if (!path || !this.apiImplementation) {
-			this.sendError(id, "Invalid get request: missing path or API implementation")
+		if (!path) {
+			this.sendError(id, "Invalid get request: missing path")
+			return
+		}
+		if (!this.apiImplementation) {
+			if (this.shouldIgnoreBroadcastRequestWithoutApi()) return
+			this.sendError(id, "No API implementation available")
 			return
 		}
 
@@ -679,6 +747,7 @@ export class RPCChannel<
 			for (const prop of path) {
 				target = target[prop]
 				if (target === undefined) {
+					if (this.shouldIgnoreBroadcastResolutionMiss()) return
 					this.sendError(id, `Property path ${path.join(".")} not found at ${prop}`)
 					return
 				}
@@ -696,14 +765,19 @@ export class RPCChannel<
 	 */
 	private handleSet(request: Message): void {
 		const { id, path } = request
-		if (!path || !this.apiImplementation) {
-			this.sendError(id, "Invalid set request: missing path or API implementation")
+		if (!path) {
+			this.sendError(id, "Invalid set request: missing path")
+			return
+		}
+		if (!this.apiImplementation) {
+			if (this.shouldIgnoreBroadcastRequestWithoutApi()) return
+			this.sendError(id, "No API implementation available")
 			return
 		}
 
 		let incomingValue = request.value
 		if (request.transferSlots && request.transferSlots.length > 0) {
-			const transferredValues = (request as any).__transferredValues || []
+			const transferredValues = getTransferredValues(request)
 			incomingValue = reconstructValueFromTransfer(
 				request.value,
 				request.transferSlots,
@@ -717,6 +791,7 @@ export class RPCChannel<
 			for (let i = 0; i < path.length - 1; i++) {
 				target = target[path[i]]
 				if (!target) {
+					if (this.shouldIgnoreBroadcastResolutionMiss()) return
 					this.sendError(id, `Property path ${path.join(".")} not found at ${path[i]}`)
 					return
 				}
@@ -724,6 +799,7 @@ export class RPCChannel<
 
 			// Set the final property
 			const finalProp = path[path.length - 1]
+			if (this.shouldIgnoreBroadcastResolutionMiss() && !(finalProp in Object(target))) return
 			target[finalProp] = incomingValue
 			this.sendResponse(id, true) // Return true to indicate success
 		} catch (error: unknown) {
@@ -741,7 +817,7 @@ export class RPCChannel<
 		let incomingArgs = Array.isArray(request.args) ? request.args : []
 
 		if (request.transferSlots && request.transferSlots.length > 0) {
-			const transferredValues = (request as any).__transferredValues || []
+			const transferredValues = getTransferredValues(request)
 			incomingArgs = incomingArgs.map((arg: any) =>
 				reconstructValueFromTransfer(arg, request.transferSlots!, transferredValues)
 			)
@@ -750,6 +826,7 @@ export class RPCChannel<
 		// Split the method path and traverse the API implementation
 		const methodPath = method.split(".")
 		if (!this.apiImplementation) {
+			if (this.shouldIgnoreBroadcastRequestWithoutApi()) return
 			this.sendError(id, "No API implementation available")
 			return
 		}
@@ -759,6 +836,7 @@ export class RPCChannel<
 		for (let i = 0; i < methodPath.length - 1; i++) {
 			target = target[methodPath[i]]
 			if (!target) {
+				if (this.shouldIgnoreBroadcastResolutionMiss()) return
 				this.sendError(id, `Constructor path ${method} not found at ${methodPath[i]}`)
 				return
 			}
@@ -768,6 +846,7 @@ export class RPCChannel<
 		const ConstructorClass = target[finalMethod]
 
 		if (typeof ConstructorClass !== "function") {
+			if (this.shouldIgnoreBroadcastResolutionMiss()) return
 			this.sendError(id, `${method} is not a constructor function`)
 			return
 		}
@@ -828,12 +907,26 @@ export class RPCChannel<
 					chunk = outputResult.value
 				}
 
-				this.sendMessage({
-					id: requestId,
-					method: "",
-					args: { value: chunk },
-					type: "stream-chunk"
-				})
+				const transferables: Transferable[] = []
+				const transferSlots: TransferSlot[] = []
+				const transferredValues: unknown[] = []
+
+				if (this.supportsTransfer) {
+					// Stream chunks use the same transfer envelope as normal responses.
+					chunk = processValueForTransfer(chunk, transferables, transferSlots, transferredValues)
+				}
+
+				this.sendMessage(
+					{
+						id: requestId,
+						method: "",
+						args: { value: chunk },
+						type: "stream-chunk",
+						transferSlots: transferSlots.length > 0 ? transferSlots : undefined
+					},
+					transferables,
+					transferredValues
+				)
 			}
 
 			// Stream completed normally
@@ -931,10 +1024,16 @@ export class RPCChannel<
 	private handleStreamChunk(message: Message): void {
 		const consumer = this.streamConsumers.get(message.id)
 		if (!consumer) return
+		let value = getMessageArgs(message).value
+		if (message.transferSlots && message.transferSlots.length > 0) {
+			// Rehydrate zero-copy stream chunks before yielding them to the consumer.
+			const transferredValues = getTransferredValues(message)
+			value = reconstructValueFromTransfer(value, message.transferSlots, transferredValues)
+		}
 
 		const result: IteratorResult<unknown> = {
 			done: false,
-			value: (message.args as any).value
+			value
 		}
 
 		if (consumer.waiters.length > 0) {
@@ -968,10 +1067,10 @@ export class RPCChannel<
 		const consumer = this.streamConsumers.get(message.id)
 		if (!consumer) return
 
-		const rawError = (message.args as any).error
+		const rawError = getMessageArgs(message).error
 		const error =
-			typeof rawError === "object" && rawError.name && rawError.message
-				? deserializeError(rawError as EnhancedError)
+			isEnhancedError(rawError)
+				? deserializeError(rawError)
 				: new Error(typeof rawError === "string" ? rawError : "Stream error")
 
 		consumer.done = true
@@ -1041,6 +1140,7 @@ export class RPCChannel<
 		transferables: Transferable[] = [],
 		transferredValues: unknown[] = []
 	): void {
+		// Centralized send path so write failures can reject the matching pending request.
 		const encoded = encodeMessage(
 			message,
 			this.serializationOptions,
@@ -1048,14 +1148,104 @@ export class RPCChannel<
 			transferredValues
 		)
 
-		if (encoded.mode === "string") {
-			this.io.write(encoded.data)
-		} else {
-			this.io.write({
-				data: encoded.data,
-				transfers: transferables
+		const outgoing: string | IoMessage =
+			encoded.mode === "string"
+				? encoded.data
+				: {
+						data: encoded.data,
+						transfers: transferables
+					}
+
+		try {
+			void this.io.write(outgoing).catch((error: unknown) => {
+				this.handleWriteFailure(message, error)
 			})
+		} catch (error: unknown) {
+			this.handleWriteFailure(message, error)
 		}
+	}
+
+	/** Rejects the RPC call that initiated this write, instead of leaving it to timeout. */
+	private handleWriteFailure(message: Message, error: unknown): void {
+		const writeError = error instanceof Error ? error : new Error(String(error))
+		const pending = this.pendingRequests[message.id]
+		if (pending) {
+			this.clearTimeout(message.id)
+			pending.reject(writeError)
+			delete this.pendingRequests[message.id]
+			return
+		}
+
+		if (!this.isClosed) {
+			console.error("kkrpc: failed to write message", writeError)
+		}
+	}
+
+	/**
+	 * Validation schemas may coerce data arguments, but callback function arguments are not validated.
+	 * This merges transformed data args back into the original argument list without moving callbacks.
+	 */
+	private mergeValidatedArgs(originalArgs: any[], validatedValue: unknown): any[] {
+		const validatedArgs = Array.isArray(validatedValue) ? validatedValue : [validatedValue]
+		let dataArgIndex = 0
+		return originalArgs.map((arg) => {
+			if (typeof arg === "function") return arg
+			if (dataArgIndex >= validatedArgs.length) return arg
+			const validatedArg = validatedArgs[dataArgIndex]
+			dataArgIndex++
+			return validatedArg
+		})
+	}
+
+	/** True when this peer should silently ignore broadcast traffic because it exposes no API. */
+	private shouldIgnoreBroadcastRequestWithoutApi(): boolean {
+		return !this.apiImplementation && this.io.capabilities?.broadcast === true
+	}
+
+	/** True when another broadcast peer may be the intended owner of the missing path. */
+	private shouldIgnoreBroadcastResolutionMiss(): boolean {
+		return this.io.capabilities?.broadcast === true
+	}
+
+	/** Rejects all pending RPC calls during transport close or explicit destroy. */
+	private rejectPendingRequests(error: Error): void {
+		for (const [id, pending] of Object.entries(this.pendingRequests)) {
+			pending.reject(error)
+			this.clearTimeout(id)
+		}
+		this.pendingRequests = {}
+		this.pendingTimers = {}
+	}
+
+	/** Stops producer-side async iterators so they do not keep yielding after close. */
+	private abortActiveStreams(): void {
+		for (const [, state] of this.activeStreams) {
+			state.abortController.abort()
+		}
+		this.activeStreams.clear()
+	}
+
+	/** Rejects consumer-side async iterator waiters that are blocked on the next chunk. */
+	private rejectStreamConsumers(error: Error): void {
+		for (const [, consumer] of this.streamConsumers) {
+			consumer.done = true
+			consumer.error = error
+			for (const waiter of consumer.waiters) {
+				waiter.reject(error)
+			}
+			consumer.waiters.length = 0
+		}
+		this.streamConsumers.clear()
+	}
+
+	/** Common close path used by EOF, adapter destroy, write-side destroy, and RPCChannel.destroy(). */
+	private closeFromTransport(error: Error): void {
+		if (this.isClosed) return
+		this.isClosed = true
+		this.rejectPendingRequests(error)
+		this.abortActiveStreams()
+		this.rejectStreamConsumers(error)
+		this.freeCallbacks()
 	}
 
 	// ---------------------------------------------------------------------------
@@ -1141,33 +1331,7 @@ export class RPCChannel<
 	 * Destroys the RPC channel and underlying IO interface if it's destroyable
 	 */
 	destroy(): void {
-		// Reject all pending requests so callers don't hang forever
-		for (const [id, pending] of Object.entries(this.pendingRequests)) {
-			pending.reject(new Error("RPC channel destroyed"))
-			this.clearTimeout(id)
-		}
-		this.pendingRequests = {}
-		this.pendingTimers = {}
-
-		// Cancel all active producer-side streams
-		for (const [, state] of this.activeStreams) {
-			state.abortController.abort()
-		}
-		this.activeStreams.clear()
-
-		// Reject all consumer-side stream waiters
-		for (const [, consumer] of this.streamConsumers) {
-			consumer.done = true
-			const error = new Error("RPC channel destroyed")
-			for (const waiter of consumer.waiters) {
-				waiter.reject(error)
-			}
-			consumer.waiters.length = 0
-		}
-		this.streamConsumers.clear()
-
-		// Free callbacks
-		this.freeCallbacks()
+		this.closeFromTransport(new Error("RPC channel destroyed"))
 
 		// Clean up IO adapters
 		if (this.io && this.io.destroy) {

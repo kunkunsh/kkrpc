@@ -10,6 +10,7 @@ describe("HTTP RPC", () => {
 	let serverRPC: RPCChannel<API, API>
 	let clientIO: HTTPClientIO
 	let api: API
+	let baseUrl: string
 
 	// Setup before tests
 	beforeAll(() => {
@@ -18,7 +19,8 @@ describe("HTTP RPC", () => {
 		serverRPC = new RPCChannel<API, API>(serverIO, { expose: apiMethods })
 
 		server = Bun.serve({
-			port: 3000,
+			// Use an ephemeral port so these tests do not fight unrelated local dev servers.
+			port: 0,
 			async fetch(req) {
 				const url = new URL(req.url)
 				if (url.pathname === "/rpc") {
@@ -31,10 +33,12 @@ describe("HTTP RPC", () => {
 				return new Response("Not found", { status: 404 })
 			}
 		})
+		// Bun exposes the selected ephemeral port after serve() returns.
+		baseUrl = `http://localhost:${server.port}`
 
 		// Create client
 		clientIO = new HTTPClientIO({
-			url: "http://localhost:3000/rpc"
+			url: `${baseUrl}/rpc`
 		})
 		const clientRPC = new RPCChannel<API, API>(clientIO, { expose: apiMethods })
 		api = clientRPC.getAPI()
@@ -42,7 +46,7 @@ describe("HTTP RPC", () => {
 
 	// Cleanup after tests
 	afterAll(() => {
-		server.stop()
+		server?.stop()
 	})
 
 	test("echo service", async () => {
@@ -85,13 +89,13 @@ describe("HTTP RPC", () => {
 	})
 
 	test("error handling - invalid endpoint", async () => {
-		const response = await fetch("http://localhost:3000/invalid")
+		const response = await fetch(`${baseUrl}/invalid`)
 		expect(response.status).toBe(404)
 		expect(await response.text()).toBe("Not found")
 	})
 
 	test("error handling - wrong method", async () => {
-		const response = await fetch("http://localhost:3000/rpc", {
+		const response = await fetch(`${baseUrl}/rpc`, {
 			method: "GET"
 		})
 		expect(response.status).toBe(405)

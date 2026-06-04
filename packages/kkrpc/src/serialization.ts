@@ -5,7 +5,7 @@ import { takeTransferDescriptor } from "./transfer.ts"
 /**
  * This file contains the serialization and deserialization helpers for the RPC protocol.
  */
-export interface Message<T = any> {
+export interface Message<T = unknown> {
 	id: string
 	method: string
 	args: T
@@ -23,11 +23,11 @@ export interface Message<T = any> {
 	callbackIds?: string[]
 	version?: "json" | "superjson"
 	path?: string[]
-	value?: any
+	value?: unknown
 	transferSlots?: TransferSlot[]
 }
 
-export interface Response<T = any> {
+export interface Response<T = unknown> {
 	result?: T
 	error?: string | EnhancedError
 }
@@ -36,8 +36,8 @@ export interface EnhancedError {
 	name: string
 	message: string
 	stack?: string
-	cause?: any
-	[key: string]: any
+	cause?: unknown
+	[key: string]: unknown
 }
 
 export interface SerializationOptions {
@@ -45,16 +45,21 @@ export interface SerializationOptions {
 }
 
 export const TRANSFER_SLOT_PREFIX = "__kkrpc_transfer_"
+// Transfer placeholders are tagged objects instead of strings so user strings never collide.
+const TRANSFER_SLOT_PLACEHOLDER_KEY = "__kkrpc_transfer_slot__"
+const TRANSFER_SLOT_PLACEHOLDER_TOKEN_KEY = "__kkrpc_transfer_token__"
 
 export interface TransferSlot {
 	type: "raw" | "handler"
 	handlerName?: string
-	metadata?: any
+	metadata?: unknown
+	/** Random per-slot token that proves a placeholder was generated for this message. */
+	token?: string
 }
 
 export interface WireEnvelope {
 	version: 2
-	payload: Message<any>
+	payload: Message<unknown>
 	transferSlots?: TransferSlot[]
 	encoding: "object"
 	__transferredValues?: unknown[]
@@ -67,7 +72,52 @@ export type EncodedMessage =
 	| { mode: "string"; data: string }
 	| { mode: "structured"; data: WireEnvelope }
 
-function replacer(_key: string, value: any) {
+interface TransferPlaceholder {
+	slotIndex: number
+	token: string
+}
+
+/** Creates a message-local token to distinguish real placeholders from user objects. */
+function createTransferToken(): string {
+	return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`
+}
+
+/** Replaces a transferred value in the JSON payload with a small tagged reference. */
+function createTransferPlaceholder(slotIndex: number, token: string): Record<string, number | string> {
+	return {
+		[TRANSFER_SLOT_PLACEHOLDER_KEY]: slotIndex,
+		[TRANSFER_SLOT_PLACEHOLDER_TOKEN_KEY]: token
+	}
+}
+
+/** Only traverse plain objects; Dates, Maps, class instances, etc. should keep identity. */
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+	if (value === null || typeof value !== "object") return false
+	const prototype = Object.getPrototypeOf(value)
+	return prototype === Object.prototype || prototype === null
+}
+
+/** Returns a transfer placeholder only when the object exactly matches our tagged shape. */
+function getTransferPlaceholder(value: unknown): TransferPlaceholder | undefined {
+	if (!isPlainObject(value)) return undefined
+	const keys = Object.keys(value)
+	if (
+		keys.length !== 2 ||
+		!keys.includes(TRANSFER_SLOT_PLACEHOLDER_KEY) ||
+		!keys.includes(TRANSFER_SLOT_PLACEHOLDER_TOKEN_KEY)
+	) {
+		return undefined
+	}
+	const slotIndex = value[TRANSFER_SLOT_PLACEHOLDER_KEY]
+	const token = value[TRANSFER_SLOT_PLACEHOLDER_TOKEN_KEY]
+	return typeof slotIndex === "number" && Number.isInteger(slotIndex) && typeof token === "string"
+		? { slotIndex, token }
+		: undefined
+}
+
+type ErrorWithProperties = Error & Record<string, unknown>
+
+function replacer(_key: string, value: unknown): unknown {
 	if (value instanceof Uint8Array) {
 		return {
 			type: "Uint8Array",
@@ -77,14 +127,15 @@ function replacer(_key: string, value: any) {
 	return value
 }
 
-function reviver(_key: string, value: any) {
-	if (value && value.type === "Uint8Array" && Array.isArray(value.data)) {
-		return new Uint8Array(value.data)
+function reviver(_key: string, value: unknown): unknown {
+	if (isPlainObject(value) && value.type === "Uint8Array" && Array.isArray(value.data)) {
+		return new Uint8Array(value.data as number[])
 	}
 	return value
 }
 
 export function serializeError(error: Error): EnhancedError {
+	const errorWithProperties = error as ErrorWithProperties
 	const enhanced: EnhancedError = {
 		name: error.name,
 		message: error.message
@@ -94,13 +145,13 @@ export function serializeError(error: Error): EnhancedError {
 		enhanced.stack = error.stack
 	}
 
-	if ("cause" in error && (error as any).cause !== undefined) {
-		enhanced.cause = (error as any).cause
+	if ("cause" in errorWithProperties && errorWithProperties.cause !== undefined) {
+		enhanced.cause = errorWithProperties.cause
 	}
 
-	for (const key in error) {
+	for (const key in errorWithProperties) {
 		if (key !== "name" && key !== "message" && key !== "stack" && key !== "cause") {
-			enhanced[key] = (error as any)[key]
+			enhanced[key] = errorWithProperties[key]
 		}
 	}
 
@@ -109,6 +160,7 @@ export function serializeError(error: Error): EnhancedError {
 
 export function deserializeError(enhanced: EnhancedError): Error {
 	const error = new Error(enhanced.message)
+	const errorWithProperties = error as ErrorWithProperties
 	error.name = enhanced.name
 
 	if (enhanced.stack) {
@@ -116,12 +168,12 @@ export function deserializeError(enhanced: EnhancedError): Error {
 	}
 
 	if (enhanced.cause !== undefined) {
-		;(error as any).cause = enhanced.cause
+		errorWithProperties.cause = enhanced.cause
 	}
 
 	for (const key in enhanced) {
 		if (key !== "name" && key !== "message" && key !== "stack" && key !== "cause") {
-			;(error as any)[key] = enhanced[key]
+			errorWithProperties[key] = enhanced[key]
 		}
 	}
 
@@ -211,48 +263,62 @@ export async function decodeMessage<T>(raw: WireFormat): Promise<Message<T>> {
 	return payload
 }
 
+export function processValueForTransfer<T>(
+	value: T,
+	transferables?: Transferable[],
+	transferSlots?: TransferSlot[],
+	transferredValues?: unknown[],
+	slotMap?: Map<object, number>
+): T
 export function processValueForTransfer(
-	value: any,
+	value: unknown,
 	transferables: Transferable[] = [],
 	transferSlots: TransferSlot[] = [],
 	transferredValues: unknown[] = [],
-	slotMap: Map<any, number> = new Map()
-): any {
+	slotMap: Map<object, number> = new Map()
+): unknown {
 	if (value === null || typeof value !== "object") {
 		return value
 	}
 
 	if (slotMap.has(value)) {
 		const slotIndex = slotMap.get(value)!
-		return `${TRANSFER_SLOT_PREFIX}${slotIndex}`
+		// Preserve shared references by pointing repeat occurrences at the first transfer slot.
+		return createTransferPlaceholder(slotIndex, transferSlots[slotIndex]?.token ?? "")
 	}
 
 	const descriptor = takeTransferDescriptor(value)
 	if (descriptor) {
+		// Explicit transfer(value, transfers) gets the raw transferred value on structured transports.
 		const slotIndex = transferSlots.length
+		const token = createTransferToken()
 		slotMap.set(value, slotIndex)
 		transferables.push(...descriptor.transfers)
 		transferredValues.push(descriptor.value)
 		transferSlots.push({
 			type: "raw",
-			metadata: { original: true }
+			metadata: { original: true },
+			token
 		})
-		return `${TRANSFER_SLOT_PREFIX}${slotIndex}`
+		return createTransferPlaceholder(slotIndex, token)
 	}
 
 	for (const [name, handler] of transferHandlers) {
 		if (handler.canHandle(value)) {
+			// Registered handlers can serialize custom transferable-like objects into metadata.
 			const [serialized, handlerTransferables] = handler.serialize(value)
 			const slotIndex = transferSlots.length
+			const token = createTransferToken()
 			slotMap.set(value, slotIndex)
 			transferables.push(...handlerTransferables)
 			transferredValues.push(undefined)
 			transferSlots.push({
 				type: "handler",
 				handlerName: name,
-				metadata: serialized
+				metadata: serialized,
+				token
 			})
-			return `${TRANSFER_SLOT_PREFIX}${slotIndex}`
+			return createTransferPlaceholder(slotIndex, token)
 		}
 	}
 
@@ -262,8 +328,9 @@ export function processValueForTransfer(
 		)
 	}
 
-	if (value && value.constructor === Object) {
-		const processed: Record<string, any> = {}
+	if (isPlainObject(value)) {
+		// Recurse only through plain payload containers to avoid corrupting runtime objects.
+		const processed: Record<string, unknown> = {}
 		for (const [key, val] of Object.entries(value)) {
 			processed[key] = processValueForTransfer(
 				val,
@@ -279,40 +346,50 @@ export function processValueForTransfer(
 	return value
 }
 
-export function reconstructValueFromTransfer(
-	value: any,
+export function reconstructValueFromTransfer<T>(
+	value: T,
 	transferSlots: TransferSlot[],
-	transferredValues: any[]
-): any {
-	if (typeof value === "string" && value.startsWith(TRANSFER_SLOT_PREFIX)) {
-		const slotIndex = Number.parseInt(value.slice(TRANSFER_SLOT_PREFIX.length), 10)
+	transferredValues: unknown[]
+): T
+export function reconstructValueFromTransfer(
+	value: unknown,
+	transferSlots: TransferSlot[],
+	transferredValues: unknown[]
+): unknown {
+	const placeholder = getTransferPlaceholder(value)
+	if (placeholder !== undefined) {
+		const { slotIndex } = placeholder
 		const slot = transferSlots[slotIndex]
-		const transferredValue = transferredValues[slotIndex]
+		if (slot?.token !== placeholder.token) {
+			// Not a placeholder from this message; preserve user data with the same shape.
+		} else {
+			const transferredValue = transferredValues[slotIndex]
 
-		if (slot?.type === "raw") {
-			if (transferredValue === undefined) {
-				throw new Error(`Missing transferred value for slot ${slotIndex}`)
+			if (slot?.type === "raw") {
+				if (transferredValue === undefined) {
+					throw new Error(`Missing transferred value for slot ${slotIndex}`)
+				}
+				return transferredValue
 			}
-			return transferredValue
-		}
 
-		if (slot?.type === "handler" && slot.handlerName) {
-			const handler = transferHandlers.get(slot.handlerName)
-			if (!handler) {
-				throw new Error(`Unknown transfer handler: ${slot.handlerName}`)
+			if (slot?.type === "handler" && slot.handlerName) {
+				const handler = transferHandlers.get(slot.handlerName)
+				if (!handler) {
+					throw new Error(`Unknown transfer handler: ${slot.handlerName}`)
+				}
+				return handler.deserialize(slot.metadata)
 			}
-			return handler.deserialize(slot.metadata)
-		}
 
-		throw new Error(`Invalid transfer slot: ${slotIndex}`)
+			throw new Error(`Invalid transfer slot: ${slotIndex}`)
+		}
 	}
 
 	if (Array.isArray(value)) {
 		return value.map((item) => reconstructValueFromTransfer(item, transferSlots, transferredValues))
 	}
 
-	if (value && typeof value === "object") {
-		const reconstructed: Record<string, any> = {}
+	if (isPlainObject(value)) {
+		const reconstructed: Record<string, unknown> = {}
 		for (const [key, val] of Object.entries(value)) {
 			reconstructed[key] = reconstructValueFromTransfer(val, transferSlots, transferredValues)
 		}

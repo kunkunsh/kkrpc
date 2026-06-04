@@ -218,8 +218,10 @@ describe("Stdio Adapter Throughput Benchmark", () => {
 				console.log("Skipping Deno benchmark in CI environment")
 				return
 			}
+			// --no-lock keeps benchmark subprocesses from mutating the repository deno.lock.
 			const worker = spawn("deno", [
 				"run",
+				"--no-lock",
 				"-A",
 				path.join(testsPath, "scripts/deno-benchmark-api.ts")
 			])

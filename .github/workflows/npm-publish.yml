@@ -5,8 +5,9 @@ name: NPM Package Publish
 
 on:
   push:
-    branches:
-      - main
+    # Publish automatically when a release tag like v0.6.8 is created.
+    tags:
+      - "v*"
   release:
     types: [created]
   workflow_dispatch:
@@ -30,9 +31,31 @@ jobs:
           node-version: 24
           registry-url: https://registry.npmjs.org
           cache: pnpm
-      - run: |
+      - name: Install, build, and typecheck
+        run: |
           pnpm install
           pnpm build
+          pnpm check-types
+      - name: Start integration services
+        run: docker compose up -d redis rabbitmq kafka nats
+      - name: Test
+        run: pnpm --filter kkrpc test
+      - name: Stop integration services
+        if: always()
+        run: docker compose down
+      - name: Check tag matches package version
+        run: |
+          PACKAGE_VERSION=$(node -p "require('./packages/kkrpc/package.json').version")
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ] && [[ "$GITHUB_REF" != refs/tags/* ]]; then
+            echo "Manual dispatch is not running on a tag; skipping tag/package version check"
+            exit 0
+          fi
+          TAG_NAME="${GITHUB_REF#refs/tags/}"
+          EXPECTED_TAG="v${PACKAGE_VERSION}"
+          if [ "$TAG_NAME" != "$EXPECTED_TAG" ]; then
+            echo "Tag $TAG_NAME does not match package version $PACKAGE_VERSION (expected $EXPECTED_TAG)"
+            exit 1
+          fi
       - name: Check if version is already published
         id: check_version
         run: |

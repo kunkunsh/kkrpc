@@ -3,6 +3,45 @@ import type { IoCapabilities, IoInterface, IoMessage } from "../interface.ts"
 const DESTROY_SIGNAL = "__DESTROY__"
 const textDecoder = typeof TextDecoder !== "undefined" ? new TextDecoder() : null
 
+export interface ElysiaSocketData {
+	__kkrpc_io?: ElysiaWebSocketServerIO
+	remoteAddress?: string
+	query?: Record<string, string>
+	headers?: Record<string, unknown>
+	url?: string | URL
+	originalUrl?: string | URL
+}
+
+export interface ElysiaSocketReference {
+	__kkrpc_io?: ElysiaWebSocketServerIO
+	data?: object
+	raw?: ElysiaSocketReference | null
+	remoteAddress?: string
+	onerror?: ((error: unknown) => void) | null
+	addEventListener?(event: "message", listener: (event: unknown) => void): void
+	removeEventListener?(event: "message", listener: (event: unknown) => void): void
+	on?(event: "message", listener: (event: unknown) => void): void
+	off?(event: "message", listener: (event: unknown) => void): void
+	onmessage?: ((event: unknown) => void) | null
+}
+
+export interface ElysiaSocket extends ElysiaSocketReference {
+	send(message: string): void
+	close(): void
+}
+
+function getEventData(event: unknown): unknown {
+	return typeof event === "object" && event !== null && "data" in event ? event.data : event
+}
+
+function getSocketData(target: ElysiaSocketReference | null | undefined): ElysiaSocketData | undefined {
+	return target?.data && typeof target.data === "object" ? (target.data as ElysiaSocketData) : undefined
+}
+
+function getKkrpcReference(target: object): { __kkrpc_io?: ElysiaWebSocketServerIO } {
+	return target as { __kkrpc_io?: ElysiaWebSocketServerIO }
+}
+
 /**
  * Elysia WebSocket server adapter for kkrpc
  *
@@ -35,8 +74,8 @@ export class ElysiaWebSocketServerIO implements IoInterface {
 	name = "elysia-websocket-server"
 	private messageQueue: string[] = []
 	private resolveRead: ((value: string | null) => void) | null = null
-	private ws: any
-	private rawWs: any
+	private ws: ElysiaSocket
+	private rawWs: ElysiaSocketReference | null
 	private detachListeners: Array<() => void> = []
 	capabilities: IoCapabilities = {
 		structuredClone: false,
@@ -63,7 +102,7 @@ export class ElysiaWebSocketServerIO implements IoInterface {
 		}
 	}
 
-	constructor(ws: any) {
+	constructor(ws: ElysiaSocket) {
 		this.ws = ws
 		this.rawWs = ws?.raw ?? null
 
@@ -75,25 +114,22 @@ export class ElysiaWebSocketServerIO implements IoInterface {
 
 		const targetForError = this.rawWs ?? this.ws
 		if (targetForError && typeof targetForError.onerror !== "function") {
-			targetForError.onerror = (error: any) => {
+			targetForError.onerror = (error: unknown) => {
 				console.error("Elysia WebSocket error:", error)
 			}
 		}
 	}
 
-	private attachAutoListener(source: any): void {
+	private attachAutoListener(source: ElysiaSocketReference | null | undefined): void {
 		if (!source || typeof source !== "object") {
 			return
 		}
 
-		const handler = (event: any) => {
-			const data = event?.data ?? event
-			this.processIncoming(data)
-		}
+		const handler = (event: unknown) => this.processIncoming(getEventData(event))
 
 		if (typeof source.addEventListener === "function") {
 			source.addEventListener("message", handler)
-			this.detachListeners.push(() => source.removeEventListener("message", handler))
+			this.detachListeners.push(() => source.removeEventListener?.("message", handler))
 			return
 		}
 
@@ -112,12 +148,12 @@ export class ElysiaWebSocketServerIO implements IoInterface {
 			const previous = source.onmessage
 			const wrapped =
 				typeof previous === "function"
-					? (event: any) => {
-							this.processIncoming(event?.data ?? event)
+					? (event: unknown) => {
+							this.processIncoming(getEventData(event))
 							previous.call(source, event)
 						}
-					: (event: any) => {
-							this.processIncoming(event?.data ?? event)
+					: (event: unknown) => {
+							this.processIncoming(getEventData(event))
 						}
 
 			source.onmessage = wrapped
@@ -129,37 +165,38 @@ export class ElysiaWebSocketServerIO implements IoInterface {
 		}
 	}
 
-	private storeReference(target: any): void {
+	private storeReference(target: ElysiaSocketReference | null | undefined): void {
 		if (!target || typeof target !== "object") {
 			return
 		}
 
 		try {
-			target.__kkrpc_io = this
+			getKkrpcReference(target).__kkrpc_io = this
 		} catch {}
 
-		const dataContainer = target.data
+		const dataContainer = getSocketData(target)
 		if (dataContainer && typeof dataContainer === "object") {
 			dataContainer.__kkrpc_io = this
 		}
 	}
 
-	private clearReference(target: any): void {
+	private clearReference(target: ElysiaSocketReference | null | undefined): void {
 		if (!target || typeof target !== "object") {
 			return
 		}
 
-		if (target.__kkrpc_io === this) {
-			delete target.__kkrpc_io
+		const reference = getKkrpcReference(target)
+		if (reference.__kkrpc_io === this) {
+			delete reference.__kkrpc_io
 		}
 
-		const dataContainer = target.data
+		const dataContainer = getSocketData(target)
 		if (dataContainer && typeof dataContainer === "object" && dataContainer.__kkrpc_io === this) {
 			delete dataContainer.__kkrpc_io
 		}
 	}
 
-	private processIncoming(raw: any): void {
+	private processIncoming(raw: unknown): void {
 		let message: string
 
 		if (typeof raw === "string") {
@@ -210,11 +247,13 @@ export class ElysiaWebSocketServerIO implements IoInterface {
 		this.processIncoming(message)
 	}
 
-	static feedMessage(ws: any, message: unknown): void {
+	static feedMessage(ws: ElysiaSocketReference | null | undefined, message: unknown): void {
+		const data = getSocketData(ws)
+		const rawData = getSocketData(ws?.raw)
 		const candidate =
-			ws?.data?.__kkrpc_io ?? ws?.__kkrpc_io ?? ws?.raw?.data?.__kkrpc_io ?? ws?.raw?.__kkrpc_io
+			data?.__kkrpc_io ?? ws?.__kkrpc_io ?? rawData?.__kkrpc_io ?? ws?.raw?.__kkrpc_io
 
-		if (candidate && typeof candidate.handleMessage === "function") {
+		if (candidate) {
 			candidate.handleMessage(message)
 		}
 	}
@@ -259,13 +298,15 @@ export class ElysiaWebSocketServerIO implements IoInterface {
 	 */
 	getRemoteAddress(): string | undefined {
 		try {
+			const data = getSocketData(this.ws)
+			const rawData = getSocketData(this.rawWs)
 			const remoteAddress =
 				this.ws.remoteAddress ||
 				this.rawWs?.remoteAddress ||
-				this.ws.data?.remoteAddress ||
-				this.ws.data?.query?.remoteAddress ||
-				this.rawWs?.data?.remoteAddress ||
-				this.rawWs?.data?.query?.remoteAddress
+				data?.remoteAddress ||
+				data?.query?.remoteAddress ||
+				rawData?.remoteAddress ||
+				rawData?.query?.remoteAddress
 
 			return remoteAddress ?? "unknown"
 		} catch {
@@ -278,11 +319,10 @@ export class ElysiaWebSocketServerIO implements IoInterface {
 	 */
 	getUrl(): URL | undefined {
 		try {
+			const data = getSocketData(this.ws)
+			const rawData = getSocketData(this.rawWs)
 			const url =
-				this.ws.data?.url ||
-				this.ws.data?.originalUrl ||
-				this.rawWs?.data?.url ||
-				this.rawWs?.data?.originalUrl
+				data?.url || data?.originalUrl || rawData?.url || rawData?.originalUrl
 			return url ? new URL(url) : undefined
 		} catch {
 			return undefined
@@ -294,7 +334,7 @@ export class ElysiaWebSocketServerIO implements IoInterface {
 	 */
 	getQuery(): Record<string, string> {
 		try {
-			return this.ws.data?.query || this.rawWs?.data?.query || {}
+			return getSocketData(this.ws)?.query || getSocketData(this.rawWs)?.query || {}
 		} catch {
 			return {}
 		}
@@ -305,7 +345,7 @@ export class ElysiaWebSocketServerIO implements IoInterface {
 	 */
 	getHeaders(): Record<string, string> {
 		try {
-			const headers = this.ws.data?.headers || this.rawWs?.data?.headers || {}
+			const headers = getSocketData(this.ws)?.headers || getSocketData(this.rawWs)?.headers || {}
 			const result: Record<string, string> = {}
 
 			if (typeof headers === "object" && headers !== null) {
@@ -379,10 +419,7 @@ export class ElysiaWebSocketClientIO implements IoInterface {
 
 	constructor(url: string | URL, protocols?: string | string[]) {
 		// Use standard WebSocket to connect to Elysia server
-		this.ws =
-			typeof Bun !== "undefined"
-				? new WebSocket(url, protocols)
-				: new (globalThis as any).WebSocket(url, protocols)
+		this.ws = new globalThis.WebSocket(url, protocols)
 
 		this.connected = new Promise((resolve) => {
 			this.connectResolve = resolve
@@ -471,7 +508,7 @@ export type ElysiaWebSocketIO = ElysiaWebSocketServerIO
  *   })
  * ```
  */
-export function createElysiaWebSocketIO(ws: any): ElysiaWebSocketServerIO {
+export function createElysiaWebSocketIO(ws: ElysiaSocket): ElysiaWebSocketServerIO {
 	return new ElysiaWebSocketServerIO(ws)
 }
 

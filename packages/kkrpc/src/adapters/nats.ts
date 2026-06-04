@@ -18,6 +18,8 @@ interface NatsIOOptions {
 	 * Session ID for unique identification
 	 */
 	sessionId?: string
+	/** Allow this adapter to receive messages it published itself. Defaults to false. */
+	allowSelfMessages?: boolean
 	/**
 	 * Connection timeout in milliseconds
 	 */
@@ -45,7 +47,8 @@ export class NatsIO implements IoInterface {
 
 	capabilities: IoCapabilities = {
 		structuredClone: false,
-		transfer: false
+		transfer: false,
+		broadcast: true
 	}
 
 	on(event: "message", listener: (message: string | IoMessage) => void): void
@@ -70,6 +73,8 @@ export class NatsIO implements IoInterface {
 		this.sessionId = options.sessionId || this.generateSessionId()
 		this.subject = options.subject || "kkrpc.messages"
 		this.queueGroup = options.queueGroup
+		// Queue groups load-balance messages, so RPCChannel should not treat them as broadcast fan-out.
+		this.capabilities.broadcast = this.queueGroup === undefined
 
 		this.connectionPromise = this.connect()
 	}
@@ -83,7 +88,9 @@ export class NatsIO implements IoInterface {
 			this.nc = await connect({
 				servers: Array.isArray(servers) ? servers : [servers],
 				timeout: this.options.timeout || 10000,
-				reconnectTimeWait: 1000
+				reconnectTimeWait: 1000,
+				// noEcho prevents a client from receiving its own outbound RPC call.
+				noEcho: this.options.allowSelfMessages !== true
 			})
 
 			// Create subscription

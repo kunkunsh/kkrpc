@@ -1,3 +1,5 @@
+import type { WSContext, WSEvents } from "hono/ws"
+
 import { RPCChannel } from "../channel.ts"
 import type { IoCapabilities, IoInterface, IoMessage } from "../interface.ts"
 
@@ -11,6 +13,11 @@ export interface HonoWebSocketOptions<API extends Record<string, any>> {
 	serialization?: {
 		version: "json" | "superjson"
 	}
+}
+
+interface HonoSocketLike {
+	send(message: string): void
+	close(): void
 }
 
 /**
@@ -46,7 +53,7 @@ class HonoWebSocketIO implements IoInterface {
 		}
 	}
 
-	constructor(private ws: WebSocket) {}
+	constructor(private ws: HonoSocketLike) {}
 
 	/**
 	 * Manually feed a message from Hono's onMessage callback
@@ -142,28 +149,21 @@ class HonoWebSocketIO implements IoInterface {
  */
 export function createHonoWebSocketHandler<API extends Record<string, any>>(
 	options: HonoWebSocketOptions<API>
-): {
-	onMessage(event: MessageEvent, ws: any): void
-	onClose(): void
-	onError?(event: Event, ws: any): void
-	onOpen?(event: Event, ws: any): void
-} {
+): WSEvents<unknown> {
 	let serverIO: HonoWebSocketIO | null = null
 	let rpc: RPCChannel<API, API> | null = null
 
 	return {
-		onOpen(_event: Event, ws: any) {
+		onOpen(_event: Event, ws: WSContext<unknown>) {
 			// Create the IO adapter and RPC channel when connection opens
-			// Hono passes different WebSocket types depending on runtime (WebSocket or WSContext)
-			// Extract the actual WebSocket if it's wrapped
-			const actualWs = (ws as any).raw || ws
-			serverIO = new HonoWebSocketIO(actualWs)
+			// WSContext exposes the same send/close operations this IO adapter needs.
+			serverIO = new HonoWebSocketIO(ws)
 			rpc = new RPCChannel<API, API>(serverIO, {
 				expose: options.expose,
 				serialization: options.serialization
 			})
 		},
-		onMessage(event: MessageEvent, _ws: any) {
+		onMessage(event: MessageEvent, _ws: WSContext<unknown>) {
 			// Convert message to string if needed
 			let message = event.data
 			if (typeof message === "object" && message !== null && "toString" in message) {
@@ -184,7 +184,7 @@ export function createHonoWebSocketHandler<API extends Record<string, any>>(
 				rpc = null
 			}
 		},
-		onError(event: Event, _ws: any) {
+		onError(event: Event, _ws: WSContext<unknown>) {
 			console.error("Hono WebSocket error:", event)
 			if (serverIO) {
 				serverIO.destroy()

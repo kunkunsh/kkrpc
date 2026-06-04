@@ -2,8 +2,10 @@ import {
 	type Admin,
 	type Consumer,
 	type ConsumerConfig,
+	type IHeaders,
 	type Kafka as KafkaClient,
 	type KafkaConfig,
+	type KafkaMessage,
 	type Producer,
 	type ProducerConfig
 } from "kafkajs"
@@ -59,11 +61,16 @@ interface KafkaAdapterOptions {
 	 * Override session id
 	 */
 	sessionId?: string
+	/** Allow this adapter to receive messages it published itself. Defaults to false. */
+	allowSelfMessages?: boolean
 	/**
 	 * Optional retry config for Kafka client
 	 */
 	retry?: KafkaConfig["retry"]
 }
+
+// Messages carry the sender session so a pub/sub topic does not loop RPC calls back to the sender.
+const SESSION_HEADER = "x-kkrpc-session-id"
 
 /**
  * Kafka implementation of IoInterface
@@ -85,7 +92,8 @@ export class KafkaIO implements IoInterface {
 
 	capabilities: IoCapabilities = {
 		structuredClone: false,
-		transfer: false
+		transfer: false,
+		broadcast: true
 	}
 
 	private messageListeners: Set<(message: string | IoMessage) => void> = new Set()
@@ -111,8 +119,10 @@ export class KafkaIO implements IoInterface {
 	constructor(private options: KafkaAdapterOptions = {}) {
 		this.sessionId = options.sessionId || this.generateSessionId()
 		this.topic = options.topic || "kkrpc-topic"
-		this.groupId = options.groupId || `kkrpc-group-${this.sessionId}`
+		this.groupId = options.consumerConfig?.groupId || options.groupId || `kkrpc-group-${this.sessionId}`
 		this.maxQueueSize = options.maxQueueSize || 1000
+		// Explicit consumer groups are load-balanced delivery, not fan-out broadcast delivery.
+		this.capabilities.broadcast = options.groupId === undefined && options.consumerConfig?.groupId === undefined
 
 		this.connectionPromise = this.connect()
 	}
@@ -149,6 +159,7 @@ export class KafkaIO implements IoInterface {
 			this.consumerRunPromise = this.consumer.run({
 				eachMessage: async ({ message }) => {
 					if (this.isDestroyed) return
+					if (this.isSelfMessage(message)) return
 
 					const value = message.value?.toString("utf8")
 					if (!value) return
@@ -183,8 +194,8 @@ export class KafkaIO implements IoInterface {
 					waitForLeaders: true
 				})
 			}
-		} catch (error: any) {
-			if (error?.message?.includes("Topic with this name already exists")) {
+		} catch (error: unknown) {
+			if (error instanceof Error && error.message.includes("Topic with this name already exists")) {
 				return
 			}
 			console.error("Kafka ensureTopic error:", error)
@@ -218,6 +229,24 @@ export class KafkaIO implements IoInterface {
 		}
 
 		this.messageQueue.push(message)
+	}
+
+	private isSelfMessage(message: KafkaMessage): boolean {
+		// Only fan-out mode can safely drop self echoes; explicit groups are load-balanced.
+		if (this.capabilities.broadcast !== true) return false
+		// Kafka delivers this producer's message back to its consumer in fan-out mode.
+		if (this.options.allowSelfMessages === true) return false
+		const headers = "headers" in message ? message.headers : undefined
+		const senderId = this.headerValueToString(headers?.[SESSION_HEADER])
+		return senderId === this.sessionId
+	}
+
+	private headerValueToString(value: IHeaders[string]): string | undefined {
+		// KafkaJS headers can be strings, buffers, or arrays depending on producer/client version.
+		if (typeof value === "string") return value
+		if (Buffer.isBuffer(value)) return value.toString("utf8")
+		if (Array.isArray(value)) return this.headerValueToString(value[0])
+		return undefined
 	}
 
 	private generateSessionId(): string {
@@ -260,7 +289,8 @@ export class KafkaIO implements IoInterface {
 		try {
 			await this.producer.send({
 				topic: this.topic,
-				messages: [{ value: message }]
+				// The receiver uses this header to filter out its own outbound RPC request.
+				messages: [{ value: message, headers: { [SESSION_HEADER]: this.sessionId } }]
 			})
 		} catch (error) {
 			console.error("Kafka publish error:", error)

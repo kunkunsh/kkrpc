@@ -24,6 +24,7 @@ describe("KafkaIO", () => {
 			expect(adapter.getTopic()).toBe(TEST_TOPIC)
 			expect(adapter.getGroupId()).toBe("kkrpc-custom-group")
 			expect(adapter.getSessionId()).toBe("kafka-test-session")
+			expect(adapter.capabilities.broadcast).toBe(false)
 
 			adapter.destroy()
 		})
@@ -37,6 +38,7 @@ describe("KafkaIO", () => {
 			expect(adapter.getTopic()).toBe(TEST_TOPIC + "-defaults")
 			expect(adapter.getGroupId()).toMatch(/^kkrpc-group-/)
 			expect(adapter.getSessionId()).toHaveLength(26)
+			expect(adapter.capabilities.broadcast).toBe(true)
 
 			adapter.destroy()
 		})
@@ -46,11 +48,13 @@ describe("KafkaIO", () => {
 		let adapter: KafkaIO
 
 		beforeAll(async () => {
+			// allowSelfMessages keeps the low-level adapter loopback test explicit.
 			adapter = new KafkaIO({
 				brokers: KAFKA_BROKERS,
 				topic: TEST_TOPIC + "-connection",
 				clientId: "connection-test-client",
-				sessionId: "connection-test-session"
+				sessionId: "connection-test-session",
+				allowSelfMessages: true
 			})
 
 			// 等待 Kafka consumer 完成订阅，避免 race condition
@@ -67,6 +71,28 @@ describe("KafkaIO", () => {
 
 			expect(payload).toBe("hello-kafka")
 		}, 10000)
+
+		it("should deliver self-published messages in explicit consumer group mode", async () => {
+			const groupAdapter = new KafkaIO({
+				brokers: KAFKA_BROKERS,
+				topic: TEST_TOPIC + "-group-self-message",
+				groupId: "group-self-message-" + Math.random().toString(36).substring(2, 8),
+				sessionId: "group-self-message-session"
+			})
+
+			try {
+				await new Promise((resolve) => setTimeout(resolve, 2000))
+				await groupAdapter.write("load-balanced-self-message")
+				const payload = await Promise.race([
+					groupAdapter.read(),
+					new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000))
+				])
+
+				expect(payload).toBe("load-balanced-self-message")
+			} finally {
+				groupAdapter.destroy()
+			}
+		}, 15000)
 	})
 
 	describe("RPC Communication", () => {
@@ -97,8 +123,32 @@ describe("KafkaIO", () => {
 				expose: apiMethods
 			})
 
+			// These local handlers throw if Kafka echoes the client's own request back to itself.
 			clientRPC = new RPCChannel<API, API>(clientAdapter, {
-				expose: apiMethods
+				expose: {
+					...apiMethods,
+					echo: async () => {
+						throw new Error("client loopback should not handle echo")
+					},
+					add: async () => {
+						throw new Error("client loopback should not handle add")
+					},
+					math: {
+						...apiMethods.math,
+						grade2: {
+							...apiMethods.math.grade2,
+							multiply: async () => {
+								throw new Error("client loopback should not handle multiply")
+							}
+						}
+					},
+					throwSimpleError: () => {
+						throw new Error("client loopback should not handle throwSimpleError")
+					},
+					throwCustomError: () => {
+						throw new Error("client loopback should not handle throwCustomError")
+					}
+				}
 			})
 		})
 

@@ -37,7 +37,14 @@
 		"./http": "./http.ts",
 		"./chrome-extension": "./chrome-extension.ts",
 		"./deno": "./deno-mod.ts",
-		"./socketio": "./socketio.ts"
+		"./socketio": "./socketio.ts",
+		"./rabbitmq": "./rabbitmq.ts",
+		"./kafka": "./kafka.ts",
+		"./redis-streams": "./redis-streams.ts",
+		"./nats": "./nats.ts",
+		"./electron": "./electron.ts",
+		"./electron-ipc": "./electron-ipc.ts",
+		"./inspector": "./inspector.ts"
 	},
 	"imports": {
 		"@std/assert": "jsr:@std/assert@1",

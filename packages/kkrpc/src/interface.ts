@@ -16,6 +16,8 @@ export interface IoCapabilities {
 	transfer?: boolean
 	/** Optional list of known transferable object types supported by the adapter. */
 	transferTypes?: string[]
+	/** Adapter may deliver the same request to multiple peers; non-exposing peers should ignore it. */
+	broadcast?: boolean
 }
 
 /**

@@ -73,7 +73,8 @@ async function runWorker(worker: ChildProcessWithoutNullStreams) {
 
 describe("RPCChannel Test", () => {
 	test("DenoStdio", async () => {
-		const workerDeno = spawn("deno", [path.join(testsPath, "scripts/deno-api.ts")])
+		// --no-lock keeps this subprocess from mutating the repository deno.lock.
+		const workerDeno = spawn("deno", ["run", "--no-lock", path.join(testsPath, "scripts/deno-api.ts")])
 		await runWorker(workerDeno)
 	})
 	test("NodeStdio", async () => {

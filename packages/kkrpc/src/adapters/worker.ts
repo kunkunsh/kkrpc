@@ -53,12 +53,12 @@ export class WorkerParentIO implements IoInterface {
 		}
 	}
 
-	private normalizeIncoming(message: any): string | IoMessage {
+	private normalizeIncoming(message: unknown): string | IoMessage {
 		if (typeof message === "string") {
 			return message
 		}
 
-		if (message && typeof message === "object" && message.version === 2) {
+		if (message && typeof message === "object" && "version" in message && message.version === 2) {
 			const envelope = message as WireEnvelope
 			return {
 				data: envelope,
@@ -152,12 +152,12 @@ export class WorkerChildIO implements IoInterface {
 		}
 	}
 
-	private normalizeIncoming(message: any): string | IoMessage {
+	private normalizeIncoming(message: unknown): string | IoMessage {
 		if (typeof message === "string") {
 			return message
 		}
 
-		if (message && typeof message === "object" && message.version === 2) {
+		if (message && typeof message === "object" && "version" in message && message.version === 2) {
 			const envelope = message as WireEnvelope
 			return {
 				data: envelope,

@@ -20,7 +20,12 @@ interface RedisStreamsOptions {
 	maxQueueSize?: number
 	/** Use consumer groups for load balancing (false = pub/sub, true = load balance) */
 	useConsumerGroup?: boolean
+	/** Allow this adapter to receive messages it published itself. Defaults to false. */
+	allowSelfMessages?: boolean
 }
+
+// Stored next to the RPC payload so each adapter can ignore stream entries it wrote itself.
+const SESSION_FIELD = "sessionId"
 
 /**
  * Redis Streams implementation of IoInterface
@@ -46,7 +51,8 @@ export class RedisStreamsIO implements IoInterface {
 
 	capabilities: IoCapabilities = {
 		structuredClone: false,
-		transfer: false
+		transfer: false,
+		broadcast: true
 	}
 
 	private messageListeners: Set<(message: string | IoMessage) => void> = new Set()
@@ -80,6 +86,8 @@ export class RedisStreamsIO implements IoInterface {
 		this.maxLen = options.maxLen || null
 		this.maxQueueSize = options.maxQueueSize || 1000
 		this.useConsumerGroup = options.useConsumerGroup || false
+		// Consumer groups are load-balanced delivery, while plain XREAD is broadcast-like fan-out.
+		this.capabilities.broadcast = !this.useConsumerGroup
 
 		// Initialize connection promise
 		this.connectionPromise = this.connect()
@@ -122,6 +130,10 @@ export class RedisStreamsIO implements IoInterface {
 		if (options.consumerName !== undefined && typeof options.consumerName !== "string") {
 			throw new Error("consumerName must be a string")
 		}
+
+		if (options.allowSelfMessages !== undefined && typeof options.allowSelfMessages !== "boolean") {
+			throw new Error("allowSelfMessages must be a boolean")
+		}
 	}
 
 	private async connect(): Promise<void> {
@@ -152,9 +164,9 @@ export class RedisStreamsIO implements IoInterface {
 			if (this.useConsumerGroup) {
 				try {
 					await this.subscriber.xgroup("CREATE", this.stream, this.consumerGroup, "0", "MKSTREAM")
-				} catch (error: any) {
+				} catch (error: unknown) {
 					// Ignore error if group already exists
-					if (!error.message.includes("BUSYGROUP")) {
+					if (!(error instanceof Error && error.message.includes("BUSYGROUP"))) {
 						throw error
 					}
 				}
@@ -195,17 +207,13 @@ export class RedisStreamsIO implements IoInterface {
 						const [, messages] = results[0]
 
 						for (const [messageId, fields] of messages) {
-							// Extract message data from fields array
-							let messageData = ""
-							for (let i = 0; i < fields.length; i += 2) {
-								if (fields[i] === "data") {
-									messageData = fields[i + 1]
-									break
-								}
-							}
+							const messageData = this.extractField(fields, "data")
+							const senderId = this.extractField(fields, SESSION_FIELD)
 
 							if (messageData) {
-								this.handleMessage(messageData)
+								if (!this.isSelfMessage(senderId)) {
+									this.handleMessage(messageData)
+								}
 
 								// Acknowledge the message (XACK)
 								if (this.subscriber && !this.isDestroyed) {
@@ -233,18 +241,14 @@ export class RedisStreamsIO implements IoInterface {
 						const [, messages] = results[0]
 
 						for (const [messageId, fields] of messages) {
-							// Extract message data from fields array
-							let messageData = ""
-							for (let i = 0; i < fields.length; i += 2) {
-								if (fields[i] === "data") {
-									messageData = fields[i + 1]
-									break
-								}
-							}
+							const messageData = this.extractField(fields, "data")
+							const senderId = this.extractField(fields, SESSION_FIELD)
 
 							if (messageData) {
 								this.lastId = messageId
-								this.handleMessage(messageData)
+								if (!this.isSelfMessage(senderId)) {
+									this.handleMessage(messageData)
+								}
 							}
 						}
 					}
@@ -281,6 +285,25 @@ export class RedisStreamsIO implements IoInterface {
 			}
 			this.messageQueue.push(message)
 		}
+	}
+
+	private extractField(fields: unknown[], fieldName: string): string | undefined {
+		// Redis returns stream entry fields as alternating key/value items.
+		for (let i = 0; i < fields.length; i += 2) {
+			if (fields[i] !== fieldName) continue
+			const value = fields[i + 1]
+			return typeof value === "string" ? value : undefined
+		}
+		return undefined
+	}
+
+	private isSelfMessage(senderId: string | undefined): boolean {
+		// Only plain XREAD fan-out can safely drop self echoes; XREADGROUP is load-balanced.
+		return (
+			this.capabilities.broadcast === true &&
+			this.options.allowSelfMessages !== true &&
+			senderId === this.sessionId
+		)
 	}
 
 	private generateSessionId(): string {
@@ -320,7 +343,7 @@ export class RedisStreamsIO implements IoInterface {
 		try {
 			// Use XADD to add message to stream
 			if (this.maxLen) {
-				// With MAXLEN, we need to use a different format
+				// Include the sender session in both XADD forms so readers can self-filter.
 				await this.publisher.xadd(
 					this.stream,
 					"*",
@@ -328,11 +351,13 @@ export class RedisStreamsIO implements IoInterface {
 					"~",
 					this.maxLen.toString(),
 					"data",
-					message
+					message,
+					SESSION_FIELD,
+					this.sessionId
 				)
 			} else {
-				// Simple XADD without length limit
-				await this.publisher.xadd(this.stream, "*", "data", message)
+				// Simple XADD without length limit, still tagged with the sender session.
+				await this.publisher.xadd(this.stream, "*", "data", message, SESSION_FIELD, this.sessionId)
 			}
 		} catch (error) {
 			console.error("Redis Streams publish error:", error)

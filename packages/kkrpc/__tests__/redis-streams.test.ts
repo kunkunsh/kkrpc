@@ -95,6 +95,19 @@ describe("RedisStreamsIO", () => {
 			})
 
 			expect(adapter.name).toBe("redis-streams-io")
+			expect(adapter.capabilities.broadcast).toBe(true)
+		})
+
+		it("should not mark consumer group mode as broadcast", () => {
+			const adapter = new RedisStreamsIO({
+				url: REDIS_URL,
+				stream: TEST_STREAM + "-capability",
+				consumerGroup: TEST_GROUP,
+				useConsumerGroup: true
+			})
+
+			expect(adapter.capabilities.broadcast).toBe(false)
+			adapter.destroy()
 		})
 	})
 
@@ -267,6 +280,54 @@ describe("RedisStreamsIO", () => {
 			expect(serverResult).toBe("Client to Server")
 			expect(clientResult).toBe("Server to Client")
 		}, 15000)
+
+		it("should not let clients handle their own outbound RPC calls", async () => {
+			// Plain XREAD delivers each stream entry to every adapter, including the writer.
+			const stream = TEST_STREAM + "-self-filter-" + Math.random().toString(36).substring(2, 8)
+			const server = new RedisStreamsIO({
+				url: REDIS_URL,
+				stream,
+				sessionId: "server-self-filter"
+			})
+			const client = new RedisStreamsIO({
+				url: REDIS_URL,
+				stream,
+				sessionId: "client-self-filter"
+			})
+
+			await new Promise((resolve) => setTimeout(resolve, 1000))
+
+			const serverChannel = new RPCChannel<{ echo(message: string): Promise<string> }, {}>(server, {
+				expose: {
+					echo: async (message) => {
+						await new Promise((resolve) => setTimeout(resolve, 100))
+						return message
+					}
+				}
+			})
+			// This local handler throws if self-message filtering regresses.
+			const clientChannel = new RPCChannel<
+				{ echo(message: string): Promise<string> },
+				{ echo(message: string): Promise<string> }
+			>(client, {
+				expose: {
+					echo: async () => {
+						throw new Error("client loopback should not handle echo")
+					}
+				}
+			})
+
+			try {
+				await expect(clientChannel.getAPI().echo("Hello Redis Streams!")).resolves.toBe(
+					"Hello Redis Streams!"
+				)
+			} finally {
+				clientChannel.destroy()
+				serverChannel.destroy()
+				client.destroy()
+				server.destroy()
+			}
+		}, 15000)
 	})
 
 	describe("Multiple Consumers", () => {
@@ -387,7 +448,8 @@ describe("RedisStreamsIO", () => {
 			const smallQueueAdapter = new RedisStreamsIO({
 				url: REDIS_URL,
 				stream: TEST_STREAM + "-queue-test",
-				maxQueueSize: 5 // Very small queue for testing
+				maxQueueSize: 5, // Very small queue for testing
+				allowSelfMessages: true
 			})
 
 			// Wait for connection
@@ -427,6 +489,32 @@ describe("RedisStreamsIO", () => {
 	})
 
 	describe("Consumer Group Mode", () => {
+		it("should deliver self-published messages in consumer group mode", async () => {
+			const stream = TEST_STREAM + "-cg-self-message-" + Math.random().toString(36).substring(2, 8)
+			const adapter = new RedisStreamsIO({
+				url: REDIS_URL,
+				stream,
+				consumerGroup: "self-workers",
+				consumerName: "self-worker",
+				sessionId: "self-worker-session",
+				useConsumerGroup: true,
+				blockTimeout: 500
+			})
+
+			try {
+				await new Promise((resolve) => setTimeout(resolve, 1000))
+				await adapter.write("load-balanced-self-message")
+				const payload = await Promise.race([
+					adapter.read(),
+					new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000))
+				])
+
+				expect(payload).toBe("load-balanced-self-message")
+			} finally {
+				adapter.destroy()
+			}
+		}, 10000)
+
 		it("should use XREADGROUP when useConsumerGroup is true", async () => {
 			const stream = TEST_STREAM + "-cg-test-" + Math.random().toString(36).substring(2, 8)
 

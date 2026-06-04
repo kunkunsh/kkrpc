@@ -29,9 +29,11 @@ describe("RabbitMQIO", () => {
 		let adapter: RabbitMQIO
 
 		beforeAll(async () => {
+			// allowSelfMessages keeps the low-level adapter loopback test explicit.
 			adapter = new RabbitMQIO({
 				url: RABBITMQ_URL,
-				exchange: EXCHANGE_BASE + "-message"
+				exchange: EXCHANGE_BASE + "-message",
+				allowSelfMessages: true
 			})
 
 			// 等待连接 ready，避免消费队列还没创建就写入
@@ -78,8 +80,23 @@ describe("RabbitMQIO", () => {
 				expose: apiMethods
 			})
 
+			// These local handlers throw if RabbitMQ echoes the client's own request back to itself.
 			clientRPC = new RPCChannel<API, API>(clientAdapter, {
-				expose: apiMethods
+				expose: {
+					...apiMethods,
+					echo: async () => {
+						throw new Error("client loopback should not handle echo")
+					},
+					add: async () => {
+						throw new Error("client loopback should not handle add")
+					},
+					throwSimpleError: () => {
+						throw new Error("client loopback should not handle throwSimpleError")
+					},
+					throwCustomError: () => {
+						throw new Error("client loopback should not handle throwCustomError")
+					}
+				}
 			})
 		})
 

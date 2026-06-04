@@ -46,7 +46,7 @@ export class ChromePortIO implements IoInterface {
 		this.port.onDisconnect.addListener(this.handleDisconnect)
 	}
 
-	private handleMessage = (message: any) => {
+	private handleMessage = (message: unknown) => {
 		if (message === DESTROY_SIGNAL) {
 			this.destroy()
 			return

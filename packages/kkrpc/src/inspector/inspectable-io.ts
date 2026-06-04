@@ -42,7 +42,11 @@ export class InspectableIo implements IoInterface {
 	on(event: "message", listener: (message: string | IoMessage) => void): void
 	on(event: "error", listener: (error: Error) => void): void
 	on(event: "message" | "error", listener: Function): void {
-		this.inner.on(event as any, listener as any)
+		if (event === "message") {
+			this.inner.on("message", listener as (message: string | IoMessage) => void)
+		} else {
+			this.inner.on("error", listener as (error: Error) => void)
+		}
 	}
 
 	off(event: "message" | "error", listener: Function): void {

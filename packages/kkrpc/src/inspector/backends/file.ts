@@ -6,6 +6,28 @@ export interface FileBackendOptions {
 	flushIntervalMs?: number
 }
 
+interface DenoFileHandle {
+	write(data: Uint8Array): Promise<number> | number
+	close(): void
+}
+
+interface DenoRuntime {
+	open(
+		path: string,
+		options: { write: true; create: true; append: true }
+	): Promise<DenoFileHandle>
+}
+
+interface BunRuntime {
+	openSync(path: string, options: { mode: number; create: true }): unknown
+	write(file: unknown, data: Uint8Array): Promise<number> | number
+}
+
+type RuntimeGlobals = typeof globalThis & {
+	Deno?: DenoRuntime
+	Bun?: BunRuntime
+}
+
 export class FileBackend implements InspectorBackend {
 	private buffer: InspectEvent[] = []
 	private flushTimer: ReturnType<typeof setInterval> | null = null
@@ -48,8 +70,10 @@ export class FileBackend implements InspectorBackend {
 	}
 
 	private async appendFile(data: Uint8Array): Promise<void> {
-		if (typeof (globalThis as any).Deno !== "undefined") {
-			const { open } = (globalThis as any).Deno
+		const runtime = globalThis as RuntimeGlobals
+
+		if (runtime.Deno) {
+			const { open } = runtime.Deno
 			const file = await open(this.options.path, {
 				write: true,
 				create: true,
@@ -57,8 +81,8 @@ export class FileBackend implements InspectorBackend {
 			})
 			await file.write(data)
 			file.close()
-		} else if (typeof (globalThis as any).Bun !== "undefined") {
-			const { write, openSync } = (globalThis as any).Bun
+		} else if (runtime.Bun) {
+			const { write, openSync } = runtime.Bun
 			const file = openSync(this.options.path, {
 				mode: 0o644,
 				create: true

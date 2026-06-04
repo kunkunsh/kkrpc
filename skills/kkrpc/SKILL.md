@@ -1,7 +1,7 @@
 ---
 name: kkrpc
-description: Build bidirectional RPC systems in TypeScript with kkrpc. Create RPC channels, expose APIs, use multiple transports (stdio, WebSocket, HTTP), handle callbacks, property access, and errors across Node.js, Deno, Bun, and browsers.
-version: 1.0.0
+description: Build bidirectional RPC systems in TypeScript with kkrpc. Use this skill when wiring RPCChannel, choosing adapters, integrating HTTP/Hono/Fastify/Express/Bun/Deno/WebSocket/Hono WebSocket/Elysia/Socket.IO/Worker/Iframe/Tauri/Electron/Chrome extension/message queues, transferables, streaming, middleware, validation, or inspector tooling.
+version: 1.1.0
 license: MIT
 metadata:
   author: kkrpc
@@ -12,332 +12,797 @@ metadata:
     - bidirectional
     - ipc
     - websocket
-    - stdio
-    - cross-runtime
-compatibility: Works in Node.js, Deno, Bun, and browsers with appropriate entry points
+    - http
+    - workers
+    - electron
+    - tauri
+    - chrome-extension
+compatibility: Works in Node.js, Deno, Bun, browsers, Electron, Tauri, Chrome extensions, and queue-backed runtimes with the correct entry point and adapter.
 ---
 
 # kkrpc - TypeScript RPC Library
 
-Build bidirectional RPC systems in TypeScript with full type safety and multiple transport options.
-
-## Installation
-
-```bash
-# npm
-npm install kkrpc
-
-# pnpm
-pnpm add kkrpc
-
-# Deno
-import { RPCChannel } from "jsr:@kunkun/kkrpc"
-```
-
----
-
-## Quick Start
-
-### Basic RPC Setup
-
-**Server (expose API):**
+Use kkrpc to expose a local TypeScript object and call the remote side as a typed proxy.
+The central pattern is always:
 
 ```typescript
-import { NodeIo, RPCChannel } from "kkrpc"
+import { RPCChannel } from "kkrpc"
 
-const api = {
-	greet: (name: string) => `Hello, ${name}!`,
-	add: (a: number, b: number) => a + b,
-	counter: 42
-}
-
-const rpc = new RPCChannel(new NodeIo(process.stdin, process.stdout), { expose: api })
+const channel = new RPCChannel<LocalAPI, RemoteAPI>(io, {
+	expose: localAPI
+})
+const remote = channel.getAPI()
 ```
 
-**Client (consume API):**
+## First Decisions
+
+1. Pick the entry point.
+2. Pick the transport adapter.
+3. Decide whether both sides expose APIs.
+4. Use the examples below as the source of truth for framework integration shape.
+
+## Entry Points
+
+| Runtime or adapter | Import path | Notes |
+| --- | --- | --- |
+| Node.js, Bun, most server adapters | `kkrpc` | Core, stdio, HTTP, WebSocket, Worker, Hono WebSocket, Elysia WebSocket |
+| Browser, Web Worker, iframe, Tauri frontend | `kkrpc/browser` | Avoid Node-specific imports in browser bundles |
+| Deno stdio package entry | `kkrpc/deno` or `jsr:@kunkun/kkrpc` | Use `DenoIo` |
+| HTTP helpers | `kkrpc/http` | `createHttpClient`, `createHttpHandler`, plus HTTP IO classes |
+| Chrome extension | `kkrpc/chrome-extension` | `ChromePortIO` |
+| Electron utility process | `kkrpc/electron` | `ElectronUtilityProcessIO`, `ElectronUtilityProcessChildIO` |
+| Electron ipcMain/ipcRenderer | `kkrpc/electron-ipc` | `ElectronIpcMainIO`, `ElectronIpcRendererIO`, preload bridge helpers |
+| Socket.IO | `kkrpc/socketio` | Optional peer dependency |
+| RabbitMQ | `kkrpc/rabbitmq` | Optional peer dependency |
+| Kafka | `kkrpc/kafka` | Optional peer dependency |
+| Redis Streams | `kkrpc/redis-streams` | Optional peer dependency |
+| NATS | `kkrpc/nats` | Optional peer dependency |
+| Inspector | `kkrpc/inspector` | Traffic logging and analysis |
+
+## Adapter Map
+
+| Use case | Adapter/helper | Reference examples |
+| --- | --- | --- |
+| Node child process stdio | `NodeIo` | `examples/electron-demo/stdio-worker.ts`, tests in `__tests__/stdio-rpc.test.ts` |
+| Bun stdio | `BunIo` | `examples/tauri-demo/src/backend/bun.ts` |
+| Deno stdio | `DenoIo` | `examples/deno-backend/main.ts`, `examples/tauri-demo/sample-script/deno.ts` |
+| Plain HTTP POST | `HTTPServerIO`, `HTTPClientIO` | `examples/http-demo/src/http.ts`, `examples/http-demo/client.ts` |
+| HTTP helper style | `createHttpHandler`, `createHttpClient` | `examples/http-demo/src/hono.ts`, `examples/http-demo/client.ts` |
+| Express HTTP | `HTTPServerIO` | `examples/http-demo/src/express.ts` |
+| Fastify HTTP | `HTTPServerIO` | `examples/http-demo/src/fastify.ts` |
+| Bun HTTP server | `HTTPServerIO` | `examples/http-demo/src/bun.ts` |
+| Deno HTTP server | `HTTPServerIO` | `examples/http-demo/src/deno.ts` |
+| Standard WebSocket / `ws` | `WebSocketClientIO`, `WebSocketServerIO` | `examples/streaming-middleware-demo/` |
+| Hono WebSocket | `createHonoWebSocketHandler` | `__tests__/hono-websocket.test.ts` |
+| Elysia WebSocket | `ElysiaWebSocketServerIO`, `ElysiaWebSocketClientIO` | `__tests__/elysia-websocket.test.ts` |
+| Socket.IO | `SocketIOServerIO`, `SocketIOClientIO` | `__tests__/socketio.test.ts` |
+| Browser/Deno Worker | `WorkerParentIO`, `WorkerChildIO` | `examples/deno-webworker-demo/`, `examples/transferable-browser/` |
+| iframe postMessage | `IframeParentIO`, `IframeChildIO` | `examples/iframe-worker-demo/` |
+| Tauri shell plugin stdio | `TauriShellStdio` | `examples/tauri-demo/src/routes/examples/math/+page.svelte` |
+| Electron utility process | `ElectronUtilityProcessIO`, `ElectronUtilityProcessChildIO` | `examples/electron-demo/electron/main.ts`, `examples/electron-demo/worker.ts` |
+| Electron IPC main/renderer | `ElectronIpcMainIO`, `ElectronIpcRendererIO` | `examples/electron-demo/electron/main.ts`, `examples/electron-demo/src/App.tsx` |
+| Chrome runtime port | `ChromePortIO` | `examples/chrome-extension/AGENTS.md` |
+| RabbitMQ/Kafka/Redis/NATS | `RabbitMQIO`, `KafkaIO`, `RedisStreamsIO`, `NatsIO` | adapter tests under `packages/kkrpc/__tests__/` |
+
+## Core API Pattern
+
+Prefer explicit local and remote API types. In bidirectional RPC, each side can expose its own API and call the other side.
 
 ```typescript
-import { spawn } from "child_process"
-import { NodeIo, RPCChannel } from "kkrpc"
-
-const worker = spawn("bun", ["server.ts"])
-const rpc = new RPCChannel(new NodeIo(worker.stdout, worker.stdin))
-
-const api = rpc.getAPI<typeof api>()
-
-console.log(await api.greet("World")) // "Hello, World!"
-console.log(await api.add(5, 3)) // 8
-console.log(await api.counter) // 42
-```
-
----
-
-## Core Concepts
-
-### RPCChannel
-
-The main class that manages bidirectional communication:
-
-```typescript
-class RPCChannel<LocalAPI extends Record<string, any>, RemoteAPI extends Record<string, any>> {
-	constructor(
-		io: IoInterface,
-		options?: {
-			expose?: LocalAPI
-			serialization?: { version: "json" | "superjson" }
-			validators?: RPCValidators<LocalAPI>
-		}
-	)
-
-	getAPI(): RemoteAPI // Get proxy to remote API
-	expose(api: LocalAPI): void // Expose local API
-}
-```
-
-### IoInterface (Transports)
-
-Transport adapters for different environments:
-
-| Transport        | Class                                               | Environment        |
-| ---------------- | --------------------------------------------------- | ------------------ |
-| stdio            | `NodeIo`, `DenoIo`, `BunIo`                         | Process-to-process |
-| WebSocket        | `WebSocketClientIO`, `WebSocketServerIO`            | Network            |
-| HTTP             | `HTTPClientIO`, `HTTPServerIO`                      | Web APIs           |
-| Worker           | `WorkerParentIO`, `WorkerChildIO`                   | Web Workers        |
-| postMessage      | `IframeParentIO`, `IframeChildIO`                   | iframes            |
-| Chrome Extension | `ChromePortIO`                                      | Chrome extensions  |
-| Electron         | `ElectronIpcMainIO`, `ElectronIpcRendererIO`        | Electron           |
-| Message Queues   | `RabbitMQIO`, `KafkaIO`, `RedisStreamsIO`, `NatsIO` | Distributed        |
-
----
-
-## API Definition Patterns
-
-### Pattern 1: Inline API (Simple)
-
-```typescript
-const api = {
-	greet: (name: string) => `Hello, ${name}!`,
-	add: (a: number, b: number) => a + b
-}
-
-type API = typeof api
-
-const rpc = new RPCChannel<API, API>(io, { expose: api })
-const remote = rpc.getAPI()
-```
-
-### Pattern 2: Interface-First (Recommended)
-
-```typescript
-interface MathAPI {
-	add(a: number, b: number): Promise<number>
-	multiply(a: number, b: number): Promise<number>
-}
-
-interface MyAPI {
-	math: MathAPI
-	greet(name: string): Promise<string>
-}
-
-const api: MyAPI = {
+type ServerAPI = {
 	math: {
-		add: async (a, b) => a + b,
-		multiply: async (a, b) => a * b
-	},
-	greet: async (name) => `Hello, ${name}!`
+		add(a: number, b: number): Promise<number>
+	}
+	version(): Promise<string>
 }
 
-const rpc = new RPCChannel<MyAPI, MyAPI>(io, { expose: api })
-```
+type ClientAPI = {
+	notify(message: string): Promise<void>
+}
 
-### Pattern 3: Nested APIs
-
-```typescript
-interface API {
-	math: {
-		basic: {
-			add(a: number, b: number): Promise<number>
-			subtract(a: number, b: number): Promise<number>
-		}
-		advanced: {
-			pow(base: number, exp: number): Promise<number>
-			sqrt(n: number): Promise<number>
-		}
+const clientAPI: ClientAPI = {
+	async notify(message) {
+		console.log(message)
 	}
 }
 
-// Usage
-const result = await api.math.advanced.pow(2, 10) // 1024
+const channel = new RPCChannel<ClientAPI, ServerAPI>(io, { expose: clientAPI })
+const server = channel.getAPI()
+
+console.log(await server.math.add(1, 2))
 ```
 
----
-
-## Transport Examples
-
-### Stdio (Process Communication)
+Remote property access is supported:
 
 ```typescript
-import { spawn } from "child_process"
-import { NodeIo, RPCChannel } from "kkrpc"
-
-// Spawn child process
-const child = spawn("bun", ["worker.ts"])
-
-// Create channel
-const io = new NodeIo(child.stdout, child.stdin)
-const rpc = new RPCChannel<LocalAPI, RemoteAPI>(io, { expose: localApi })
-
-// Get remote API
-const api = rpc.getAPI()
+const counter = await api.counter
+const nested = await api.nested.deepObj.prop
 ```
 
-### WebSocket
+Callbacks can be passed as arguments:
 
 ```typescript
-import { RPCChannel, WebSocketClientIO, WebSocketServerIO } from "kkrpc"
+await api.process("input", (progress) => {
+	console.log("progress", progress)
+})
+```
 
-// Server
-wss.on("connection", (ws) => {
-	const io = new WebSocketServerIO(ws)
-	const rpc = new RPCChannel<API, API>(io, { expose: api })
+## HTTP Integrations
+
+HTTP is request/response. Use raw request text and send raw response text with `Content-Type: application/json`.
+
+### Recommended HTTP Helpers
+
+Use helpers when the framework can give you the raw POST body.
+
+```typescript
+import { Hono } from "hono"
+import { createHttpHandler } from "kkrpc/http"
+
+const handler = createHttpHandler(apiImplementation)
+const app = new Hono()
+
+app.post("/rpc", async (c) => {
+	return c.text(await handler.handleRequest(await c.req.text()))
 })
 
-// Client
-const ws = new WebSocket("ws://localhost:3000")
-const io = new WebSocketClientIO({ ws })
-const rpc = new RPCChannel<{}, API>(io)
-const api = rpc.getAPI()
+export default {
+	port: 3000,
+	fetch: app.fetch
+}
 ```
 
-### Web Worker
+Client:
 
 ```typescript
-import { WorkerParentIO, WorkerChildIO, RPCChannel } from "kkrpc/browser"
+import { createHttpClient } from "kkrpc/http"
 
-// Main thread
-const worker = new Worker("./worker.ts", { type: "module" })
-const io = new WorkerParentIO(worker)
-const rpc = new RPCChannel<LocalAPI, RemoteAPI>(io, { expose: localApi })
-
-// Worker thread
-const io = new WorkerChildIO()
-const rpc = new RPCChannel<RemoteAPI, LocalAPI>(io, { expose: api })
+const { api, channel } = createHttpClient<RemoteAPI>("http://localhost:3000/rpc")
+console.log(await api.math.grade1.add(5, 3))
 ```
 
-### HTTP
+### Plain Node HTTP
 
 ```typescript
-import { HTTPClientIO, HTTPServerIO, RPCChannel } from "kkrpc"
+import { createServer } from "node:http"
+import { HTTPServerIO, RPCChannel } from "kkrpc"
 
-// Server
 const serverIO = new HTTPServerIO()
-const serverRPC = new RPCChannel<API, API>(serverIO, { expose: api })
+new RPCChannel<ServerAPI, ServerAPI>(serverIO, { expose: apiImplementation })
+
+createServer(async (req, res) => {
+	if (req.url === "/rpc" && req.method === "POST") {
+		const chunks: Buffer[] = []
+		for await (const chunk of req) chunks.push(Buffer.from(chunk))
+		const response = await serverIO.handleRequest(Buffer.concat(chunks).toString("utf-8"))
+		res.setHeader("Content-Type", "application/json")
+		res.end(response)
+		return
+	}
+	res.writeHead(404).end("Not found")
+}).listen(3000)
+```
+
+### Express
+
+Important: parse the body as text, not as JSON.
+
+```typescript
+import express from "express"
+import { HTTPServerIO, RPCChannel } from "kkrpc"
+
+const app = express()
+const serverIO = new HTTPServerIO()
+new RPCChannel<ServerAPI, ServerAPI>(serverIO, { expose: apiImplementation })
+
+app.use(express.text({ type: "application/json" }))
+app.post("/rpc", async (req, res) => {
+	const response = await serverIO.handleRequest(req.body)
+	res.type("application/json").send(response)
+})
+```
+
+### Fastify
+
+Important: register a string parser for `application/json`.
+
+```typescript
+import Fastify from "fastify"
+import { HTTPServerIO, RPCChannel } from "kkrpc"
+
+const app = Fastify()
+const serverIO = new HTTPServerIO()
+new RPCChannel<ServerAPI, ServerAPI>(serverIO, { expose: apiImplementation })
+
+app.addContentTypeParser("application/json", { parseAs: "string" }, (_req, body, done) => {
+	done(null, body)
+})
+
+app.post("/rpc", async (request, reply) => {
+	const response = await serverIO.handleRequest(request.body as string)
+	reply.type("application/json").send(response)
+})
+```
+
+### Bun HTTP
+
+```typescript
+import { HTTPServerIO, RPCChannel } from "kkrpc"
+
+const serverIO = new HTTPServerIO()
+new RPCChannel<ServerAPI, ServerAPI>(serverIO, { expose: apiImplementation })
 
 Bun.serve({
+	port: 3000,
 	async fetch(req) {
-		if (new URL(req.url).pathname === "/rpc") {
+		const url = new URL(req.url)
+		if (url.pathname === "/rpc" && req.method === "POST") {
 			const response = await serverIO.handleRequest(await req.text())
-			return new Response(response, {
-				headers: { "Content-Type": "application/json" }
-			})
+			return new Response(response, { headers: { "Content-Type": "application/json" } })
 		}
 		return new Response("Not found", { status: 404 })
 	}
 })
-
-// Client
-const clientIO = new HTTPClientIO({ url: "http://localhost:3000/rpc" })
-const clientRPC = new RPCChannel<{}, API>(clientIO)
 ```
 
----
-
-## Advanced Features
-
-### Callback Functions
-
-Send functions as arguments that can be invoked remotely:
+### Deno HTTP
 
 ```typescript
-interface API {
-	processData(data: string, onProgress: (percent: number) => void): Promise<string>
-}
+import { HTTPServerIO, RPCChannel } from "kkrpc"
 
-// Server
-const api: API = {
-	processData: async (data, onProgress) => {
-		for (let i = 0; i <= 100; i += 10) {
-			onProgress(i)
-			await sleep(100)
-		}
-		return `Processed: ${data}`
+const serverIO = new HTTPServerIO()
+new RPCChannel<ServerAPI, ServerAPI>(serverIO, { expose: apiImplementation })
+
+Deno.serve({ port: 3000 }, async (request) => {
+	const url = new URL(request.url)
+	if (url.pathname === "/rpc" && request.method === "POST") {
+		const response = await serverIO.handleRequest(await request.text())
+		return new Response(response, { headers: { "Content-Type": "application/json" } })
 	}
-}
-
-// Client
-const result = await api.processData("my-data", (progress) => {
-	console.log(`Progress: ${progress}%`)
+	return new Response("Not found", { status: 404 })
 })
 ```
 
-### Property Access
+## WebSocket Integrations
 
-Access and mutate remote properties:
+### Standard WebSocket or `ws`
+
+Server:
 
 ```typescript
-interface API {
-	counter: number
-	settings: {
-		theme: string
-		notifications: { enabled: boolean }
-	}
-}
+import { RPCChannel, WebSocketServerIO } from "kkrpc"
+import { WebSocketServer } from "ws"
 
-// Get values
-const count = await api.counter
-const theme = await api.settings.theme
+const wss = new WebSocketServer({ port: 3100 })
 
-// Set values
-api.counter = 100
-api.settings.theme = "dark"
+wss.on("connection", (ws) => {
+	const io = new WebSocketServerIO(ws)
+	new RPCChannel<ServerAPI, ClientAPI>(io, { expose: serverAPI })
+})
 ```
 
-### Enhanced Error Handling
-
-Errors preserve name, message, stack, and custom properties:
+Client:
 
 ```typescript
-class ValidationError extends Error {
-	constructor(
-		message: string,
-		public field: string,
-		public code: number
-	) {
-		super(message)
-		this.name = "ValidationError"
+import { RPCChannel, WebSocketClientIO } from "kkrpc"
+
+const io = new WebSocketClientIO({ url: "ws://localhost:3100" })
+const rpc = new RPCChannel<ClientAPI, ServerAPI>(io, { expose: clientAPI })
+const api = rpc.getAPI()
+```
+
+### Hono WebSocket
+
+Use the helper with Hono's `upgradeWebSocket`. For Bun, pass Hono's `websocket` object to `Bun.serve`.
+
+```typescript
+import { Hono } from "hono"
+import { upgradeWebSocket, websocket } from "hono/bun"
+import { createHonoWebSocketHandler } from "kkrpc"
+
+const app = new Hono()
+
+app.get(
+	"/ws",
+	upgradeWebSocket(() =>
+		createHonoWebSocketHandler<ServerAPI>({
+			expose: serverAPI
+		})
+	)
+)
+
+Bun.serve({
+	port: 3000,
+	fetch: app.fetch,
+	websocket
+})
+```
+
+Client:
+
+```typescript
+import { RPCChannel, WebSocketClientIO } from "kkrpc"
+
+const io = new WebSocketClientIO({ url: "ws://localhost:3000/ws" })
+const rpc = new RPCChannel<ClientAPI, ServerAPI>(io, { expose: clientAPI })
+const api = rpc.getAPI()
+```
+
+### Elysia WebSocket
+
+Use `ElysiaWebSocketServerIO` in `open`, then feed messages from Elysia's `message` callback.
+
+```typescript
+import { Elysia } from "elysia"
+import { ElysiaWebSocketServerIO, RPCChannel } from "kkrpc"
+
+new Elysia()
+	.ws("/rpc", {
+		open(ws) {
+			const io = new ElysiaWebSocketServerIO(ws)
+			new RPCChannel<ServerAPI, ClientAPI>(io, { expose: serverAPI })
+		},
+		message(ws, message) {
+			ElysiaWebSocketServerIO.feedMessage(ws, message)
+		}
+	})
+	.listen(3000)
+```
+
+Client:
+
+```typescript
+import { ElysiaWebSocketClientIO, RPCChannel } from "kkrpc"
+
+const io = new ElysiaWebSocketClientIO("ws://localhost:3000/rpc")
+const rpc = new RPCChannel<ClientAPI, ServerAPI>(io, { expose: clientAPI })
+const api = rpc.getAPI()
+```
+
+`ElysiaWebSocketServerIO` can also read connection metadata:
+
+```typescript
+const info = {
+	remoteAddress: io.getRemoteAddress(),
+	query: io.getQuery(),
+	headers: io.getHeaders()
+}
+```
+
+### Socket.IO
+
+```typescript
+import { createServer } from "node:http"
+import { Server as SocketIOServer } from "socket.io"
+import { RPCChannel } from "kkrpc"
+import { SocketIOClientIO, SocketIOServerIO } from "kkrpc/socketio"
+
+const httpServer = createServer()
+const socketServer = new SocketIOServer(httpServer, {
+	cors: { origin: "*", methods: ["GET", "POST"] }
+})
+
+socketServer.on("connection", (socket) => {
+	const io = new SocketIOServerIO(socket)
+	new RPCChannel<ServerAPI, ClientAPI>(io, { expose: serverAPI })
+})
+
+httpServer.listen(3000)
+
+const clientIO = new SocketIOClientIO({
+	url: "http://localhost:3000",
+	opts: { transports: ["websocket"], timeout: 5000 }
+})
+const api = new RPCChannel<ClientAPI, ServerAPI>(clientIO, { expose: clientAPI }).getAPI()
+```
+
+Namespace client:
+
+```typescript
+const io = new SocketIOClientIO({
+	url: "http://localhost:3000",
+	namespace: "test"
+})
+```
+
+## Worker and Browser Contexts
+
+### Browser or Deno Worker
+
+Main thread:
+
+```typescript
+import { RPCChannel, WorkerParentIO } from "kkrpc/browser"
+
+const worker = new Worker(new URL("./worker.ts", import.meta.url), { type: "module" })
+const io = new WorkerParentIO(worker)
+const rpc = new RPCChannel<MainAPI, WorkerAPI>(io, { expose: mainAPI })
+const workerAPI = rpc.getAPI()
+```
+
+Worker:
+
+```typescript
+import { RPCChannel, WorkerChildIO } from "kkrpc/browser"
+
+const io = new WorkerChildIO()
+const rpc = new RPCChannel<WorkerAPI, MainAPI>(io, { expose: workerAPI })
+const mainAPI = rpc.getAPI()
+```
+
+Deno native Worker examples can import from `kkrpc` if the import map points to `packages/kkrpc/mod.ts`.
+
+### Transferable Objects
+
+Use transferables only on adapters whose capabilities support structured clone and transfer, such as Worker adapters. Enable transfer unless intentionally disabling it.
+
+Main:
+
+```typescript
+import { RPCChannel, WorkerParentIO, transfer } from "kkrpc/browser"
+
+const rpc = new RPCChannel<MainAPI, WorkerAPI>(new WorkerParentIO(worker), {
+	expose: mainAPI,
+	enableTransfer: true
+})
+const api = rpc.getAPI()
+
+const buffer = new ArrayBuffer(1024 * 1024)
+const result = await api.processBuffer(transfer(buffer, [buffer]))
+console.log(buffer.byteLength) // 0 when actually transferred
+```
+
+Worker returning a transferred buffer:
+
+```typescript
+import { RPCChannel, WorkerChildIO, transfer } from "kkrpc/browser"
+
+const workerAPI: WorkerAPI = {
+	async provideBuffer(size) {
+		const buffer = new ArrayBuffer(size)
+		return {
+			buffer: transfer(buffer, [buffer]),
+			checksum: checksum(buffer)
+		}
 	}
 }
 
-// Thrown on server
+new RPCChannel<WorkerAPI, MainAPI>(new WorkerChildIO(), { expose: workerAPI })
+```
+
+### iframe postMessage
+
+Parent page:
+
+```typescript
+import { IframeParentIO, RPCChannel } from "kkrpc/browser"
+
+const iframe = document.querySelector("iframe")
+if (!iframe?.contentWindow) throw new Error("iframe not ready")
+
+const io = new IframeParentIO(iframe.contentWindow)
+const rpc = new RPCChannel<ParentAPI, IframeAPI>(io, { expose: parentAPI })
+const iframeAPI = rpc.getAPI()
+```
+
+Iframe page:
+
+```typescript
+import { IframeChildIO, RPCChannel } from "kkrpc/browser"
+
+const io = new IframeChildIO()
+const rpc = new RPCChannel<IframeAPI, ParentAPI>(io, { expose: iframeAPI })
+const parentAPI = rpc.getAPI()
+```
+
+Destroy iframe/worker IO on component unmount:
+
+```typescript
+io.destroy()
+```
+
+## Stdio and Process RPC
+
+### Node child process
+
+Parent:
+
+```typescript
+import { spawn } from "node:child_process"
+import { NodeIo, RPCChannel } from "kkrpc"
+
+const child = spawn("node", ["worker.js"])
+const io = new NodeIo(child.stdout, child.stdin)
+const rpc = new RPCChannel<ParentAPI, WorkerAPI>(io, { expose: parentAPI })
+const workerAPI = rpc.getAPI()
+```
+
+Worker:
+
+```typescript
+import { NodeIo, RPCChannel } from "kkrpc"
+
+const io = new NodeIo(process.stdin, process.stdout)
+new RPCChannel<WorkerAPI, ParentAPI>(io, { expose: workerAPI })
+```
+
+Write logs to stderr in stdio workers so stdout remains available for RPC frames:
+
+```typescript
+console.error("worker ready")
+```
+
+### Bun and Deno stdio
+
+```typescript
+import { BunIo, RPCChannel } from "kkrpc"
+
+new RPCChannel<API, RemoteAPI>(new BunIo(), { expose: api })
+```
+
+```typescript
+import { DenoIo, RPCChannel } from "kkrpc/deno"
+
+new RPCChannel<API, RemoteAPI>(new DenoIo(), { expose: api })
+```
+
+## Tauri
+
+Use `TauriShellStdio` from the browser entry with `@tauri-apps/plugin-shell`.
+
+```typescript
+import { Command } from "@tauri-apps/plugin-shell"
+import { RPCChannel, TauriShellStdio } from "kkrpc/browser"
+
+const cmd = Command.create("deno", ["run", "-A", scriptPath])
+const child = await cmd.spawn()
+
+const io = new TauriShellStdio(cmd.stdout, child)
+const rpc = new RPCChannel<FrontendAPI, ScriptAPI>(io, { expose: frontendAPI })
+const scriptAPI = rpc.getAPI()
+
+console.log(await scriptAPI.fibonacci(10))
+```
+
+The script side uses the matching runtime stdio adapter:
+
+```typescript
+import { DenoIo, RPCChannel } from "kkrpc"
+
+new RPCChannel<ScriptAPI, FrontendAPI>(new DenoIo(), { expose: scriptAPI })
+```
+
+## Electron
+
+### Renderer to Main via ipcMain/ipcRenderer
+
+Main process:
+
+```typescript
+import { BrowserWindow, ipcMain } from "electron"
+import { RPCChannel } from "kkrpc/electron-ipc"
+import { ElectronIpcMainIO } from "kkrpc/electron-ipc"
+
+const win = new BrowserWindow({
+	webPreferences: {
+		preload: "preload.mjs",
+		contextIsolation: true,
+		nodeIntegration: false
+	}
+})
+
+const io = new ElectronIpcMainIO(ipcMain, win.webContents)
+const rpc = new RPCChannel<MainAPI, RendererAPI>(io, { expose: mainAPI })
+const rendererAPI = rpc.getAPI()
+```
+
+Renderer:
+
+```typescript
+import { ElectronIpcRendererIO, RPCChannel } from "kkrpc/electron-ipc"
+
+const io = new ElectronIpcRendererIO()
+const rpc = new RPCChannel<RendererAPI, MainAPI>(io, { expose: rendererAPI })
+const mainAPI = rpc.getAPI()
+```
+
+Use a custom channel when relaying another transport:
+
+```typescript
+const io = new ElectronIpcRendererIO("kkrpc-stdio-relay")
+```
+
+### Electron utility process
+
+Main:
+
+```typescript
+import { utilityProcess } from "electron"
+import { ElectronUtilityProcessIO, RPCChannel } from "kkrpc/electron"
+
+const child = utilityProcess.fork("./worker.js")
+const io = new ElectronUtilityProcessIO(child)
+const rpc = new RPCChannel<MainAPI, WorkerAPI>(io, { expose: mainAPI })
+const workerAPI = rpc.getAPI()
+```
+
+Utility child:
+
+```typescript
+import { ElectronUtilityProcessChildIO, RPCChannel } from "kkrpc/electron"
+
+const io = new ElectronUtilityProcessChildIO()
+const rpc = new RPCChannel<WorkerAPI, MainAPI>(io, { expose: workerAPI })
+const mainAPI = rpc.getAPI()
+```
+
+### Relay two transports
+
+Use `createRelay` to bridge transports, for example Electron IPC renderer <-> main <-> stdio worker.
+
+```typescript
+import { createRelay, NodeIo } from "kkrpc"
+import { ElectronIpcMainIO } from "kkrpc/electron-ipc"
+
+const stdioIO = new NodeIo(child.stdout, child.stdin)
+const ipcIO = new ElectronIpcMainIO(ipcMain, win.webContents, "kkrpc-stdio-relay")
+const relay = createRelay(ipcIO, stdioIO)
+
+// later
+relay.destroy()
+```
+
+## Chrome Extension
+
+Use `ChromePortIO` for long-lived `chrome.runtime.Port` connections.
+
+Content script or UI page:
+
+```typescript
+import { ChromePortIO, RPCChannel } from "kkrpc/chrome-extension"
+
+const port = chrome.runtime.connect({ name: "content-to-popup" })
+const io = new ChromePortIO(port)
+const rpc = new RPCChannel<ContentAPI, PopupAPI>(io, { expose: contentAPI })
+const popupAPI = rpc.getAPI()
+```
+
+Background/service worker or receiver:
+
+```typescript
+import { ChromePortIO, RPCChannel } from "kkrpc/chrome-extension"
+
+chrome.runtime.onConnect.addListener((port) => {
+	const io = new ChromePortIO(port)
+	new RPCChannel<PopupAPI, ContentAPI>(io, { expose: popupAPI })
+})
+```
+
+## Message Queues
+
+Queue adapters are optional peer dependencies and all implement `IoInterface`. They are useful when both peers share the same broker topic/stream/exchange.
+
+### RabbitMQ
+
+```typescript
+import { RPCChannel } from "kkrpc"
+import { RabbitMQIO } from "kkrpc/rabbitmq"
+
+const io = new RabbitMQIO({
+	url: "amqp://localhost",
+	exchange: "kkrpc-exchange",
+	routingKeyPrefix: "kkrpc",
+	sessionId: "service-a"
+})
+
+const rpc = new RPCChannel<LocalAPI, RemoteAPI>(io, { expose: localAPI })
+const api = rpc.getAPI()
+```
+
+### Kafka
+
+```typescript
+import { RPCChannel } from "kkrpc"
+import { KafkaIO } from "kkrpc/kafka"
+
+const io = new KafkaIO({
+	brokers: ["localhost:9092"],
+	topic: "kkrpc-topic",
+	groupId: "service-a",
+	sessionId: "service-a"
+})
+
+const api = new RPCChannel<LocalAPI, RemoteAPI>(io, { expose: localAPI }).getAPI()
+```
+
+### Redis Streams
+
+```typescript
+import { RPCChannel } from "kkrpc"
+import { RedisStreamsIO } from "kkrpc/redis-streams"
+
+const io = new RedisStreamsIO({
+	url: "redis://localhost:6379",
+	stream: "kkrpc-stream",
+	useConsumerGroup: false,
+	sessionId: "service-a"
+})
+
+const api = new RPCChannel<LocalAPI, RemoteAPI>(io, { expose: localAPI }).getAPI()
+```
+
+Set `useConsumerGroup: true` only when you intentionally want load balancing semantics.
+
+### NATS
+
+```typescript
+import { RPCChannel } from "kkrpc"
+import { NatsIO } from "kkrpc/nats"
+
+const io = new NatsIO({
+	servers: "nats://localhost:4222",
+	subject: "kkrpc.messages",
+	sessionId: "service-a"
+})
+
+const api = new RPCChannel<LocalAPI, RemoteAPI>(io, { expose: localAPI }).getAPI()
+```
+
+## Streaming and Middleware
+
+Server methods can return `AsyncIterable` values. The client receives an async iterable and consumes it with `for await`.
+
+```typescript
 type API = {
-	validateUser(data: unknown): Promise<void>
+	countdown(n: number): Promise<AsyncIterable<number>>
 }
 
-// Caught on client
-try {
-	await api.validateUser({})
-} catch (error) {
-	console.log(error.name) // "ValidationError"
-	console.log(error.message) // "Name is required"
-	console.log(error.field) // "name"
-	console.log(error.code) // 400
+const api: API = {
+	async countdown(n) {
+		return (async function* () {
+			for (let i = n; i >= 0; i--) {
+				yield i
+				await new Promise((resolve) => setTimeout(resolve, 1000))
+			}
+		})()
+	}
+}
+
+const stream = await remote.countdown(5)
+for await (const value of stream) {
+	console.log(value)
+	if (value === 2) break
 }
 ```
 
-### Validation (Optional)
+Interceptors run on the receiving side after input validation and before output validation.
 
-Use Standard Schema (Zod, Valibot, ArkType) for runtime validation:
+```typescript
+import type { RPCInterceptor } from "kkrpc"
+
+const logger: RPCInterceptor = async (ctx, next) => {
+	console.log(ctx.method, ctx.args)
+	return next()
+}
+
+const auth: RPCInterceptor = async (ctx, next) => {
+	if (ctx.method === "getSecretData" && !ctx.state.authenticated) {
+		throw new Error("Unauthorized")
+	}
+	return next()
+}
+
+new RPCChannel<ServerAPI, ClientAPI>(io, {
+	expose: serverAPI,
+	interceptors: [logger, auth]
+})
+```
+
+For per-connection state, create interceptor instances inside the connection callback and close over a session object.
+
+## Validation
+
+kkrpc supports Standard Schema-compatible validators such as Zod, Valibot, and ArkType. Validators apply to the locally exposed API.
 
 ```typescript
 import { RPCChannel, type RPCValidators } from "kkrpc"
@@ -347,10 +812,6 @@ type MathAPI = {
 	add(a: number, b: number): Promise<number>
 }
 
-const api: MathAPI = {
-	add: async (a, b) => a + b
-}
-
 const validators: RPCValidators<MathAPI> = {
 	add: {
 		input: z.tuple([z.number(), z.number()]),
@@ -358,201 +819,118 @@ const validators: RPCValidators<MathAPI> = {
 	}
 }
 
-const rpc = new RPCChannel(io, { expose: api, validators })
+new RPCChannel<MathAPI, RemoteAPI>(io, {
+	expose: mathAPI,
+	validators
+})
 ```
 
-### Transferable Objects (Browser)
-
-Zero-copy transfer of large binary data:
+Schema-first helpers are also available:
 
 ```typescript
-import { RPCChannel, transfer, WorkerParentIO } from "kkrpc/browser"
+import { defineAPI, defineMethod, extractValidators } from "kkrpc"
+import { z } from "zod"
 
-interface API {
-	processBuffer(buffer: ArrayBuffer): Promise<number>
-}
+const api = defineAPI({
+	add: defineMethod({
+		input: z.tuple([z.number(), z.number()]),
+		output: z.number(),
+		handler: async (a, b) => a + b
+	})
+})
 
-const worker = new Worker("worker.js")
-const io = new WorkerParentIO(worker)
-const rpc = new RPCChannel<{}, API>(io)
-const api = rpc.getAPI()
-
-// Create large buffer
-const buffer = new ArrayBuffer(10 * 1024 * 1024)
-
-// Transfer (zero-copy) to worker
-const result = await api.processBuffer(transfer(buffer, [buffer]))
-// Note: buffer is now detached (length 0)
-```
-
----
-
-## Serialization Options
-
-### JSON (Default for Interop)
-
-```typescript
-const rpc = new RPCChannel(io, {
+new RPCChannel(io, {
 	expose: api,
+	validators: extractValidators(api)
+})
+```
+
+Validation errors are `RPCValidationError` and include phase, method path, and issues.
+
+## Timeouts and Errors
+
+Set outgoing call timeout on the channel:
+
+```typescript
+const rpc = new RPCChannel<LocalAPI, RemoteAPI>(io, {
+	expose: localAPI,
+	timeout: 5000
+})
+```
+
+Timeouts throw `RPCTimeoutError`; use `isRPCTimeoutError(error)` instead of `instanceof` across process boundaries.
+
+```typescript
+import { isRPCTimeoutError } from "kkrpc"
+
+try {
+	await api.slowMethod()
+} catch (error) {
+	if (isRPCTimeoutError(error)) {
+		console.log(error.method, error.timeoutMs)
+	}
+}
+```
+
+Thrown errors preserve name, message, stack, and custom properties through serialization.
+
+## Serialization
+
+Default serialization is SuperJSON, which supports Date, Map, Set, BigInt, Uint8Array, and richer JavaScript values.
+
+Use JSON for cross-language interop:
+
+```typescript
+new RPCChannel<LocalAPI, RemoteAPI>(io, {
+	expose: localAPI,
 	serialization: { version: "json" }
 })
 ```
 
-- Standard JSON
-- Works with all interop languages
-- No Date, Map, Set, BigInt support
+Receiver auto-detects the message format.
 
-### SuperJSON (Default, TypeScript-only)
+## Inspector
+
+Use the inspector when you need traffic visibility, file logs, or in-memory analysis. See `examples/inspector-demo/`.
 
 ```typescript
-const rpc = new RPCChannel(io, {
-	expose: api,
-	serialization: { version: "superjson" }
+import { consolePrettyBackend, createInspector, FileBackend, MemoryBackend } from "kkrpc/inspector"
+
+const memory = new MemoryBackend()
+const inspector = createInspector({
+	backends: [consolePrettyBackend, new FileBackend({ path: "./inspector.log" }), memory],
+	options: {
+		trackLatency: true
+	}
 })
+
+const io = inspector.wrap(rawIo, "client-session")
 ```
 
-- Supports Date, Map, Set, BigInt, Uint8Array
-- TypeScript-to-TypeScript only
-- Auto-detected by receiver
+Wrap the transport IO before passing it to `RPCChannel`.
 
----
+## Cleanup
 
-## Common Patterns
-
-### Bidirectional Communication
-
-Both sides expose APIs:
+Destroy IO/channel objects when the owning process, socket, worker, iframe, component, or window closes.
 
 ```typescript
-// Side A
-interface API_A {
-	compute(data: number[]): Promise<number>
-}
-
-interface API_B {
-	notify(message: string): Promise<void>
-}
-
-const apiA: API_A = {
-	compute: async (data) => data.reduce((a, b) => a + b, 0)
-}
-
-const rpc = new RPCChannel<API_A, API_B>(io, { expose: apiA })
-const apiB = rpc.getAPI()
-
-// Call B from A
-await apiB.notify("Computation complete")
-```
-
-### Dynamic API Exposure
-
-Change exposed API at runtime:
-
-```typescript
-const rpc = new RPCChannel(io)
-
-// Later...
-rpc.expose(newApi)
-```
-
-### Cleanup
-
-Destroy connections when done:
-
-```typescript
-// For transports that support it
 io.destroy()
+channel.destroy()
 ```
 
----
-
-## Environment-Specific Entry Points
-
-| Environment      | Import Path                         |
-| ---------------- | ----------------------------------- |
-| Node.js          | `kkrpc`                             |
-| Deno             | `kkrpc/deno` or `jsr:@kunkun/kkrpc` |
-| Bun              | `kkrpc`                             |
-| Browser          | `kkrpc/browser`                     |
-| Chrome Extension | `kkrpc/chrome-extension`            |
+For WebSocket-like adapters, `signalDestroy()` can notify the peer before local close.
 
 ```typescript
-// Browser (excludes stdio)
-import { RPCChannel, WorkerParentIO } from "kkrpc/browser"
-
-// Deno
-import { RPCChannel, DenoIo } from "kkrpc/deno"
-
-// Chrome Extension
-import { RPCChannel, ChromePortIO } from "kkrpc/chrome-extension"
+await io.signalDestroy()
 ```
 
----
+## Project Conventions
 
-## Error Reference
-
-| Error                | Cause                          | Solution                             |
-| -------------------- | ------------------------------ | ------------------------------------ |
-| `RPCValidationError` | Input/output validation failed | Check validation schema              |
-| `TimeoutError`       | Request timed out              | Increase timeout or check connection |
-| `TransportClosed`    | Connection closed unexpectedly | Check transport health               |
-
----
-
-## Testing
-
-### Test with Reference Implementation
-
-```typescript
-// interop/node/server.ts provides a test server
-const api = {
-	math: { add: (a: number, b: number) => a + b },
-	echo: <T>(v: T) => v,
-	counter: 42
-}
-```
-
-### Unit Test Pattern
-
-```typescript
-import { expect, test } from "bun:test"
-import { NodeIo, RPCChannel } from "kkrpc"
-
-test("basic RPC call", async () => {
-	const api = { add: (a: number, b: number) => a + b }
-
-	// Create connected pair
-	const { port1, port2 } = new MessageChannel()
-
-	const serverIO = new NodeIo(port1)
-	const clientIO = new NodeIo(port2)
-
-	new RPCChannel<typeof api, {}>(serverIO, { expose: api })
-	const client = new RPCChannel<{}, typeof api>(clientIO)
-
-	const result = await client.getAPI().add(2, 3)
-	expect(result).toBe(5)
-})
-```
-
----
-
-## Best Practices
-
-1. **Use Interface-First**: Define interfaces before implementations for type safety
-2. **Handle Errors**: Always wrap RPC calls in try-catch
-3. **Clean Up**: Destroy transports when components unmount
-4. **Validate Inputs**: Use validators for public APIs
-5. **Choose Serialization**: Use JSON for interop, superjson for TS-only
-6. **Transfer Large Data**: Use `transfer()` for ArrayBuffers in browsers
-7. **Namespace APIs**: Use nested objects to organize methods
-
----
-
-## References
-
-- Package: `packages/kkrpc/`
-- Core source: `packages/kkrpc/src/`
-- Serialization: `packages/kkrpc/src/serialization.ts`
-- Adapters: `packages/kkrpc/src/adapters/`
-- Interop guide: `skills/interop/SKILL.md`
+- Do not edit `dist/` or generated `docs/`.
+- Browser code should import from `kkrpc/browser`; do not pull Node-specific modules into browser bundles.
+- HTTP framework adapters must receive raw request text; do not parse the RPC body as JSON first.
+- In stdio workers, write diagnostics to stderr, not stdout.
+- Prefer explicit `LocalAPI` and `RemoteAPI` types over untyped channels.
+- Avoid type suppression such as `@ts-ignore`, `@ts-expect-error`, and `as any`.
+- Use real client/server/worker setups in tests; this project generally avoids mocks.
+- For adapter details, inspect `packages/kkrpc/src/adapters/<adapter>.ts` and matching tests under `packages/kkrpc/__tests__/`.

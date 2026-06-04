@@ -9,7 +9,12 @@ interface RabbitMQOptions {
 	durable?: boolean
 	sessionId?: string
 	routingKeyPrefix?: string
+	/** Allow this adapter to receive messages it published itself. Defaults to false. */
+	allowSelfMessages?: boolean
 }
+
+// Messages carry the sender session so each exclusive queue can drop its own echo.
+const SESSION_HEADER = "x-kkrpc-session-id"
 
 /**
  * RabbitMQ implementation of IoInterface
@@ -31,7 +36,8 @@ export class RabbitMQIO implements IoInterface {
 
 	capabilities: IoCapabilities = {
 		structuredClone: false,
-		transfer: false
+		transfer: false,
+		broadcast: true
 	}
 
 	private messageListeners: Set<(message: string | IoMessage) => void> = new Set()
@@ -99,6 +105,10 @@ export class RabbitMQIO implements IoInterface {
 				if (this.isDestroyed) return
 
 				if (msg !== null) {
+					if (this.isSelfMessage(msg)) {
+						this.channel!.ack(msg)
+						return
+					}
 					const content = msg.content.toString("utf8")
 					this.handleMessage(content)
 					// We've already checked that msg is not null
@@ -109,6 +119,21 @@ export class RabbitMQIO implements IoInterface {
 			console.error("RabbitMQ connection error:", error)
 			throw error
 		}
+	}
+
+	private isSelfMessage(msg: ConsumeMessage): boolean {
+		// Topic exchanges fan out to every bound queue, including this adapter's own queue.
+		if (this.options.allowSelfMessages === true) return false
+		const senderId = this.headerValueToString(msg.properties.headers?.[SESSION_HEADER])
+		return senderId === this.sessionId
+	}
+
+	private headerValueToString(value: unknown): string | undefined {
+		// amqplib header values can be strings, buffers, or arrays; normalize before comparing.
+		if (typeof value === "string") return value
+		if (Buffer.isBuffer(value)) return value.toString("utf8")
+		if (Array.isArray(value)) return this.headerValueToString(value[0])
+		return undefined
 	}
 
 	private handleMessage(message: string): void {
@@ -169,7 +194,9 @@ export class RabbitMQIO implements IoInterface {
 			}
 
 			this.channel.publish(this.exchange, this.sharedRoutingKey, Buffer.from(message), {
-				persistent: this.options.durable !== false
+				persistent: this.options.durable !== false,
+				// Receiver-side self filtering keeps request/response traffic from looping back.
+				headers: { [SESSION_HEADER]: this.sessionId }
 			})
 		} catch (error) {
 			console.error("RabbitMQ publish error:", error)

@@ -4,13 +4,13 @@
  * and do not require custom handlers.
  */
 
-export interface TransferHandler<T = any, S = any> {
+export interface TransferHandler<T = unknown, S = unknown> {
 	canHandle(value: unknown): value is T
 	serialize(value: T): [S, Transferable[]]
 	deserialize(value: S): T
 }
 
-export const transferHandlers: Map<string, TransferHandler> = new Map<string, TransferHandler>()
+export const transferHandlers: Map<string, TransferHandler<unknown, unknown>> = new Map()
 
 /**
  * Registers a custom transfer handler for non-standard transferable types.
@@ -18,5 +18,5 @@ export const transferHandlers: Map<string, TransferHandler> = new Map<string, Tr
  * @param handler Handler implementation responsible for serializing and deserializing the value.
  */
 export function registerTransferHandler<T, S>(name: string, handler: TransferHandler<T, S>): void {
-	transferHandlers.set(name, handler as TransferHandler)
+	transferHandlers.set(name, handler as TransferHandler<unknown, unknown>)
 }

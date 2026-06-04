@@ -205,8 +205,10 @@ describe("Stdio Large Data Transfer Benchmark", () => {
 	test(
 		"Benchmark Deno stdio large data transfer",
 		async () => {
+			// --no-lock keeps benchmark subprocesses from mutating the repository deno.lock.
 			const worker = spawn("deno", [
 				"run",
+				"--no-lock",
 				"-A",
 				path.join(testsPath, "scripts/deno-large-data-api.ts")
 			])

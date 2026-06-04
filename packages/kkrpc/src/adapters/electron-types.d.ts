@@ -18,21 +18,21 @@ declare global {
 				 * Send a message to the parent process
 				 * @param message - The message to send
 				 */
-				postMessage(message: any): void
+				postMessage(message: unknown): void
 				/**
 				 * Register an event listener for messages from parent process
 				 * @param event - The event name ("message")
 				 * @param listener - The callback function
 				 * @returns this for chaining
 				 */
-				on(event: "message", listener: (event: { data: any }) => void): this
+				on(event: "message", listener: (event: { data: unknown }) => void): this
 				/**
 				 * Remove an event listener for messages from parent process
 				 * @param event - The event name ("message")
 				 * @param listener - The callback function to remove
 				 * @returns this for chaining
 				 */
-				off(event: "message", listener: (event: { data: any }) => void): this
+				off(event: "message", listener: (event: { data: unknown }) => void): this
 			}
 		}
 	}

@@ -20,6 +20,7 @@ describe("NatsIO", () => {
 			expect(adapter.getSubject()).toBe(TEST_SUBJECT + "-construction")
 			expect(adapter.getQueueGroup()).toBe("test-queue-group")
 			expect(adapter.getSessionId()).toBe("nats-test-session")
+			expect(adapter.capabilities.broadcast).toBe(false)
 
 			adapter.destroy()
 		})
@@ -36,6 +37,7 @@ describe("NatsIO", () => {
 			expect(adapter.getSubject()).toBe(TEST_SUBJECT + "-defaults")
 			expect(adapter.getQueueGroup()).toBeUndefined()
 			expect(adapter.getSessionId()).toHaveLength(26)
+			expect(adapter.capabilities.broadcast).toBe(true)
 			expect(adapter.isConnected()).toBe(true)
 
 			adapter.destroy()
@@ -46,9 +48,11 @@ describe("NatsIO", () => {
 		let adapter: NatsIO
 
 		beforeAll(async () => {
+			// allowSelfMessages keeps the low-level adapter loopback test explicit.
 			adapter = new NatsIO({
 				servers: NATS_URL,
-				subject: TEST_SUBJECT + "-message"
+				subject: TEST_SUBJECT + "-message",
+				allowSelfMessages: true
 			})
 
 			// Wait for connection to be ready
@@ -95,8 +99,32 @@ describe("NatsIO", () => {
 				expose: apiMethods
 			})
 
+			// These local handlers throw if NATS echoes the client's own request back to itself.
 			clientRPC = new RPCChannel<API, API>(clientAdapter, {
-				expose: apiMethods
+				expose: {
+					...apiMethods,
+					echo: async () => {
+						throw new Error("client loopback should not handle echo")
+					},
+					add: async () => {
+						throw new Error("client loopback should not handle add")
+					},
+					math: {
+						...apiMethods.math,
+						grade2: {
+							...apiMethods.math.grade2,
+							multiply: async () => {
+								throw new Error("client loopback should not handle multiply")
+							}
+						}
+					},
+					throwSimpleError: () => {
+						throw new Error("client loopback should not handle throwSimpleError")
+					},
+					throwCustomError: () => {
+						throw new Error("client loopback should not handle throwCustomError")
+					}
+				}
 			})
 		})
 

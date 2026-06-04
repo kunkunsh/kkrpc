@@ -117,9 +117,9 @@ describe("processValueForTransfer", () => {
 		expect(transferredValues).toHaveLength(1)
 		expect(transferredValues[0]).toBe(buffer)
 
-		// Verify the original value was replaced with a placeholder string
-		// The placeholder follows the format "__kkrpc_transfer_0"
-		expect(typeof processed.payload.inner).toBe("string")
+		// Verify the original value was replaced with a tagged placeholder object.
+		// Plain user strings that look like legacy placeholder IDs must stay untouched.
+		expect(typeof processed.payload.inner).toBe("object")
 	})
 
 	it("reconstructs transferred values", () => {
@@ -257,5 +257,106 @@ describe("processValueForTransfer", () => {
 		expect(reconstructed.second.buffers).toHaveLength(2)
 		expect(reconstructed.second.buffers[0]).toBe(buf2)
 		expect(reconstructed.second.buffers[1]).toBe(buf3)
+	})
+
+	it("does not treat user strings as transfer placeholders", () => {
+		// Legacy placeholder strings are valid user data and must survive reconstruction.
+		const buffer = new ArrayBuffer(8)
+		const transferables: Transferable[] = []
+		const transferSlots: TransferSlot[] = []
+		const transferredValues: unknown[] = []
+		const value = {
+			literal: "__kkrpc_transfer_0",
+			buffer: transfer(buffer, [buffer])
+		}
+
+		const processed = processValueForTransfer(
+			value,
+			transferables,
+			transferSlots,
+			transferredValues
+		)
+		const reconstructed = reconstructValueFromTransfer(processed, transferSlots, transferredValues)
+
+		expect(reconstructed.literal).toBe("__kkrpc_transfer_0")
+		expect(reconstructed.buffer).toBe(buffer)
+	})
+
+	it("does not treat user objects as transfer placeholders", () => {
+		// A partial placeholder-shaped object is still plain user data.
+		const buffer = new ArrayBuffer(8)
+		const literal = { __kkrpc_transfer_slot__: 0 }
+		const transferables: Transferable[] = []
+		const transferSlots: TransferSlot[] = []
+		const transferredValues: unknown[] = []
+		const value = {
+			literal,
+			buffer: transfer(buffer, [buffer])
+		}
+
+		const processed = processValueForTransfer(
+			value,
+			transferables,
+			transferSlots,
+			transferredValues
+		)
+		const reconstructed = reconstructValueFromTransfer(processed, transferSlots, transferredValues)
+
+		expect(reconstructed.literal).toEqual({ __kkrpc_transfer_slot__: 0 })
+		expect(reconstructed.buffer).toBe(buffer)
+	})
+
+	it("does not treat tagged user objects as transfer placeholders", () => {
+		// Tokens must be strings generated for the current message, not arbitrary user values.
+		const buffer = new ArrayBuffer(8)
+		const literal = { __kkrpc_transfer_slot__: 0, __kkrpc_transfer_token__: true }
+		const transferables: Transferable[] = []
+		const transferSlots: TransferSlot[] = []
+		const transferredValues: unknown[] = []
+		const value = {
+			literal,
+			buffer: transfer(buffer, [buffer])
+		}
+
+		const processed = processValueForTransfer(
+			value,
+			transferables,
+			transferSlots,
+			transferredValues
+		)
+		const reconstructed = reconstructValueFromTransfer(processed, transferSlots, transferredValues)
+
+		expect(reconstructed.literal).toEqual({
+			__kkrpc_transfer_slot__: 0,
+			__kkrpc_transfer_token__: true
+		})
+		expect(reconstructed.buffer).toBe(buffer)
+	})
+
+	it("preserves non-plain object instances when transfer slots are present", () => {
+		// Transfer traversal should not clone or strip behavior from Date, Map, or class instances.
+		const buffer = new ArrayBuffer(8)
+		const createdAt = new Date("2026-01-02T03:04:05.000Z")
+		const metadata = new Map([["name", "buffer"]])
+		const transferables: Transferable[] = []
+		const transferSlots: TransferSlot[] = []
+		const transferredValues: unknown[] = []
+		const value = {
+			createdAt,
+			metadata,
+			buffer: transfer(buffer, [buffer])
+		}
+
+		const processed = processValueForTransfer(
+			value,
+			transferables,
+			transferSlots,
+			transferredValues
+		)
+		const reconstructed = reconstructValueFromTransfer(processed, transferSlots, transferredValues)
+
+		expect(reconstructed.createdAt).toBe(createdAt)
+		expect(reconstructed.metadata).toBe(metadata)
+		expect(reconstructed.buffer).toBe(buffer)
 	})
 })

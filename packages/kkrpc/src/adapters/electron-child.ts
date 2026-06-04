@@ -42,7 +42,7 @@ export class ElectronUtilityProcessChildIO implements IoInterface {
 		process.parentPort.on("message", this.handleMessage)
 	}
 
-	private handleMessage = (event: { data: any }) => {
+	private handleMessage = (event: { data: unknown }) => {
 		const raw = event.data
 		const message = this.normalizeIncoming(raw)
 
@@ -63,12 +63,12 @@ export class ElectronUtilityProcessChildIO implements IoInterface {
 		}
 	}
 
-	private normalizeIncoming(message: any): string | IoMessage {
+	private normalizeIncoming(message: unknown): string | IoMessage {
 		if (typeof message === "string") {
 			return message
 		}
 
-		if (message && typeof message === "object" && message.version === 2) {
+		if (message && typeof message === "object" && "version" in message && message.version === 2) {
 			const envelope = message as WireEnvelope
 			return {
 				data: envelope,
