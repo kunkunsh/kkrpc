@@ -11,7 +11,7 @@
  * Then in another terminal: bun run client.ts
  */
 import { RPCChannel, WebSocketServerIO, type RPCInterceptor } from "kkrpc"
-import { WebSocketServer } from "ws"
+import { WebSocketServer, type WebSocket } from "ws"
 import { createApi, type StreamingMiddlewareAPI } from "./api.ts"
 
 const PORT = 3100
@@ -89,7 +89,7 @@ function createRateLimiter(max: number, windowMs: number = 1000): RPCInterceptor
 
 const wss = new WebSocketServer({ port: PORT })
 
-wss.on("connection", (ws) => {
+wss.on("connection", (ws: WebSocket) => {
 	console.log("[server] Client connected")
 
 	// Each connection gets its own session state and API instance
