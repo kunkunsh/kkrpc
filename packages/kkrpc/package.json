@@ -40,6 +40,7 @@
 		"docs": "typedoc --out docs",
 		"check-types": "tsc --noEmit",
 		"build": "tsdown",
+		"check:browser-lite-bundle": "pnpm build && bun run scripts/check-browser-lite-bundle.ts",
 		"postbuild": "pnpm run docs && verify-package-export verify",
 		"dev": "tsdown --watch"
 	},
@@ -64,6 +65,16 @@
 			"require": {
 				"types": "./dist/browser-mod.d.cts",
 				"default": "./dist/browser-mod.cjs"
+			}
+		},
+		"./browser-lite": {
+			"import": {
+				"types": "./dist/browser-lite-mod.d.ts",
+				"default": "./dist/browser-lite-mod.js"
+			},
+			"require": {
+				"types": "./dist/browser-lite-mod.d.cts",
+				"default": "./dist/browser-lite-mod.cjs"
 			}
 		},
 		"./http": {

@@ -34,6 +34,7 @@
 	"exports": {
 		".": "./mod.ts",
 		"./browser": "./browser-mod.ts",
+		"./browser-lite": "./browser-lite-mod.ts",
 		"./http": "./http.ts",
 		"./chrome-extension": "./chrome-extension.ts",
 		"./deno": "./deno-mod.ts",

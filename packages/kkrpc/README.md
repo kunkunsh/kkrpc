@@ -166,6 +166,28 @@ class RPCChannel<
 > {}
 ```
 
+### Browser Lite Entry
+
+For browser-only apps that do not need SuperJSON, use the lite entrypoint:
+
+```ts
+import { RPCChannel, WorkerParentIO } from "kkrpc/browser-lite"
+```
+
+`kkrpc/browser-lite` keeps the same `RPCChannel` facade as `kkrpc/browser`, but uses JSON-only string serialization and structured-clone envelopes for transports that support object messages. It does not statically import SuperJSON, which keeps browser bundles smaller.
+
+Use `kkrpc/browser` instead when you need SuperJSON-specific value preservation over string transports, such as Date, Map, Set, BigInt, or richer non-JSON values.
+
+When mixing full and lite endpoints over string transports, configure the full endpoint with JSON serialization:
+
+```ts
+new RPCChannel(io, {
+	serialization: { version: "json" }
+})
+```
+
+Lite endpoints reject `serialization: { version: "superjson" }` with a clear runtime error.
+
 ## Serialization
 
 kkrpc supports two serialization formats for message transmission:
