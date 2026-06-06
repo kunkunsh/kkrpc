@@ -41,6 +41,7 @@
 		"check-types": "tsc --noEmit",
 		"build": "tsdown",
 		"check:browser-lite-bundle": "pnpm build && bun run scripts/check-browser-lite-bundle.ts",
+		"compare:browser-bundle-size": "pnpm build && bun run scripts/compare-browser-bundle-size.ts",
 		"postbuild": "pnpm run docs && verify-package-export verify",
 		"dev": "tsdown --watch"
 	},
@@ -75,6 +76,16 @@
 			"require": {
 				"types": "./dist/browser-lite-mod.d.cts",
 				"default": "./dist/browser-lite-mod.cjs"
+			}
+		},
+		"./browser-mini": {
+			"import": {
+				"types": "./dist/browser-mini-mod.d.ts",
+				"default": "./dist/browser-mini-mod.js"
+			},
+			"require": {
+				"types": "./dist/browser-mini-mod.d.cts",
+				"default": "./dist/browser-mini-mod.cjs"
 			}
 		},
 		"./http": {

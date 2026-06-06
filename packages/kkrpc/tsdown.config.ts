@@ -5,6 +5,7 @@ export default defineConfig({
 		"./mod.ts",
 		"./browser-mod.ts",
 		"./browser-lite-mod.ts",
+		"./browser-mini-mod.ts",
 		"./http.ts",
 		"./deno-mod.ts",
 		"./chrome-extension.ts",

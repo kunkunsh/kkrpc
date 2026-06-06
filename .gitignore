@@ -41,3 +41,4 @@ __pycache__/
 
 # Compiled test scripts
 packages/kkrpc/__tests__/scripts/*.js
+references
