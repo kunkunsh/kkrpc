@@ -75,7 +75,7 @@ describe("browser bundle benchmark helpers", () => {
 		])
 	})
 
-	test("creates benchmark cases with public, mini, direct, and comctx entries", () => {
+	test("creates benchmark cases with public, vNext, mini, direct, and comctx entries", () => {
 		const cases = createBenchmarkCases({
 			packageRoot: "/repo/packages/kkrpc",
 			repoRoot: "/repo",
@@ -86,15 +86,27 @@ describe("browser bundle benchmark helpers", () => {
 		expect(cases.map((entry) => entry.name)).toEqual([
 			"kkrpc/browser",
 			"kkrpc/browser-lite",
+			"kkrpc/next",
+			"kkrpc/next/worker",
+			"kkrpc/next/validation",
+			"kkrpc/next/middleware",
+			"kkrpc/next/superjson",
+			"kkrpc/next/classic-compat",
 			"kkrpc/browser-mini",
 			"kkrpc-lite direct",
 			"comctx"
 		])
 		expect(cases[0]?.source).toContain('from "kkrpc/browser"')
 		expect(cases[1]?.source).toContain('from "kkrpc/browser-lite"')
-		expect(cases[2]?.source).toContain('from "kkrpc/browser-mini"')
-		expect(cases[3]?.source).toContain("src/channel-lite.ts")
-		expect(cases[4]?.source).toContain("comctx-local/index.ts")
+		expect(cases[2]?.source).toContain('from "kkrpc/next"')
+		expect(cases[3]?.source).toContain('from "kkrpc/next/worker"')
+		expect(cases[4]?.source).toContain('from "kkrpc/next/validation"')
+		expect(cases[5]?.source).toContain('from "kkrpc/next/middleware"')
+		expect(cases[6]?.source).toContain('from "kkrpc/next/superjson"')
+		expect(cases[7]?.source).toContain('from "kkrpc/next/classic-compat"')
+		expect(cases[8]?.source).toContain('from "kkrpc/browser-mini"')
+		expect(cases[9]?.source).toContain("src/channel-lite.ts")
+		expect(cases[10]?.source).toContain("comctx-local/index.ts")
 		for (const entry of cases) {
 			expect(entry.source).toContain("Object.assign(globalThis")
 		}

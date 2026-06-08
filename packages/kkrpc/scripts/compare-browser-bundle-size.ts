@@ -115,6 +115,36 @@ export function createBenchmarkCases(options: BenchmarkCaseOptions): BenchmarkCa
 			source: createKkrpcPublicSample("kkrpc/browser-lite")
 		},
 		{
+			name: "kkrpc/next",
+			fileName: "kkrpc-next.ts",
+			source: createKkrpcNextCoreSample("kkrpc/next")
+		},
+		{
+			name: "kkrpc/next/worker",
+			fileName: "kkrpc-next-worker.ts",
+			source: createKkrpcNextWorkerSample("kkrpc/next", "kkrpc/next/worker")
+		},
+		{
+			name: "kkrpc/next/validation",
+			fileName: "kkrpc-next-validation.ts",
+			source: createKkrpcNextFeatureSample("kkrpc/next/validation", "validationPlugin")
+		},
+		{
+			name: "kkrpc/next/middleware",
+			fileName: "kkrpc-next-middleware.ts",
+			source: createKkrpcNextFeatureSample("kkrpc/next/middleware", "middlewarePlugin")
+		},
+		{
+			name: "kkrpc/next/superjson",
+			fileName: "kkrpc-next-superjson.ts",
+			source: createKkrpcNextFeatureSample("kkrpc/next/superjson", "superJsonCodec")
+		},
+		{
+			name: "kkrpc/next/classic-compat",
+			fileName: "kkrpc-next-classic-compat.ts",
+			source: createKkrpcNextFeatureSample("kkrpc/next/classic-compat", "classicPlugins")
+		},
+		{
 			name: "kkrpc/browser-mini",
 			fileName: "kkrpc-browser-mini.ts",
 			source: createKkrpcPublicSample("kkrpc/browser-mini")
@@ -153,6 +183,49 @@ export function createRPC(worker: Worker) {
 }
 
 Object.assign(globalThis, { createRPC })
+`
+}
+
+function createKkrpcNextCoreSample(importPath: string): string {
+	return `import { RPCChannel, type RPCMessage, type Transport } from "${importPath}"
+
+interface RemoteAPI {
+	add(a: number, b: number): Promise<number>
+}
+
+export function createRPC(transport: Transport<RPCMessage>) {
+	const channel = new RPCChannel<object, RemoteAPI>(transport)
+	return channel.getAPI()
+}
+
+Object.assign(globalThis, { createRPC })
+`
+}
+
+function createKkrpcNextWorkerSample(coreImport: string, workerImport: string): string {
+	return `import { wrap } from "${coreImport}"
+import { workerTransport } from "${workerImport}"
+
+interface RemoteAPI {
+	add(a: number, b: number): Promise<number>
+}
+
+export function createRPC(worker: Worker) {
+	return wrap<RemoteAPI>(workerTransport(worker))
+}
+
+Object.assign(globalThis, { createRPC })
+`
+}
+
+function createKkrpcNextFeatureSample(importPath: string, exportName: string): string {
+	return `import { ${exportName} } from "${importPath}"
+
+export function getFeature() {
+	return ${exportName}
+}
+
+Object.assign(globalThis, { getFeature })
 `
 }
 

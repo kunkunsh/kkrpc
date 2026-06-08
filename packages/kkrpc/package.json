@@ -88,6 +88,106 @@
 				"default": "./dist/browser-mini-mod.cjs"
 			}
 		},
+		"./next": {
+			"import": {
+				"types": "./dist/next.d.ts",
+				"default": "./dist/next.js"
+			},
+			"require": {
+				"types": "./dist/next.d.cts",
+				"default": "./dist/next.cjs"
+			}
+		},
+		"./next/worker": {
+			"import": {
+				"types": "./dist/next-worker.d.ts",
+				"default": "./dist/next-worker.js"
+			},
+			"require": {
+				"types": "./dist/next-worker.d.cts",
+				"default": "./dist/next-worker.cjs"
+			}
+		},
+		"./next/stdio": {
+			"import": {
+				"types": "./dist/next-stdio.d.ts",
+				"default": "./dist/next-stdio.js"
+			},
+			"require": {
+				"types": "./dist/next-stdio.d.cts",
+				"default": "./dist/next-stdio.cjs"
+			}
+		},
+		"./next/transport": {
+			"import": {
+				"types": "./dist/next-transport.d.ts",
+				"default": "./dist/next-transport.js"
+			},
+			"require": {
+				"types": "./dist/next-transport.d.cts",
+				"default": "./dist/next-transport.cjs"
+			}
+		},
+		"./next/codecs": {
+			"import": {
+				"types": "./dist/next-codecs.d.ts",
+				"default": "./dist/next-codecs.js"
+			},
+			"require": {
+				"types": "./dist/next-codecs.d.cts",
+				"default": "./dist/next-codecs.cjs"
+			}
+		},
+		"./next/plugins": {
+			"import": {
+				"types": "./dist/next-plugins.d.ts",
+				"default": "./dist/next-plugins.js"
+			},
+			"require": {
+				"types": "./dist/next-plugins.d.cts",
+				"default": "./dist/next-plugins.cjs"
+			}
+		},
+		"./next/validation": {
+			"import": {
+				"types": "./dist/next-validation.d.ts",
+				"default": "./dist/next-validation.js"
+			},
+			"require": {
+				"types": "./dist/next-validation.d.cts",
+				"default": "./dist/next-validation.cjs"
+			}
+		},
+		"./next/middleware": {
+			"import": {
+				"types": "./dist/next-middleware.d.ts",
+				"default": "./dist/next-middleware.js"
+			},
+			"require": {
+				"types": "./dist/next-middleware.d.cts",
+				"default": "./dist/next-middleware.cjs"
+			}
+		},
+		"./next/superjson": {
+			"import": {
+				"types": "./dist/next-superjson.d.ts",
+				"default": "./dist/next-superjson.js"
+			},
+			"require": {
+				"types": "./dist/next-superjson.d.cts",
+				"default": "./dist/next-superjson.cjs"
+			}
+		},
+		"./next/classic-compat": {
+			"import": {
+				"types": "./dist/next-classic-compat.d.ts",
+				"default": "./dist/next-classic-compat.js"
+			},
+			"require": {
+				"types": "./dist/next-classic-compat.d.cts",
+				"default": "./dist/next-classic-compat.cjs"
+			}
+		},
 		"./http": {
 			"import": {
 				"types": "./dist/http.d.ts",

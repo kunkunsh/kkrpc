@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from "bun:test"
+import { connect } from "node:net"
 import { KafkaIO } from "../src/adapters/kafka"
 import { RPCChannel } from "../src/channel.ts"
 import { apiMethods, type API } from "./scripts/api.ts"
@@ -8,8 +9,47 @@ const KAFKA_BROKERS = (process.env.KAFKA_BROKERS || "localhost:9092")
 	.split(",")
 	.map((broker) => broker.trim())
 	.filter(Boolean)
+const RUN_KAFKA_TESTS =
+	process.env.KKRPC_RUN_KAFKA_TESTS === "1" ||
+	process.env.KAFKA_BROKERS !== undefined ||
+	process.env.CI === "true" ||
+	process.env.GITHUB_ACTIONS === "true"
+const describeKafka = RUN_KAFKA_TESTS ? describe : describe.skip
+const KAFKA_TEST_RETRY = { initialRetryTime: 50, retries: 1 }
 
-describe("KafkaIO", () => {
+function canOpenTcpConnection(broker: string, timeoutMs = 500): Promise<boolean> {
+	const [host, portText] = broker.split(":")
+	const port = Number(portText)
+	if (!host || !Number.isInteger(port)) return Promise.resolve(false)
+
+	return new Promise((resolve) => {
+		const socket = connect({ host, port })
+		const finish = (result: boolean) => {
+			socket.destroy()
+			resolve(result)
+		}
+
+		socket.setTimeout(timeoutMs)
+		socket.once("connect", () => finish(true))
+		socket.once("error", () => finish(false))
+		socket.once("timeout", () => finish(false))
+	})
+}
+
+async function assertKafkaBrokerAvailable(): Promise<void> {
+	if (!RUN_KAFKA_TESTS) return
+	for (const broker of KAFKA_BROKERS) {
+		if (await canOpenTcpConnection(broker)) return
+	}
+
+	throw new Error(
+		`Kafka broker unavailable at ${KAFKA_BROKERS.join(", ")}. Start docker compose or unset KAFKA_BROKERS to skip local Kafka integration tests.`
+	)
+}
+
+describeKafka("KafkaIO", () => {
+	beforeAll(assertKafkaBrokerAvailable)
+
 	describe("Adapter Construction", () => {
 		it("should create Kafka adapter with provided options", () => {
 			const adapter = new KafkaIO({
@@ -17,7 +57,8 @@ describe("KafkaIO", () => {
 				topic: TEST_TOPIC,
 				groupId: "kkrpc-custom-group",
 				clientId: "kkrpc-test-client",
-				sessionId: "kafka-test-session"
+				sessionId: "kafka-test-session",
+				retry: KAFKA_TEST_RETRY
 			})
 
 			expect(adapter.name).toBe("kafka-io")
@@ -32,7 +73,8 @@ describe("KafkaIO", () => {
 		it("should generate reasonable defaults when not provided", () => {
 			const adapter = new KafkaIO({
 				brokers: KAFKA_BROKERS,
-				topic: TEST_TOPIC + "-defaults"
+				topic: TEST_TOPIC + "-defaults",
+				retry: KAFKA_TEST_RETRY
 			})
 
 			expect(adapter.getTopic()).toBe(TEST_TOPIC + "-defaults")
@@ -54,7 +96,8 @@ describe("KafkaIO", () => {
 				topic: TEST_TOPIC + "-connection",
 				clientId: "connection-test-client",
 				sessionId: "connection-test-session",
-				allowSelfMessages: true
+				allowSelfMessages: true,
+				retry: KAFKA_TEST_RETRY
 			})
 
 			// 等待 Kafka consumer 完成订阅，避免 race condition
@@ -77,7 +120,8 @@ describe("KafkaIO", () => {
 				brokers: KAFKA_BROKERS,
 				topic: TEST_TOPIC + "-group-self-message",
 				groupId: "group-self-message-" + Math.random().toString(36).substring(2, 8),
-				sessionId: "group-self-message-session"
+				sessionId: "group-self-message-session",
+				retry: KAFKA_TEST_RETRY
 			})
 
 			try {
@@ -107,13 +151,15 @@ describe("KafkaIO", () => {
 			serverAdapter = new KafkaIO({
 				brokers: KAFKA_BROKERS,
 				topic,
-				sessionId: "server-" + Math.random().toString(36).substring(2, 8)
+				sessionId: "server-" + Math.random().toString(36).substring(2, 8),
+				retry: KAFKA_TEST_RETRY
 			})
 
 			clientAdapter = new KafkaIO({
 				brokers: KAFKA_BROKERS,
 				topic,
-				sessionId: "client-" + Math.random().toString(36).substring(2, 8)
+				sessionId: "client-" + Math.random().toString(36).substring(2, 8),
+				retry: KAFKA_TEST_RETRY
 			})
 
 			// 等 Kafka 建立连接
@@ -189,7 +235,8 @@ describe("KafkaIO", () => {
 			const adapter = new KafkaIO({
 				brokers: KAFKA_BROKERS,
 				topic: TEST_TOPIC + "-destroy",
-				sessionId: "destroy-" + Math.random().toString(36).substring(2, 8)
+				sessionId: "destroy-" + Math.random().toString(36).substring(2, 8),
+				retry: KAFKA_TEST_RETRY
 			})
 
 			await new Promise((resolve) => setTimeout(resolve, 1000))
