@@ -6,6 +6,10 @@ import { createBusEnvelope, shouldDeliverBusEnvelope, type BusEnvelope } from ".
 export interface RedisStreamsTransportOptions {
 	url?: string
 	stream?: string
+	consumerGroup?: string
+	consumerName?: string
+	/** Set false to use plain XREAD; plain stream reads have no acknowledgement primitive. */
+	useConsumerGroup?: boolean
 	blockTimeout?: number
 	maxLen?: number
 	localPeerId: string
@@ -14,10 +18,62 @@ export interface RedisStreamsTransportOptions {
 
 export type RedisStreamsTransport = Transport<RPCMessage>
 
+type RedisStreamFields = string[]
+type RedisStreamMessage = [id: string, fields: RedisStreamFields]
+type RedisStreamReadResult = Array<[stream: string, messages: RedisStreamMessage[]]>
+
+interface RedisAckClient {
+	xack(stream: string, group: string, id: string): Promise<unknown>
+}
+
+export interface ProcessRedisStreamMessagesOptions {
+	stream: string
+	consumerGroup?: string
+	localPeerId: string
+	subscriber: RedisAckClient
+	messages: RedisStreamMessage[]
+	listeners: Set<(message: RPCMessage) => void>
+}
+
+function extractRedisField(fields: RedisStreamFields, name: string): string | undefined {
+	const index = fields.indexOf(name)
+	return index >= 0 ? fields[index + 1] : undefined
+}
+
+export async function processRedisStreamMessages({
+	stream,
+	consumerGroup,
+	localPeerId,
+	subscriber,
+	messages,
+	listeners
+}: ProcessRedisStreamMessagesOptions): Promise<string | undefined> {
+	let lastId: string | undefined
+	for (const [messageId, fields] of messages) {
+		lastId = messageId
+		const data = extractRedisField(fields, "data")
+		if (!data) continue
+		const envelope = JSON.parse(data) as BusEnvelope
+		if (!shouldDeliverBusEnvelope(envelope, { localPeerId })) {
+			if (consumerGroup) await subscriber.xack(stream, consumerGroup, messageId)
+			continue
+		}
+
+		listeners.forEach((listener) => listener(envelope.message))
+		if (consumerGroup) await subscriber.xack(stream, consumerGroup, messageId)
+	}
+	return lastId
+}
+
 export function redisStreamsTransport(
 	options: RedisStreamsTransportOptions
 ): RedisStreamsTransport {
 	const stream = options.stream || "kkrpc-stream"
+	const consumerGroup =
+		options.useConsumerGroup === false
+			? undefined
+			: options.consumerGroup || `kkrpc-group-${stream}-${options.localPeerId}`
+	const consumerName = options.consumerName || `consumer-${options.localPeerId}`
 	const listeners = new Set<(message: RPCMessage) => void>()
 	let publisher: Redis | undefined
 	let subscriber: Redis | undefined
@@ -27,24 +83,34 @@ export function redisStreamsTransport(
 
 	async function listen(): Promise<void> {
 		while (!closed && subscriber) {
-			const results = await subscriber.xread(
-				"BLOCK",
-				options.blockTimeout || 5000,
-				"STREAMS",
-				stream,
-				lastId
-			)
+			const results = (
+				consumerGroup
+					? await subscriber.xreadgroup(
+							"GROUP",
+							consumerGroup,
+							consumerName,
+							"BLOCK",
+							options.blockTimeout || 5000,
+							"STREAMS",
+							stream,
+							">"
+						)
+					: await subscriber.xread("BLOCK", options.blockTimeout || 5000, "STREAMS", stream, lastId)
+			) as RedisStreamReadResult | null
 			if (!results) continue
 			for (const [, messages] of results) {
-				for (const [messageId, fields] of messages) {
-					lastId = messageId
-					const dataIndex = fields.indexOf("data")
-					const data = dataIndex >= 0 ? fields[dataIndex + 1] : undefined
-					if (!data) continue
-					const envelope = JSON.parse(data) as BusEnvelope
-					if (shouldDeliverBusEnvelope(envelope, { localPeerId: options.localPeerId })) {
-						listeners.forEach((listener) => listener(envelope.message))
-					}
+				try {
+					const processedLastId = await processRedisStreamMessages({
+						stream,
+						consumerGroup,
+						localPeerId: options.localPeerId,
+						subscriber,
+						messages,
+						listeners
+					})
+					if (processedLastId) lastId = processedLastId
+				} catch (error) {
+					if (!closed) console.error("Redis Streams transport delivery error:", error)
 				}
 			}
 		}
@@ -59,6 +125,13 @@ export function redisStreamsTransport(
 			subscriber = new IORedis(url)
 			await publisher.ping()
 			await subscriber.ping()
+			if (consumerGroup) {
+				try {
+					await subscriber.xgroup("CREATE", stream, consumerGroup, "0", "MKSTREAM")
+				} catch (error) {
+					if (!(error instanceof Error && error.message.includes("BUSYGROUP"))) throw error
+				}
+			}
 			void listen().catch((error) => {
 				if (!closed) console.error("Redis Streams transport read error:", error)
 			})

@@ -15,6 +15,59 @@ export interface RabbitMQTransportOptions {
 
 export type RabbitMQTransport = Transport<RPCMessage>
 
+interface RabbitMqEnvelopeMessage {
+	content: { toString(encoding?: BufferEncoding): string }
+}
+
+interface RabbitMqAckChannel<TMessage> {
+	ack(message: TMessage): void
+	nack(message: TMessage, allUpTo?: boolean, requeue?: boolean): void
+}
+
+function parseBusEnvelope(content: string): BusEnvelope {
+	const envelope = JSON.parse(content) as Partial<BusEnvelope>
+	if (
+		envelope === null ||
+		typeof envelope !== "object" ||
+		envelope.protocol !== "kkrpc.bus.v1" ||
+		typeof envelope.from !== "string" ||
+		typeof envelope.transportId !== "string" ||
+		(envelope.to !== undefined && typeof envelope.to !== "string") ||
+		envelope.message === null ||
+		typeof envelope.message !== "object"
+	) {
+		throw new Error("Invalid kkrpc bus envelope")
+	}
+	return envelope as BusEnvelope
+}
+
+export function handleRabbitMqBusEnvelope<TMessage extends RabbitMqEnvelopeMessage>(
+	message: TMessage,
+	channel: RabbitMqAckChannel<TMessage>,
+	localPeerId: string,
+	listeners: Set<(message: RPCMessage) => void>
+): void {
+	let envelope: BusEnvelope
+	try {
+		envelope = parseBusEnvelope(message.content.toString("utf8"))
+	} catch {
+		channel.nack(message, false, false)
+		return
+	}
+
+	if (!shouldDeliverBusEnvelope(envelope, { localPeerId })) {
+		channel.ack(message)
+		return
+	}
+
+	try {
+		listeners.forEach((listener) => listener(envelope.message))
+		channel.ack(message)
+	} catch {
+		channel.nack(message, false, false)
+	}
+}
+
 export function rabbitMqTransport(options: RabbitMQTransportOptions): RabbitMQTransport {
 	const exchange = options.exchange || "kkrpc-exchange"
 	const routingKey = `${options.routingKeyPrefix || "kkrpc"}.messages`
@@ -40,14 +93,7 @@ export function rabbitMqTransport(options: RabbitMQTransportOptions): RabbitMQTr
 			await channel.bindQueue(queue, exchange, routingKey)
 			await channel.consume(queue, (message: ConsumeMessage | null) => {
 				if (!message || closed || !channel) return
-				try {
-					const envelope = JSON.parse(message.content.toString("utf8")) as BusEnvelope
-					if (shouldDeliverBusEnvelope(envelope, { localPeerId: options.localPeerId })) {
-						listeners.forEach((listener) => listener(envelope.message))
-					}
-				} finally {
-					channel.ack(message)
-				}
+				handleRabbitMqBusEnvelope(message, channel, options.localPeerId, listeners)
 			})
 		})()
 		return connectionPromise
