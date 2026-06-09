@@ -1,6 +1,24 @@
 # HTTP Demo
 
-This is a demo for testing `kkrpc` adapter for different HTTP servers.
+This is a demo for testing the native unary HTTP transport across different HTTP servers.
+
+Servers expose the API with `createHttpHandler` from `kkrpc/http`:
+
+```ts
+import { apiImplementationNested } from "@kksh/demo-api"
+import { createHttpHandler } from "kkrpc/http"
+
+const handler = createHttpHandler(apiImplementationNested)
+```
+
+Clients use the stable core `wrap` helper with `httpClientTransport`:
+
+```ts
+import { wrap } from "kkrpc"
+import { httpClientTransport } from "kkrpc/http"
+
+const api = wrap(httpClientTransport({ url: "http://127.0.0.1:3000/rpc" }))
+```
 
 ## Manual Testing
 
@@ -41,7 +59,7 @@ KKRPC_HTTP_URL=http://127.0.0.1:3000/rpc pnpm run client
 
 - The server terminal should stay running without throwing.
 - The client should connect to `http://127.0.0.1:3000` and print successful RPC call output.
-- Repeat the client command against each server implementation if you want to compare adapters.
+- Repeat the client command against each server implementation if you want to compare HTTP runtimes.
 
 ### Troubleshooting
 

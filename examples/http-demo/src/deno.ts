@@ -1,29 +1,14 @@
-import { apiImplementationNested, type APINested } from "@kksh/demo-api"
-import { HTTPServerIO, RPCChannel } from "kkrpc"
+import { apiImplementationNested } from "@kksh/demo-api"
+import { createHttpHandler } from "kkrpc/http"
 
-const serverIO = new HTTPServerIO()
-const serverRPC = new RPCChannel<APINested, APINested>(serverIO, {
-	expose: apiImplementationNested
-})
+const rpcHandler = createHttpHandler(apiImplementationNested)
 
 const handler = async (request: Request): Promise<Response> => {
 	const url = new URL(request.url)
 
-	if (url.pathname === "/rpc" && request.method === "POST") {
-		try {
-			const message = await request.text()
-			const response = await serverIO.handleRequest(message)
-
-			return new Response(response, {
-				headers: { "Content-Type": "application/json" }
-			})
-		} catch (error) {
-			console.error("RPC error:", error)
-			return new Response("Internal Server Error", { status: 500 })
-		}
-	}
-
-	return new Response("Not found", { status: 404 })
+	if (url.pathname !== "/rpc") return new Response("Not found", { status: 404 })
+	if (request.method !== "POST") return new Response("Method not allowed", { status: 405 })
+	return rpcHandler(request)
 }
 
 const port = 3000

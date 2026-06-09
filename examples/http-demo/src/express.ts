@@ -1,22 +1,24 @@
-import { apiImplementationNested, type APINested } from "@kksh/demo-api"
+import { apiImplementationNested } from "@kksh/demo-api"
 import express from "express"
-import { HTTPServerIO, RPCChannel } from "kkrpc"
+import { createHttpHandler } from "kkrpc/http"
 
 const app = express()
-const serverIO = new HTTPServerIO()
-const serverRPC = new RPCChannel<APINested, APINested>(serverIO, {
-	expose: apiImplementationNested
-})
+const handler = createHttpHandler(apiImplementationNested)
 
 // Parse raw body
 app.use(express.text({ type: "application/json" }))
 
 app.post("/rpc", async (req, res) => {
 	try {
-		const message = req.body
-		const response = await serverIO.handleRequest(message)
+		const response = await handler(
+			new Request("http://127.0.0.1/rpc", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: req.body
+			})
+		)
 
-		res.type("application/json").send(response)
+		res.status(response.status).type("application/json").send(await response.text())
 	} catch (error) {
 		console.error("RPC error:", error)
 		res.status(500).send("Internal Server Error")

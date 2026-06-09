@@ -1,15 +1,12 @@
-import { apiImplementationNested, type APINested } from "@kksh/demo-api"
+import { apiImplementationNested } from "@kksh/demo-api"
 import Fastify from "fastify"
-import { HTTPServerIO, RPCChannel } from "kkrpc"
+import { createHttpHandler } from "kkrpc/http"
 
 const app = Fastify({
 	logger: true
 })
 
-const serverIO = new HTTPServerIO()
-const serverRPC = new RPCChannel<APINested, APINested>(serverIO, {
-	expose: apiImplementationNested
-})
+const handler = createHttpHandler(apiImplementationNested)
 
 // Add content type parser for raw body
 app.addContentTypeParser("application/json", { parseAs: "string" }, function (_, body, done) {
@@ -18,10 +15,15 @@ app.addContentTypeParser("application/json", { parseAs: "string" }, function (_,
 
 app.post("/rpc", async (request, reply) => {
 	try {
-		const message = request.body as string
-		const response = await serverIO.handleRequest(message)
+		const response = await handler(
+			new Request("http://127.0.0.1/rpc", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: request.body as string
+			})
+		)
 
-		reply.type("application/json").send(response)
+		reply.status(response.status).type("application/json").send(await response.text())
 	} catch (error) {
 		request.log.error(error)
 		reply.status(500).send("Internal Server Error")

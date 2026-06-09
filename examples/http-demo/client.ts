@@ -1,5 +1,6 @@
 import type { APINested } from "@kksh/demo-api"
-import { createHttpClient } from "kkrpc/http"
+import { wrap } from "kkrpc"
+import { httpClientTransport } from "kkrpc/http"
 
 const DEFAULT_RPC_URL = process.env.KKRPC_HTTP_URL ?? "http://127.0.0.1:3000/rpc"
 
@@ -13,7 +14,7 @@ export interface HttpDemoClientResult {
 }
 
 export async function runHttpDemoClient(url = DEFAULT_RPC_URL): Promise<HttpDemoClientResult> {
-	const { api } = createHttpClient<APINested>(url)
+	const api = wrap<APINested>(httpClientTransport({ url }))
 
 	const echoResult = await api.echo("Hello RPC!")
 	console.log("Echo:", echoResult)

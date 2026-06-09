@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test"
 
-import { apiImplementationNested, type APINested } from "@kksh/demo-api"
-import { HTTPServerIO, RPCChannel } from "kkrpc"
+import { apiImplementationNested } from "@kksh/demo-api"
+import { createHttpHandler } from "kkrpc/http"
 import { runHttpDemoClient } from "./client"
 
 describe("http-demo client", () => {
@@ -9,19 +9,15 @@ describe("http-demo client", () => {
 	let url: string
 
 	beforeAll(() => {
-		const serverIO = new HTTPServerIO()
-		new RPCChannel<APINested, APINested>(serverIO, { expose: apiImplementationNested })
+		const handler = createHttpHandler(apiImplementationNested)
 
 		server = Bun.serve({
 			port: 0,
 			async fetch(req) {
 				const requestUrl = new URL(req.url)
-				if (requestUrl.pathname !== "/rpc" || req.method !== "POST") {
-					return new Response("Not found", { status: 404 })
-				}
-
-				const response = await serverIO.handleRequest(await req.text())
-				return new Response(response, { headers: { "Content-Type": "application/json" } })
+				if (requestUrl.pathname !== "/rpc") return new Response("Not found", { status: 404 })
+				if (req.method !== "POST") return new Response("Method not allowed", { status: 405 })
+				return handler(req)
 			}
 		})
 		url = `http://127.0.0.1:${server.port}/rpc`
