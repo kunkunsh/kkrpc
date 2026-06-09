@@ -4,4 +4,3 @@
  */
 export * from "./src/core/index.ts"
 export * from "./src/next/worker.ts"
-export * from "./src/next/stdio.ts"

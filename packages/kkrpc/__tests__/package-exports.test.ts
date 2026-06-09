@@ -29,6 +29,24 @@ const stableEntries = [
 	["./inspector", () => import("../inspector.ts")]
 ] as const
 
+const stableEntrySourceFiles = [
+	"mod.ts",
+	"browser-mod.ts",
+	"deno-mod.ts",
+	"http.ts",
+	"chrome-extension.ts",
+	"electron.ts",
+	"socketio.ts",
+	"rabbitmq.ts",
+	"kafka.ts",
+	"redis-streams.ts",
+	"nats.ts",
+	"validation.ts",
+	"middleware.ts",
+	"superjson.ts",
+	"inspector.ts"
+] as const
+
 const removedExportNames = new Set([
 	"BunIo",
 	"ChromeExtensionContentScriptIO",
@@ -107,5 +125,46 @@ describe("stable package exports", () => {
 				expect(exportName.endsWith("Io"), `${key} exports ${exportName}`).toBe(false)
 			}
 		}
+	})
+
+	test("stable entry sources do not export classic API names", async () => {
+		for (const file of stableEntrySourceFiles) {
+			const source = await Bun.file(new URL(`../${file}`, import.meta.url)).text()
+			const exportLines = source
+				.split("\n")
+				.filter((line) => /^\s*export\b/.test(line) || /^\s*}\s+from\b/.test(line))
+				.join("\n")
+
+			for (const exportName of removedExportNames) {
+				expect(exportLines.includes(exportName), `${file} exports ${exportName}`).toBe(false)
+			}
+			expect(exportLines.includes("src/interface"), `${file} exports classic interface`).toBe(false)
+			expect(exportLines.includes("src/channel"), `${file} exports classic channel`).toBe(false)
+			expect(exportLines.includes("src/serialization"), `${file} exports classic serialization`).toBe(false)
+			expect(exportLines.includes("src/transfer-handlers"), `${file} exports classic transfer handlers`).toBe(
+				false
+			)
+			expect(exportLines.includes("src/adapters"), `${file} exports classic adapters`).toBe(false)
+		}
+	})
+
+	test("stable feature entries expose native helpers", async () => {
+		const validation = await import("../validation.ts")
+		const middleware = await import("../middleware.ts")
+		const superjson = await import("../superjson.ts")
+
+		expect(typeof validation.validationPlugin).toBe("function")
+		expect(typeof validation.defineAPI).toBe("function")
+		expect(typeof validation.defineMethod).toBe("function")
+		expect(typeof middleware.middlewarePlugin).toBe("function")
+		expect(typeof superjson.superJsonCodec).toBe("function")
+	})
+
+	test("deno entry avoids Node-specific stdio helpers", async () => {
+		const source = await Bun.file(new URL("../deno-mod.ts", import.meta.url)).text()
+
+		expect(source.includes("src/next/stdio"), "deno-mod.ts exports stdio helpers").toBe(false)
+		expect(source.includes("nodeStdioTransport"), "deno-mod.ts exports nodeStdioTransport").toBe(false)
+		expect(source.includes("process"), "deno-mod.ts references process").toBe(false)
 	})
 })
