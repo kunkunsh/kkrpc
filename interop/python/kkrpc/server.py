@@ -62,24 +62,31 @@ class RpcServer:
             target = target[part]
         return target
 
-    def _wrap_callbacks(self, args: List[Any], request_id: str) -> List[Any]:
+    def _convert_inbound_arg(self, arg: Any, request_id: str) -> Any:
+        if not isinstance(arg, dict):
+            return arg
+        envelope_type = arg.get(ARG_ENVELOPE_TAG)
+        if envelope_type == "value":
+            return arg.get("v")
+        if envelope_type == "callback":
+            callback_id = str(arg.get("id", ""))
+
+            def _callback(*callback_args: Any, _callback_id: str = callback_id) -> None:
+                self._write_message(
+                    {
+                        "t": "cb",
+                        "id": _callback_id,
+                        "a": list(callback_args),
+                    }
+                )
+
+            return _callback
+        return arg
+
+    def _convert_inbound_args(self, args: List[Any], request_id: str) -> List[Any]:
         processed: List[Any] = []
         for arg in args:
-            if isinstance(arg, dict) and arg.get(ARG_ENVELOPE_TAG) == "callback":
-                callback_id = str(arg.get("id", ""))
-
-                def _callback(*callback_args: Any, _callback_id: str = callback_id) -> None:
-                    self._write_message(
-                        {
-                            "t": "cb",
-                            "id": _callback_id,
-                            "a": list(callback_args),
-                        }
-                    )
-
-                processed.append(_callback)
-            else:
-                processed.append(arg)
+            processed.append(self._convert_inbound_arg(arg, request_id))
         return processed
 
     def _send_response(self, request_id: str, result: Any) -> None:
@@ -110,7 +117,7 @@ class RpcServer:
             target = self._resolve_path(path)
             if not callable(target):
                 raise TypeError(f"Method {'.'.join(path)} is not callable")
-            result = target(*self._wrap_callbacks(args, request_id))
+            result = target(*self._convert_inbound_args(args, request_id))
             self._send_response(request_id, result)
         except Exception as error:
             self._send_error(request_id, error)
@@ -152,7 +159,7 @@ class RpcServer:
             constructor = self._resolve_path(path)
             if not callable(constructor):
                 raise TypeError(f"Constructor {'.'.join(path)} is not callable")
-            result = constructor(*self._wrap_callbacks(args, request_id))
+            result = constructor(*self._convert_inbound_args(args, request_id))
             self._send_response(request_id, result)
         except Exception as error:
             self._send_error(request_id, error)

@@ -985,7 +985,7 @@ fn handle_server_request(transport: &Arc<dyn Transport>, api: &RpcApi, message: 
         .and_then(|v| v.as_array())
         .cloned()
         .unwrap_or_default();
-    let converted = wrap_callback_args(transport, request_id, args);
+    let converted = convert_inbound_args(transport, request_id, args);
     let method = path_from_message(&message).join(".");
     let handler = api.methods.get(&method);
     let result = handler.map(|call| call(converted)).unwrap_or(Value::Null);
@@ -1031,7 +1031,7 @@ fn handle_server_construct(transport: &Arc<dyn Transport>, api: &RpcApi, message
         .and_then(|v| v.as_array())
         .cloned()
         .unwrap_or_default();
-    let converted = wrap_callback_args(transport, request_id, args);
+    let converted = convert_inbound_args(transport, request_id, args);
     let result = handler.map(|call| call(converted)).unwrap_or(Value::Null);
     let payload = serde_json::json!({
         "t": "r",
@@ -1041,34 +1041,43 @@ fn handle_server_construct(transport: &Arc<dyn Transport>, api: &RpcApi, message
     write_message(transport, payload);
 }
 
-fn wrap_callback_args(
+fn convert_inbound_args(
     transport: &Arc<dyn Transport>,
     _request_id: &str,
     args: Vec<Value>,
 ) -> Vec<Arg> {
     args.into_iter()
-        .map(|value| match value {
-            Value::Object(map)
-                if map.get(ARG_ENVELOPE_TAG).and_then(|v| v.as_str()) == Some("callback") =>
-            {
-                let callback_id = map
-                    .get("id")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or("")
-                    .to_string();
-                let transport_clone = Arc::clone(transport);
-                Arg::Callback(Arc::new(move |callback_args: Vec<Value>| {
-                    let payload = serde_json::json!({
-                        "t": "cb",
-                        "id": callback_id,
-                        "a": callback_args
-                    });
-                    write_message(&transport_clone, payload);
-                }))
-            }
-            other => Arg::Value(other),
-        })
+        .map(|value| convert_inbound_arg(transport, value))
         .collect()
+}
+
+fn convert_inbound_arg(transport: &Arc<dyn Transport>, value: Value) -> Arg {
+    match value {
+        Value::Object(map)
+            if map.get(ARG_ENVELOPE_TAG).and_then(|v| v.as_str()) == Some("value") =>
+        {
+            Arg::Value(map.get("v").cloned().unwrap_or(Value::Null))
+        }
+        Value::Object(map)
+            if map.get(ARG_ENVELOPE_TAG).and_then(|v| v.as_str()) == Some("callback") =>
+        {
+            let callback_id = map
+                .get("id")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string();
+            let transport_clone = Arc::clone(transport);
+            Arg::Callback(Arc::new(move |callback_args: Vec<Value>| {
+                let payload = serde_json::json!({
+                    "t": "cb",
+                    "id": callback_id,
+                    "a": callback_args
+                });
+                write_message(&transport_clone, payload);
+            }))
+        }
+        other => Arg::Value(other),
+    }
 }
 
 /// Generate a UUID for request/callback identification.
@@ -1085,4 +1094,45 @@ pub fn generate_uuid() -> String {
         .map(|_| format!("{:x}", rng.r#gen::<u64>()))
         .collect();
     parts.join("-")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn server_arg_conversion_unwraps_stable_value_envelopes() {
+        let transport: Arc<dyn Transport> = Arc::new(TestTransport::new());
+        let converted = convert_inbound_args(
+            &transport,
+            "request-id",
+            vec![json!({ ARG_ENVELOPE_TAG: "value", "v": "payload" })],
+        );
+
+        match converted.first() {
+            Some(Arg::Value(value)) => assert_eq!(value, &json!("payload")),
+            _ => panic!("expected raw value"),
+        }
+    }
+
+    struct TestTransport;
+
+    impl TestTransport {
+        fn new() -> Self {
+            Self
+        }
+    }
+
+    impl Transport for TestTransport {
+        fn read(&self) -> Option<String> {
+            None
+        }
+
+        fn write(&self, _message: &str) -> Result<(), String> {
+            Ok(())
+        }
+
+        fn close(&self) {}
+    }
 }

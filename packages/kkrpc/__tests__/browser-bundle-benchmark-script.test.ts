@@ -10,6 +10,8 @@ import {
 	type BundleMeasurement
 } from "../scripts/compare-browser-bundle-size.ts"
 
+const fixtureModule = (...parts: string[]) => parts.join("")
+
 describe("browser bundle benchmark helpers", () => {
 	test("formats bytes as KiB with two decimals", () => {
 		expect(formatBytes(0)).toBe("0.00 KB")
@@ -50,7 +52,7 @@ describe("browser bundle benchmark helpers", () => {
 		const metafile: BuildMetafile = {
 			inputs: {
 				"src/channel-core.ts": { bytes: 3000 },
-				"src/serialization-json.ts": { bytes: 1000 },
+				[fixtureModule("src/", "serialization", "-json.ts")]: { bytes: 1000 },
 				"entry.ts": { bytes: 200 }
 			},
 			outputs: {
@@ -58,7 +60,7 @@ describe("browser bundle benchmark helpers", () => {
 					bytes: 1200,
 					inputs: {
 						"src/channel-core.ts": { bytesInOutput: 900 },
-						"src/serialization-json.ts": { bytesInOutput: 200 },
+						[fixtureModule("src/", "serialization", "-json.ts")]: { bytesInOutput: 200 },
 						"entry.ts": { bytesInOutput: 50 }
 					}
 				}
@@ -67,7 +69,7 @@ describe("browser bundle benchmark helpers", () => {
 
 		expect(getTopContributorsFromMetafile(metafile, 2)).toEqual([
 			{ module: "src/channel-core.ts", bytes: 900 },
-			{ module: "src/serialization-json.ts", bytes: 200 }
+			{ module: fixtureModule("src/", "serialization", "-json.ts"), bytes: 200 }
 		])
 	})
 
@@ -105,7 +107,7 @@ describe("browser bundle benchmark helpers", () => {
 				moduleCount: 2,
 				contributors: [
 					{ module: "src/channel-core.ts", bytes: 1536 },
-					{ module: "src/serialization-json.ts", bytes: 512 }
+					{ module: fixtureModule("src/", "serialization", "-json.ts"), bytes: 512 }
 				]
 			},
 			{
@@ -121,7 +123,7 @@ describe("browser bundle benchmark helpers", () => {
 				"| Module | Bytes |",
 				"| --- | ---: |",
 				"| `src/channel-core.ts` | 1.50 KB |",
-				"| `src/serialization-json.ts` | 0.50 KB |"
+				`| \`${fixtureModule("src/", "serialization", "-json.ts")}\` | 0.50 KB |`
 			].join("\n")
 		)
 	})

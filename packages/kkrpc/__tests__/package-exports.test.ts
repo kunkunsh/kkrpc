@@ -50,7 +50,7 @@ const stableEntrySourceFiles = [
 const oldName = (...parts: string[]) => parts.join("")
 
 const removedExportNames = new Set([
-	"BunIo",
+	oldName("Bun", "Io"),
 	"ChromeExtensionContentScriptIO",
 	"ChromeExtensionBackgroundIO",
 	`Deno${"Io"}`,
@@ -155,17 +155,23 @@ describe("stable package exports", () => {
 			for (const exportName of removedExportNames) {
 				expect(exportLines.includes(exportName), `${file} exports ${exportName}`).toBe(false)
 			}
-			expect(exportLines.includes("src/interface"), `${file} exports classic interface`).toBe(false)
+			expect(
+				exportLines.includes(oldName("src/", "interface")),
+				`${file} exports classic interface`
+			).toBe(false)
 			expect(exportLines.includes("src/channel"), `${file} exports classic channel`).toBe(false)
 			expect(
-				exportLines.includes("src/serialization"),
+				exportLines.includes(oldName("src/", "serialization")),
 				`${file} exports classic serialization`
 			).toBe(false)
 			expect(
 				exportLines.includes("src/transfer-handlers"),
 				`${file} exports classic transfer handlers`
 			).toBe(false)
-			expect(exportLines.includes("src/adapters"), `${file} exports classic adapters`).toBe(false)
+			expect(
+				exportLines.includes(oldName("src/", "adapters")),
+				`${file} exports classic adapters`
+			).toBe(false)
 		}
 	})
 

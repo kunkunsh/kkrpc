@@ -84,27 +84,37 @@ func (s *Server) resolvePath(path []string) (any, error) {
 	return target, nil
 }
 
-func (s *Server) wrapCallbacks(args []any, requestID string) []any {
+func (s *Server) convertInboundArg(arg any, requestID string) any {
+	envelope, ok := arg.(map[string]any)
+	if !ok {
+		return arg
+	}
+	switch envelope[ArgEnvelopeTag] {
+	case "value":
+		return envelope["v"]
+	case "callback":
+		callbackID, _ := envelope["id"].(string)
+		return Callback(func(callbackArgs ...any) {
+			payload := map[string]any{
+				"t":  "cb",
+				"id": callbackID,
+				"a":  callbackArgs,
+			}
+			message, err := EncodeMessage(payload)
+			if err != nil {
+				return
+			}
+			_ = s.transport.Write(message)
+		})
+	default:
+		return arg
+	}
+}
+
+func (s *Server) convertInboundArgs(args []any, requestID string) []any {
 	processed := make([]any, 0, len(args))
 	for _, arg := range args {
-		if envelope, ok := arg.(map[string]any); ok && envelope[ArgEnvelopeTag] == "callback" {
-			callbackID, _ := envelope["id"].(string)
-			callback := func(callbackArgs ...any) {
-				payload := map[string]any{
-					"t":  "cb",
-					"id": callbackID,
-					"a":  callbackArgs,
-				}
-				message, err := EncodeMessage(payload)
-				if err != nil {
-					return
-				}
-				_ = s.transport.Write(message)
-			}
-			processed = append(processed, Callback(callback))
-			continue
-		}
-		processed = append(processed, arg)
+		processed = append(processed, s.convertInboundArg(arg, requestID))
 	}
 	return processed
 }
@@ -157,7 +167,7 @@ func (s *Server) handleCall(message map[string]any) {
 		return
 	}
 
-	result := callable(s.wrapCallbacks(argsRaw, requestID)...)
+	result := callable(s.convertInboundArgs(argsRaw, requestID)...)
 	s.sendResponse(requestID, result)
 }
 
@@ -214,6 +224,6 @@ func (s *Server) handleConstruct(message map[string]any) {
 		s.sendError(requestID, errors.New("constructor not callable"))
 		return
 	}
-	result := constructor(s.wrapCallbacks(argsRaw, requestID)...)
+	result := constructor(s.convertInboundArgs(argsRaw, requestID)...)
 	s.sendResponse(requestID, result)
 }

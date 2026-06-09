@@ -6,7 +6,7 @@ public actor Server {
     private let transport: Transport
     private var api: [String: Any]
     private var readTask: Task<Void, Never>?
-    
+
     public init(transport: Transport, api: [String: Any]) {
         self.transport = transport
         self.api = api
@@ -14,11 +14,11 @@ public actor Server {
             await self.readLoop()
         }
     }
-    
+
     deinit {
         readTask?.cancel()
     }
-    
+
     private func readLoop() async {
         while !Task.isCancelled {
             do {
@@ -62,21 +62,29 @@ public actor Server {
         return target
     }
     
-    private func wrapCallbacks(args: [Any], requestId: String) -> [Any] {
+    private func convertInboundArg(_ arg: Any, requestId: String) -> Any {
+        guard let envelope = arg as? [String: Any],
+              let envelopeType = envelope[argEnvelopeTag] as? String else {
+            return arg
+        }
+        if envelopeType == "value" {
+            return envelope["v"] as Any
+        }
+        if envelopeType == "callback", let callbackId = envelope["id"] as? String {
+            let callback: Callback = { [weak self] callbackArgs in
+                Task {
+                    await self?.sendCallback(requestId: requestId, callbackId: callbackId, args: callbackArgs)
+                }
+            }
+            return callback
+        }
+        return arg
+    }
+
+    private func convertInboundArgs(args: [Any], requestId: String) -> [Any] {
         var processed: [Any] = []
         for arg in args {
-            if let envelope = arg as? [String: Any],
-               envelope[argEnvelopeTag] as? String == "callback",
-               let callbackId = envelope["id"] as? String {
-                let callback: Callback = { [weak self] callbackArgs in
-                    Task {
-                        await self?.sendCallback(requestId: requestId, callbackId: callbackId, args: callbackArgs)
-                    }
-                }
-                processed.append(callback)
-            } else {
-                processed.append(arg)
-            }
+            processed.append(convertInboundArg(arg, requestId: requestId))
         }
         return processed
     }
@@ -141,7 +149,7 @@ public actor Server {
             guard let callable = resolved as? Handler else {
                 throw KkrpcError.rpcError(name: "TypeError", message: "Method not callable")
             }
-            let result = callable(wrapCallbacks(args: argsRaw, requestId: requestId))
+            let result = callable(convertInboundArgs(args: argsRaw, requestId: requestId))
             await sendResponse(requestId: requestId, result: result)
         } catch {
             await sendError(requestId: requestId, error: error)
@@ -199,7 +207,7 @@ public actor Server {
             guard let constructor = resolved as? Handler else {
                 throw KkrpcError.rpcError(name: "TypeError", message: "Constructor not callable")
             }
-            let result = constructor(wrapCallbacks(args: argsRaw, requestId: requestId))
+            let result = constructor(convertInboundArgs(args: argsRaw, requestId: requestId))
             await sendResponse(requestId: requestId, result: result)
         } catch {
             await sendError(requestId: requestId, error: error)

@@ -113,4 +113,37 @@ final class ClientServerTests: XCTestCase {
         await client.close()
         await server.close()
     }
+
+    func testServerUnwrapsStableValueEnvelopeArgs() async throws {
+        let inputPipe = Pipe()
+        let outputPipe = Pipe()
+
+        let api: [String: Any] = [
+            "echo": { (args: [Any]) -> Any in
+                args[0]
+            } as Handler
+        ]
+
+        let serverTransport = StdioTransport(
+            input: inputPipe.fileHandleForReading,
+            output: outputPipe.fileHandleForWriting
+        )
+        let server = Server(transport: serverTransport, api: api)
+
+        let request = try encodeMessage([
+            "t": "q",
+            "id": "value-envelope",
+            "op": "call",
+            "p": ["echo"],
+            "a": [[argEnvelopeTag: "value", "v": "payload"]]
+        ])
+        try inputPipe.fileHandleForWriting.write(contentsOf: request.data(using: .utf8)!)
+
+        let responseData = outputPipe.fileHandleForReading.availableData
+        let response = String(data: responseData, encoding: .utf8) ?? ""
+        let decoded = try decodeMessage(response.trimmingCharacters(in: .whitespacesAndNewlines))
+
+        XCTAssertEqual(decoded["v"] as? String, "payload")
+        await server.close()
+    }
 }
