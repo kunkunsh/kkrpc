@@ -4,6 +4,8 @@ import type { RPCMessage } from "../core/protocol.ts"
 import type { Transport } from "../core/transport.ts"
 
 const PORT_INIT_SIGNAL = "__KKRPC_PORT_INIT__"
+const PORT_ACK_SIGNAL = "__KKRPC_PORT_ACK__"
+const PORT_RETRY_DELAY_MS = 25
 
 interface WindowLike {
 	parent?: WindowLike
@@ -15,6 +17,22 @@ interface WindowLike {
 interface IframeTransportOptions {
 	targetOrigin?: string
 	sourceWindow?: WindowLike
+}
+
+interface PortSignal {
+	type: typeof PORT_INIT_SIGNAL | typeof PORT_ACK_SIGNAL
+	id: string
+}
+
+function isPortSignal(message: unknown, type: PortSignal["type"]): message is PortSignal {
+	return (
+		typeof message === "object" &&
+		message !== null &&
+		"type" in message &&
+		message.type === type &&
+		"id" in message &&
+		typeof message.id === "string"
+	)
 }
 
 function createPortTransport(port: MessagePort): Transport<RPCMessage> {
@@ -76,30 +94,35 @@ export function iframeParentTransport(
 	}
 
 	let portTransport: Transport<RPCMessage> | undefined
+	const capabilities = { objectMode: true, transfer: false }
 	const queuedMessages: Array<{ message: RPCMessage; transfers: Transferable[] }> = []
 	const listeners = new Set<(message: RPCMessage) => void>()
 	let unsubscribePort: (() => void) | undefined
 
 	const messageListener = (event: MessageEvent) => {
-		if (
-			event.source !== targetWindow ||
-			event.data !== PORT_INIT_SIGNAL ||
-			event.ports.length === 0
-		) {
+		if (event.source !== targetWindow || !isPortSignal(event.data, PORT_INIT_SIGNAL)) {
 			return
 		}
+		if (event.ports.length === 0) return
 
+		unsubscribePort?.()
+		portTransport?.close?.()
 		portTransport = createPortTransport(event.ports[0])
+		capabilities.transfer = true
 		unsubscribePort = portTransport.subscribe((message) => {
 			for (const listener of listeners) listener(message)
 		})
+		;(event.source as WindowLike).postMessage(
+			{ type: PORT_ACK_SIGNAL, id: event.data.id },
+			targetOrigin
+		)
 		for (const item of queuedMessages.splice(0)) portTransport.send(item.message, item.transfers)
 	}
 
 	sourceWindow.addEventListener("message", messageListener)
 
 	return {
-		capabilities: { objectMode: true, transfer: typeof MessageChannel !== "undefined" },
+		capabilities,
 		send(message: RPCMessage, transfers: Transferable[] = []) {
 			if (portTransport) return portTransport.send(message, transfers)
 			queuedMessages.push({ message, transfers })
@@ -130,7 +153,66 @@ export function iframeChildTransport(options: IframeTransportOptions = {}): Tran
 		})
 	}
 
-	const channel = new MessageChannel()
-	targetWindow.postMessage(PORT_INIT_SIGNAL, options.targetOrigin ?? "*", [channel.port2])
-	return createPortTransport(channel.port1)
+	const targetOrigin = options.targetOrigin ?? "*"
+	const capabilities = { objectMode: true, transfer: false }
+	const listeners = new Set<(message: RPCMessage) => void>()
+	const queuedMessages: Array<{ message: RPCMessage; transfers: Transferable[] }> = []
+	let readyTransport: Transport<RPCMessage> | undefined
+	let candidateTransport: Transport<RPCMessage> | undefined
+	let candidateUnsubscribe: (() => void) | undefined
+	let retryTimer: ReturnType<typeof setTimeout> | undefined
+	let activeId = ""
+
+	const promoteCandidate = () => {
+		if (!candidateTransport) return
+		if (retryTimer) clearTimeout(retryTimer)
+		retryTimer = undefined
+		readyTransport = candidateTransport
+		candidateTransport = undefined
+		capabilities.transfer = true
+		for (const item of queuedMessages.splice(0)) readyTransport.send(item.message, item.transfers)
+	}
+
+	const messageListener = (event: MessageEvent) => {
+		if (event.source !== targetWindow || !isPortSignal(event.data, PORT_ACK_SIGNAL)) return
+		if (event.data.id !== activeId) return
+		promoteCandidate()
+	}
+
+	const attemptInit = () => {
+		candidateUnsubscribe?.()
+		candidateTransport?.close?.()
+		const channel = new MessageChannel()
+		activeId = `${Date.now()}-${Math.random()}`
+		candidateTransport = createPortTransport(channel.port1)
+		candidateUnsubscribe = candidateTransport.subscribe((message) => {
+			for (const listener of listeners) listener(message)
+		})
+		targetWindow.postMessage({ type: PORT_INIT_SIGNAL, id: activeId }, targetOrigin, [
+			channel.port2
+		])
+		retryTimer = setTimeout(attemptInit, PORT_RETRY_DELAY_MS)
+	}
+
+	sourceWindow.addEventListener("message", messageListener)
+	attemptInit()
+
+	return {
+		capabilities,
+		send(message: RPCMessage, transfers: Transferable[] = []) {
+			if (readyTransport) return readyTransport.send(message, transfers)
+			queuedMessages.push({ message, transfers })
+		},
+		subscribe(listener: (message: RPCMessage) => void) {
+			listeners.add(listener)
+			return () => listeners.delete(listener)
+		},
+		close() {
+			if (retryTimer) clearTimeout(retryTimer)
+			candidateUnsubscribe?.()
+			candidateTransport?.close?.()
+			readyTransport?.close?.()
+			sourceWindow.removeEventListener("message", messageListener)
+		}
+	}
 }
