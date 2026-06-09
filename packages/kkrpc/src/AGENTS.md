@@ -11,21 +11,20 @@ src/
 ├── core/              # Stable RPCChannel, protocol, plugins, transport primitives
 ├── transports/        # Native runtime transport factories
 ├── features/          # Optional validation, middleware, SuperJSON features
-├── relay.ts           # Transport relay helper
-└── adapters/          # Legacy adapter source retained until cleanup tasks remove it
+└── relay.ts           # Transport relay helper
 ```
 
 ## KEY FILES
 
-| File | Role |
-| --- | --- |
-| `core/channel.ts` | Stable `RPCChannel` and proxy implementation |
-| `core/protocol.ts` | Compact `RPCMessage` protocol union |
+| File                | Role                                                      |
+| ------------------- | --------------------------------------------------------- |
+| `core/channel.ts`   | Stable `RPCChannel` and proxy implementation              |
+| `core/protocol.ts`  | Compact `RPCMessage` protocol union                       |
 | `core/transport.ts` | `Transport`, `Platform`, `Codec`, and `createTransport()` |
-| `core/plugins.ts` | Plugin lifecycle hooks |
-| `core/transfer.ts` | Transfer descriptor helpers |
-| `transports/*.ts` | Runtime-specific native transports |
-| `features/*.ts` | Optional feature plugins/codecs |
+| `core/plugins.ts`   | Plugin lifecycle hooks                                    |
+| `core/transfer.ts`  | Transfer descriptor helpers                               |
+| `transports/*.ts`   | Runtime-specific native transports                        |
+| `features/*.ts`     | Optional feature plugins/codecs                           |
 
 ## IMPLEMENTATION PATTERNS
 

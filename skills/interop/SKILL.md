@@ -180,7 +180,7 @@ def handle(message):
     try:
         method = ".".join(message.get("p", []))
         args = [decode_arg(arg) for arg in message.get("a", [])]
-        result = api[method](args)
+        result = api[method](*args)
         transport.write(json.dumps({"t": "r", "id": message["id"], "v": result}))
     except Exception as exc:
         transport.write(json.dumps({
