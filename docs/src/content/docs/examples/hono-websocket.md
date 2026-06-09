@@ -69,13 +69,16 @@ const transport = webSocketClientTransport({
 	url: "ws://localhost:3000/ws"
 })
 
-const channel = new RPCChannel(transport, {
-	expose: {
-		getClientInfo: () => ({ type: "web-client", version: "1.0.0" })
+const channel = new RPCChannel<{ getClientInfo(): { type: string; version: string } }, API>(
+	transport,
+	{
+		expose: {
+			getClientInfo: () => ({ type: "web-client", version: "1.0.0" })
+		}
 	}
-})
+)
 
-const api = channel.getAPI<API>()
+const api = channel.getAPI()
 
 console.log(await api.greet("World"))
 console.log(await api.add(5, 3))

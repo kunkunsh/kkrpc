@@ -53,10 +53,11 @@ import { workerTransport } from "kkrpc/worker"
 // Setup RPC channel
 const worker = new Worker("worker.js")
 const transport = workerTransport(worker)
-const rpc = new RPCChannel(transport)
-const api = rpc.getAPI<{
+type WorkerAPI = {
 	processBuffer(buffer: ArrayBuffer): Promise<number>
-}>()
+}
+const rpc = new RPCChannel<object, WorkerAPI>(transport)
+const api = rpc.getAPI()
 
 // Create buffer to transfer
 const buffer = new ArrayBuffer(10 * 1024 * 1024) // 10MB
@@ -95,9 +96,10 @@ console.log(audioBuffer.byteLength) // 0
 
 ```typescript
 // Worker can transfer data back to caller
-const api = rpc.getAPI<{
+type WorkerAPI = {
 	generateData(size: number): Promise<ArrayBuffer>
-}>()
+}
+const api = rpc.getAPI()
 
 // Request data from worker (also transferred)
 const newBuffer = await api.generateData(5 * 1024 * 1024) // 5MB
@@ -150,9 +152,10 @@ await api.processVideo(frame) // No need to call transfer() manually
 
 ```typescript
 // Both directions can transfer data
-const api = rpc.getAPI<{
+type WorkerAPI = {
 	exchangeData(buffer: ArrayBuffer): Promise<ArrayBuffer>
-}>()
+}
+const api = rpc.getAPI()
 
 const sendBuffer = new ArrayBuffer(1024)
 const receiveBuffer = await api.exchangeData(transfer(sendBuffer, [sendBuffer]))

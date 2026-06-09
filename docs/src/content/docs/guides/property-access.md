@@ -89,7 +89,8 @@ export const apiImplementation: API = {
 ### Property Access Examples
 
 ```typescript
-const api = rpc.getAPI<API>()
+const rpc = new RPCChannel<object, API>(transport)
+const api = rpc.getAPI()
 
 // Property getters (always use await for remote properties)
 const currentCount = await api.counter
@@ -231,7 +232,8 @@ interface UserAPI {
 	}
 }
 
-const api = rpc.getAPI<UserAPI>()
+const rpc = new RPCChannel<object, UserAPI>(transport)
+const api = rpc.getAPI()
 
 // TypeScript knows the exact types
 const userId: number = await api.currentUser.id

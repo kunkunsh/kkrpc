@@ -291,7 +291,7 @@ const rpc = new RPCChannel<MainAPI, WorkerAPI>(transport, {
 })
 
 // Get main thread API
-const mainAPI = rpc.getAPI<MainAPI>()
+const mainAPI = rpc.getAPI()
 
 // Notify when ready
 mainAPI.log("Worker initialized and ready")
@@ -331,7 +331,7 @@ const rpc = new RPCChannel<WorkerAPI, MainAPI>(transport, {
 })
 
 // Get worker API
-const workerAPI = rpc.getAPI<WorkerAPI>()
+const workerAPI = rpc.getAPI()
 
 // Logging
 function addLog(message: string) {

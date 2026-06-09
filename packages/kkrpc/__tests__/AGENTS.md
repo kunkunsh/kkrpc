@@ -68,8 +68,8 @@ scripts/stable-worker.ts - Stable worker test script
 
 ```typescript
 const serverChannel = new RPCChannel(serverTransport, { expose: api })
-const clientChannel = new RPCChannel(clientTransport)
-const remote = clientChannel.getAPI<typeof api>()
+const clientChannel = new RPCChannel<object, typeof api>(clientTransport)
+const remote = clientChannel.getAPI()
 
 expect(await remote.add(1, 2)).toBe(3)
 ```

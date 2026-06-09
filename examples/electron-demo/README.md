@@ -139,10 +139,10 @@ type MainAPI = {
 }
 
 // Main - expose entire API in one line
-const rpc = new RPCChannel(io, { expose: mainAPI })
+const rpc = new RPCChannel<object, MainAPI>(io, { expose: mainAPI })
 
 // Renderer - get typed API proxy
-const mainAPI = rpc.getAPI<MainAPI>()
+const mainAPI = rpc.getAPI()
 await mainAPI.math.add(1, 2) // Fully typed!
 ```
 
@@ -248,7 +248,8 @@ interface MainAPI {
 }
 
 // Type-safe usage
-const mainAPI = rpc.getAPI<MainAPI>()
+const rpc = new RPCChannel<object, MainAPI>(transport)
+const mainAPI = rpc.getAPI()
 await mainAPI.showNotification("Hello!") // ✓ TypeScript validates this
 ```
 
