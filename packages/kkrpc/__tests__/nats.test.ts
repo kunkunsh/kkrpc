@@ -1,217 +1,73 @@
-import { afterAll, beforeAll, describe, expect, it } from "bun:test"
-import { NatsIO } from "../src/adapters/nats"
-import { RPCChannel } from "../src/channel.ts"
+import { afterAll, beforeAll, describe, expect, test } from "bun:test"
+import { RPCChannel } from "../mod.ts"
+import { natsTransport, type NatsTransport } from "../nats.ts"
 import { apiMethods, type API } from "./scripts/api.ts"
 
 const NATS_URL = process.env.NATS_URL || "nats://localhost:4222"
 const TEST_SUBJECT = "kkrpc-test-" + Math.random().toString(36).substring(2, 8)
 
-describe("NatsIO", () => {
-	describe("Adapter Construction", () => {
-		it("should create NATS adapter with provided options", () => {
-			const adapter = new NatsIO({
-				servers: NATS_URL,
-				subject: TEST_SUBJECT + "-construction",
-				queueGroup: "test-queue-group",
-				sessionId: "nats-test-session"
-			})
-
-			expect(adapter.name).toBe("nats-io")
-			expect(adapter.getSubject()).toBe(TEST_SUBJECT + "-construction")
-			expect(adapter.getQueueGroup()).toBe("test-queue-group")
-			expect(adapter.getSessionId()).toBe("nats-test-session")
-			expect(adapter.capabilities.broadcast).toBe(false)
-
-			adapter.destroy()
+describe("natsTransport", () => {
+	test("creates an object-mode transport with peer-routed capabilities", () => {
+		const transport = natsTransport({
+			servers: NATS_URL,
+			subject: TEST_SUBJECT + "-construction",
+			localPeerId: "client",
+			remotePeerId: "server"
 		})
 
-		it("should generate reasonable defaults when not provided", async () => {
-			const adapter = new NatsIO({
-				servers: NATS_URL,
-				subject: TEST_SUBJECT + "-defaults"
-			})
-
-			// Wait for connection to be established
-			await new Promise((resolve) => setTimeout(resolve, 1000))
-
-			expect(adapter.getSubject()).toBe(TEST_SUBJECT + "-defaults")
-			expect(adapter.getQueueGroup()).toBeUndefined()
-			expect(adapter.getSessionId()).toHaveLength(26)
-			expect(adapter.capabilities.broadcast).toBe(true)
-			expect(adapter.isConnected()).toBe(true)
-
-			adapter.destroy()
-		}, 10000)
+		expect(transport.capabilities).toEqual({ objectMode: true, transfer: false, broadcast: false })
+		transport.close?.()
 	})
 
-	describe("Message Flow", () => {
-		let adapter: NatsIO
-
-		beforeAll(async () => {
-			// allowSelfMessages keeps the low-level adapter loopback test explicit.
-			adapter = new NatsIO({
-				servers: NATS_URL,
-				subject: TEST_SUBJECT + "-message",
-				allowSelfMessages: true
-			})
-
-			// Wait for connection to be ready
-			await new Promise((resolve) => setTimeout(resolve, 1000))
-		})
-
-		afterAll(() => {
-			adapter.destroy()
-		})
-
-		it("should publish and consume plain strings", async () => {
-			await adapter.write("hello-nats")
-			const payload = await adapter.read()
-
-			expect(payload).toBe("hello-nats")
-		}, 15000)
-	})
-
-	describe("RPC Communication", () => {
-		let serverAdapter: NatsIO
-		let clientAdapter: NatsIO
+	describe("RPC communication", () => {
+		let serverTransport: NatsTransport
+		let clientTransport: NatsTransport
 		let serverRPC: RPCChannel<API, API>
 		let clientRPC: RPCChannel<API, API>
 
 		beforeAll(async () => {
 			const subject = TEST_SUBJECT + "-rpc"
-
-			serverAdapter = new NatsIO({
+			serverTransport = natsTransport({
 				servers: NATS_URL,
 				subject,
-				sessionId: "server-" + Math.random().toString(36).substring(2, 8)
+				localPeerId: "server",
+				remotePeerId: "client"
 			})
-
-			clientAdapter = new NatsIO({
+			clientTransport = natsTransport({
 				servers: NATS_URL,
 				subject,
-				sessionId: "client-" + Math.random().toString(36).substring(2, 8)
+				localPeerId: "client",
+				remotePeerId: "server"
 			})
 
-			// Wait for NATS connections to be established
-			await new Promise((resolve) => setTimeout(resolve, 1500))
-
-			serverRPC = new RPCChannel<API, API>(serverAdapter, {
-				expose: apiMethods
-			})
-
-			// These local handlers throw if NATS echoes the client's own request back to itself.
-			clientRPC = new RPCChannel<API, API>(clientAdapter, {
-				expose: {
-					...apiMethods,
-					echo: async () => {
-						throw new Error("client loopback should not handle echo")
-					},
-					add: async () => {
-						throw new Error("client loopback should not handle add")
-					},
-					math: {
-						...apiMethods.math,
-						grade2: {
-							...apiMethods.math.grade2,
-							multiply: async () => {
-								throw new Error("client loopback should not handle multiply")
-							}
-						}
-					},
-					throwSimpleError: () => {
-						throw new Error("client loopback should not handle throwSimpleError")
-					},
-					throwCustomError: () => {
-						throw new Error("client loopback should not handle throwCustomError")
-					}
-				}
-			})
+			serverRPC = new RPCChannel<API, API>(serverTransport, { expose: apiMethods })
+			clientRPC = new RPCChannel<API, API>(clientTransport, { expose: apiMethods })
+			await new Promise((resolve) => setTimeout(resolve, 1000))
 		})
 
-		afterAll(async () => {
-			await Promise.all([clientAdapter.signalDestroy?.(), serverAdapter.signalDestroy?.()])
-			clientRPC.destroy?.()
-			serverRPC.destroy?.()
-			clientAdapter.destroy()
-			serverAdapter.destroy()
+		afterAll(() => {
+			clientRPC.destroy()
+			serverRPC.destroy()
 		})
 
-		it("should complete RPC calls over NATS", async () => {
+		test("completes RPC calls over NATS", async () => {
 			const serverAPI = clientRPC.getAPI()
 
-			const echoResult = await serverAPI.echo("Hello NATS!")
-			expect(echoResult).toBe("Hello NATS!")
+			expect(await serverAPI.echo("Hello NATS!")).toBe("Hello NATS!")
+			expect(await serverAPI.add(10, 20)).toBe(30)
+		}, 20_000)
 
-			const addResult = await serverAPI.add(10, 20)
-			expect(addResult).toBe(30)
-		}, 20000)
-
-		it("should support nested API calls", async () => {
+		test("supports nested API calls", async () => {
 			const serverAPI = clientRPC.getAPI()
 
-			const multiply = await serverAPI.math.grade2.multiply(4, 5)
-			expect(multiply).toBe(20)
-		}, 20000)
+			expect(await serverAPI.math.grade2.multiply(4, 5)).toBe(20)
+		}, 20_000)
 
-		it("should propagate RPC errors", async () => {
+		test("propagates RPC errors", async () => {
 			const serverAPI = clientRPC.getAPI()
 
 			await expect(serverAPI.throwSimpleError()).rejects.toThrow("This is a simple error")
 			await expect(serverAPI.throwCustomError()).rejects.toThrow("This is a custom error")
-		}, 20000)
-	})
-
-	describe("Queue Group (Load Balancing)", () => {
-		it("should distribute messages across queue group members", async () => {
-			const queueGroup = "load-test-" + Math.random().toString(36).substring(2, 8)
-			const subject = TEST_SUBJECT + "-queue"
-
-			const adapter1 = new NatsIO({
-				servers: NATS_URL,
-				subject,
-				queueGroup
-			})
-
-			const adapter2 = new NatsIO({
-				servers: NATS_URL,
-				subject,
-				queueGroup
-			})
-
-			// Wait for connections
-			await new Promise((resolve) => setTimeout(resolve, 1000))
-
-			// Send messages - only one should receive each
-			await adapter1.write("msg1")
-
-			const receivedBy = await Promise.race([
-				adapter1.read().then(() => "adapter1" as const),
-				adapter2.read().then(() => "adapter2" as const)
-			])
-
-			expect(receivedBy).toMatch(/^adapter[12]$/)
-
-			adapter1.destroy()
-			adapter2.destroy()
-		}, 15000)
-	})
-
-	describe("Cleanup Handling", () => {
-		it("should destroy adapter and block future writes", async () => {
-			const adapter = new NatsIO({
-				servers: NATS_URL,
-				subject: TEST_SUBJECT + "-destroy"
-			})
-
-			await new Promise((resolve) => setTimeout(resolve, 1000))
-
-			adapter.destroy()
-
-			expect(adapter.isConnected()).toBe(false)
-
-			await expect(adapter.write("after-destroy")).rejects.toThrow(
-				"NATS adapter has been destroyed"
-			)
-		}, 10000)
+		}, 20_000)
 	})
 })

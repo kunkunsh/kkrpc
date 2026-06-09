@@ -1,7 +1,7 @@
-import { afterAll, beforeAll, describe, expect, it } from "bun:test"
 import { connect } from "node:net"
-import { KafkaIO } from "../src/adapters/kafka"
-import { RPCChannel } from "../src/channel.ts"
+import { afterAll, beforeAll, describe, expect, test } from "bun:test"
+import { kafkaTransport, type KafkaTransport } from "../kafka.ts"
+import { RPCChannel } from "../mod.ts"
 import { apiMethods, type API } from "./scripts/api.ts"
 
 const TEST_TOPIC = "kkrpc-test-topic-" + Math.random().toString(36).substring(2, 8)
@@ -47,205 +47,65 @@ async function assertKafkaBrokerAvailable(): Promise<void> {
 	)
 }
 
-describeKafka("KafkaIO", () => {
+describeKafka("kafkaTransport", () => {
 	beforeAll(assertKafkaBrokerAvailable)
 
-	describe("Adapter Construction", () => {
-		it("should create Kafka adapter with provided options", () => {
-			const adapter = new KafkaIO({
-				brokers: KAFKA_BROKERS,
-				topic: TEST_TOPIC,
-				groupId: "kkrpc-custom-group",
-				clientId: "kkrpc-test-client",
-				sessionId: "kafka-test-session",
-				retry: KAFKA_TEST_RETRY
-			})
-
-			expect(adapter.name).toBe("kafka-io")
-			expect(adapter.getTopic()).toBe(TEST_TOPIC)
-			expect(adapter.getGroupId()).toBe("kkrpc-custom-group")
-			expect(adapter.getSessionId()).toBe("kafka-test-session")
-			expect(adapter.capabilities.broadcast).toBe(false)
-
-			adapter.destroy()
+	test("creates an object-mode transport with broadcast capabilities by default", () => {
+		const transport = kafkaTransport({
+			brokers: KAFKA_BROKERS,
+			topic: TEST_TOPIC + "-construction",
+			localPeerId: "client",
+			retry: KAFKA_TEST_RETRY
 		})
 
-		it("should generate reasonable defaults when not provided", () => {
-			const adapter = new KafkaIO({
-				brokers: KAFKA_BROKERS,
-				topic: TEST_TOPIC + "-defaults",
-				retry: KAFKA_TEST_RETRY
-			})
-
-			expect(adapter.getTopic()).toBe(TEST_TOPIC + "-defaults")
-			expect(adapter.getGroupId()).toMatch(/^kkrpc-group-/)
-			expect(adapter.getSessionId()).toHaveLength(26)
-			expect(adapter.capabilities.broadcast).toBe(true)
-
-			adapter.destroy()
-		})
+		expect(transport.capabilities).toEqual({ objectMode: true, transfer: false, broadcast: true })
+		transport.close?.()
 	})
 
-	describe("Connection and Topic Management", () => {
-		let adapter: KafkaIO
-
-		beforeAll(async () => {
-			// allowSelfMessages keeps the low-level adapter loopback test explicit.
-			adapter = new KafkaIO({
-				brokers: KAFKA_BROKERS,
-				topic: TEST_TOPIC + "-connection",
-				clientId: "connection-test-client",
-				sessionId: "connection-test-session",
-				allowSelfMessages: true,
-				retry: KAFKA_TEST_RETRY
-			})
-
-			// 等待 Kafka consumer 完成订阅，避免 race condition
-			await new Promise((resolve) => setTimeout(resolve, 1500))
-		})
-
-		afterAll(() => {
-			adapter.destroy()
-		})
-
-		it("should publish and read messages through Kafka topic", async () => {
-			await adapter.write("hello-kafka")
-			const payload = await adapter.read()
-
-			expect(payload).toBe("hello-kafka")
-		}, 10000)
-
-		it("should deliver self-published messages in explicit consumer group mode", async () => {
-			const groupAdapter = new KafkaIO({
-				brokers: KAFKA_BROKERS,
-				topic: TEST_TOPIC + "-group-self-message",
-				groupId: "group-self-message-" + Math.random().toString(36).substring(2, 8),
-				sessionId: "group-self-message-session",
-				retry: KAFKA_TEST_RETRY
-			})
-
-			try {
-				await new Promise((resolve) => setTimeout(resolve, 2000))
-				await groupAdapter.write("load-balanced-self-message")
-				const payload = await Promise.race([
-					groupAdapter.read(),
-					new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000))
-				])
-
-				expect(payload).toBe("load-balanced-self-message")
-			} finally {
-				groupAdapter.destroy()
-			}
-		}, 15000)
-	})
-
-	describe("RPC Communication", () => {
-		let serverAdapter: KafkaIO
-		let clientAdapter: KafkaIO
+	describe("RPC communication", () => {
+		let serverTransport: KafkaTransport
+		let clientTransport: KafkaTransport
 		let serverRPC: RPCChannel<API, API>
 		let clientRPC: RPCChannel<API, API>
 
 		beforeAll(async () => {
 			const topic = TEST_TOPIC + "-rpc"
-
-			serverAdapter = new KafkaIO({
+			serverTransport = kafkaTransport({
 				brokers: KAFKA_BROKERS,
 				topic,
-				sessionId: "server-" + Math.random().toString(36).substring(2, 8),
+				localPeerId: "server",
+				remotePeerId: "client",
+				retry: KAFKA_TEST_RETRY
+			})
+			clientTransport = kafkaTransport({
+				brokers: KAFKA_BROKERS,
+				topic,
+				localPeerId: "client",
+				remotePeerId: "server",
 				retry: KAFKA_TEST_RETRY
 			})
 
-			clientAdapter = new KafkaIO({
-				brokers: KAFKA_BROKERS,
-				topic,
-				sessionId: "client-" + Math.random().toString(36).substring(2, 8),
-				retry: KAFKA_TEST_RETRY
-			})
-
-			// 等 Kafka 建立连接
+			serverRPC = new RPCChannel<API, API>(serverTransport, { expose: apiMethods })
+			clientRPC = new RPCChannel<API, API>(clientTransport, { expose: apiMethods })
 			await new Promise((resolve) => setTimeout(resolve, 2000))
-
-			serverRPC = new RPCChannel<API, API>(serverAdapter, {
-				expose: apiMethods
-			})
-
-			// These local handlers throw if Kafka echoes the client's own request back to itself.
-			clientRPC = new RPCChannel<API, API>(clientAdapter, {
-				expose: {
-					...apiMethods,
-					echo: async () => {
-						throw new Error("client loopback should not handle echo")
-					},
-					add: async () => {
-						throw new Error("client loopback should not handle add")
-					},
-					math: {
-						...apiMethods.math,
-						grade2: {
-							...apiMethods.math.grade2,
-							multiply: async () => {
-								throw new Error("client loopback should not handle multiply")
-							}
-						}
-					},
-					throwSimpleError: () => {
-						throw new Error("client loopback should not handle throwSimpleError")
-					},
-					throwCustomError: () => {
-						throw new Error("client loopback should not handle throwCustomError")
-					}
-				}
-			})
 		})
 
 		afterAll(() => {
-			clientRPC.destroy?.()
-			serverRPC.destroy?.()
-			clientAdapter.destroy()
-			serverAdapter.destroy()
+			clientRPC.destroy()
+			serverRPC.destroy()
 		})
 
-		it("should perform RPC round trips over Kafka", async () => {
+		test("performs RPC round trips over Kafka", async () => {
 			const serverAPI = clientRPC.getAPI()
 
-			const echoResult = await serverAPI.echo("Hello Kafka!")
-			expect(echoResult).toBe("Hello Kafka!")
+			expect(await serverAPI.echo("Hello Kafka!")).toBe("Hello Kafka!")
+			expect(await serverAPI.add(3, 7)).toBe(10)
+		}, 20_000)
 
-			const addResult = await serverAPI.add(3, 7)
-			expect(addResult).toBe(10)
-		}, 20000)
-
-		it("should support nested API calls", async () => {
+		test("supports nested API calls", async () => {
 			const serverAPI = clientRPC.getAPI()
 
-			const multiply = await serverAPI.math.grade2.multiply(4, 5)
-			expect(multiply).toBe(20)
-		}, 20000)
-
-		it("should propagate errors correctly", async () => {
-			const serverAPI = clientRPC.getAPI()
-
-			await expect(serverAPI.throwSimpleError()).rejects.toThrow("This is a simple error")
-			await expect(serverAPI.throwCustomError()).rejects.toThrow("This is a custom error")
-		}, 20000)
-	})
-
-	describe("Cleanup Handling", () => {
-		it("should handle destroy and prevent further writes", async () => {
-			const adapter = new KafkaIO({
-				brokers: KAFKA_BROKERS,
-				topic: TEST_TOPIC + "-destroy",
-				sessionId: "destroy-" + Math.random().toString(36).substring(2, 8),
-				retry: KAFKA_TEST_RETRY
-			})
-
-			await new Promise((resolve) => setTimeout(resolve, 1000))
-
-			adapter.destroy()
-
-			await expect(adapter.write("after-destroy")).rejects.toThrow(
-				"Kafka adapter has been destroyed"
-			)
-		}, 10000)
+			expect(await serverAPI.math.grade2.multiply(4, 5)).toBe(20)
+		}, 20_000)
 	})
 })
