@@ -16,7 +16,7 @@ describe("worker transport", () => {
 	})
 
 	test("wraps a worker object transport", async () => {
-		const worker = new Worker(new URL("./scripts/next-worker.ts", import.meta.url).href, {
+		const worker = new Worker(new URL("./scripts/stable-worker.ts", import.meta.url).href, {
 			type: "module"
 		})
 		const api = wrap<WorkerAPI>(workerTransport(worker))
@@ -29,7 +29,7 @@ describe("worker transport", () => {
 	})
 
 	test("supports transfer over worker object transport", async () => {
-		const worker = new Worker(new URL("./scripts/next-worker.ts", import.meta.url).href, {
+		const worker = new Worker(new URL("./scripts/stable-worker.ts", import.meta.url).href, {
 			type: "module"
 		})
 		const api = wrap<WorkerAPI>(workerTransport(worker))
