@@ -101,7 +101,7 @@ swift package generate-xcodeproj
 - Swift 5.9+ required
 - Platforms: macOS 10.15+, iOS 13+, tvOS 13+, watchOS 6+
 - No external dependencies (Foundation only)
-- Callbacks encoded as `__callback__<id>` strings
+- Callbacks use `{ "__kkrpc_next_arg__": "callback", "id": "..." }` marker objects
 - Compatible with kkrpc's stable compact JSON `RPCMessage` protocol
 
 ## TYPE ALIASES

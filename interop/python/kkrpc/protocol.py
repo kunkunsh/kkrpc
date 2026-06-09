@@ -2,7 +2,7 @@ import json
 import random
 from typing import Any, Dict
 
-CALLBACK_PREFIX = "__callback__"
+ARG_ENVELOPE_TAG = "__kkrpc_next_arg__"
 
 
 def generate_uuid() -> str:

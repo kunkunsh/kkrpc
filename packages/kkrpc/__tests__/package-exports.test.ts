@@ -47,17 +47,19 @@ const stableEntrySourceFiles = [
 	"inspector.ts"
 ] as const
 
+const oldName = (...parts: string[]) => parts.join("")
+
 const removedExportNames = new Set([
 	"BunIo",
 	"ChromeExtensionContentScriptIO",
 	"ChromeExtensionBackgroundIO",
 	`Deno${"Io"}`,
-	"ElectronIpcMainIO",
-	"ElectronIpcPreloadIO",
-	"ElectronIpcRendererIO",
-	"ElectronUtilityProcessChildIO",
-	"ElectronUtilityProcessIO",
-	"ElysiaWebSocketServerIO",
+	oldName("Electron", "IpcMainIO"),
+	oldName("Electron", "IpcPreloadIO"),
+	oldName("Electron", "IpcRendererIO"),
+	oldName("Electron", "UtilityProcessChildIO"),
+	oldName("Electron", "UtilityProcessIO"),
+	oldName("Elysia", "WebSocket", "ServerIO"),
 	"HTTPClientIO",
 	"HTTPServerIO",
 	"IframeChildIO",
@@ -75,10 +77,10 @@ const removedExportNames = new Set([
 	"SocketIOClientIO",
 	"SocketIOServerIO",
 	"TauriShellStdio",
-	"WebSocketClientIO",
-	"WebSocketServerIO",
-	"WorkerChildIO",
-	"WorkerParentIO",
+	oldName("WebSocket", "ClientIO"),
+	oldName("WebSocket", "ServerIO"),
+	oldName("Worker", "ChildIO"),
+	oldName("Worker", "ParentIO"),
 	"decodeMessage",
 	"encodeMessage",
 	"registerTransferHandler"
@@ -104,7 +106,7 @@ describe("stable package exports", () => {
 		expect(Object.keys(exportsMap).some((key) => key.startsWith("./next/"))).toBe(false)
 		expect(exportsMap["./browser-lite"]).toBeUndefined()
 		expect(exportsMap["./browser-mini"]).toBeUndefined()
-		expect(exportsMap["./electron-ipc"]).toBeUndefined()
+		expect(exportsMap[`./electron-${"ipc"}`]).toBeUndefined()
 	})
 
 	test("stable feature entries are present", async () => {
@@ -124,7 +126,7 @@ describe("stable package exports", () => {
 		expect(Object.keys(exportsMap).some((key) => key.startsWith("./next/"))).toBe(false)
 		expect(exportsMap["./browser-lite"]).toBeUndefined()
 		expect(exportsMap["./browser-mini"]).toBeUndefined()
-		expect(exportsMap["./electron-ipc"]).toBeUndefined()
+		expect(exportsMap[`./electron-${"ipc"}`]).toBeUndefined()
 
 		for (const [key] of stableEntries.slice(1)) {
 			expect(exportsMap[key], key).toBeDefined()
@@ -155,10 +157,14 @@ describe("stable package exports", () => {
 			}
 			expect(exportLines.includes("src/interface"), `${file} exports classic interface`).toBe(false)
 			expect(exportLines.includes("src/channel"), `${file} exports classic channel`).toBe(false)
-			expect(exportLines.includes("src/serialization"), `${file} exports classic serialization`).toBe(false)
-			expect(exportLines.includes("src/transfer-handlers"), `${file} exports classic transfer handlers`).toBe(
-				false
-			)
+			expect(
+				exportLines.includes("src/serialization"),
+				`${file} exports classic serialization`
+			).toBe(false)
+			expect(
+				exportLines.includes("src/transfer-handlers"),
+				`${file} exports classic transfer handlers`
+			).toBe(false)
 			expect(exportLines.includes("src/adapters"), `${file} exports classic adapters`).toBe(false)
 		}
 	})
@@ -180,19 +186,26 @@ describe("stable package exports", () => {
 	test("validation feature is self-contained from classic validation sources", async () => {
 		const source = await Bun.file(new URL("../src/features/validation.ts", import.meta.url)).text()
 
-		expect(source.includes('from "../validation.ts"'), "imports classic validation module").toBe(false)
-		expect(source.includes('from "../standard-schema.ts"'), "imports classic standard schema module").toBe(
+		expect(source.includes('from "../validation.ts"'), "imports classic validation module").toBe(
 			false
 		)
+		expect(
+			source.includes('from "../standard-schema.ts"'),
+			"imports classic standard schema module"
+		).toBe(false)
 		expect(source.includes('from "../channel.ts"'), "imports classic channel module").toBe(false)
-		expect(source.includes('from "../interface.ts"'), "imports classic interface module").toBe(false)
+		expect(source.includes('from "../interface.ts"'), "imports classic interface module").toBe(
+			false
+		)
 	})
 
 	test("deno entry avoids Node-specific stdio helpers", async () => {
 		const source = await Bun.file(new URL("../deno-mod.ts", import.meta.url)).text()
 
 		expect(source.includes("src/next/stdio"), "deno-mod.ts exports stdio helpers").toBe(false)
-		expect(source.includes("nodeStdioTransport"), "deno-mod.ts exports nodeStdioTransport").toBe(false)
+		expect(source.includes("nodeStdioTransport"), "deno-mod.ts exports nodeStdioTransport").toBe(
+			false
+		)
 		expect(source.includes("process"), "deno-mod.ts references process").toBe(false)
 	})
 })

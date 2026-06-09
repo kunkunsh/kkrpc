@@ -8,7 +8,7 @@ cross-language use.
 
 - JSON request/response compatible with kkrpc's stable compact `RPCMessage` protocol.
 - `stdio` and `ws` transports via adapter classes.
-- Callback support (`__callback__<id>` encoding) and bidirectional calls.
+- Callback support using stable callback marker objects and bidirectional calls.
 
 ## Installation
 
@@ -75,9 +75,9 @@ pytest interop/python/tests
 
 ## How it works with kkrpc
 
-- **Message format**: JSON objects with `id`, `method`, `args`, `type`, `version`.
+- **Message format**: compact JSON records with `t`, `id`, `op`, `p`, `a`, and `v` fields.
 - **Line-delimited transport**: each JSON message ends with `\n`.
-- **Callbacks**: functions are encoded as `__callback__<id>` and sent via `type = "callback"`.
+- **Callbacks**: functions are encoded as `{ "__kkrpc_next_arg__": "callback", "id": "..." }` and sent via `t = "cb"`.
 - **Adapters**: `StdioTransport` and `WebSocketTransport` implement a shared interface and
   can be swapped without changing the RPC client/server APIs.
 

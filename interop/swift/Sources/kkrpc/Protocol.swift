@@ -30,7 +30,15 @@ public func decodeError(_ value: Any) -> KkrpcError {
     guard let errorMap = value as? [String: Any] else {
         return KkrpcError.rpcError(name: "Error", message: String(describing: value))
     }
-    let name = errorMap["name"] as? String ?? "Error"
-    let message = errorMap["message"] as? String ?? "Unknown error"
+    let name = errorMap["n"] as? String ?? "Error"
+    let message = errorMap["m"] as? String ?? "Unknown error"
     return KkrpcError.rpcError(name: name, message: message)
+}
+
+public func decodeArgument(_ value: Any) -> Any {
+    guard let envelope = value as? [String: Any],
+          envelope[argEnvelopeTag] as? String == "value" else {
+        return value
+    }
+    return envelope["v"] as Any
 }

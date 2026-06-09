@@ -97,7 +97,7 @@ cargo doc --open
 
 - Rust 1.85+ required (2024 edition)
 - Thread-safe with Arc/Mutex
-- Callbacks encoded as `__callback__<id>` strings
+- Callbacks use `{ "__kkrpc_next_arg__": "callback", "id": "..." }` marker objects
 - Arg enum for callback vs value distinction
 - Compatible with kkrpc's stable compact JSON `RPCMessage` protocol
 

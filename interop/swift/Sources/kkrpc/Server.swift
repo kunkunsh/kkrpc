@@ -29,16 +29,17 @@ public actor Server {
                 guard !trimmed.isEmpty else { continue }
                 
                 guard let message = try? decodeMessage(trimmed) else { continue }
-                guard let messageType = message["type"] as? String else { continue }
+                guard message["t"] as? String == "q",
+                      let messageType = message["op"] as? String else { continue }
                 
                 switch messageType {
-                case "request":
+                case "call":
                     await handleRequest(message)
                 case "get":
                     await handleGet(message)
                 case "set":
                     await handleSet(message)
-                case "construct":
+                case "new":
                     await handleConstruct(message)
                 default:
                     break
@@ -64,8 +65,9 @@ public actor Server {
     private func wrapCallbacks(args: [Any], requestId: String) -> [Any] {
         var processed: [Any] = []
         for arg in args {
-            if let text = arg as? String, text.hasPrefix(callbackPrefix) {
-                let callbackId = String(text.dropFirst(callbackPrefix.count))
+            if let envelope = arg as? [String: Any],
+               envelope[argEnvelopeTag] as? String == "callback",
+               let callbackId = envelope["id"] as? String {
                 let callback: Callback = { [weak self] callbackArgs in
                     Task {
                         await self?.sendCallback(requestId: requestId, callbackId: callbackId, args: callbackArgs)
@@ -81,11 +83,9 @@ public actor Server {
     
     private func sendCallback(requestId: String, callbackId: String, args: [Any]) async {
         let payload: [String: Any] = [
-            "id": requestId,
-            "method": callbackId,
-            "args": args,
-            "type": "callback",
-            "version": "json"
+            "t": "cb",
+            "id": callbackId,
+            "a": args
         ]
         guard let message = try? encodeMessage(payload) else { return }
         try? await transport.write(message)
@@ -93,11 +93,9 @@ public actor Server {
     
     private func sendResponse(requestId: String, result: Any) async {
         let payload: [String: Any] = [
+            "t": "r",
             "id": requestId,
-            "method": "",
-            "args": ["result": result],
-            "type": "response",
-            "version": "json"
+            "v": result
         ]
         guard let message = try? encodeMessage(payload) else { return }
         try? await transport.write(message)
@@ -121,16 +119,12 @@ public actor Server {
         }
         
         let payload: [String: Any] = [
+            "t": "r",
             "id": requestId,
-            "method": "",
-            "args": [
-                "error": [
-                    "name": errorName,
-                    "message": errorMessage
-                ]
-            ],
-            "type": "response",
-            "version": "json"
+            "e": [
+                "n": errorName,
+                "m": errorMessage
+            ]
         ]
         guard let message = try? encodeMessage(payload) else { return }
         try? await transport.write(message)
@@ -138,10 +132,9 @@ public actor Server {
     
     private func handleRequest(_ message: [String: Any]) async {
         guard let requestId = message["id"] as? String else { return }
-        let method = message["method"] as? String ?? ""
-        let argsRaw = message["args"] as? [Any] ?? []
+        let argsRaw = message["a"] as? [Any] ?? []
         
-        let path = method.isEmpty ? [] : method.split(separator: ".").map(String.init)
+        let path = message["p"] as? [String] ?? []
         
         do {
             let resolved = try resolvePath(path)
@@ -157,7 +150,7 @@ public actor Server {
     
     private func handleGet(_ message: [String: Any]) async {
         guard let requestId = message["id"] as? String else { return }
-        guard let pathRaw = message["path"] as? [Any] else {
+        guard let pathRaw = message["p"] as? [Any] else {
             await sendError(requestId: requestId, error: KkrpcError.rpcError(name: "MissingPath", message: "Missing path"))
             return
         }
@@ -173,7 +166,7 @@ public actor Server {
     
     private func handleSet(_ message: [String: Any]) async {
         guard let requestId = message["id"] as? String else { return }
-        guard let pathRaw = message["path"] as? [Any], !pathRaw.isEmpty else {
+        guard let pathRaw = message["p"] as? [Any], !pathRaw.isEmpty else {
             await sendError(requestId: requestId, error: KkrpcError.rpcError(name: "MissingPath", message: "Missing path"))
             return
         }
@@ -188,7 +181,7 @@ public actor Server {
             guard var parentMap = parent as? [String: Any] else {
                 throw KkrpcError.rpcError(name: "TypeError", message: "Set target is not an object")
             }
-            parentMap[path.last!] = message["value"]
+            parentMap[path.last!] = message["v"]
             await sendResponse(requestId: requestId, result: true)
         } catch {
             await sendError(requestId: requestId, error: error)
@@ -197,10 +190,9 @@ public actor Server {
     
     private func handleConstruct(_ message: [String: Any]) async {
         guard let requestId = message["id"] as? String else { return }
-        let method = message["method"] as? String ?? ""
-        let argsRaw = message["args"] as? [Any] ?? []
+        let argsRaw = message["a"] as? [Any] ?? []
         
-        let path = method.isEmpty ? [] : method.split(separator: ".").map(String.init)
+        let path = message["p"] as? [String] ?? []
         
         do {
             let resolved = try resolvePath(path)

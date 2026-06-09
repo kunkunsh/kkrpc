@@ -9,7 +9,7 @@
 //!
 //! - **JSON request/response** compatible with kkrpc's stable compact `RPCMessage` protocol
 //! - **stdio and WebSocket transports** with a shared [`Transport`] trait
-//! - **Callback support** using `__callback__<id>` tokens
+//! - **Callback support** using stable callback argument marker objects
 //! - **Property access** (get/set) for remote object manipulation
 //! - **Thread-safe** implementation using Arc and Mutex
 //!
@@ -89,43 +89,40 @@
 //! ```json
 //! {
 //!   "id": "uuid",
-//!   "method": "math.add",
-//!   "args": [1, 2],
-//!   "type": "request",
-//!   "version": "json"
+//!   "t": "q",
+//!   "id": "uuid",
+//!   "op": "call",
+//!   "p": ["math", "add"],
+//!   "a": [1, 2]
 //! }
 //! ```
 //!
 //! ### Response
 //! ```json
 //! {
+//!   "t": "r",
 //!   "id": "uuid",
-//!   "method": "",
-//!   "args": {"result": 3},
-//!   "type": "response",
-//!   "version": "json"
+//!   "v": 3
 //! }
 //! ```
 //!
 //! ### Property Get
 //! ```json
 //! {
+//!   "t": "q",
 //!   "id": "uuid",
-//!   "path": ["settings", "theme"],
-//!   "type": "get",
-//!   "version": "json"
+//!   "op": "get",
+//!   "p": ["settings", "theme"]
 //! }
 //! ```
 //!
 //! ### Callback
-//! Callbacks are encoded as `__callback__<id>` strings and invoked via:
+//! Callbacks are encoded as argument marker objects and invoked via:
 //! ```json
 //! {
+//!   "t": "cb",
 //!   "id": "uuid",
-//!   "method": "callback-id",
-//!   "args": ["payload"],
-//!   "type": "callback",
-//!   "version": "json"
+//!   "a": ["payload"]
 //! }
 //! ```
 
@@ -136,12 +133,8 @@ use std::io::{BufRead, BufReader, Write};
 use std::sync::{Arc, Condvar, Mutex};
 use std::thread;
 
-/// Prefix for callback identifiers in the protocol.
-///
-/// Callback arguments are encoded as `__callback__<uuid>` strings.
-/// When the remote side invokes the callback, it sends a message
-/// with `type: "callback"` and the callback ID in the `method` field.
-pub const CALLBACK_PREFIX: &str = "__callback__";
+/// Stable callback argument marker key used by the compact protocol.
+pub const ARG_ENVELOPE_TAG: &str = "__kkrpc_next_arg__";
 
 /// Transport layer abstraction for the RPC protocol.
 ///
@@ -410,7 +403,7 @@ struct ResponsePayload {
 /// Argument type for RPC method calls.
 ///
 /// Arguments can be either JSON values or callbacks.
-/// Callbacks are automatically encoded with the `__callback__` prefix.
+/// Callbacks are automatically encoded as stable callback marker objects.
 ///
 /// # Example
 ///
@@ -504,24 +497,26 @@ impl Client {
         let pending_clone = Arc::clone(&pending);
         let callbacks_clone = Arc::clone(&callbacks);
 
-        thread::spawn(move || loop {
-            let line = match transport_clone.read() {
-                Some(line) => line,
-                None => break,
-            };
-            let trimmed = line.trim();
-            if trimmed.is_empty() {
-                continue;
-            }
-            let message: Value = match serde_json::from_str(trimmed) {
-                Ok(value) => value,
-                Err(_) => continue,
-            };
-            let message_type = message.get("type").and_then(|v| v.as_str());
-            match message_type {
-                Some("response") => handle_response(&pending_clone, message),
-                Some("callback") => handle_callback(&callbacks_clone, message),
-                _ => {}
+        thread::spawn(move || {
+            loop {
+                let line = match transport_clone.read() {
+                    Some(line) => line,
+                    None => break,
+                };
+                let trimmed = line.trim();
+                if trimmed.is_empty() {
+                    continue;
+                }
+                let message: Value = match serde_json::from_str(trimmed) {
+                    Ok(value) => value,
+                    Err(_) => continue,
+                };
+                let message_type = message.get("t").and_then(|v| v.as_str());
+                match message_type {
+                    Some("r") => handle_response(&pending_clone, message),
+                    Some("cb") => handle_callback(&callbacks_clone, message),
+                    _ => {}
+                }
             }
         });
 
@@ -559,7 +554,11 @@ impl Client {
     /// }
     /// ```
     pub fn call(&self, method: &str, args: Vec<Arg>) -> Result<Value, RpcError> {
-        self.send_request("request", Some(method), args, None, None)
+        let path = method
+            .split('.')
+            .map(|segment| Value::String(segment.to_string()))
+            .collect();
+        self.send_request("call", args, Some(path), None)
     }
 
     /// Get a property value from the remote API.
@@ -586,7 +585,7 @@ impl Client {
     /// ```
     pub fn get(&self, path: &[&str]) -> Result<Value, RpcError> {
         let path_values: Vec<Value> = path.iter().map(|s| Value::String(s.to_string())).collect();
-        self.send_request("get", None, vec![], Some(path_values), None)
+        self.send_request("get", vec![], Some(path_values), None)
     }
 
     /// Set a property value on the remote API.
@@ -614,13 +613,12 @@ impl Client {
     /// ```
     pub fn set(&self, path: &[&str], value: Value) -> Result<Value, RpcError> {
         let path_values: Vec<Value> = path.iter().map(|s| Value::String(s.to_string())).collect();
-        self.send_request("set", None, vec![], Some(path_values), Some(value))
+        self.send_request("set", vec![], Some(path_values), Some(value))
     }
 
     fn send_request(
         &self,
-        message_type: &str,
-        method: Option<&str>,
+        op: &str,
         args: Vec<Arg>,
         path: Option<Vec<Value>>,
         value: Option<Value>,
@@ -633,7 +631,6 @@ impl Client {
             .insert(request_id.clone(), sender);
 
         let mut processed_args: Vec<Value> = Vec::new();
-        let mut callback_ids: Vec<Value> = Vec::new();
 
         for arg in args {
             match arg {
@@ -644,31 +641,24 @@ impl Client {
                         .lock()
                         .expect("callbacks lock")
                         .insert(callback_id.clone(), callback);
-                    callback_ids.push(Value::String(callback_id.clone()));
-                    processed_args
-                        .push(Value::String(format!("{}{}", CALLBACK_PREFIX, callback_id)));
+                    processed_args.push(serde_json::json!({
+                        ARG_ENVELOPE_TAG: "callback",
+                        "id": callback_id
+                    }));
                 }
             }
         }
 
         let mut payload = serde_json::Map::new();
+        payload.insert("t".to_string(), Value::String("q".to_string()));
         payload.insert("id".to_string(), Value::String(request_id.clone()));
-        payload.insert("type".to_string(), Value::String(message_type.to_string()));
-        payload.insert("version".to_string(), Value::String("json".to_string()));
-        if let Some(m) = method {
-            payload.insert("method".to_string(), Value::String(m.to_string()));
-        }
+        payload.insert("op".to_string(), Value::String(op.to_string()));
+        payload.insert("p".to_string(), Value::Array(path.unwrap_or_default()));
         if !processed_args.is_empty() {
-            payload.insert("args".to_string(), Value::Array(processed_args));
-        }
-        if !callback_ids.is_empty() {
-            payload.insert("callbackIds".to_string(), Value::Array(callback_ids));
-        }
-        if let Some(p) = path {
-            payload.insert("path".to_string(), Value::Array(p));
+            payload.insert("a".to_string(), Value::Array(processed_args));
         }
         if let Some(v) = value {
-            payload.insert("value".to_string(), v);
+            payload.insert("v".to_string(), v);
         }
 
         write_message(&self.transport, Value::Object(payload));
@@ -859,26 +849,31 @@ impl Server {
     fn start(&self) {
         let transport = Arc::clone(&self.transport);
         let api = Arc::clone(&self.api);
-        thread::spawn(move || loop {
-            let line = match transport.read() {
-                Some(line) => line,
-                None => break,
-            };
-            let trimmed = line.trim();
-            if trimmed.is_empty() {
-                continue;
-            }
-            let message: Value = match serde_json::from_str(trimmed) {
-                Ok(value) => value,
-                Err(_) => continue,
-            };
-            let message_type = message.get("type").and_then(|v| v.as_str());
-            match message_type {
-                Some("request") => handle_server_request(&transport, &api, message),
-                Some("get") => handle_server_get(&transport, &api, message),
-                Some("set") => handle_server_set(&transport, &api, message),
-                Some("construct") => handle_server_construct(&transport, &api, message),
-                _ => {}
+        thread::spawn(move || {
+            loop {
+                let line = match transport.read() {
+                    Some(line) => line,
+                    None => break,
+                };
+                let trimmed = line.trim();
+                if trimmed.is_empty() {
+                    continue;
+                }
+                let message: Value = match serde_json::from_str(trimmed) {
+                    Ok(value) => value,
+                    Err(_) => continue,
+                };
+                if message.get("t").and_then(|v| v.as_str()) != Some("q") {
+                    continue;
+                }
+                let op = message.get("op").and_then(|v| v.as_str());
+                match op {
+                    Some("call") => handle_server_request(&transport, &api, message),
+                    Some("get") => handle_server_get(&transport, &api, message),
+                    Some("set") => handle_server_set(&transport, &api, message),
+                    Some("new") => handle_server_construct(&transport, &api, message),
+                    _ => {}
+                }
             }
         });
     }
@@ -895,15 +890,14 @@ fn handle_response(
         None => return,
     };
 
-    let args = message.get("args").cloned().unwrap_or(Value::Null);
-    if let Some(error_value) = args.get("error") {
+    if let Some(error_value) = message.get("e") {
         let error = if let Some(error_obj) = error_value.as_object() {
             let name = error_obj
-                .get("name")
+                .get("n")
                 .and_then(|v| v.as_str())
                 .map(|v| v.to_string());
             let message = error_obj
-                .get("message")
+                .get("m")
                 .and_then(|v| v.as_str())
                 .unwrap_or("RPC error")
                 .to_string();
@@ -926,7 +920,7 @@ fn handle_response(
         return;
     }
 
-    let result = args.get("result").cloned();
+    let result = message.get("v").cloned();
     let _ = sender.send(ResponsePayload {
         result,
         error: None,
@@ -934,7 +928,7 @@ fn handle_response(
 }
 
 fn handle_callback(callbacks: &Arc<Mutex<HashMap<String, Callback>>>, message: Value) {
-    let callback_id = message.get("method").and_then(|v| v.as_str());
+    let callback_id = message.get("id").and_then(|v| v.as_str());
     let callback_id = match callback_id {
         Some(id) => id,
         None => return,
@@ -949,11 +943,31 @@ fn handle_callback(callbacks: &Arc<Mutex<HashMap<String, Callback>>>, message: V
         None => return,
     };
     let args = message
-        .get("args")
+        .get("a")
         .and_then(|v| v.as_array())
-        .cloned()
+        .map(|args| args.iter().map(decode_arg).collect())
         .unwrap_or_default();
     callback(args);
+}
+
+fn decode_arg(value: &Value) -> Value {
+    if value.get(ARG_ENVELOPE_TAG).and_then(|v| v.as_str()) == Some("value") {
+        return value.get("v").cloned().unwrap_or(Value::Null);
+    }
+    value.clone()
+}
+
+fn path_from_message(message: &Value) -> Vec<String> {
+    message
+        .get("p")
+        .and_then(|v| v.as_array())
+        .map(|values| {
+            values
+                .iter()
+                .filter_map(|value| value.as_str().map(|text| text.to_string()))
+                .collect()
+        })
+        .unwrap_or_default()
 }
 
 fn write_message(transport: &Arc<dyn Transport>, message: Value) {
@@ -966,111 +980,88 @@ fn write_message(transport: &Arc<dyn Transport>, message: Value) {
 
 fn handle_server_request(transport: &Arc<dyn Transport>, api: &RpcApi, message: Value) {
     let request_id = message.get("id").and_then(|v| v.as_str()).unwrap_or("");
-    let method = message.get("method").and_then(|v| v.as_str()).unwrap_or("");
     let args = message
-        .get("args")
+        .get("a")
         .and_then(|v| v.as_array())
         .cloned()
         .unwrap_or_default();
     let converted = wrap_callback_args(transport, request_id, args);
-    let handler = api.methods.get(method);
+    let method = path_from_message(&message).join(".");
+    let handler = api.methods.get(&method);
     let result = handler.map(|call| call(converted)).unwrap_or(Value::Null);
     let payload = serde_json::json!({
+        "t": "r",
         "id": request_id,
-        "method": "",
-        "args": { "result": result },
-        "type": "response",
-        "version": "json"
+        "v": result
     });
     write_message(transport, payload);
 }
 
 fn handle_server_get(transport: &Arc<dyn Transport>, api: &RpcApi, message: Value) {
     let request_id = message.get("id").and_then(|v| v.as_str()).unwrap_or("");
-    let path_values = message
-        .get("path")
-        .and_then(|v| v.as_array())
-        .cloned()
-        .unwrap_or_default();
-    let path = path_values
-        .iter()
-        .filter_map(|value| value.as_str())
-        .collect::<Vec<_>>()
-        .join(".");
+    let path = path_from_message(&message).join(".");
     let result = api.get_value(&path).unwrap_or(Value::Null);
     let payload = serde_json::json!({
+        "t": "r",
         "id": request_id,
-        "method": "",
-        "args": { "result": result },
-        "type": "response",
-        "version": "json"
+        "v": result
     });
     write_message(transport, payload);
 }
 
 fn handle_server_set(transport: &Arc<dyn Transport>, api: &RpcApi, message: Value) {
     let request_id = message.get("id").and_then(|v| v.as_str()).unwrap_or("");
-    let path_values = message
-        .get("path")
-        .and_then(|v| v.as_array())
-        .cloned()
-        .unwrap_or_default();
-    let path = path_values
-        .iter()
-        .filter_map(|value| value.as_str())
-        .collect::<Vec<_>>()
-        .join(".");
-    let value = message.get("value").cloned().unwrap_or(Value::Null);
+    let path = path_from_message(&message).join(".");
+    let value = message.get("v").cloned().unwrap_or(Value::Null);
     api.set_value(&path, value);
     let payload = serde_json::json!({
+        "t": "r",
         "id": request_id,
-        "method": "",
-        "args": { "result": true },
-        "type": "response",
-        "version": "json"
+        "v": true
     });
     write_message(transport, payload);
 }
 
 fn handle_server_construct(transport: &Arc<dyn Transport>, api: &RpcApi, message: Value) {
     let request_id = message.get("id").and_then(|v| v.as_str()).unwrap_or("");
-    let method = message.get("method").and_then(|v| v.as_str()).unwrap_or("");
-    let handler = api.constructors.get(method);
+    let method = path_from_message(&message).join(".");
+    let handler = api.constructors.get(&method);
     let args = message
-        .get("args")
+        .get("a")
         .and_then(|v| v.as_array())
         .cloned()
         .unwrap_or_default();
     let converted = wrap_callback_args(transport, request_id, args);
     let result = handler.map(|call| call(converted)).unwrap_or(Value::Null);
     let payload = serde_json::json!({
+        "t": "r",
         "id": request_id,
-        "method": "",
-        "args": { "result": result },
-        "type": "response",
-        "version": "json"
+        "v": result
     });
     write_message(transport, payload);
 }
 
 fn wrap_callback_args(
     transport: &Arc<dyn Transport>,
-    request_id: &str,
+    _request_id: &str,
     args: Vec<Value>,
 ) -> Vec<Arg> {
     args.into_iter()
         .map(|value| match value {
-            Value::String(text) if text.starts_with(CALLBACK_PREFIX) => {
-                let callback_id = text.trim_start_matches(CALLBACK_PREFIX).to_string();
+            Value::Object(map)
+                if map.get(ARG_ENVELOPE_TAG).and_then(|v| v.as_str()) == Some("callback") =>
+            {
+                let callback_id = map
+                    .get("id")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .to_string();
                 let transport_clone = Arc::clone(transport);
-                let request_id = request_id.to_string();
                 Arg::Callback(Arc::new(move |callback_args: Vec<Value>| {
                     let payload = serde_json::json!({
-                        "id": request_id,
-                        "method": callback_id,
-                        "args": callback_args,
-                        "type": "callback",
-                        "version": "json"
+                        "t": "cb",
+                        "id": callback_id,
+                        "a": callback_args
                     });
                     write_message(&transport_clone, payload);
                 }))

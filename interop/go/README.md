@@ -7,7 +7,7 @@ message protocol using JSON only, enabling cross-language RPC.
 
 - JSON request/response compatible with kkrpc's stable compact `RPCMessage` protocol.
 - `stdio` and `ws` transports with a shared `Transport` interface.
-- Callback support using `__callback__<id>` tokens.
+- Callback support using stable callback marker objects.
 
 ## Installation
 
@@ -99,10 +99,9 @@ go test ./...
 
 ## How it works with kkrpc
 
-- **Message format**: JSON objects with `id`, `method`, `args`, `type`, `version`.
+- **Message format**: compact JSON records with `t`, `id`, `op`, `p`, `a`, and `v` fields.
 - **Line-delimited transport**: each JSON message ends with `\n`.
-- **Callbacks**: function arguments are encoded as `__callback__<id>` and dispatched via
-  `type = "callback"`.
+- **Callbacks**: function arguments are encoded as `{ "__kkrpc_next_arg__": "callback", "id": "..." }` and dispatched with `t = "cb"`.
 - **Adapters**: `Transport` is the common interface for `StdioTransport` and
   `WebSocketTransport`.
 

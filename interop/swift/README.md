@@ -6,7 +6,7 @@ Swift client/server library for kkrpc JSON-mode interop. This package implements
 
 - JSON request/response compatible with kkrpc's stable compact `RPCMessage` protocol
 - `stdio` and `ws` transports with a shared `Transport` protocol
-- Callback support using `__callback__<id>` tokens
+- Callback support using stable callback marker objects
 - Property access (get/set) for remote object manipulation
 - Modern Swift concurrency with async/await
 
@@ -157,9 +157,9 @@ swift test
 
 ## How it works with kkrpc
 
-- **Message format**: JSON objects with `id`, `method`, `args`, `type`, `version`
+- **Message format**: compact JSON records with `t`, `id`, `op`, `p`, `a`, and `v` fields
 - **Line-delimited transport**: each JSON message ends with `\n`
-- **Callbacks**: function arguments are encoded as `__callback__<id>` and dispatched via `type = "callback"`
+- **Callbacks**: function arguments are encoded as `{ "__kkrpc_next_arg__": "callback", "id": "..." }` and dispatched with `t = "cb"`
 - **Adapters**: `Transport` is the common protocol for `StdioTransport` and `WebSocketTransport`
 
 kkrpc JS clients/servers use the stable compact JSON `RPCMessage` protocol by default.

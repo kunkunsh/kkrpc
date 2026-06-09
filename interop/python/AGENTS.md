@@ -103,7 +103,7 @@ pytest --cov=kkrpc tests/
 - Python 3.12+ required
 - No external runtime dependencies
 - WebSocket uses stdlib-only RFC6455 implementation
-- Callbacks encoded as `__callback__<id>` strings
+- Callbacks use `{ "__kkrpc_next_arg__": "callback", "id": "..." }` marker objects
 - Compatible with kkrpc's stable compact JSON `RPCMessage` protocol
 
 ## TESTING

@@ -1,6 +1,6 @@
 import Foundation
 
-public let callbackPrefix = "__callback__"
+public let argEnvelopeTag = "__kkrpc_next_arg__"
 
 public enum KkrpcError: Error {
     case transportClosed

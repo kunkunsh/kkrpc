@@ -88,7 +88,7 @@ go build -o myapp
 
 - Go 1.21+ required
 - No external dependencies (stdlib only)
-- Callbacks encoded as `__callback__<id>` strings
+- Callbacks use `{ "__kkrpc_next_arg__": "callback", "id": "..." }` marker objects
 - Line-delimited JSON protocol (`\n` terminated)
 
 ## LIMITATIONS

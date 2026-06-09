@@ -382,13 +382,14 @@ export const userManagementAPI: UserManagementAPI = {
 
 ```typescript
 // client.ts
-import { RPCChannel, WorkerParentIO } from "kkrpc"
+import { RPCChannel } from "kkrpc"
+import { workerTransport } from "kkrpc/worker"
 import { DatabaseError, UserManagementAPI, UserNotFoundError, ValidationError } from "./types"
 
 // Set up RPC connection
 const worker = new Worker("./api-worker.ts", { type: "module" })
-const io = new WorkerParentIO(worker)
-const rpc = new RPCChannel<{}, UserManagementAPI>(io)
+const transport = workerTransport(worker)
+const rpc = new RPCChannel<{}, UserManagementAPI>(transport)
 const api = rpc.getAPI()
 
 async function demonstrateFeatures() {
@@ -592,11 +593,12 @@ demonstrateFeatures()
 
 ```typescript
 // api-worker.ts
-import { RPCChannel, WorkerChildIO } from "kkrpc"
+import { RPCChannel } from "kkrpc"
+import { workerSelfTransport } from "kkrpc/worker"
 import { userManagementAPI, UserManagementAPI } from "./api-implementation"
 
-const io = new WorkerChildIO()
-const rpc = new RPCChannel<UserManagementAPI, {}>(io, {
+const transport = workerSelfTransport()
+const rpc = new RPCChannel<UserManagementAPI, {}>(transport, {
 	expose: userManagementAPI
 })
 

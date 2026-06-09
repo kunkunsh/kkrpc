@@ -20,21 +20,36 @@ Actually, the overall design of `kkRPC` is very similar to GraphQL (i.e. sending
 
 The message structure is different from JSON-RPC 2.0, but similar in concept.
 
-Each message can serve as a request, response or callback. `method` is used to locate the exposed API.
+Stable kkrpc uses compact request, response, and callback records. Requests locate the exposed API with a path array.
 
 ```ts
-interface Message<T = any> {
+type Operation = "call" | "get" | "set" | "new"
+
+interface RPCRequest {
+	t: "q"
 	id: string
-	method: string
-	args: T
-	type: "request" | "response" | "callback" // Add "callback" type
-	callbackIds?: string[] // Add callbackIds field
+	op: Operation
+	p: string[]
+	a?: unknown[]
+	v?: unknown
+}
+
+interface RPCResponse {
+	t: "r"
+	id: string
+	v?: unknown
+	e?: { n: string; m: string; s?: string }
+}
+
+interface RPCCallback {
+	t: "cb"
+	id: string
+	a: unknown[]
 }
 ```
 
 Since it's not possible to transfer a callback function over any protocol, the channel keeps track of callbacks,
-send callback ids to the remote. When the remote "calls" the callback, it's actually returning callback ids,
-then the local side will use the ids to find the callback function and call it.
+sends callback marker objects to the remote, and later routes `t: "cb"` records back to the stored local function.
 
 ## Transport
 

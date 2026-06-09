@@ -12,11 +12,11 @@ final class ProtocolTests: XCTestCase {
     
     func testEncodeDecodeMessage() throws {
         let payload: [String: Any] = [
+            "t": "q",
             "id": "test-id",
-            "type": "request",
-            "method": "math.add",
-            "args": [1, 2],
-            "version": "json"
+            "op": "call",
+            "p": ["math", "add"],
+            "a": [1, 2]
         ]
         
         let encoded = try encodeMessage(payload)
@@ -24,14 +24,15 @@ final class ProtocolTests: XCTestCase {
         
         let decoded = try decodeMessage(String(encoded.dropLast()))
         XCTAssertEqual(decoded["id"] as? String, "test-id")
-        XCTAssertEqual(decoded["type"] as? String, "request")
-        XCTAssertEqual(decoded["method"] as? String, "math.add")
+        XCTAssertEqual(decoded["t"] as? String, "q")
+        XCTAssertEqual(decoded["op"] as? String, "call")
+        XCTAssertEqual(decoded["p"] as? [String], ["math", "add"])
     }
     
     func testDecodeError() {
         let errorMap: [String: Any] = [
-            "name": "ValidationError",
-            "message": "Invalid input"
+            "n": "ValidationError",
+            "m": "Invalid input"
         ]
         
         let error = decodeError(errorMap)
@@ -41,6 +42,15 @@ final class ProtocolTests: XCTestCase {
         } else {
             XCTFail("Expected rpcError")
         }
+    }
+
+    func testDecodeValueEnvelopeArgument() {
+        let decoded = decodeArgument([
+            argEnvelopeTag: "value",
+            "v": "payload"
+        ])
+
+        XCTAssertEqual(decoded as? String, "payload")
     }
 }
 

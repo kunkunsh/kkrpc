@@ -47,12 +47,13 @@ Browser natively supports these transferable types:
 ### Simple Transfer
 
 ```typescript
-import { RPCChannel, transfer, WorkerParentIO } from "kkrpc/browser"
+import { RPCChannel, transfer } from "kkrpc/browser"
+import { workerTransport } from "kkrpc/worker"
 
 // Setup RPC channel
 const worker = new Worker("worker.js")
-const io = new WorkerParentIO(worker)
-const rpc = new RPCChannel(io)
+const transport = workerTransport(worker)
+const rpc = new RPCChannel(transport)
 const api = rpc.getAPI<{
 	processBuffer(buffer: ArrayBuffer): Promise<number>
 }>()
@@ -168,7 +169,8 @@ console.log(receiveBuffer.byteLength) // 1024
 
 ```typescript
 // worker.ts
-import { RPCChannel, transfer, WorkerChildIO } from "kkrpc/browser"
+import { RPCChannel, transfer } from "kkrpc/browser"
+import { workerSelfTransport } from "kkrpc/worker"
 
 const api = {
 	// Process transferred buffer
@@ -206,8 +208,8 @@ const api = {
 	}
 }
 
-const io = new WorkerChildIO()
-const rpc = new RPCChannel(io, { expose: api })
+const transport = workerSelfTransport()
+const rpc = new RPCChannel(transport, { expose: api })
 ```
 
 ## 🧪 Testing Transfers
