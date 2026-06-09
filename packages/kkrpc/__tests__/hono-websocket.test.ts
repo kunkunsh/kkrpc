@@ -6,8 +6,8 @@ import { createHonoWebSocketHandler } from "../ws-hono.ts"
 import { webSocketClientTransport } from "../ws.ts"
 import { apiMethods, type API } from "./scripts/api.ts"
 
-const PORT = 3002
 let server: ReturnType<typeof Bun.serve> | undefined
+let url: string
 
 beforeAll(() => {
 	const app = new Hono()
@@ -17,10 +17,11 @@ beforeAll(() => {
 	)
 
 	server = Bun.serve({
-		port: PORT,
+		port: 0,
 		fetch: app.fetch,
 		websocket
 	})
+	url = `ws://localhost:${server.port}/ws`
 })
 
 afterAll(() => {
@@ -28,9 +29,7 @@ afterAll(() => {
 })
 
 test("Hono WebSocket RPC calls remote methods", async () => {
-	const client = new RPCChannel<object, API>(
-		webSocketClientTransport({ url: `ws://localhost:${PORT}/ws` })
-	)
+	const client = new RPCChannel<object, API>(webSocketClientTransport({ url }))
 	const api = client.getAPI()
 
 	try {
@@ -46,8 +45,7 @@ test("Hono WebSocket RPC calls remote methods", async () => {
 test("Hono WebSocket supports concurrent clients", async () => {
 	const clients = Array.from(
 		{ length: 5 },
-		() =>
-			new RPCChannel<object, API>(webSocketClientTransport({ url: `ws://localhost:${PORT}/ws` }))
+		() => new RPCChannel<object, API>(webSocketClientTransport({ url }))
 	)
 
 	try {
@@ -57,3 +55,23 @@ test("Hono WebSocket supports concurrent clients", async () => {
 		for (const client of clients) client.destroy()
 	}
 })
+
+test("Hono WebSocket ignores malformed frames", async () => {
+	const socket = new WebSocket(url)
+	await waitForOpen(socket)
+	socket.send("not json")
+	socket.close()
+
+	const client = new RPCChannel<object, API>(webSocketClientTransport({ url }))
+	try {
+		expect(await client.getAPI().add(1, 2)).toBe(3)
+	} finally {
+		client.destroy()
+	}
+})
+
+function waitForOpen(socket: WebSocket): Promise<void> {
+	return new Promise((resolve) => {
+		socket.addEventListener("open", () => resolve(), { once: true })
+	})
+}

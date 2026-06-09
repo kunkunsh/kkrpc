@@ -8,7 +8,10 @@ export interface WebSocketLike {
 	onmessage?: unknown
 	onopen?: unknown
 	addEventListener?: unknown
+	removeEventListener?: unknown
 	on?: unknown
+	off?: unknown
+	removeListener?: unknown
 }
 
 export interface WebSocketClientTransportOptions {
@@ -22,6 +25,8 @@ const textDecoder = new TextDecoder()
 export function webSocketTransport(socket: WebSocketLike): Transport<RPCMessage> {
 	const listeners = new Set<(message: RPCMessage) => void>()
 	const pending: string[] = []
+	let detachMessageListener: (() => void) | undefined
+	let detachOpenListener: (() => void) | undefined
 	let closed = false
 
 	const flush = () => {
@@ -31,12 +36,23 @@ export function webSocketTransport(socket: WebSocketLike): Transport<RPCMessage>
 	}
 
 	const onMessage = (data: unknown) => {
-		const message = JSON.parse(toText(data)) as RPCMessage
+		const message = parseMessage(data)
+		if (!message) return
 		for (const listener of listeners) listener(message)
 	}
 
-	attachMessageListener(socket, onMessage)
-	attachOpenListener(socket, flush)
+	const attachNativeListeners = () => {
+		detachMessageListener ??= attachMessageListener(socket, onMessage)
+		detachOpenListener ??= attachOpenListener(socket, flush)
+	}
+	const detachNativeListeners = () => {
+		detachMessageListener?.()
+		detachOpenListener?.()
+		detachMessageListener = undefined
+		detachOpenListener = undefined
+	}
+
+	attachNativeListeners()
 
 	return {
 		capabilities: { objectMode: true, transfer: false },
@@ -49,14 +65,17 @@ export function webSocketTransport(socket: WebSocketLike): Transport<RPCMessage>
 			pending.push(raw)
 		},
 		subscribe(listener) {
+			attachNativeListeners()
 			listeners.add(listener)
 			return () => {
 				listeners.delete(listener)
+				if (listeners.size === 0) detachNativeListeners()
 			}
 		},
 		close() {
 			closed = true
 			pending.length = 0
+			detachNativeListeners()
 			socket.close()
 		}
 	}
@@ -68,29 +87,37 @@ export function webSocketClientTransport(
 	return webSocketTransport(new WebSocket(options.url, options.protocols))
 }
 
-function attachMessageListener(socket: WebSocketLike, listener: (data: unknown) => void): void {
+function attachMessageListener(
+	socket: WebSocketLike,
+	listener: (data: unknown) => void
+): () => void {
 	if (typeof socket.addEventListener === "function") {
 		const addEventListener = socket.addEventListener as (
 			event: "message",
 			listener: (event: unknown) => void
 		) => void
-		addEventListener.call(socket, "message", (event) => listener(getEventData(event)))
-		return
+		const handler = (event: unknown) => listener(getEventData(event))
+		addEventListener.call(socket, "message", handler)
+		return () => removeEventListener(socket, "message", handler)
 	}
 
 	if (typeof socket.on === "function") {
 		const on = socket.on as (event: "message", listener: (data: unknown) => void) => void
 		on.call(socket, "message", listener)
-		return
+		return () => removeNodeListener(socket, "message", listener)
 	}
 
+	const previous = socket.onmessage
 	socket.onmessage = (event: unknown) => listener(getEventData(event))
+	return () => {
+		socket.onmessage = previous
+	}
 }
 
-function attachOpenListener(socket: WebSocketLike, listener: () => void): void {
+function attachOpenListener(socket: WebSocketLike, listener: () => void): () => void {
 	if (socket.readyState === undefined || socket.readyState === OPEN_READY_STATE) {
 		queueMicrotask(listener)
-		return
+		return () => {}
 	}
 
 	if (typeof socket.addEventListener === "function") {
@@ -99,13 +126,13 @@ function attachOpenListener(socket: WebSocketLike, listener: () => void): void {
 			listener: (event: unknown) => void
 		) => void
 		addEventListener.call(socket, "open", listener)
-		return
+		return () => removeEventListener(socket, "open", listener)
 	}
 
 	if (typeof socket.on === "function") {
 		const on = socket.on as (event: "open", listener: () => void) => void
 		on.call(socket, "open", listener)
-		return
+		return () => removeNodeListener(socket, "open", listener)
 	}
 
 	const previous = socket.onopen
@@ -113,6 +140,44 @@ function attachOpenListener(socket: WebSocketLike, listener: () => void): void {
 		listener()
 		if (typeof previous === "function") previous(event)
 	}
+	return () => {
+		socket.onopen = previous
+	}
+}
+
+function parseMessage(data: unknown): RPCMessage | undefined {
+	try {
+		return JSON.parse(toText(data)) as RPCMessage
+	} catch {
+		return undefined
+	}
+}
+
+function removeEventListener(
+	socket: WebSocketLike,
+	event: "message" | "open",
+	listener: (event: unknown) => void
+): void {
+	if (typeof socket.removeEventListener !== "function") return
+	const remove = socket.removeEventListener as (
+		event: "message" | "open",
+		listener: (event: unknown) => void
+	) => void
+	remove.call(socket, event, listener)
+}
+
+function removeNodeListener(
+	socket: WebSocketLike,
+	event: "message" | "open",
+	listener: (event: unknown) => void
+): void {
+	const remove = typeof socket.off === "function" ? socket.off : socket.removeListener
+	if (typeof remove !== "function") return
+	;(remove as (event: "message" | "open", listener: (event: unknown) => void) => void).call(
+		socket,
+		event,
+		listener
+	)
 }
 
 function getEventData(event: unknown): unknown {

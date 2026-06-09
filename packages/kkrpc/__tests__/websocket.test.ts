@@ -1,14 +1,17 @@
+import type { AddressInfo } from "node:net"
 import { afterAll, beforeAll, expect, test } from "bun:test"
 import { WebSocketServer } from "ws"
 import { RPCChannel } from "../mod.ts"
 import { webSocketClientTransport, webSocketTransport } from "../ws.ts"
 import { apiMethods, type API } from "./scripts/api.ts"
 
-const PORT = 3001
 let wss: WebSocketServer
+let url: string
 
 beforeAll(() => {
-	wss = new WebSocketServer({ port: PORT })
+	wss = new WebSocketServer({ port: 0 })
+	const address = wss.address() as AddressInfo
+	url = `ws://localhost:${address.port}`
 	wss.on("connection", (socket) => {
 		new RPCChannel<API, object>(webSocketTransport(socket), { expose: apiMethods })
 	})
@@ -19,9 +22,7 @@ afterAll(() => {
 })
 
 test("WebSocket RPC calls remote methods", async () => {
-	const client = new RPCChannel<object, API>(
-		webSocketClientTransport({ url: `ws://localhost:${PORT}` })
-	)
+	const client = new RPCChannel<object, API>(webSocketClientTransport({ url }))
 	const api = client.getAPI()
 
 	try {
@@ -43,7 +44,7 @@ test("WebSocket RPC calls remote methods", async () => {
 test("WebSocket supports concurrent clients", async () => {
 	const clients = Array.from(
 		{ length: 5 },
-		() => new RPCChannel<object, API>(webSocketClientTransport({ url: `ws://localhost:${PORT}` }))
+		() => new RPCChannel<object, API>(webSocketClientTransport({ url }))
 	)
 
 	try {
@@ -62,3 +63,45 @@ test("WebSocket supports concurrent clients", async () => {
 		for (const client of clients) client.destroy()
 	}
 })
+
+test("WebSocket ignores malformed frames", async () => {
+	const socket = new WebSocket(url)
+	await waitForOpen(socket)
+	socket.send("not json")
+	socket.close()
+
+	const client = new RPCChannel<object, API>(webSocketClientTransport({ url }))
+	try {
+		expect(await client.getAPI().add(1, 2)).toBe(3)
+	} finally {
+		client.destroy()
+	}
+})
+
+test("WebSocket unsubscribe removes native listeners", async () => {
+	const server = new WebSocketServer({ port: 0 })
+	const address = server.address() as AddressInfo
+	const accepted = new Promise<
+		Parameters<typeof webSocketTransport>[0] & { listenerCount(event: string): number }
+	>((resolve) => {
+		server.once("connection", (socket) => resolve(socket))
+	})
+	const socket = new WebSocket(`ws://localhost:${address.port}`)
+	await waitForOpen(socket)
+	const serverSocket = await accepted
+	const transport = webSocketTransport(serverSocket)
+	const unsubscribe = transport.subscribe(() => {})
+
+	expect(serverSocket.listenerCount("message")).toBeGreaterThan(0)
+	unsubscribe()
+	expect(serverSocket.listenerCount("message")).toBe(0)
+
+	socket.close()
+	server.close()
+})
+
+function waitForOpen(socket: WebSocket): Promise<void> {
+	return new Promise((resolve) => {
+		socket.addEventListener("open", () => resolve(), { once: true })
+	})
+}

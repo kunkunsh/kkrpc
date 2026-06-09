@@ -42,10 +42,19 @@ export function elysiaWebSocketTransport(ws: ElysiaSocketLike): FeedableTranspor
 		},
 		feed(message) {
 			if (closed) return
-			const parsed =
-				typeof message === "string" ? (JSON.parse(message) as RPCMessage) : (message as RPCMessage)
+			const parsed = parseMessage(message)
+			if (!parsed) return
 			for (const listener of listeners) listener(parsed)
 		}
+	}
+}
+
+function parseMessage(message: unknown): RPCMessage | undefined {
+	if (typeof message !== "string") return message as RPCMessage
+	try {
+		return JSON.parse(message) as RPCMessage
+	} catch {
+		return undefined
 	}
 }
 

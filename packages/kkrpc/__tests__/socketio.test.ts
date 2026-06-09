@@ -6,9 +6,9 @@ import { RPCChannel } from "../mod.ts"
 import { socketIoTransport } from "../socketio.ts"
 import { apiMethods, type API } from "./scripts/api.ts"
 
-const PORT = 3004
 let httpServer: ReturnType<typeof createServer>
 let io: SocketIOServer
+let url: string
 
 beforeAll(() => {
 	httpServer = createServer()
@@ -23,7 +23,10 @@ beforeAll(() => {
 		new RPCChannel<API, object>(socketIoTransport(socket), { expose: apiMethods })
 	})
 
-	httpServer.listen(PORT)
+	httpServer.listen(0)
+	const address = httpServer.address()
+	if (address === null || typeof address === "string") throw new Error("missing Socket.IO port")
+	url = `http://localhost:${address.port}`
 })
 
 afterAll(() => {
@@ -32,7 +35,7 @@ afterAll(() => {
 })
 
 test("Socket.IO RPC calls remote methods", async () => {
-	const socket = createSocketIOClient(`http://localhost:${PORT}`)
+	const socket = createSocketIOClient(url)
 	const client = new RPCChannel<object, API>(socketIoTransport(socket))
 	const api = client.getAPI()
 
@@ -58,7 +61,7 @@ test("Socket.IO supports namespaces", async () => {
 		new RPCChannel<API, object>(socketIoTransport(socket), { expose: apiMethods })
 	})
 
-	const socket = createSocketIOClient(`http://localhost:${PORT}/test`)
+	const socket = createSocketIOClient(`${url}/test`)
 	const client = new RPCChannel<object, API>(socketIoTransport(socket))
 	const api = client.getAPI()
 
@@ -72,7 +75,7 @@ test("Socket.IO supports namespaces", async () => {
 
 test("Socket.IO supports concurrent clients", async () => {
 	const clients = Array.from({ length: 5 }, () => {
-		const socket = createSocketIOClient(`http://localhost:${PORT}`)
+		const socket = createSocketIOClient(url)
 		return new RPCChannel<object, API>(socketIoTransport(socket))
 	})
 

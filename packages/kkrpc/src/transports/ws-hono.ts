@@ -36,9 +36,18 @@ export function honoWebSocketTransport(
 		feed(message) {
 			if (closed) return
 			const raw = typeof message === "string" ? message : String(message)
-			const parsed = JSON.parse(raw) as RPCMessage
+			const parsed = parseMessage(raw)
+			if (!parsed) return
 			for (const listener of listeners) listener(parsed)
 		}
+	}
+}
+
+function parseMessage(raw: string): RPCMessage | undefined {
+	try {
+		return JSON.parse(raw) as RPCMessage
+	} catch {
+		return undefined
 	}
 }
 

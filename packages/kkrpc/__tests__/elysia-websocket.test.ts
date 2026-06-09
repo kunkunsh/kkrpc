@@ -5,13 +5,14 @@ import { createElysiaWebSocketHandler } from "../ws-elysia.ts"
 import { webSocketClientTransport } from "../ws.ts"
 import { apiMethods, type API } from "./scripts/api.ts"
 
-const PORT = 3003
 let server: Elysia | undefined
+let url: string
 
 beforeAll(() => {
 	server = new Elysia()
 		.ws("/rpc", createElysiaWebSocketHandler({ expose: apiMethods }))
-		.listen({ port: PORT, hostname: "127.0.0.1" })
+		.listen({ port: 0, hostname: "127.0.0.1" })
+	url = `ws://127.0.0.1:${server.server?.port}/rpc`
 })
 
 afterAll(() => {
@@ -19,9 +20,7 @@ afterAll(() => {
 })
 
 test("Elysia WebSocket RPC calls remote methods", async () => {
-	const client = new RPCChannel<object, API>(
-		webSocketClientTransport({ url: `ws://127.0.0.1:${PORT}/rpc` })
-	)
+	const client = new RPCChannel<object, API>(webSocketClientTransport({ url }))
 	const api = client.getAPI()
 
 	try {
@@ -37,8 +36,7 @@ test("Elysia WebSocket RPC calls remote methods", async () => {
 test("Elysia WebSocket supports concurrent clients", async () => {
 	const clients = Array.from(
 		{ length: 5 },
-		() =>
-			new RPCChannel<object, API>(webSocketClientTransport({ url: `ws://127.0.0.1:${PORT}/rpc` }))
+		() => new RPCChannel<object, API>(webSocketClientTransport({ url }))
 	)
 
 	try {
@@ -48,3 +46,23 @@ test("Elysia WebSocket supports concurrent clients", async () => {
 		for (const client of clients) client.destroy()
 	}
 })
+
+test("Elysia WebSocket ignores malformed frames", async () => {
+	const socket = new WebSocket(url)
+	await waitForOpen(socket)
+	socket.send("not json")
+	socket.close()
+
+	const client = new RPCChannel<object, API>(webSocketClientTransport({ url }))
+	try {
+		expect(await client.getAPI().add(1, 2)).toBe(3)
+	} finally {
+		client.destroy()
+	}
+})
+
+function waitForOpen(socket: WebSocket): Promise<void> {
+	return new Promise((resolve) => {
+		socket.addEventListener("open", () => resolve(), { once: true })
+	})
+}
