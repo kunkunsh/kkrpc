@@ -1,5 +1,5 @@
 /**
- * Streaming + Middleware demo — WebSocket server.
+ * Middleware demo — WebSocket server.
  *
  * Demonstrates four interceptor patterns:
  *   1. Logging    — logs every RPC call with method name and args
@@ -14,7 +14,7 @@ import { RPCChannel } from "kkrpc"
 import { middlewarePlugin, type MiddlewareHandler } from "kkrpc/middleware"
 import { webSocketTransport } from "kkrpc/ws"
 import { WebSocketServer, type WebSocket } from "ws"
-import { createApi, type StreamingMiddlewareAPI } from "./api.ts"
+import { createApi, type MiddlewareDemoAPI } from "./api.ts"
 
 const PORT = 3100
 
@@ -100,7 +100,7 @@ wss.on("connection", (ws: WebSocket) => {
 	const auth = createAuthInterceptor(session)
 	const rateLimiter = createRateLimiter(5) // 5 calls per second
 
-	new RPCChannel<StreamingMiddlewareAPI, {}>(webSocketTransport(ws), {
+	new RPCChannel<MiddlewareDemoAPI, {}>(webSocketTransport(ws), {
 		expose: api,
 		// Onion order: logger → timing → auth → rateLimiter → handler
 		// Logger is outermost so it logs everything including rejected calls.
@@ -114,5 +114,5 @@ wss.on("connection", (ws: WebSocket) => {
 	})
 })
 
-console.log(`[server] Streaming + Middleware demo listening on ws://localhost:${PORT}`)
+console.log(`[server] Middleware demo listening on ws://localhost:${PORT}`)
 console.log(`[server] Interceptors: logger → timing → auth → rateLimiter`)

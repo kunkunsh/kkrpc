@@ -99,7 +99,7 @@ cargo doc --open
 - Thread-safe with Arc/Mutex
 - Callbacks encoded as `__callback__<id>` strings
 - Arg enum for callback vs value distinction
-- Compatible with kkrpc `serialization.version = "json"`
+- Compatible with kkrpc's stable compact JSON `RPCMessage` protocol
 
 ## DEPENDENCIES
 

@@ -181,7 +181,7 @@ When `destroy()` is called, kkrpc rejects all pending requests with `"RPC channe
 new RPCChannel(transport, { expose: api })
 
 // Disable request timeout for this channel.
-new RPCChannel(transport, { expose: api, timeout: 0 })
+new RPCChannel(transport, { expose: api, timeout: -1 })
 ```
 
 ## Combining Features

@@ -102,7 +102,7 @@ swift package generate-xcodeproj
 - Platforms: macOS 10.15+, iOS 13+, tvOS 13+, watchOS 6+
 - No external dependencies (Foundation only)
 - Callbacks encoded as `__callback__<id>` strings
-- Compatible with kkrpc `serialization.version = "json"`
+- Compatible with kkrpc's stable compact JSON `RPCMessage` protocol
 
 ## TYPE ALIASES
 

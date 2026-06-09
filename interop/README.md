@@ -9,9 +9,9 @@ speak to a TypeScript kkrpc endpoint over line-delimited JSON (stdio) or WebSock
   - **stdio**: newline-delimited UTF-8 JSON strings.
   - **ws**: text frames containing the same JSON payloads (newline suffix optional).
 - **Serialization**:
-  - `version: "json"` indicates plain JSON.
+  - Stable JS transports exchange compact JSON `RPCMessage` records.
   - SuperJSON messages start with `{ "json": ... }` and are parsed by JS/TS; other runtimes
-    can choose to ignore or only implement `version: "json"`.
+    can choose to implement only the compact JSON protocol first.
 - **Message shape**:
 
 ```json
@@ -159,5 +159,5 @@ cargo test
 ## Design Notes
 
 - This draft intentionally **omits transfer slots** and structured clone support.
-- Cross-language targets should start with `version: "json"` and add SuperJSON support later
+- Cross-language targets should start with the compact JSON protocol and add richer codecs later
   if needed.

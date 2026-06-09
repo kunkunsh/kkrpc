@@ -2,616 +2,163 @@
 
 ## 概述 (Overview)
 
-kkrpc 是一个基于 TypeScript 的 RPC 库，实现了跨运行时环境的双向通信。核心架构采用了 **适配器模式 (Adapter Pattern)** 和 **代理模式 (Proxy Pattern)**，通过统一的 IO 接口抽象了不同的通信机制。
+kkrpc stable 是一个 TypeScript-first 的双向 RPC 库。当前稳定架构以 `RPCChannel` 和 `Transport<RPCMessage>` 为核心，使用紧凑 JSON 消息、Proxy 远程 API、插件钩子、运行时校验、中间件以及可选 transferable 支持。旧的公开适配器接口不是 stable API 的核心抽象。
 
-## 核心架构 (Core Architecture)
+## 核心组件 (Core Components)
 
-### 1. 核心组件 (Core Components)
+### RPCChannel (`packages/kkrpc/src/core/channel.ts`)
 
-#### RPCChannel (`src/channel.ts`)
+`RPCChannel<LocalAPI, RemoteAPI>` 管理 RPC 状态机：
 
-- **职责**: 中央调度器，管理 RPC 通信的整个生命周期
-- **关键数据结构**:
-  - `pendingRequests`: 等待响应的请求映射表 (`Record<string, PendingRequest>`)
-  - `callbacks`: 回调函数存储 (`Record<string, CallbackFunction>`)
-  - `callbackCache`: 回调函数缓存 (`Map<CallbackFunction, string>`)
-  - `messageStr`: 消息缓冲区，用于处理分片消息
+- `pending`: 保存等待响应的 outbound request。
+- `callbacks`: 保存本地 callback 参数，供远端回调。
+- `destroyed`: 防止销毁后继续发起调用，并在销毁时拒绝 pending 调用。
+- `supportsTransfer`: 只有 transport 声明支持 transfer 时才转发 transferable。
+- `timeout`: 单次调用超时，默认 `30_000` ms；非正数表示禁用超时。
+- `plugins`: request、handler、response、error 钩子，用于 validation、middleware、inspector 等功能。
 
-#### IoInterface (`src/interface.ts`)
+构造函数会订阅 transport，收到消息后根据紧凑字段 `t` 分发处理。
 
-- **职责**: 定义统一的 IO 抽象接口
-- **核心方法**:
-  - `read(): Promise<string | IoMessage | null>` - 读取数据
-  - `write(message: string | IoMessage): Promise<void>` - 写入数据
-  - `destroy?(): void` - 清理资源
-- **能力声明**:
-  - `structuredClone`: 是否支持结构化克隆
-  - `transfer`: 是否支持零拷贝传输
+### Transport (`packages/kkrpc/src/core/transport.ts`)
 
-### 2. 适配器实现 (Adapter Implementations)
-
-每个适配器都实现了 `IoInterface`，将 kkrpc 与不同的传输层协议对接：
-
-#### String-based 适配器
-
-- **NodeIo**: Node.js stdio 通信
-- **WebSocketClientIO/ServerIO**: WebSocket 通信
-- **HTTPClientIO/ServerIO**: HTTP 请求-响应模式
-- **RabbitMQIO**: 基于 RabbitMQ 的消息队列通信
-- **RedisStreamsIO**: 基于 Redis Streams 的流式通信
-
-#### Structured Clone 适配器
-
-- **WorkerParentIO/ChildIO**: Web Worker 通信，支持零拷贝传输
-
-## 通信协议 (Communication Protocol)
-
-### 1. 消息格式 (Message Format)
+stable transport 是面向消息的小接口：
 
 ```typescript
-interface Message<T = any> {
-	id: string // UUID 唯一标识
-	method: string // 方法名或路径
-	args: T // 参数
-	type: "request" | "response" | "callback" | "get" | "set" | "construct"
-	callbackIds?: string[] // 回调函数 ID 列表
-	version?: "json" | "superjson" // 序列化版本
-	path?: string[] // 属性访问路径
-	value?: any // 属性设置值
-	transferSlots?: TransferSlot[] // 传输槽信息
+interface Transport<T> {
+	capabilities?: TransportCapabilities
+	send(message: T, transferables?: Transferable[]): void | Promise<void>
+	subscribe(listener: (message: T) => void): () => void
+	close?(): void
 }
 ```
 
-### 2. 序列化机制 (Serialization Mechanism)
+`createTransport()` 将底层 `Platform<Wire>` 与 `Codec<Message, Wire>` 组合起来，使 IO 细节和 RPC 消息编码解耦。
 
-#### 双格式支持
+### Stable Entry Points
 
-- **JSON**: 标准序列化，向后兼容
-- **SuperJSON**: 增强序列化，支持更多类型（Date, Map, Set, BigInt, Uint8Array）
+- `kkrpc`: `RPCChannel`、`wrap`、`expose`、`dispose`、`transfer` 等核心导出。
+- `kkrpc/browser`: browser-safe 核心导出。
+- `kkrpc/stdio`: `nodeStdioTransport()` 和 `stdioJsonTransport()`。
+- `kkrpc/ws`: `webSocketTransport()` 和 `webSocketClientTransport()`。
+- `kkrpc/http`: HTTP client/server transport helpers。
+- `kkrpc/worker`、`kkrpc/iframe`、`kkrpc/chrome-extension` 等子路径提供其他原生 transport factory。
 
-#### 自动检测
+## Stable Protocol
+
+stable 消息定义在 `packages/kkrpc/src/core/protocol.ts`：
 
 ```typescript
-// 发送时可以选择序列化格式
-const message: Message = {
-	id: generateUUID(),
-	method: "echo",
-	args: ["hello"],
-	type: "request"
+type RPCOperation = "call" | "get" | "set" | "new"
+
+interface RPCRequest {
+	t: "q"
+	id: string
+	op: RPCOperation
+	p: string[]
+	a?: unknown[]
+	v?: unknown
 }
 
-// 接收时自动检测格式
-if (message.startsWith('{"json":')) {
-	const parsed = superjson.parse<Message>(message)
-} else {
-	const parsed = JSON.parse(message) as Message
+interface RPCResponse {
+	t: "r"
+	id: string
+	v?: unknown
+	e?: { n: string; m: string; s?: string; [key: string]: unknown }
+}
+
+interface RPCCallback {
+	t: "cb"
+	id: string
+	a: unknown[]
 }
 ```
 
-### 3. 零拷贝传输 (Zero-Copy Transfer)
+stable 协议目前没有一等 remote iterator 或 stream 消息类型。需要连续进度或数据时，应使用 callback 参数、事件型 transport、轮询，或显式返回 chunk/result 数组，直到原生 streaming 有协议和测试覆盖。
 
-#### Transfer Slot 机制
+## 请求流程 (Request Flow)
 
-```typescript
-interface TransferSlot {
-    type: "raw" | "handler"
-    handlerName?: string
-    metadata?: any
-}
-
-// 传输过程
-1. 检测可传输对象 (ArrayBuffer, MessagePort, etc.)
-2. 创建 TransferSlot 替换原始值
-3. 收集 Transferable 对象
-4. 在 postMessage 中传入 transfer 列表
-5. 接收端根据 TransferSlot 重建对象
-```
-
-## 核心算法流程 (Core Algorithm Flow)
-
-### 1. 远程方法调用 (Remote Method Invocation)
+### 远程调用 (Remote Call)
 
 ```typescript
-// 客户端调用
+const api = wrap<RemoteAPI>(transport)
 await api.user.create({ name: "Alice" })
-
-// 内部流程
-1. Proxy intercept → callMethod("user.create", [{ name: "Alice" }])
-2. generate UUID for request
-3. Process callbacks in arguments → replace with __callback_${id}
-4. Process transferable objects → create transfer slots
-5. Serialize message → encodeMessage()
-6. Send via IO adapter → io.write()
-7. Wait for response → new Promise<>()
 ```
 
-### 2. 请求处理循环 (Request Processing Loop)
+内部流程：
+
+1. 嵌套 Proxy 捕获 path `['user', 'create']` 和 operation `call`。
+2. `RPCChannel` 创建 request id，并保存 pending promise。
+3. callback 参数编码成 callback envelope，并存入 `callbacks`。
+4. `transfer()` 标记的值只在 transport 支持 transfer 时走 transferable 路径。
+5. channel 通过 transport 发送 `{ t: 'q', id, op: 'call', p, a }`。
+6. 超时计时器在未收到响应时 reject 一个 `name` 为 `RPCTimeoutError` 的 `Error`。
+
+### 处理入站请求 (Incoming Request)
+
+1. 解码参数 envelope，恢复普通值和 callback stub。
+2. 执行 plugin `onRequest` hooks。
+3. 在本地 exposed API 上解析目标 path。
+4. 用 plugin `wrapHandler` hooks 包裹实际 handler。
+5. 执行 plugin `onResponse` hooks，并发送 `{ t: 'r', id, v }`。
+6. 任一步骤抛错时，执行 plugin `onError` hooks，并发送 `{ t: 'r', id, e }`。
+
+### 响应处理 (Response Handling)
+
+response 通过 `id` 找到 pending request，清理 timeout，然后用 `v` resolve，或用 `e.n`、`e.m`、`e.s` 重建 `Error` 后 reject。
+
+### 回调处理 (Callback Handling)
+
+函数参数会编码为 callback envelope。远端调用 callback stub 时发送 `{ t: 'cb', id, a }`。拥有该 callback 的 channel 根据 `id` 找到本地函数，并用解码后的参数调用。
+
+## Proxy 语义 (Proxy Semantics)
+
+- 属性访问扩展 path。
+- `await` 非根属性执行 `get`。
+- 赋值执行 fire-and-forget `set`。
+- 调用 proxy 执行 `call`。
+- `new` proxy 执行 `new` operation。
+
+## 插件、校验和中间件 (Plugins, Validation, Middleware)
+
+插件是 stable 扩展点。validation 和 middleware 都通过插件实现，而不是写死在 channel 内部。
 
 ```typescript
-// 服务端监听循环
-private async listen(): Promise<void> {
-    while (true) {
-        // 1. 检查适配器状态
-        if ('isDestroyed' in this.io && this.io.isDestroyed) break
-
-        // 2. 读取原始数据
-        const raw = await this.io.read()
-        if (raw === null) continue
-
-        // 3. 处理消息
-        await this.handleIncomingMessage(raw)
-    }
+interface RPCPlugin {
+	onRequest?(ctx): void | Promise<void>
+	wrapHandler?(ctx, next): unknown | Promise<unknown>
+	onResponse?(ctx): void | Promise<void>
+	onError?(ctx): void | Promise<void>
 }
 ```
 
-### 3. 消息分发 (Message Dispatch)
+validation plugin 可以校验输入和输出 schema。middleware plugin 可以记录日志、做鉴权、限流、转换结果，或附加 per-request state。
 
-```typescript
-private async processDecodedMessage(message: Message): Promise<void> {
-    switch (message.type) {
-        case "response":
-            this.handleResponse(message)      // 处理响应
-            break
-        case "request":
-            this.handleRequest(message)       // 处理请求
-            break
-        case "callback":
-            this.handleCallback(message)      // 处理回调
-            break
-        case "get":
-            this.handleGet(message)           // 处理属性获取
-            break
-        case "set":
-            this.handleSet(message)           // 处理属性设置
-            break
-        case "construct":
-            this.handleConstruct(message)     // 处理构造函数调用
-            break
-    }
-}
-```
+## Transferables
 
-### 4. 方法调用执行 (Method Execution)
+`transfer(value, descriptor?)` 会在 WeakMap 中标记对象。请求或响应编码时，`RPCChannel` 消耗 descriptor；只有 `transport.capabilities?.transfer === true` 时才把 transferable 传给 `send()`。不支持 transfer 的 transport 会自动走普通 codec 路径。
 
-```typescript
-private handleRequest(request: Message): void {
-    // 1. 重建传输对象
-    if (request.transferSlots) {
-        args = reconstructValueFromTransfer(args, transferSlots, transferredValues)
-    }
+## Transport 示例 (Transport Examples)
 
-    // 2. 导航到目标方法
-    const methodPath = request.method.split(".")
-    let target = this.apiImplementation
-    for (let i = 0; i < methodPath.length - 1; i++) {
-        target = target[methodPath[i]]
-    }
+### Stdio
 
-    // 3. 处理回调函数参数
-    const processedArgs = args.map(arg => {
-        if (typeof arg === "string" && arg.startsWith("__callback__")) {
-            const callbackId = arg.slice(12)
-            return (...callbackArgs) => this.invokeCallback(callbackId, callbackArgs)
-        }
-        return arg
-    })
+`nodeStdioTransport()` 绑定 `process.stdin` 和 `process.stdout`，使用 JSON-line `RPCMessage`。`stdioJsonTransport({ readable, writable })` 支持自定义 Node-style streams。
 
-    // 4. 执行方法并发送响应
-    try {
-        const result = targetMethod.apply(target, processedArgs)
-        Promise.resolve(result)
-            .then(res => this.sendResponse(request.id, res))
-            .catch(err => this.sendError(request.id, err))
-    } catch (error) {
-        this.sendError(request.id, error)
-    }
-}
-```
+### WebSocket
 
-## 代理系统 (Proxy System)
+`webSocketTransport(socket)` 用 `JSON.stringify` 序列化每个 `RPCMessage`，支持 browser-style 和 Node `ws` 事件，并在 socket open 前缓存 outbound message。`webSocketClientTransport({ url })` 创建客户端 WebSocket transport。
 
-### 1. 嵌套代理创建 (Nested Proxy Creation)
+### HTTP
 
-```typescript
-private createNestedProxy(chain: string[] = []): any {
-    return new Proxy(() => {}, {
-        get: (_target, prop) => {
-            if (prop === "then" && chain.length > 0) {
-                // 支持 await obj.prop
-                const promise = this.getProperty(chain)
-                return promise.then.bind(promise)
-            }
-            // 创建嵌套代理链 obj.nested.prop
-            return this.createNestedProxy([...chain, prop])
-        },
-
-        set: (_target, prop, value) => {
-            // 支持属性设置 obj.prop = value
-            this.setProperty([...chain, prop], value)
-            return true
-        },
-
-        apply: (_target, _thisArg, args) => {
-            // 支持方法调用 obj.method()
-            return this.callMethod(chain.join("."), args)
-        },
-
-        construct: (_target, args) => {
-            // 支持构造函数调用 new obj.Constructor()
-            return this.callConstructor(chain.join("."), args)
-        }
-    })
-}
-```
-
-### 2. 属性访问处理 (Property Access Handling)
-
-```typescript
-// 获取属性
-public getProperty(path: string | string[]): Promise<any> {
-    return new Promise((resolve, reject) => {
-        const messageId = generateUUID()
-        this.pendingRequests[messageId] = { resolve, reject }
-
-        const message: Message = {
-            id: messageId,
-            method: "",
-            args: {},
-            type: "get",
-            path: Array.isArray(path) ? path : path.split(".")
-        }
-
-        this.sendMessage(message)
-    })
-}
-
-// 设置属性
-public setProperty(path: string | string[], value: any): Promise<void> {
-    // 类似 getProperty，但 type: "set" 并包含 value
-}
-```
-
-## 回调机制 (Callback Mechanism)
-
-### 1. 回调序列化 (Callback Serialization)
-
-```typescript
-// 发送端：检测并替换回调函数
-const argsWithCallbacks = args.map((arg) => {
-	if (typeof arg === "function") {
-		let callbackId = this.callbackCache.get(arg)
-		if (!callbackId) {
-			callbackId = generateUUID()
-			this.callbacks[callbackId] = arg
-			this.callbackCache.set(arg, callbackId)
-		}
-		return `__callback__${callbackId}`
-	}
-	return arg
-})
-```
-
-### 2. 回调调用 (Callback Invocation)
-
-```typescript
-// 接收端：重建回调函数
-const processedArgs = incomingArgs.map((arg) => {
-    if (typeof arg === "string" && arg.startsWith("__callback__")) {
-        const callbackId = arg.slice(12)
-        return (...callbackArgs: any[]) => {
-            this.invokeCallback(callbackId, callbackArgs)
-        }
-    }
-    return arg
-})
-
-// 回调执行
-private invokeCallback(callbackId: string, args: any[]): void {
-    const message: Message = {
-        id: generateUUID(),
-        method: callbackId,
-        args: processedArgs,
-        type: "callback"
-    }
-    this.sendMessage(message)
-}
-```
+HTTP transport 为每个 RPC request 使用 request/response 语义，并把 RPC timeout error 映射为 HTTP 504。
 
 ## 错误处理 (Error Handling)
 
-### 1. 增强错误序列化 (Enhanced Error Serialization)
+错误会序列化为包含 name、message、stack 和 enumerable custom fields 的紧凑记录。远端错误会恢复成 `Error`，并还原原始 `name`。
 
-```typescript
-export function serializeError(error: Error): EnhancedError {
-	const enhanced: EnhancedError = {
-		name: error.name,
-		message: error.message
-	}
+写入失败会立即拒绝对应 pending request。销毁 channel 会取消订阅、拒绝所有 pending 调用、清空 callbacks，并在 transport 支持时关闭 transport。
 
-	// 保留所有错误属性
-	if (error.stack) enhanced.stack = error.stack
-	if ("cause" in error) enhanced.cause = error.cause
-	for (const key in error) {
-		if (!["name", "message", "stack", "cause"].includes(key)) {
-			enhanced[key] = error[key]
-		}
-	}
+## 当前 Stable 限制 (Current Stable Limitations)
 
-	return enhanced
-}
-
-// 反序列化重建完整错误对象
-export function deserializeError(enhanced: EnhancedError): Error {
-	const error = new Error(enhanced.message)
-	error.name = enhanced.name
-
-	// 恢复所有属性
-	for (const key in enhanced) {
-		;(error as any)[key] = enhanced[key]
-	}
-
-	return error
-}
-```
-
-## 适配器特定实现 (Adapter-Specific Implementations)
-
-### 1. String-based 消息队列 (RabbitMQ)
-
-```typescript
-class RabbitMQIO implements IoInterface {
-	// 使用 topic exchange 分离 kkrpc 流量
-	private exchange = "kkrpc-exchange"
-	private routingKey = "kkrpc.messages"
-
-	async write(message: string): Promise<void> {
-		// 发布到共享路由键，所有适配器都能接收
-		await this.channel.publish(this.exchange, this.routingKey, Buffer.from(message))
-	}
-
-	private async connect(): Promise<void> {
-		// 创建独占队列接收消息
-		await this.channel.assertQueue(this.inboundQueue, { exclusive: true })
-		await this.channel.bindQueue(this.inboundQueue, this.exchange, this.routingKey)
-
-		// 设置消费者
-		await this.channel.consume(this.inboundQueue, (msg) => {
-			this.handleMessage(msg.content.toString("utf8"))
-		})
-	}
-}
-```
-
-### 2. 流式处理 (Redis Streams)
-
-```typescript
-class RedisStreamsIO implements IoInterface {
-	// 使用 XADD 发布，XREAD 消费
-	async write(message: string): Promise<void> {
-		await this.publisher.xadd(this.stream, "*", "data", message)
-	}
-
-	private async listenForMessages(): Promise<void> {
-		while (!this.isDestroyed) {
-			// 读取新消息
-			const results = await this.subscriber.xread(
-				"BLOCK",
-				this.blockTimeout,
-				"STREAMS",
-				this.stream,
-				"$"
-			)
-
-			if (results) {
-				const [, messages] = results[0]
-				for (const [, fields] of messages) {
-					const messageData = fields.find(([k, v]) => k === "data")?.[1]
-					if (messageData) this.handleMessage(messageData)
-				}
-			}
-		}
-	}
-}
-```
-
-### 3. 零拷贝传输 (Web Workers)
-
-```typescript
-class WorkerParentIO implements IoInterface {
-	capabilities = {
-		structuredClone: true,
-		transfer: true,
-		transferTypes: ["ArrayBuffer", "MessagePort", "ImageBitmap"]
-	}
-
-	write(message: string | IoMessage): Promise<void> {
-		if (message.transfers?.length > 0) {
-			// 零拷贝传输
-			this.worker.postMessage(message.data, message.transfers)
-		} else {
-			this.worker.postMessage(message.data)
-		}
-	}
-
-	private normalizeIncoming(message: any): string | IoMessage {
-		if (message?.version === 2) {
-			// 处理传输信封
-			return {
-				data: message,
-				transfers: message.__transferredValues || []
-			}
-		}
-		return message
-	}
-}
-```
-
-## 生命周期管理 (Lifecycle Management)
-
-### 1. 资源清理 (Resource Cleanup)
-
-```typescript
-class RPCChannel {
-	destroy(): void {
-		// 1. 清理回调
-		this.freeCallbacks()
-
-		// 2. 清理 IO 适配器
-		if (this.io?.destroy) {
-			this.io.destroy()
-		}
-	}
-
-	freeCallbacks() {
-		this.callbacks = {}
-		this.callbackCache.clear()
-	}
-}
-```
-
-### 2. 销毁信号 (Destroy Signaling)
-
-```typescript
-// 统一的销毁信号
-const DESTROY_SIGNAL = "__DESTROY__"
-
-// 适配器处理销毁信号
-private handleMessage(message: string): void {
-    if (message === DESTROY_SIGNAL) {
-        this.destroy()
-        return
-    }
-    // 正常消息处理...
-}
-```
-
-## 性能优化 (Performance Optimizations)
-
-### 1. 消息缓冲 (Message Buffering)
-
-```typescript
-private bufferString(chunk: string): void {
-    this.messageStr += chunk
-    const lastChar = this.messageStr[this.messageStr.length - 1]
-    const msgsSplit = this.messageStr.split("\n")
-    const msgs = lastChar === "\n" ? msgsSplit : msgsSplit.slice(0, -1)
-    this.messageStr = lastChar === "\n" ? "" : msgsSplit.at(-1) ?? ""
-
-    // 处理完整消息
-    for (const msgStr of msgs.filter(Boolean)) {
-        if (msgStr.startsWith("{")) {
-            void this.handleMessageStr(msgStr)
-        }
-    }
-}
-```
-
-### 2. 回调缓存 (Callback Caching)
-
-```typescript
-// 缓存回调函数避免重复注册
-let callbackId = this.callbackCache.get(arg)
-if (!callbackId) {
-	callbackId = generateUUID()
-	this.callbacks[callbackId] = arg
-	this.callbackCache.set(arg, callbackId)
-}
-```
-
-### 3. 传输对象优化 (Transfer Object Optimization)
-
-```typescript
-// 避免重复传输同一对象
-if (slotMap.has(value)) {
-	const slotIndex = slotMap.get(value)!
-	return `${TRANSFER_SLOT_PREFIX}${slotIndex}`
-}
-```
-
-## 类型安全 (Type Safety)
-
-### 1. 泛型约束 (Generic Constraints)
-
-```typescript
-class RPCChannel<
-    LocalAPI extends Record<string, any>,    // 本地 API 类型约束
-    RemoteAPI extends Record<string, any>,   // 远程 API 类型约束
-    Io extends IoInterface = IoInterface     // IO 接口约束
->
-```
-
-### 2. 类型推断 (Type Inference)
-
-```typescript
-// 自动推断远程 API 类型
-const api = rpc.getAPI<typeof localAPI>()
-//        ^^^^^ 类型推断为 RemoteAPI
-```
-
-## 并发处理 (Concurrency Handling)
-
-### 1. 异步消息处理 (Async Message Processing)
-
-```typescript
-// 所有消息处理都是异步的，避免阻塞
-private async handleIncomingMessage(raw: string | IoMessage): Promise<void> {
-    // 异步解析和处理
-    const message = await decodeMessage(payload)
-    await this.processDecodedMessage(message)
-}
-```
-
-### 2. Promise 管理 (Promise Management)
-
-```typescript
-// 每个请求都创建独立的 Promise
-public callMethod<T extends keyof RemoteAPI>(method: T, args: any[]): Promise<void> {
-    return new Promise((resolve, reject) => {
-        const messageId = generateUUID()
-        this.pendingRequests[messageId] = { resolve, reject }
-        // ... 发送消息
-    })
-}
-```
-
-## 扩展性设计 (Extensibility Design)
-
-### 1. 插件化适配器 (Pluggable Adapters)
-
-```typescript
-// 任何实现了 IoInterface 的适配器都可以接入
-interface IoInterface {
-	name: string
-	read(): Promise<string | IoMessage | null>
-	write(message: string | IoMessage): Promise<void>
-	capabilities?: IoCapabilities
-	destroy?(): void
-}
-```
-
-### 2. 传输处理器 (Transfer Handlers)
-
-```typescript
-// 可扩展的传输处理器系统
-for (const [name, handler] of transferHandlers) {
-	if (handler.canHandle(value)) {
-		const [serialized, handlerTransferables] = handler.serialize(value)
-		// ... 处理传输
-	}
-}
-```
-
-## 总结 (Summary)
-
-kkrpc 的核心算法可以概括为：
-
-1. **统一抽象**: 通过 IoInterface 统一不同传输层的接口
-2. **消息驱动**: 基于异步消息的请求-响应模式
-3. **类型安全**: TypeScript 泛型确保编译时类型检查
-4. **双向通信**: 双端都可以暴露和调用 API
-5. **零拷贝优化**: 支持 Transferable 对象的高性能传输
-6. **错误完整**: 保留完整错误对象信息
-7. **生命周期**: 完善的资源管理和清理机制
-8. **扩展性**: 插件化的适配器和处理器系统
-
-这种设计使得 kkrpc 能够在 Node.js、Deno、Bun、浏览器等多种环境中无缝工作，同时保持高性能和类型安全。
+- 没有一等 remote iterator 或 stream protocol。
+- 没有公开稳定的 legacy adapter layer。
+- 跨语言实现应优先实现 compact JSON `RPCMessage` 协议。

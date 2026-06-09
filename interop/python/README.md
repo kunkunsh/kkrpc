@@ -6,7 +6,7 @@ cross-language use.
 
 ## Features
 
-- JSON-mode request/response compatible with kkrpc `serialization.version = "json"`.
+- JSON request/response compatible with kkrpc's stable compact `RPCMessage` protocol.
 - `stdio` and `ws` transports via adapter classes.
 - Callback support (`__callback__<id>` encoding) and bidirectional calls.
 
@@ -82,4 +82,4 @@ pytest interop/python/tests
   can be swapped without changing the RPC client/server APIs.
 
 This implementation is intentionally **JSON-only** and is compatible with the kkrpc JS side
-when `serialization.version` is set to `"json"`.
+because the stable JS side uses compact JSON `RPCMessage` records by default.

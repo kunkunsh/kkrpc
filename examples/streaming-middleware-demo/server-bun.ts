@@ -1,5 +1,5 @@
 /**
- * Streaming + Middleware demo — Bun native WebSocket server.
+ * Middleware demo — Bun native WebSocket server.
  *
  * Demonstrates four interceptor patterns:
  *   1. Logging    — logs every RPC call with method name and args
@@ -13,7 +13,7 @@
 import { RPCChannel } from "kkrpc"
 import { middlewarePlugin, type MiddlewareHandler } from "kkrpc/middleware"
 import { webSocketTransport, type WebSocketLike } from "kkrpc/ws"
-import { createApi, type StreamingMiddlewareAPI } from "./api.ts"
+import { createApi, type MiddlewareDemoAPI } from "./api.ts"
 
 const PORT = 3100
 
@@ -91,7 +91,7 @@ function createBunWebSocketLike(bunWs: any): BunWebSocketLike {
 
 // ─── Bun server setup ────────────────────────────────────────────────────────
 
-console.log(`[server] Streaming + Middleware demo (Bun native) listening on ws://localhost:${PORT}`)
+console.log(`[server] Middleware demo (Bun native) listening on ws://localhost:${PORT}`)
 console.log(`[server] Interceptors: logger → timing → auth → rateLimiter`)
 
 Bun.serve({
@@ -117,7 +117,7 @@ Bun.serve({
 			const auth = createAuthInterceptor(session)
 			const rateLimiter = createRateLimiter(5)
 
-			new RPCChannel<StreamingMiddlewareAPI, {}>(webSocketTransport(wrapper), {
+			new RPCChannel<MiddlewareDemoAPI, {}>(webSocketTransport(wrapper), {
 				expose: api,
 				plugins: [middlewarePlugin([logger, timing, auth, rateLimiter])]
 			})

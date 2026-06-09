@@ -72,7 +72,7 @@ server.ServeForever()
 - **Function signatures**: Server handlers use `func([]any) any` signature
 - **Error handling**: Explicit error returns (Go idiomatic)
 - **Concurrency**: Goroutines for read loops, mutex for state
-- **JSON only**: Compatible with kkrpc `serialization.version = "json"`
+- **JSON only**: Compatible with kkrpc's stable compact JSON `RPCMessage` protocol
 
 ## COMMANDS
 

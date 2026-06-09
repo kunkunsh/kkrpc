@@ -104,7 +104,7 @@ pytest --cov=kkrpc tests/
 - No external runtime dependencies
 - WebSocket uses stdlib-only RFC6455 implementation
 - Callbacks encoded as `__callback__<id>` strings
-- Compatible with kkrpc `serialization.version = "json"`
+- Compatible with kkrpc's stable compact JSON `RPCMessage` protocol
 
 ## TESTING
 

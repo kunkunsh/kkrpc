@@ -25,17 +25,17 @@ node/
 ## API IMPLEMENTED
 
 ```typescript
-{
-  math: {
-    add(a: number, b: number): number
-  },
-  echo<T>(value: T): T,
-  withCallback(value: string, cb: (payload: string) => void): string,
-  counter: number,
-  settings: {
-    theme: string,
-    notifications: { enabled: boolean }
-  }
+type InteropAPI = {
+	math: {
+		add(a: number, b: number): number
+	}
+	echo<T>(value: T): T
+	withCallback(value: string, cb: (payload: string) => void): string
+	counter: number
+	settings: {
+		theme: string
+		notifications: { enabled: boolean }
+	}
 }
 ```
 
@@ -51,7 +51,7 @@ bun interop/node/ws-server.ts
 
 ## CONVENTIONS
 
-- Uses `serialization.version = "json"` for cross-language compatibility
+- Uses stable compact JSON `RPCMessage` protocol for cross-language compatibility
 - SIGTERM/SIGINT handlers for graceful shutdown
 - Same API exposed on both stdio and WebSocket transports
 
@@ -59,4 +59,4 @@ bun interop/node/ws-server.ts
 
 - Used by interop tests in other languages
 - Reference implementation for protocol compliance
-- No SuperJSON (JSON-only for interop)
+- No SuperJSON layer; interop targets should implement the stable compact JSON protocol

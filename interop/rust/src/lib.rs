@@ -7,7 +7,7 @@
 //!
 //! ## Features
 //!
-//! - **JSON-mode request/response** compatible with kkrpc `serialization.version = "json"`
+//! - **JSON request/response** compatible with kkrpc's stable compact `RPCMessage` protocol
 //! - **stdio and WebSocket transports** with a shared [`Transport`] trait
 //! - **Callback support** using `__callback__<id>` tokens
 //! - **Property access** (get/set) for remote object manipulation

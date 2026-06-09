@@ -1,6 +1,6 @@
-import { NodeIo, RPCChannel } from "../../packages/kkrpc/mod.ts"
+import { expose } from "../../packages/kkrpc/mod.ts"
+import { nodeStdioTransport } from "../../packages/kkrpc/stdio.ts"
 
-const io = new NodeIo(process.stdin, process.stdout)
 const api = {
 	math: {
 		add(a: number, b: number) {
@@ -23,16 +23,13 @@ const api = {
 	}
 }
 
-const rpc = new RPCChannel(io, {
-	expose: api,
-	serialization: { version: "json" }
-})
+const controller = expose(api, nodeStdioTransport())
 
 process.on("SIGTERM", () => {
-	rpc.destroy?.()
+	controller.dispose()
 	process.exit(0)
 })
 process.on("SIGINT", () => {
-	rpc.destroy?.()
+	controller.dispose()
 	process.exit(0)
 })

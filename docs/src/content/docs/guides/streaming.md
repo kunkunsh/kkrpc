@@ -5,7 +5,7 @@ sidebar:
   order: 6
 ---
 
-Stable kkrpc is request/response with callback support. It does not currently define first-class `AsyncIterable` streaming or stream protocol messages in the stable wire protocol.
+Stable kkrpc is request/response with callback support. It does not currently define first-class remote iterator streaming or stream protocol messages in the stable wire protocol.
 
 Until native streaming is added with protocol and test coverage, model continuous work explicitly with callbacks, evented transports, or chunked request methods.
 
