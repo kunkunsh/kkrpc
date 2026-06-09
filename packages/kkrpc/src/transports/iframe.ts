@@ -194,6 +194,7 @@ export function iframeChildTransport(options: IframeTransportOptions = {}): Tran
 		candidateTransport = undefined
 		capabilities.transfer = true
 		for (const item of queuedMessages.splice(0)) readyTransport.send(item.message, item.transfers)
+		options.onReady?.()
 	}
 
 	const messageListener = (event: MessageEvent) => {
@@ -244,4 +245,25 @@ export function iframeChildTransport(options: IframeTransportOptions = {}): Tran
 			sourceWindow.removeEventListener("message", messageListener)
 		}
 	}
+}
+
+/** Create a child iframe transport after the MessagePort handshake has completed. */
+export function iframeChildTransportReady(
+	options: IframeTransportOptions = {}
+): Promise<Transport<RPCMessage>> {
+	return new Promise((resolve) => {
+		let ready = false
+		let transport: Transport<RPCMessage> | undefined
+		transport = iframeChildTransport({
+			...options,
+			onReady: () => {
+				if (transport) {
+					resolve(transport)
+					return
+				}
+				ready = true
+			}
+		})
+		if (ready) resolve(transport)
+	})
 }

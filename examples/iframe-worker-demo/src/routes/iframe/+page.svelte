@@ -2,20 +2,34 @@
 	import { apiImplementationNested } from "@kksh/demo-api"
 	import type { API, APINested } from "@kksh/demo-api"
 	import { RPCChannel } from "kkrpc/browser"
-	import { iframeChildTransport } from "kkrpc/iframe"
+	import { iframeChildTransportReady } from "kkrpc/iframe"
 	import { onDestroy, onMount } from "svelte"
 	import { toast } from "svelte-sonner"
 
-	const rpc = new RPCChannel<APINested, API>(iframeChildTransport(), {
-		expose: apiImplementationNested
+	let rpc: RPCChannel<APINested, API> | undefined
+
+	onMount(() => {
+		let mounted = true
+		void iframeChildTransportReady({ targetOrigin: window.location.origin }).then((transport) => {
+			if (!mounted) {
+				transport.close?.()
+				return
+			}
+			rpc = new RPCChannel<APINested, API>(transport, {
+				expose: apiImplementationNested
+			})
+		})
+		return () => {
+			mounted = false
+		}
 	})
 
-	onMount(() => {})
 	onDestroy(() => {
-		rpc.destroy()
+		rpc?.destroy()
 	})
 
 	function onClick(e: MouseEvent) {
+		if (!rpc) return
 		const api = rpc.getAPI()
 		const randInt1 = Math.floor(Math.random() * 100),
 			randInt2 = Math.floor(Math.random() * 100)

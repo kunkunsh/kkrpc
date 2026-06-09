@@ -18,7 +18,9 @@
 
 	async function onIframeLoad() {
 		if (!iframeRef.contentWindow) return
-		const transport = await iframeParentTransportReady(iframeRef.contentWindow)
+		const transport = await iframeParentTransportReady(iframeRef.contentWindow, {
+			targetOrigin: window.location.origin
+		})
 		rpc = new RPCChannel<API, APINested>(transport, {
 			expose: apiImplementation
 		})

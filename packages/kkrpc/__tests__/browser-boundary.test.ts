@@ -2,9 +2,11 @@ import { describe, expect, test } from "bun:test"
 import { chromePortTransport } from "../chrome-extension.ts"
 import {
 	iframeChildTransport,
+	iframeChildTransportReady,
 	iframeParentTransport,
 	iframeParentTransportReady
 } from "../iframe.ts"
+import { RPCChannel, transfer } from "../mod.ts"
 import type { RPCMessage } from "../src/core/protocol.ts"
 
 const forbidden = [
@@ -181,6 +183,54 @@ describe("iframe transports", () => {
 
 		parentTransport.close?.()
 		childTransport.close?.()
+	})
+
+	test("ready child transport is MessagePort-backed before RPCChannel construction", async () => {
+		const { parentWindow, childWindow } = createWindowPair()
+		const parentTransportPromise = iframeParentTransportReady(childWindow as unknown as Window, {
+			sourceWindow: parentWindow,
+			targetOrigin: childWindow.origin
+		})
+		const childTransport = await iframeChildTransportReady({
+			sourceWindow: childWindow,
+			targetOrigin: parentWindow.origin
+		})
+		const parentTransport = await parentTransportPromise
+
+		expect(childTransport.capabilities?.transfer).toBe(true)
+		parentTransport.close?.()
+		childTransport.close?.()
+	})
+
+	test("ready iframe transports transfer ArrayBuffer through RPCChannel", async () => {
+		interface ParentAPI {
+			processBuffer(buffer: ArrayBuffer): Promise<number>
+		}
+
+		const { parentWindow, childWindow } = createWindowPair()
+		const parentTransportPromise = iframeParentTransportReady(childWindow as unknown as Window, {
+			sourceWindow: parentWindow,
+			targetOrigin: childWindow.origin
+		})
+		const childTransport = await iframeChildTransportReady({
+			sourceWindow: childWindow,
+			targetOrigin: parentWindow.origin
+		})
+		const parentTransport = await parentTransportPromise
+		const parentRpc = new RPCChannel<ParentAPI, object>(parentTransport, {
+			expose: { processBuffer: async (buffer) => buffer.byteLength }
+		})
+		const childRpc = new RPCChannel<object, ParentAPI>(childTransport)
+		const api = childRpc.getAPI()
+		const buffer = new ArrayBuffer(16)
+
+		try {
+			expect(await api.processBuffer(transfer(buffer, [buffer]))).toBe(16)
+			expect(buffer.byteLength).toBe(0)
+		} finally {
+			childRpc.destroy()
+			parentRpc.destroy()
+		}
 	})
 })
 
