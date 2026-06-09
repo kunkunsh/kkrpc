@@ -8,7 +8,7 @@ import type {
 } from "kafkajs"
 import type { RPCMessage } from "../core/protocol.ts"
 import type { Transport } from "../core/transport.ts"
-import { createBusEnvelope, shouldDeliverBusEnvelope, type BusEnvelope } from "./bus-envelope.ts"
+import { createBusEnvelope, parseBusEnvelope, shouldDeliverBusEnvelope } from "./bus-envelope.ts"
 
 export interface KafkaTransportOptions {
 	brokers?: string[]
@@ -28,6 +28,21 @@ export interface KafkaTransportOptions {
 }
 
 export type KafkaTransport = Transport<RPCMessage>
+
+export function handleKafkaBusMessage(
+	raw: string,
+	localPeerId: string,
+	listeners: Set<(message: RPCMessage) => void>
+): void {
+	const envelope = parseBusEnvelope(raw)
+	if (!envelope) return
+	if (!shouldDeliverBusEnvelope(envelope, { localPeerId })) return
+	try {
+		listeners.forEach((listener) => listener(envelope.message))
+	} catch (error) {
+		console.error("Kafka transport delivery error:", error)
+	}
+}
 
 export function kafkaTransport(options: KafkaTransportOptions): KafkaTransport {
 	const topic = options.topic || "kkrpc-topic"
@@ -78,24 +93,30 @@ export function kafkaTransport(options: KafkaTransportOptions): KafkaTransport {
 				retry: options.retry,
 				logLevel: logLevel.ERROR
 			})
-			producer = kafka.producer(options.producerConfig)
-			consumer = kafka.consumer({
+			const nextProducer = kafka.producer(options.producerConfig)
+			const nextConsumer = kafka.consumer({
 				groupId: options.groupId || `kkrpc-group-${topic}-${options.localPeerId}`,
 				...options.consumerConfig
 			})
-			await producer.connect()
-			await consumer.connect()
+			await nextProducer.connect()
+			await nextConsumer.connect()
+			if (closed) {
+				await nextConsumer.disconnect().catch(() => {})
+				await nextProducer.disconnect().catch(() => {})
+				return
+			}
+			producer = nextProducer
+			consumer = nextConsumer
 			await ensureTopic(kafka)
+			if (closed) return
 			await consumer.subscribe({ topic, fromBeginning: options.fromBeginning || false })
+			if (closed) return
 			await consumer.run({
 				eachMessage: async ({ message }) => {
 					if (closed) return
 					const value = message.value?.toString("utf8")
 					if (!value) return
-					const envelope = JSON.parse(value) as BusEnvelope
-					if (shouldDeliverBusEnvelope(envelope, { localPeerId: options.localPeerId })) {
-						listeners.forEach((listener) => listener(envelope.message))
-					}
+					handleKafkaBusMessage(value, options.localPeerId, listeners)
 				}
 			})
 		})()

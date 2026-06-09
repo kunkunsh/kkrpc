@@ -1,7 +1,20 @@
-import type { NatsConnection, Subscription } from "@nats-io/transport-node"
 import type { RPCMessage } from "../core/protocol.ts"
 import type { Transport } from "../core/transport.ts"
-import { createBusEnvelope, shouldDeliverBusEnvelope, type BusEnvelope } from "./bus-envelope.ts"
+import { createBusEnvelope, parseBusEnvelope, shouldDeliverBusEnvelope } from "./bus-envelope.ts"
+
+interface NatsMessageLike {
+	string(): string
+}
+
+interface NatsSubscriptionLike extends AsyncIterable<NatsMessageLike> {
+	unsubscribe(): void
+}
+
+interface NatsConnectionLike {
+	publish(subject: string, payload: string): void
+	subscribe(subject: string, options?: { queue?: string }): NatsSubscriptionLike
+	close(): Promise<void>
+}
 
 export interface NatsTransportOptions {
 	servers?: string | string[]
@@ -10,15 +23,32 @@ export interface NatsTransportOptions {
 	timeout?: number
 	localPeerId: string
 	remotePeerId?: string
+	/** @internal Test seam for close/connect race coverage. */
+	__connect?: () => Promise<NatsConnectionLike>
 }
 
 export type NatsTransport = Transport<RPCMessage>
 
+export function handleNatsBusMessage(
+	raw: string,
+	localPeerId: string,
+	listeners: Set<(message: RPCMessage) => void>
+): void {
+	const envelope = parseBusEnvelope(raw)
+	if (!envelope) return
+	if (!shouldDeliverBusEnvelope(envelope, { localPeerId })) return
+	try {
+		listeners.forEach((listener) => listener(envelope.message))
+	} catch (error) {
+		console.error("NATS transport delivery error:", error)
+	}
+}
+
 export function natsTransport(options: NatsTransportOptions): NatsTransport {
 	const subject = options.subject || "kkrpc.messages"
 	const listeners = new Set<(message: RPCMessage) => void>()
-	let connection: NatsConnection | undefined
-	let subscription: Subscription | undefined
+	let connection: NatsConnectionLike | undefined
+	let subscription: NatsSubscriptionLike | undefined
 	let connectionPromise: Promise<void> | undefined
 	let closed = false
 
@@ -26,25 +56,35 @@ export function natsTransport(options: NatsTransportOptions): NatsTransport {
 		if (!subscription) return
 		for await (const message of subscription) {
 			if (closed) break
-			const envelope = JSON.parse(message.string()) as BusEnvelope
-			if (shouldDeliverBusEnvelope(envelope, { localPeerId: options.localPeerId })) {
-				listeners.forEach((listener) => listener(envelope.message))
-			}
+			handleNatsBusMessage(message.string(), options.localPeerId, listeners)
 		}
 	}
 
 	async function connectNats(): Promise<void> {
 		if (connectionPromise) return connectionPromise
 		connectionPromise = (async () => {
-			const { connect } = await import("@nats-io/transport-node")
 			const servers = options.servers || "nats://localhost:4222"
-			connection = await connect({
-				servers: Array.isArray(servers) ? servers : [servers],
-				timeout: options.timeout || 10000,
-				reconnectTimeWait: 1000,
-				noEcho: false
-			})
-			subscription = connection.subscribe(subject, { queue: options.queueGroup })
+			const nextConnection = options.__connect
+				? await options.__connect()
+				: ((await (
+						await import("@nats-io/transport-node")
+					).connect({
+						servers: Array.isArray(servers) ? servers : [servers],
+						timeout: options.timeout || 10000,
+						reconnectTimeWait: 1000,
+						noEcho: false
+					})) as NatsConnectionLike)
+			if (closed) {
+				await nextConnection.close().catch(() => {})
+				return
+			}
+			connection = nextConnection
+			subscription = nextConnection.subscribe(subject, { queue: options.queueGroup })
+			if (closed) {
+				subscription.unsubscribe()
+				await nextConnection.close().catch(() => {})
+				return
+			}
 			void consume().catch((error) => {
 				if (!closed) console.error("NATS transport consume error:", error)
 			})

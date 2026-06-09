@@ -2,6 +2,8 @@ import { connect } from "node:net"
 import { afterAll, beforeAll, describe, expect, test } from "bun:test"
 import { kafkaTransport, type KafkaTransport } from "../kafka.ts"
 import { RPCChannel } from "../mod.ts"
+import { createBusEnvelope } from "../src/transports/bus-envelope.ts"
+import { handleKafkaBusMessage } from "../src/transports/kafka.ts"
 import { apiMethods, type API } from "./scripts/api.ts"
 
 const TEST_TOPIC = "kkrpc-test-topic-" + Math.random().toString(36).substring(2, 8)
@@ -49,6 +51,35 @@ async function assertKafkaBrokerAvailable(): Promise<void> {
 
 describeKafka("kafkaTransport", () => {
 	beforeAll(assertKafkaBrokerAvailable)
+
+	test("ignores malformed envelopes without throwing", () => {
+		const delivered: unknown[] = []
+
+		expect(() => {
+			handleKafkaBusMessage("not-json", "server", new Set([(message) => delivered.push(message)]))
+		}).not.toThrow()
+		expect(delivered).toEqual([])
+	})
+
+	test("delivers valid routed envelopes", () => {
+		const envelope = createBusEnvelope(
+			{ t: "r", id: "request-1", v: "ok" },
+			{
+				transportId: "kafka",
+				from: "client",
+				to: "server"
+			}
+		)
+		const delivered: unknown[] = []
+
+		handleKafkaBusMessage(
+			JSON.stringify(envelope),
+			"server",
+			new Set([(message) => delivered.push(message)])
+		)
+
+		expect(delivered).toEqual([envelope.message])
+	})
 
 	test("creates an object-mode transport with broadcast capabilities by default", () => {
 		const transport = kafkaTransport({

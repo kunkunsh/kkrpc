@@ -1,7 +1,7 @@
 import type { Channel, ChannelModel, ConsumeMessage } from "amqplib"
 import type { RPCMessage } from "../core/protocol.ts"
 import type { Transport } from "../core/transport.ts"
-import { createBusEnvelope, shouldDeliverBusEnvelope, type BusEnvelope } from "./bus-envelope.ts"
+import { createBusEnvelope, parseBusEnvelope, shouldDeliverBusEnvelope } from "./bus-envelope.ts"
 
 export interface RabbitMQTransportOptions {
 	url?: string
@@ -24,33 +24,14 @@ interface RabbitMqAckChannel<TMessage> {
 	nack(message: TMessage, allUpTo?: boolean, requeue?: boolean): void
 }
 
-function parseBusEnvelope(content: string): BusEnvelope {
-	const envelope = JSON.parse(content) as Partial<BusEnvelope>
-	if (
-		envelope === null ||
-		typeof envelope !== "object" ||
-		envelope.protocol !== "kkrpc.bus.v1" ||
-		typeof envelope.from !== "string" ||
-		typeof envelope.transportId !== "string" ||
-		(envelope.to !== undefined && typeof envelope.to !== "string") ||
-		envelope.message === null ||
-		typeof envelope.message !== "object"
-	) {
-		throw new Error("Invalid kkrpc bus envelope")
-	}
-	return envelope as BusEnvelope
-}
-
 export function handleRabbitMqBusEnvelope<TMessage extends RabbitMqEnvelopeMessage>(
 	message: TMessage,
 	channel: RabbitMqAckChannel<TMessage>,
 	localPeerId: string,
 	listeners: Set<(message: RPCMessage) => void>
 ): void {
-	let envelope: BusEnvelope
-	try {
-		envelope = parseBusEnvelope(message.content.toString("utf8"))
-	} catch {
+	const envelope = parseBusEnvelope(message.content.toString("utf8"))
+	if (!envelope) {
 		channel.nack(message, false, false)
 		return
 	}
@@ -81,16 +62,26 @@ export function rabbitMqTransport(options: RabbitMQTransportOptions): RabbitMQTr
 		if (connectionPromise) return connectionPromise
 		connectionPromise = (async () => {
 			const amqplib = await import("amqplib")
-			connection = await amqplib.connect(options.url || "amqp://localhost")
-			channel = await connection.createChannel()
+			const nextConnection = await amqplib.connect(options.url || "amqp://localhost")
+			const nextChannel = await nextConnection.createChannel()
+			if (closed) {
+				await nextChannel.close().catch(() => {})
+				await nextConnection.close().catch(() => {})
+				return
+			}
+			connection = nextConnection
+			channel = nextChannel
 			const durable = options.durable !== false
 			await channel.assertExchange(exchange, options.exchangeType || "topic", { durable })
+			if (closed) return
 			const { queue } = await channel.assertQueue("", {
 				durable: false,
 				exclusive: true,
 				autoDelete: true
 			})
+			if (closed) return
 			await channel.bindQueue(queue, exchange, routingKey)
+			if (closed) return
 			await channel.consume(queue, (message: ConsumeMessage | null) => {
 				if (!message || closed || !channel) return
 				handleRabbitMqBusEnvelope(message, channel, options.localPeerId, listeners)

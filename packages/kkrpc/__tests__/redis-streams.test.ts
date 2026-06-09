@@ -72,6 +72,36 @@ describe("redisStreamsTransport", () => {
 		expect(subscriber.xackCalls).toEqual([])
 	})
 
+	test("acks malformed and missing-data consumer group entries as poison", async () => {
+		const subscriber = {
+			xackCalls: [] as Array<[string, string, string]>,
+			async xack(stream: string, group: string, id: string) {
+				this.xackCalls.push([stream, group, id])
+			}
+		}
+
+		await processRedisStreamMessages({
+			stream: "test-stream",
+			consumerGroup: "test-group",
+			localPeerId: "server",
+			subscriber,
+			messages: [
+				["missing-data", ["other", "value"]],
+				["bad-json", ["data", "not-json"]]
+			],
+			listeners: new Set([
+				() => {
+					throw new Error("poison should not deliver")
+				}
+			])
+		})
+
+		expect(subscriber.xackCalls).toEqual([
+			["test-stream", "test-group", "missing-data"],
+			["test-stream", "test-group", "bad-json"]
+		])
+	})
+
 	test("creates an object-mode transport with peer-routed capabilities", () => {
 		const transport = redisStreamsTransport({
 			url: REDIS_URL,

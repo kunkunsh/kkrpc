@@ -1,7 +1,7 @@
 import type { default as Redis } from "ioredis"
 import type { RPCMessage } from "../core/protocol.ts"
 import type { Transport } from "../core/transport.ts"
-import { createBusEnvelope, shouldDeliverBusEnvelope, type BusEnvelope } from "./bus-envelope.ts"
+import { createBusEnvelope, parseBusEnvelope, shouldDeliverBusEnvelope } from "./bus-envelope.ts"
 
 export interface RedisStreamsTransportOptions {
 	url?: string
@@ -52,8 +52,15 @@ export async function processRedisStreamMessages({
 	for (const [messageId, fields] of messages) {
 		lastId = messageId
 		const data = extractRedisField(fields, "data")
-		if (!data) continue
-		const envelope = JSON.parse(data) as BusEnvelope
+		if (!data) {
+			if (consumerGroup) await subscriber.xack(stream, consumerGroup, messageId)
+			continue
+		}
+		const envelope = parseBusEnvelope(data)
+		if (!envelope) {
+			if (consumerGroup) await subscriber.xack(stream, consumerGroup, messageId)
+			continue
+		}
 		if (!shouldDeliverBusEnvelope(envelope, { localPeerId })) {
 			if (consumerGroup) await subscriber.xack(stream, consumerGroup, messageId)
 			continue
@@ -121,10 +128,18 @@ export function redisStreamsTransport(
 		connectionPromise = (async () => {
 			const { default: IORedis } = await import("ioredis")
 			const url = options.url || "redis://localhost:6379"
-			publisher = new IORedis(url)
-			subscriber = new IORedis(url)
-			await publisher.ping()
-			await subscriber.ping()
+			const nextPublisher = new IORedis(url)
+			const nextSubscriber = new IORedis(url)
+			await nextPublisher.ping()
+			await nextSubscriber.ping()
+			if (closed) {
+				nextPublisher.disconnect()
+				nextSubscriber.disconnect()
+				return
+			}
+			publisher = nextPublisher
+			subscriber = nextSubscriber
+			if (closed) return
 			if (consumerGroup) {
 				try {
 					await subscriber.xgroup("CREATE", stream, consumerGroup, "0", "MKSTREAM")
@@ -132,6 +147,7 @@ export function redisStreamsTransport(
 					if (!(error instanceof Error && error.message.includes("BUSYGROUP"))) throw error
 				}
 			}
+			if (closed) return
 			void listen().catch((error) => {
 				if (!closed) console.error("Redis Streams transport read error:", error)
 			})

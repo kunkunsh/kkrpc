@@ -1,6 +1,11 @@
 import { describe, expect, test } from "bun:test"
 import type { RPCMessage } from "../mod.ts"
-import { createBusEnvelope, shouldDeliverBusEnvelope } from "../src/transports/bus-envelope.ts"
+import {
+	createBusEnvelope,
+	isBusEnvelope,
+	parseBusEnvelope,
+	shouldDeliverBusEnvelope
+} from "../src/transports/bus-envelope.ts"
 
 describe("bus envelope", () => {
 	test("wraps RPC messages with routing metadata", () => {
@@ -42,5 +47,17 @@ describe("bus envelope", () => {
 				}
 			)
 		).toBe(true)
+	})
+
+	test("safely parses and validates bus envelopes", () => {
+		const message: RPCMessage = { t: "q", id: "request-1", op: "call", p: ["echo"] }
+		const envelope = createBusEnvelope(message, { transportId: "bus", from: "client" })
+
+		expect(parseBusEnvelope(JSON.stringify(envelope))).toEqual(envelope)
+		expect(parseBusEnvelope("not-json")).toBeNull()
+		expect(
+			parseBusEnvelope(JSON.stringify({ ...envelope, message: { t: "q", id: "request-1" } }))
+		).toBeNull()
+		expect(isBusEnvelope({ ...envelope, message: { t: "unknown", id: "request-1" } })).toBe(false)
 	})
 })

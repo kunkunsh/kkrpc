@@ -39,6 +39,48 @@ export function createBusEnvelope(
 	}
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return value !== null && typeof value === "object"
+}
+
+function isRPCMessage(value: unknown): value is RPCMessage {
+	if (!isRecord(value)) return false
+	if (value.t === "q") {
+		return (
+			typeof value.id === "string" &&
+			(value.op === "call" || value.op === "get" || value.op === "set" || value.op === "new") &&
+			Array.isArray(value.p) &&
+			value.p.every((part) => typeof part === "string")
+		)
+	}
+	if (value.t === "r") return typeof value.id === "string"
+	if (value.t === "cb") return typeof value.id === "string" && Array.isArray(value.a)
+	return false
+}
+
+export function isBusEnvelope(value: unknown): value is BusEnvelope {
+	return (
+		isRecord(value) &&
+		value.protocol === "kkrpc.bus.v1" &&
+		typeof value.transportId === "string" &&
+		typeof value.from === "string" &&
+		(value.to === undefined || typeof value.to === "string") &&
+		(value.correlationId === undefined || typeof value.correlationId === "string") &&
+		(value.sequence === undefined || typeof value.sequence === "number") &&
+		(value.sentAt === undefined || typeof value.sentAt === "number") &&
+		isRPCMessage(value.message)
+	)
+}
+
+export function parseBusEnvelope(raw: string): BusEnvelope | null {
+	try {
+		const value = JSON.parse(raw) as unknown
+		return isBusEnvelope(value) ? value : null
+	} catch {
+		return null
+	}
+}
+
 export function shouldDeliverBusEnvelope(
 	envelope: BusEnvelope,
 	options: BusEnvelopeDeliveryOptions
