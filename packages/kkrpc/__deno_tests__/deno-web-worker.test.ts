@@ -3,6 +3,7 @@
  */
 import { assertEquals } from "jsr:@std/assert"
 import { apiMethods, type API } from "../__tests__/scripts/api.ts"
+import * as denoEntry from "../deno-mod.ts"
 import { RPCChannel } from "../mod.ts"
 import { workerTransport } from "../worker.ts"
 
@@ -11,6 +12,10 @@ const worker = new Worker(new URL("../__tests__/scripts/worker.ts", import.meta.
 })
 const rpc = new RPCChannel<API, API>(workerTransport(worker), { expose: apiMethods })
 const api = rpc.getAPI()
+
+Deno.test("Deno entry excludes Node stdio helper", () => {
+	assertEquals("nodeStdioTransport" in denoEntry, false)
+})
 
 Deno.test("Call Worker Exposed API", async () => {
 	for (let i = 0; i < 100; i++) {
