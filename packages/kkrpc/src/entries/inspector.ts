@@ -3,8 +3,8 @@ import type {
 	RPCPlugin,
 	RPCRequestContext,
 	RPCResponseContext
-} from "./src/core/plugins.ts"
-import type { RPCMessage } from "./src/core/protocol.ts"
+} from "../core/plugins.ts"
+import type { RPCMessage } from "../core/protocol.ts"
 
 export interface InspectEvent {
 	timestamp: number

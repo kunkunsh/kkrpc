@@ -1,0 +1,13 @@
+{
+  "$schema": "https://raw.githubusercontent.com/HuakunShen/opencode-design-lab/main/schemas/design-lab-config.schema.json",
+  "models": [
+    { "model": "openai/gpt-5.5", "variant": "xhigh" },
+    { "model": "opencode-go/qwen3.7-max" },
+    { "model": "opencode-go/minimax-m3" },
+    { "model": "opencode-go/glm-5.1" },
+    { "model": "opencode-go/kimi-k2.6" },
+    { "model": "opencode-go/deepseek-v4-pro"}
+  ],
+  "default_variant": "max",
+  "base_output_dir": ".design-lab"
+}

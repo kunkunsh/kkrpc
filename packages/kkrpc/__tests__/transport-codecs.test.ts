@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test"
 
-import { jsonCodec, jsonLineCodec, objectCodec } from "../codecs.ts"
-import { createTransport, type Platform } from "../transport.ts"
-import type { RPCMessage } from "../mod.ts"
+import { jsonCodec, jsonLineCodec, objectCodec } from "../src/entries/codecs.ts"
+import { createTransport, type Platform } from "../src/entries/transport.ts"
+import type { RPCMessage } from "../src/entries/mod.ts"
 
 class StringPlatform implements Platform<string> {
 	capabilities = { objectMode: false, transfer: true }

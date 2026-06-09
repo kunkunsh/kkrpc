@@ -1,5 +1,5 @@
-import { expose, transfer } from "../../mod.ts"
-import { workerSelfTransport } from "../../worker.ts"
+import { expose, transfer } from "../../src/entries/mod.ts"
+import { workerSelfTransport } from "../../src/entries/worker.ts"
 
 const api = {
 	add: async (a: number, b: number) => a + b,

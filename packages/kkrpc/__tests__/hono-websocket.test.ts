@@ -1,9 +1,9 @@
 import { afterAll, beforeAll, expect, test } from "bun:test"
 import { Hono } from "hono"
 import { upgradeWebSocket, websocket } from "hono/bun"
-import { RPCChannel } from "../mod.ts"
-import { createHonoWebSocketHandler } from "../ws-hono.ts"
-import { webSocketClientTransport } from "../ws.ts"
+import { RPCChannel } from "../src/entries/mod.ts"
+import { createHonoWebSocketHandler } from "../src/entries/ws-hono.ts"
+import { webSocketClientTransport } from "../src/entries/ws.ts"
 import { apiMethods, type API } from "./scripts/api.ts"
 
 let server: ReturnType<typeof Bun.serve> | undefined

@@ -1,12 +1,12 @@
 import { describe, expect, test } from "bun:test"
-import { chromePortTransport } from "../chrome-extension.ts"
+import { chromePortTransport } from "../src/entries/chrome-extension.ts"
 import {
 	iframeChildTransport,
 	iframeChildTransportReady,
 	iframeParentTransport,
 	iframeParentTransportReady
-} from "../iframe.ts"
-import { RPCChannel, transfer } from "../mod.ts"
+} from "../src/entries/iframe.ts"
+import { RPCChannel, transfer } from "../src/entries/mod.ts"
 import type { RPCMessage } from "../src/core/protocol.ts"
 
 const forbidden = [
@@ -95,7 +95,7 @@ async function waitFor(condition: () => boolean): Promise<void> {
 describe("browser-safe entries", () => {
 	test("main entry bundles without optional peer dependencies", async () => {
 		const output = await Bun.build({
-			entrypoints: [new URL("../mod.ts", import.meta.url).pathname],
+			entrypoints: [new URL("../src/entries/mod.ts", import.meta.url).pathname],
 			target: "browser",
 			format: "esm"
 		})
@@ -106,7 +106,7 @@ describe("browser-safe entries", () => {
 
 	test("browser entry bundles without Node-only dependencies", async () => {
 		const output = await Bun.build({
-			entrypoints: [new URL("../browser-mod.ts", import.meta.url).pathname],
+			entrypoints: [new URL("../src/entries/browser-mod.ts", import.meta.url).pathname],
 			target: "browser",
 			format: "esm"
 		})

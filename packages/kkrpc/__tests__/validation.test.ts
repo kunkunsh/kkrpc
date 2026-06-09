@@ -1,15 +1,15 @@
 import { describe, expect, test } from "bun:test"
 import { z } from "zod"
 
-import { expose, wrap } from "../mod.ts"
-import type { RPCMessage, Transport } from "../mod.ts"
+import { expose, wrap } from "../src/entries/mod.ts"
+import type { RPCMessage, Transport } from "../src/entries/mod.ts"
 import {
 	defineAPI,
 	defineMethod,
 	extractValidators,
 	isRPCValidationError,
 	validationPlugin
-} from "../validation.ts"
+} from "../src/entries/validation.ts"
 
 interface API {
 	add(a: number, b: number): Promise<number>

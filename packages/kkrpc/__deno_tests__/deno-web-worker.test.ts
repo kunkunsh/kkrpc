@@ -3,9 +3,9 @@
  */
 import { assertEquals } from "jsr:@std/assert"
 import { apiMethods, type API } from "../__tests__/scripts/api.ts"
-import * as denoEntry from "../deno-mod.ts"
-import { RPCChannel } from "../mod.ts"
-import { workerTransport } from "../worker.ts"
+import * as denoEntry from "../src/entries/deno-mod.ts"
+import { RPCChannel } from "../src/entries/mod.ts"
+import { workerTransport } from "../src/entries/worker.ts"
 
 const worker = new Worker(new URL("../__tests__/scripts/worker.ts", import.meta.url).href, {
 	type: "module"

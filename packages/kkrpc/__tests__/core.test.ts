@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test"
 
-import { dispose, expose, RPCChannel, transfer, wrap } from "../mod.ts"
-import type { RPCMessage, Transport } from "../mod.ts"
+import { dispose, expose, RPCChannel, transfer, wrap } from "../src/entries/mod.ts"
+import type { RPCMessage, Transport } from "../src/entries/mod.ts"
 
 interface RemoteWidget {
 	name: string

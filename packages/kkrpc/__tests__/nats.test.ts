@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test"
-import { RPCChannel } from "../mod.ts"
-import { natsTransport, type NatsTransport } from "../nats.ts"
+import { RPCChannel } from "../src/entries/mod.ts"
+import { natsTransport, type NatsTransport } from "../src/entries/nats.ts"
 import { createBusEnvelope } from "../src/transports/bus-envelope.ts"
 import { handleNatsBusMessage } from "../src/transports/nats.ts"
 import { apiMethods, type API } from "./scripts/api.ts"

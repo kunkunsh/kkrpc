@@ -2,4 +2,4 @@ export {
 	rabbitMqTransport,
 	type RabbitMQTransport,
 	type RabbitMQTransportOptions
-} from "./src/transports/rabbitmq.ts"
+} from "../transports/rabbitmq.ts"

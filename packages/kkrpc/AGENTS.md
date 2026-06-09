@@ -15,17 +15,10 @@ packages/kkrpc/
 │   ├── core/              # RPCChannel, protocol, transport primitives, plugins, transfer
 │   ├── transports/        # Native transport factories
 │   ├── features/          # Validation, middleware, SuperJSON
+│   ├── entries/           # Public package entrypoint source files
 │   └── relay.ts           # Transport relay helper
 ├── __tests__/             # Bun test suite
 ├── __deno_tests__/        # Deno regression tests
-├── mod.ts                 # Main stable entry
-├── browser-mod.ts         # Browser-safe entry
-├── deno-mod.ts            # Deno-friendly entry
-├── worker.ts              # Worker transport entry
-├── stdio.ts               # stdio transport entry
-├── http.ts                # HTTP transport entry
-├── ws.ts                  # WebSocket transport entry
-├── electron.ts            # Electron transport entry
 ├── scripts/               # Build and test scripts
 ├── tsconfig.json          # TypeScript config
 ├── tsdown.config.ts       # Build configuration
@@ -38,17 +31,20 @@ packages/kkrpc/
 
 | File                                             | Purpose                         |
 | ------------------------------------------------ | ------------------------------- |
-| `mod.ts`                                         | Main stable entry for core APIs |
-| `browser-mod.ts`                                 | Browser-safe core entry         |
-| `deno-mod.ts`                                    | Deno-friendly core entry        |
-| `transport.ts`                                   | Transport primitives entry      |
-| `codecs.ts`                                      | Codec helpers entry             |
-| `plugins.ts`                                     | Plugin helpers entry            |
-| `worker.ts`, `stdio.ts`, `http.ts`, `ws.ts`      | Runtime transport entries       |
-| `validation.ts`, `middleware.ts`, `superjson.ts` | Feature entries                 |
-| `relay.ts`, `inspector.ts`                       | Relay and observability entries |
-| `scripts/test.ts`                                | Package test runner             |
-| `scripts/prepare.ts`                             | Deno type generation            |
+| File                                                    | Purpose                         |
+| ------------------------------------------------------- | ------------------------------- |
+| `src/entries/mod.ts`                                    | Main stable entry for core APIs |
+| `src/entries/browser-mod.ts`                            | Browser-safe core entry         |
+| `src/entries/deno-mod.ts`                               | Deno-friendly core entry        |
+| `src/entries/transport.ts`                              | Transport primitives entry      |
+| `src/entries/codecs.ts`                                 | Codec helpers entry             |
+| `src/entries/plugins.ts`                                | Plugin helpers entry            |
+| `src/entries/worker.ts`, `src/entries/stdio.ts`         | Runtime transport entries       |
+| `src/entries/http.ts`, `src/entries/ws.ts`              | Runtime transport entries       |
+| `src/entries/validation.ts`, `src/entries/middleware.ts` | Feature entries                 |
+| `src/entries/relay.ts`, `src/entries/inspector.ts`      | Relay and observability entries |
+| `scripts/test.ts`                                       | Package test runner             |
+| `scripts/prepare.ts`                                    | Deno type generation            |
 
 ## EXPORT STRATEGY
 
@@ -57,14 +53,14 @@ Package exports are stable subpaths for tree-shaking and runtime-specific import
 ```json
 {
 	"exports": {
-		".": "./mod.ts",
-		"./browser": "./browser-mod.ts",
-		"./deno": "./deno-mod.ts",
-		"./worker": "./worker.ts",
-		"./stdio": "./stdio.ts",
-		"./http": "./http.ts",
-		"./ws": "./ws.ts",
-		"./electron": "./electron.ts"
+		".": "./src/entries/mod.ts",
+		"./browser": "./src/entries/browser-mod.ts",
+		"./deno": "./src/entries/deno-mod.ts",
+		"./worker": "./src/entries/worker.ts",
+		"./stdio": "./src/entries/stdio.ts",
+		"./http": "./src/entries/http.ts",
+		"./ws": "./src/entries/ws.ts",
+		"./electron": "./src/entries/electron.ts"
 	}
 }
 ```
@@ -83,7 +79,7 @@ Package exports are stable subpaths for tree-shaking and runtime-specific import
 
 ## CONVENTIONS
 
-- Entry files re-export stable APIs from `src/core/`, `src/transports/`, `src/features/`, or `src/relay.ts`.
+- Entry files live in `src/entries/` and re-export stable APIs from `src/core/`, `src/transports/`, `src/features/`, or `src/relay.ts`.
 - Browser entries avoid Node-specific stdio helpers.
 - Deno entries avoid Node `process` assumptions.
 - Build output is ESM plus CJS via tsdown.

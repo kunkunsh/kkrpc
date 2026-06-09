@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test"
 
-import { dispose, expose, transfer, wrap } from "../mod.ts"
-import { workerSelfTransport, workerTransport } from "../worker.ts"
+import { dispose, expose, transfer, wrap } from "../src/entries/mod.ts"
+import { workerSelfTransport, workerTransport } from "../src/entries/worker.ts"
 
 interface WorkerAPI {
 	add(a: number, b: number): Promise<number>

@@ -2,4 +2,4 @@ export {
 	redisStreamsTransport,
 	type RedisStreamsTransport,
 	type RedisStreamsTransportOptions
-} from "./src/transports/redis-streams.ts"
+} from "../transports/redis-streams.ts"

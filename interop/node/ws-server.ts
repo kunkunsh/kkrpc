@@ -1,6 +1,6 @@
 import { WebSocketServer } from "ws"
-import { expose } from "../../packages/kkrpc/mod.ts"
-import { webSocketTransport } from "../../packages/kkrpc/ws.ts"
+import { expose } from "../../packages/kkrpc/src/entries/mod.ts"
+import { webSocketTransport } from "../../packages/kkrpc/src/entries/ws.ts"
 
 const port = Number(process.env.PORT || 0)
 

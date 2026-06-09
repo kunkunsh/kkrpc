@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test"
-import { RPCChannel } from "../mod.ts"
-import { redisStreamsTransport, type RedisStreamsTransport } from "../redis-streams.ts"
+import { RPCChannel } from "../src/entries/mod.ts"
+import { redisStreamsTransport, type RedisStreamsTransport } from "../src/entries/redis-streams.ts"
 import { createBusEnvelope } from "../src/transports/bus-envelope.ts"
 import { processRedisStreamMessages } from "../src/transports/redis-streams.ts"
 import { apiMethods, type API } from "./scripts/api.ts"

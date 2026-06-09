@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test"
-import { RPCChannel } from "../mod.ts"
-import { rabbitMqTransport, type RabbitMQTransport } from "../rabbitmq.ts"
+import { RPCChannel } from "../src/entries/mod.ts"
+import { rabbitMqTransport, type RabbitMQTransport } from "../src/entries/rabbitmq.ts"
 import { createBusEnvelope } from "../src/transports/bus-envelope.ts"
 import { handleRabbitMqBusEnvelope } from "../src/transports/rabbitmq.ts"
 import { apiMethods, type API } from "./scripts/api.ts"

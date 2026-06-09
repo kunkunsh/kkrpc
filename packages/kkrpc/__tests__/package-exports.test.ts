@@ -1,49 +1,60 @@
 import { describe, expect, test } from "bun:test"
 
 const stableEntries = [
-	[".", () => import("../mod.ts")],
-	["./browser", () => import("../browser-mod.ts")],
-	["./deno", () => import("../deno-mod.ts")],
-	["./transport", () => import("../transport.ts")],
-	["./codecs", () => import("../codecs.ts")],
-	["./plugins", () => import("../plugins.ts")],
-	["./validation", () => import("../validation.ts")],
-	["./middleware", () => import("../middleware.ts")],
-	["./superjson", () => import("../superjson.ts")],
-	["./worker", () => import("../worker.ts")],
-	["./stdio", () => import("../stdio.ts")],
-	["./http", () => import("../http.ts")],
-	["./ws", () => import("../ws.ts")],
-	["./ws/hono", () => import("../ws-hono.ts")],
-	["./ws/elysia", () => import("../ws-elysia.ts")],
-	["./iframe", () => import("../iframe.ts")],
-	["./chrome-extension", () => import("../chrome-extension.ts")],
-	["./electron", () => import("../electron.ts")],
-	["./tauri", () => import("../tauri.ts")],
-	["./socketio", () => import("../socketio.ts")],
-	["./rabbitmq", () => import("../rabbitmq.ts")],
-	["./kafka", () => import("../kafka.ts")],
-	["./redis-streams", () => import("../redis-streams.ts")],
-	["./nats", () => import("../nats.ts")],
-	["./relay", () => import("../relay.ts")],
-	["./inspector", () => import("../inspector.ts")]
+	[".", () => import("../src/entries/mod.ts")],
+	["./browser", () => import("../src/entries/browser-mod.ts")],
+	["./deno", () => import("../src/entries/deno-mod.ts")],
+	["./transport", () => import("../src/entries/transport.ts")],
+	["./codecs", () => import("../src/entries/codecs.ts")],
+	["./plugins", () => import("../src/entries/plugins.ts")],
+	["./validation", () => import("../src/entries/validation.ts")],
+	["./middleware", () => import("../src/entries/middleware.ts")],
+	["./superjson", () => import("../src/entries/superjson.ts")],
+	["./worker", () => import("../src/entries/worker.ts")],
+	["./stdio", () => import("../src/entries/stdio.ts")],
+	["./http", () => import("../src/entries/http.ts")],
+	["./ws", () => import("../src/entries/ws.ts")],
+	["./ws/hono", () => import("../src/entries/ws-hono.ts")],
+	["./ws/elysia", () => import("../src/entries/ws-elysia.ts")],
+	["./iframe", () => import("../src/entries/iframe.ts")],
+	["./chrome-extension", () => import("../src/entries/chrome-extension.ts")],
+	["./electron", () => import("../src/entries/electron.ts")],
+	["./tauri", () => import("../src/entries/tauri.ts")],
+	["./socketio", () => import("../src/entries/socketio.ts")],
+	["./rabbitmq", () => import("../src/entries/rabbitmq.ts")],
+	["./kafka", () => import("../src/entries/kafka.ts")],
+	["./redis-streams", () => import("../src/entries/redis-streams.ts")],
+	["./nats", () => import("../src/entries/nats.ts")],
+	["./relay", () => import("../src/entries/relay.ts")],
+	["./inspector", () => import("../src/entries/inspector.ts")]
 ] as const
 
 const stableEntrySourceFiles = [
 	"mod.ts",
 	"browser-mod.ts",
 	"deno-mod.ts",
+	"transport.ts",
+	"codecs.ts",
+	"plugins.ts",
+	"validation.ts",
+	"middleware.ts",
+	"superjson.ts",
+	"worker.ts",
+	"stdio.ts",
 	"http.ts",
+	"ws.ts",
+	"ws-hono.ts",
+	"ws-elysia.ts",
+	"iframe.ts",
 	"chrome-extension.ts",
 	"electron.ts",
+	"tauri.ts",
 	"socketio.ts",
 	"rabbitmq.ts",
 	"kafka.ts",
 	"redis-streams.ts",
 	"nats.ts",
-	"validation.ts",
-	"middleware.ts",
-	"superjson.ts",
+	"relay.ts",
 	"inspector.ts"
 ] as const
 
@@ -88,7 +99,7 @@ const removedExportNames = new Set([
 
 describe("stable package exports", () => {
 	test("main entry exposes stable core API", async () => {
-		const core = await import("../mod.ts")
+		const core = await import("../src/entries/mod.ts")
 
 		expect(typeof core.RPCChannel).toBe("function")
 		expect(typeof core.wrap).toBe("function")
@@ -133,6 +144,16 @@ describe("stable package exports", () => {
 		}
 	})
 
+	test("stable entry source files live under src/entries", async () => {
+		for (const file of stableEntrySourceFiles) {
+			const rootFile = Bun.file(new URL(`../${file}`, import.meta.url))
+			const entryFile = Bun.file(new URL(`../src/entries/${file}`, import.meta.url))
+
+			expect(await rootFile.exists(), `${file} should not live in package root`).toBe(false)
+			expect(await entryFile.exists(), `${file} should live in src/entries`).toBe(true)
+		}
+	})
+
 	test("stable entries do not expose classic API names", async () => {
 		for (const [key, importEntry] of stableEntries) {
 			const module = await importEntry()
@@ -146,7 +167,7 @@ describe("stable package exports", () => {
 
 	test("stable entry sources do not export classic API names", async () => {
 		for (const file of stableEntrySourceFiles) {
-			const source = await Bun.file(new URL(`../${file}`, import.meta.url)).text()
+			const source = await Bun.file(new URL(`../src/entries/${file}`, import.meta.url)).text()
 			const exportLines = source
 				.split("\n")
 				.filter((line) => /^\s*export\b/.test(line) || /^\s*}\s+from\b/.test(line))
@@ -176,9 +197,9 @@ describe("stable package exports", () => {
 	})
 
 	test("stable feature entries expose native helpers", async () => {
-		const validation = await import("../validation.ts")
-		const middleware = await import("../middleware.ts")
-		const superjson = await import("../superjson.ts")
+		const validation = await import("../src/entries/validation.ts")
+		const middleware = await import("../src/entries/middleware.ts")
+		const superjson = await import("../src/entries/superjson.ts")
 
 		expect(typeof validation.validationPlugin).toBe("function")
 		expect(typeof validation.defineAPI).toBe("function")
@@ -206,7 +227,7 @@ describe("stable package exports", () => {
 	})
 
 	test("deno entry avoids Node-specific stdio helpers", async () => {
-		const source = await Bun.file(new URL("../deno-mod.ts", import.meta.url)).text()
+		const source = await Bun.file(new URL("../src/entries/deno-mod.ts", import.meta.url)).text()
 
 		expect(source.includes("src/next/stdio"), "deno-mod.ts exports stdio helpers").toBe(false)
 		expect(source.includes("nodeStdioTransport"), "deno-mod.ts exports nodeStdioTransport").toBe(

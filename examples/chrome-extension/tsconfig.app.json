@@ -11,8 +11,8 @@
     "moduleResolution": "bundler",
 		"paths": {
 			"@/*": ["src/*"],
-			"kkrpc/browser": ["../../packages/kkrpc/browser-mod.ts"],
-			"kkrpc/chrome-extension": ["../../packages/kkrpc/chrome-extension.ts"]
+			"kkrpc/browser": ["../../packages/kkrpc/src/entries/browser-mod.ts"],
+			"kkrpc/chrome-extension": ["../../packages/kkrpc/src/entries/chrome-extension.ts"]
 		},
     "types": ["vite/client", "chrome"],
     "allowImportingTsExtensions": true,

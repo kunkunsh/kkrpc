@@ -2,8 +2,8 @@ import { createServer } from "node:http"
 import { afterAll, beforeAll, expect, test } from "bun:test"
 import { Server as SocketIOServer } from "socket.io"
 import { io as createSocketIOClient } from "socket.io-client"
-import { RPCChannel } from "../mod.ts"
-import { socketIoTransport } from "../socketio.ts"
+import { RPCChannel } from "../src/entries/mod.ts"
+import { socketIoTransport } from "../src/entries/socketio.ts"
 import { apiMethods, type API } from "./scripts/api.ts"
 
 let httpServer: ReturnType<typeof createServer>

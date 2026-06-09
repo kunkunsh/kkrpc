@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test"
 
-import { createHttpHandler, httpClientTransport } from "../http.ts"
-import { wrap } from "../mod.ts"
+import { createHttpHandler, httpClientTransport } from "../src/entries/http.ts"
+import { wrap } from "../src/entries/mod.ts"
 import { apiMethods, type API } from "./scripts/api.ts"
 
 describe("HTTP RPC", () => {

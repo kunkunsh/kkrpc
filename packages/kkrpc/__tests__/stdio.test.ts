@@ -1,9 +1,9 @@
 import { describe, expect, test } from "bun:test"
 import { PassThrough } from "node:stream"
 
-import { dispose, expose, wrap } from "../mod.ts"
-import { nodeStdioTransport, stdioJsonTransport, stdioPlatform } from "../stdio.ts"
-import type { ReadableLike } from "../stdio.ts"
+import { dispose, expose, wrap } from "../src/entries/mod.ts"
+import { nodeStdioTransport, stdioJsonTransport, stdioPlatform } from "../src/entries/stdio.ts"
+import type { ReadableLike } from "../src/entries/stdio.ts"
 
 interface TestAPI {
 	add(a: number, b: number): Promise<number>

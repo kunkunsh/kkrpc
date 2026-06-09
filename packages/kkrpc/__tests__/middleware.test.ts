@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test"
 
-import { expose, wrap } from "../mod.ts"
-import type { RPCMessage, Transport } from "../mod.ts"
-import { middlewarePlugin, type MiddlewareHandler } from "../middleware.ts"
+import { expose, wrap } from "../src/entries/mod.ts"
+import type { RPCMessage, Transport } from "../src/entries/mod.ts"
+import { middlewarePlugin, type MiddlewareHandler } from "../src/entries/middleware.ts"
 
 interface API {
 	add(a: number, b: number): Promise<number>

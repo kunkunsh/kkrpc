@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test"
-import type { RPCMessage } from "../mod.ts"
+import type { RPCMessage } from "../src/entries/mod.ts"
 import {
 	createBusEnvelope,
 	isBusEnvelope,

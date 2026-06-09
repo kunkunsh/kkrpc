@@ -1,8 +1,8 @@
 import { afterAll, beforeAll, expect, test } from "bun:test"
 import { Elysia } from "elysia"
-import { RPCChannel } from "../mod.ts"
-import { createElysiaWebSocketHandler } from "../ws-elysia.ts"
-import { webSocketClientTransport } from "../ws.ts"
+import { RPCChannel } from "../src/entries/mod.ts"
+import { createElysiaWebSocketHandler } from "../src/entries/ws-elysia.ts"
+import { webSocketClientTransport } from "../src/entries/ws.ts"
 import { apiMethods, type API } from "./scripts/api.ts"
 
 let server: Elysia | undefined

@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test"
 
-import { createTransport, type Platform } from "../transport.ts"
-import { superJsonCodec, superJsonLineCodec, superjsonCodec, superjsonLineCodec } from "../superjson.ts"
+import { createTransport, type Platform } from "../src/entries/transport.ts"
+import { superJsonCodec, superJsonLineCodec, superjsonCodec, superjsonLineCodec } from "../src/entries/superjson.ts"
 
 class StringPlatform implements Platform<string> {
 	capabilities = { objectMode: false, transfer: false }

@@ -1,8 +1,8 @@
 import type { AddressInfo } from "node:net"
 import { afterAll, beforeAll, expect, test } from "bun:test"
 import { WebSocketServer } from "ws"
-import { RPCChannel } from "../mod.ts"
-import { webSocketClientTransport, webSocketTransport } from "../ws.ts"
+import { RPCChannel } from "../src/entries/mod.ts"
+import { webSocketClientTransport, webSocketTransport } from "../src/entries/ws.ts"
 import { apiMethods, type API } from "./scripts/api.ts"
 
 let wss: WebSocketServer

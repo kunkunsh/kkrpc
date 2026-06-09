@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test"
-import { RPCChannel, transfer } from "../mod.ts"
-import { workerTransport } from "../worker.ts"
+import { RPCChannel, transfer } from "../src/entries/mod.ts"
+import { workerTransport } from "../src/entries/worker.ts"
 import { apiMethods, type API } from "./scripts/api.ts"
 
 function createRpc() {

@@ -1,5 +1,5 @@
-import { expose } from "../../mod.ts"
-import { workerSelfTransport } from "../../worker.ts"
+import { expose } from "../../src/entries/mod.ts"
+import { workerSelfTransport } from "../../src/entries/worker.ts"
 import { apiMethods, type API } from "./api.ts"
 
 expose<API, API>(apiMethods, workerSelfTransport())

@@ -107,15 +107,15 @@ Each optional feature has a separate package export and source entry:
 
 | Public import | Source entry | Pulls in |
 | --- | --- | --- |
-| `kkrpc` | `mod.ts` | channel, protocol, transport types, plugin types |
-| `kkrpc/browser` | `browser-mod.ts` | browser-safe core re-export |
-| `kkrpc/transport` | `transport.ts` | `createTransport`, platform/codec interfaces |
-| `kkrpc/codecs` | `codecs.ts` | JSON/object codecs |
-| `kkrpc/worker` | `worker.ts` | Worker transport only |
-| `kkrpc/stdio` | `stdio.ts` | stdio platform + JSON-line codec |
-| `kkrpc/validation` | `validation.ts` | Standard Schema validation plugin |
-| `kkrpc/middleware` | `middleware.ts` | interceptor middleware plugin |
-| `kkrpc/superjson` | `superjson.ts` | SuperJSON codecs |
+| `kkrpc` | `src/entries/mod.ts` | channel, protocol, transport types, plugin types |
+| `kkrpc/browser` | `src/entries/browser-mod.ts` | browser-safe core re-export |
+| `kkrpc/transport` | `src/entries/transport.ts` | `createTransport`, platform/codec interfaces |
+| `kkrpc/codecs` | `src/entries/codecs.ts` | JSON/object codecs |
+| `kkrpc/worker` | `src/entries/worker.ts` | Worker transport only |
+| `kkrpc/stdio` | `src/entries/stdio.ts` | stdio platform + JSON-line codec |
+| `kkrpc/validation` | `src/entries/validation.ts` | Standard Schema validation plugin |
+| `kkrpc/middleware` | `src/entries/middleware.ts` | interceptor middleware plugin |
+| `kkrpc/superjson` | `src/entries/superjson.ts` | SuperJSON codecs |
 
 The dependency direction is one-way: feature entries import core; core never imports feature entries. This is the tree-shaking boundary. A user importing only `kkrpc` should not pay for SuperJSON, validation libraries, middleware helpers, stdio, Worker-specific code, or optional peer transports.
 

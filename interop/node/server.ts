@@ -1,5 +1,5 @@
-import { expose } from "../../packages/kkrpc/mod.ts"
-import { nodeStdioTransport } from "../../packages/kkrpc/stdio.ts"
+import { expose } from "../../packages/kkrpc/src/entries/mod.ts"
+import { nodeStdioTransport } from "../../packages/kkrpc/src/entries/stdio.ts"
 
 const api = {
 	math: {

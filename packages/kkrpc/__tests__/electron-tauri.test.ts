@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test"
-import type { RPCMessage } from "../mod.ts"
-import { electronIpcTransport } from "../electron.ts"
-import { tauriShellStdioTransport } from "../tauri.ts"
+import type { RPCMessage } from "../src/entries/mod.ts"
+import { electronIpcTransport } from "../src/entries/electron.ts"
+import { tauriShellStdioTransport } from "../src/entries/tauri.ts"
 
 class FakeElectronEndpoint {
 	readonly sent: Array<{ channel: string; message: RPCMessage }> = []
