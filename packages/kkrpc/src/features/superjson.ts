@@ -13,12 +13,12 @@
  * @example
  * ```ts
  * import { createTransport } from "kkrpc/transport"
- * import { superjsonCodec } from "kkrpc/superjson"
+ * import { superJsonCodec } from "kkrpc/superjson"
  * import type { RPCMessage } from "kkrpc"
  *
  * const transport = createTransport<RPCMessage, string>({
  * 	platform: stringPlatform,
- * 	codec: superjsonCodec<RPCMessage>()
+ * 	codec: superJsonCodec<RPCMessage>()
  * })
  * ```
  */
@@ -28,7 +28,7 @@ import superjson from "superjson"
 import type { Codec } from "../core/transport.ts"
 
 /** Create a SuperJSON string codec. */
-export function superjsonCodec<TMessage>(): Codec<TMessage, string> {
+export function superJsonCodec<TMessage>(): Codec<TMessage, string> {
 	return {
 		capabilities: { transfer: false },
 		encode: (message) => superjson.stringify(message),
@@ -37,11 +37,14 @@ export function superjsonCodec<TMessage>(): Codec<TMessage, string> {
 }
 
 /** Create a newline-framed SuperJSON codec for stream transports. */
-export function superjsonLineCodec<TMessage>(): Codec<TMessage, string> {
-	const codec = superjsonCodec<TMessage>()
+export function superJsonLineCodec<TMessage>(): Codec<TMessage, string> {
+	const codec = superJsonCodec<TMessage>()
 	return {
 		capabilities: { transfer: false },
 		encode: (message) => `${codec.encode(message)}\n`,
 		decode: (wire) => codec.decode(wire.trimEnd())
 	}
 }
+
+export const superjsonCodec = superJsonCodec
+export const superjsonLineCodec = superJsonLineCodec

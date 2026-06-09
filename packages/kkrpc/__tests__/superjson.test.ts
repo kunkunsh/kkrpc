@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test"
 
 import { createTransport, type Platform } from "../transport.ts"
-import { superjsonCodec, superjsonLineCodec } from "../superjson.ts"
+import { superJsonCodec, superJsonLineCodec, superjsonCodec, superjsonLineCodec } from "../superjson.ts"
 
 class StringPlatform implements Platform<string> {
 	capabilities = { objectMode: false, transfer: false }
@@ -36,8 +36,13 @@ class TransferCapableStringPlatform implements Platform<string> {
 }
 
 describe("kkrpc SuperJSON codecs", () => {
+	test("preserves original public export names", () => {
+		expect(typeof superJsonCodec).toBe("function")
+		expect(typeof superJsonLineCodec).toBe("function")
+	})
+
 	test("superjsonCodec round-trips non-JSON values", () => {
-		const codec = superjsonCodec<unknown>()
+		const codec = superJsonCodec<unknown>()
 		const input = {
 			date: new Date("2026-06-07T00:00:00.000Z"),
 			map: new Map([["a", 1]]),
@@ -57,7 +62,7 @@ describe("kkrpc SuperJSON codecs", () => {
 	})
 
 	test("superjsonLineCodec adds newline framing", () => {
-		const codec = superjsonLineCodec<{ value: Date }>()
+		const codec = superJsonLineCodec<{ value: Date }>()
 		const wire = codec.encode({ value: new Date("2026-06-07T00:00:00.000Z") })
 		const decoded = codec.decode(wire)
 
@@ -67,7 +72,7 @@ describe("kkrpc SuperJSON codecs", () => {
 
 	test("composes with createTransport", () => {
 		const platform = new StringPlatform()
-		const transport = createTransport({ platform, codec: superjsonCodec<{ value: bigint }>() })
+		const transport = createTransport({ platform, codec: superJsonCodec<{ value: bigint }>() })
 		const received: Array<{ value: bigint }> = []
 
 		const unsubscribe = transport.subscribe((message) => {
@@ -84,11 +89,16 @@ describe("kkrpc SuperJSON codecs", () => {
 
 	test("does not forward transfers through SuperJSON codecs", () => {
 		const platform = new TransferCapableStringPlatform()
-		const transport = createTransport({ platform, codec: superjsonCodec<{ value: bigint }>() })
+		const transport = createTransport({ platform, codec: superJsonCodec<{ value: bigint }>() })
 
 		transport.send({ value: 5n }, [new ArrayBuffer(1)])
 
 		expect(transport.capabilities?.transfer).toBe(false)
 		expect(platform.sentTransfers).toEqual([[]])
+	})
+
+	test("lowercase aliases remain available", () => {
+		expect(superjsonCodec).toBe(superJsonCodec)
+		expect(superjsonLineCodec).toBe(superJsonLineCodec)
 	})
 })

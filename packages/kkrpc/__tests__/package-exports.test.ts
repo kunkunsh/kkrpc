@@ -172,6 +172,8 @@ describe("stable package exports", () => {
 		expect(typeof validation.defineAPI).toBe("function")
 		expect(typeof validation.defineMethod).toBe("function")
 		expect(typeof middleware.middlewarePlugin).toBe("function")
+		expect(typeof superjson.superJsonCodec).toBe("function")
+		expect(typeof superjson.superJsonLineCodec).toBe("function")
 		expect(typeof superjson.superjsonCodec).toBe("function")
 	})
 
