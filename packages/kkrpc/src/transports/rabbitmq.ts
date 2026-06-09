@@ -63,29 +63,62 @@ export function rabbitMqTransport(options: RabbitMQTransportOptions): RabbitMQTr
 		connectionPromise = (async () => {
 			const amqplib = await import("amqplib")
 			const nextConnection = await amqplib.connect(options.url || "amqp://localhost")
-			const nextChannel = await nextConnection.createChannel()
-			if (closed) {
-				await nextChannel.close().catch(() => {})
+			connection = nextConnection
+
+			const cleanup = async () => {
+				await channel?.close().catch(() => {})
 				await nextConnection.close().catch(() => {})
+				channel = undefined
+				if (connection === nextConnection) connection = undefined
+			}
+
+			if (closed) {
+				await cleanup()
 				return
 			}
-			connection = nextConnection
-			channel = nextChannel
-			const durable = options.durable !== false
-			await channel.assertExchange(exchange, options.exchangeType || "topic", { durable })
-			if (closed) return
-			const { queue } = await channel.assertQueue("", {
-				durable: false,
-				exclusive: true,
-				autoDelete: true
-			})
-			if (closed) return
-			await channel.bindQueue(queue, exchange, routingKey)
-			if (closed) return
-			await channel.consume(queue, (message: ConsumeMessage | null) => {
-				if (!message || closed || !channel) return
-				handleRabbitMqBusEnvelope(message, channel, options.localPeerId, listeners)
-			})
+
+			let nextChannel: Channel | undefined
+			try {
+				nextChannel = await nextConnection.createChannel()
+				channel = nextChannel
+			} catch (error) {
+				await cleanup()
+				throw error
+			}
+			if (closed) {
+				await cleanup()
+				return
+			}
+
+			try {
+				const durable = options.durable !== false
+				await nextChannel.assertExchange(exchange, options.exchangeType || "topic", { durable })
+				if (closed) {
+					await cleanup()
+					return
+				}
+				const { queue } = await nextChannel.assertQueue("", {
+					durable: false,
+					exclusive: true,
+					autoDelete: true
+				})
+				if (closed) {
+					await cleanup()
+					return
+				}
+				await nextChannel.bindQueue(queue, exchange, routingKey)
+				if (closed) {
+					await cleanup()
+					return
+				}
+				await nextChannel.consume(queue, (message: ConsumeMessage | null) => {
+					if (!message || closed || !channel) return
+					handleRabbitMqBusEnvelope(message, channel, options.localPeerId, listeners)
+				})
+			} catch (error) {
+				await cleanup()
+				throw error
+			}
 		})()
 		return connectionPromise
 	}

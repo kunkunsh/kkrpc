@@ -81,6 +81,82 @@ describeKafka("kafkaTransport", () => {
 		expect(delivered).toEqual([envelope.message])
 	})
 
+	test("propagates routed listener delivery failures", () => {
+		const envelope = createBusEnvelope(
+			{ t: "r", id: "request-1", v: "ok" },
+			{
+				transportId: "kafka",
+				from: "client",
+				to: "server"
+			}
+		)
+
+		expect(() => {
+			handleKafkaBusMessage(
+				JSON.stringify(envelope),
+				"server",
+				new Set([
+					() => {
+						throw new Error("delivery failed")
+					}
+				])
+			)
+		}).toThrow("delivery failed")
+	})
+
+	test("disconnects producer when close races consumer connect", async () => {
+		let resolveConsumerConnect!: () => void
+		const events: string[] = []
+		const producer = {
+			async connect() {
+				events.push("producer-connect")
+			},
+			async disconnect() {
+				events.push("producer-disconnect")
+			},
+			async send() {}
+		}
+		const consumer = {
+			async connect() {
+				events.push("consumer-connect-start")
+				await new Promise<void>((resolve) => {
+					resolveConsumerConnect = resolve
+				})
+				events.push("consumer-connect-end")
+			},
+			async disconnect() {
+				events.push("consumer-disconnect")
+			},
+			async subscribe() {},
+			async run() {}
+		}
+		const transport = kafkaTransport({
+			brokers: KAFKA_BROKERS,
+			topic: TEST_TOPIC + "-close-race",
+			localPeerId: "client",
+			__client: {
+				producer: () => producer,
+				consumer: () => consumer,
+				admin: () => ({
+					async connect() {},
+					async disconnect() {},
+					async listTopics() {
+						return []
+					},
+					async createTopics() {}
+				})
+			}
+		})
+
+		transport.subscribe(() => {})
+		await new Promise((resolve) => setTimeout(resolve, 0))
+		transport.close?.()
+		resolveConsumerConnect()
+		await new Promise((resolve) => setTimeout(resolve, 0))
+
+		expect(events).toContain("producer-disconnect")
+	})
+
 	test("creates an object-mode transport with broadcast capabilities by default", () => {
 		const transport = kafkaTransport({
 			brokers: KAFKA_BROKERS,

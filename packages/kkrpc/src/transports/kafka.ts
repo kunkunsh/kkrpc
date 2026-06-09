@@ -1,11 +1,4 @@
-import type {
-	Admin,
-	Consumer,
-	ConsumerConfig,
-	KafkaConfig,
-	Producer,
-	ProducerConfig
-} from "kafkajs"
+import type { ConsumerConfig, KafkaConfig, ProducerConfig } from "kafkajs"
 import type { RPCMessage } from "../core/protocol.ts"
 import type { Transport } from "../core/transport.ts"
 import { createBusEnvelope, parseBusEnvelope, shouldDeliverBusEnvelope } from "./bus-envelope.ts"
@@ -25,9 +18,46 @@ export interface KafkaTransportOptions {
 	replicationFactor?: number
 	localPeerId: string
 	remotePeerId?: string
+	/** @internal Test seam for setup-race coverage. */
+	__client?: KafkaClientLike
 }
 
 export type KafkaTransport = Transport<RPCMessage>
+
+interface KafkaProducerLike {
+	connect(): Promise<void>
+	disconnect(): Promise<void>
+	send(record: { topic: string; messages: Array<{ value: string }> }): Promise<unknown>
+}
+
+interface KafkaMessageLike {
+	value?: { toString(encoding?: BufferEncoding): string } | null
+}
+
+interface KafkaConsumerLike {
+	connect(): Promise<void>
+	disconnect(): Promise<void>
+	subscribe(options: { topic: string; fromBeginning: boolean }): Promise<void>
+	run(options: {
+		eachMessage(args: { message: KafkaMessageLike }): Promise<void> | void
+	}): Promise<void>
+}
+
+interface KafkaAdminLike {
+	connect(): Promise<void>
+	disconnect(): Promise<void>
+	listTopics(): Promise<string[]>
+	createTopics(options: {
+		topics: Array<{ topic: string; numPartitions: number; replicationFactor: number }>
+		waitForLeaders: boolean
+	}): Promise<unknown>
+}
+
+interface KafkaClientLike {
+	producer(config?: ProducerConfig): KafkaProducerLike
+	consumer(config: ConsumerConfig): KafkaConsumerLike
+	admin(): KafkaAdminLike
+}
 
 export function handleKafkaBusMessage(
 	raw: string,
@@ -37,23 +67,19 @@ export function handleKafkaBusMessage(
 	const envelope = parseBusEnvelope(raw)
 	if (!envelope) return
 	if (!shouldDeliverBusEnvelope(envelope, { localPeerId })) return
-	try {
-		listeners.forEach((listener) => listener(envelope.message))
-	} catch (error) {
-		console.error("Kafka transport delivery error:", error)
-	}
+	listeners.forEach((listener) => listener(envelope.message))
 }
 
 export function kafkaTransport(options: KafkaTransportOptions): KafkaTransport {
 	const topic = options.topic || "kkrpc-topic"
 	const listeners = new Set<(message: RPCMessage) => void>()
-	let producer: Producer | undefined
-	let consumer: Consumer | undefined
+	let producer: KafkaProducerLike | undefined
+	let consumer: KafkaConsumerLike | undefined
 	let connectionPromise: Promise<void> | undefined
 	let closed = false
 
-	async function ensureTopic(kafka: { admin(): Admin }): Promise<void> {
-		let admin: Admin | undefined
+	async function ensureTopic(kafka: KafkaClientLike): Promise<void> {
+		let admin: KafkaAdminLike | undefined
 		try {
 			admin = kafka.admin()
 			await admin.connect()
@@ -84,43 +110,79 @@ export function kafkaTransport(options: KafkaTransportOptions): KafkaTransport {
 	async function connect(): Promise<void> {
 		if (connectionPromise) return connectionPromise
 		connectionPromise = (async () => {
-			const { Kafka, logLevel } = await import("kafkajs")
-			const kafka = new Kafka({
-				clientId: options.clientId || `kkrpc-client-${options.localPeerId}`,
-				brokers: options.brokers || ["localhost:9092"],
-				ssl: options.ssl,
-				sasl: options.sasl,
-				retry: options.retry,
-				logLevel: logLevel.ERROR
-			})
+			const kafka = options.__client ?? (await createKafkaClient())
 			const nextProducer = kafka.producer(options.producerConfig)
-			const nextConsumer = kafka.consumer({
-				groupId: options.groupId || `kkrpc-group-${topic}-${options.localPeerId}`,
-				...options.consumerConfig
-			})
-			await nextProducer.connect()
-			await nextConsumer.connect()
-			if (closed) {
-				await nextConsumer.disconnect().catch(() => {})
-				await nextProducer.disconnect().catch(() => {})
-				return
-			}
 			producer = nextProducer
-			consumer = nextConsumer
-			await ensureTopic(kafka)
-			if (closed) return
-			await consumer.subscribe({ topic, fromBeginning: options.fromBeginning || false })
-			if (closed) return
-			await consumer.run({
-				eachMessage: async ({ message }) => {
-					if (closed) return
-					const value = message.value?.toString("utf8")
-					if (!value) return
-					handleKafkaBusMessage(value, options.localPeerId, listeners)
+
+			const cleanup = async () => {
+				await consumer?.disconnect().catch(() => {})
+				await nextProducer.disconnect().catch(() => {})
+				if (producer === nextProducer) producer = undefined
+				consumer = undefined
+			}
+
+			try {
+				if (closed) {
+					await cleanup()
+					return
 				}
-			})
+				await nextProducer.connect()
+				if (closed) {
+					await cleanup()
+					return
+				}
+
+				const nextConsumer = kafka.consumer({
+					groupId: options.groupId || `kkrpc-group-${topic}-${options.localPeerId}`,
+					...options.consumerConfig
+				})
+				consumer = nextConsumer
+				if (closed) {
+					await cleanup()
+					return
+				}
+				await nextConsumer.connect()
+				if (closed) {
+					await cleanup()
+					return
+				}
+
+				await ensureTopic(kafka)
+				if (closed) {
+					await cleanup()
+					return
+				}
+				await nextConsumer.subscribe({ topic, fromBeginning: options.fromBeginning || false })
+				if (closed) {
+					await cleanup()
+					return
+				}
+				await nextConsumer.run({
+					eachMessage: async ({ message }) => {
+						if (closed) return
+						const value = message.value?.toString("utf8")
+						if (!value) return
+						handleKafkaBusMessage(value, options.localPeerId, listeners)
+					}
+				})
+			} catch (error) {
+				await cleanup()
+				throw error
+			}
 		})()
 		return connectionPromise
+	}
+
+	async function createKafkaClient(): Promise<KafkaClientLike> {
+		const { Kafka, logLevel } = await import("kafkajs")
+		return new Kafka({
+			clientId: options.clientId || `kkrpc-client-${options.localPeerId}`,
+			brokers: options.brokers || ["localhost:9092"],
+			ssl: options.ssl,
+			sasl: options.sasl,
+			retry: options.retry,
+			logLevel: logLevel.ERROR
+		}) as KafkaClientLike
 	}
 
 	return {

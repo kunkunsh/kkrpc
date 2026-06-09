@@ -129,25 +129,56 @@ export function redisStreamsTransport(
 			const { default: IORedis } = await import("ioredis")
 			const url = options.url || "redis://localhost:6379"
 			const nextPublisher = new IORedis(url)
-			const nextSubscriber = new IORedis(url)
-			await nextPublisher.ping()
-			await nextSubscriber.ping()
-			if (closed) {
+			publisher = nextPublisher
+
+			const cleanup = () => {
 				nextPublisher.disconnect()
-				nextSubscriber.disconnect()
+				subscriber?.disconnect()
+				if (publisher === nextPublisher) publisher = undefined
+				subscriber = undefined
+			}
+
+			if (closed) {
+				cleanup()
 				return
 			}
-			publisher = nextPublisher
+
+			const nextSubscriber = new IORedis(url)
 			subscriber = nextSubscriber
-			if (closed) return
+			if (closed) {
+				cleanup()
+				return
+			}
+
+			try {
+				await nextPublisher.ping()
+				if (closed) {
+					cleanup()
+					return
+				}
+				await nextSubscriber.ping()
+			} catch (error) {
+				cleanup()
+				throw error
+			}
+			if (closed) {
+				cleanup()
+				return
+			}
 			if (consumerGroup) {
 				try {
-					await subscriber.xgroup("CREATE", stream, consumerGroup, "0", "MKSTREAM")
+					await nextSubscriber.xgroup("CREATE", stream, consumerGroup, "0", "MKSTREAM")
 				} catch (error) {
-					if (!(error instanceof Error && error.message.includes("BUSYGROUP"))) throw error
+					if (!(error instanceof Error && error.message.includes("BUSYGROUP"))) {
+						cleanup()
+						throw error
+					}
 				}
 			}
-			if (closed) return
+			if (closed) {
+				cleanup()
+				return
+			}
 			void listen().catch((error) => {
 				if (!closed) console.error("Redis Streams transport read error:", error)
 			})
