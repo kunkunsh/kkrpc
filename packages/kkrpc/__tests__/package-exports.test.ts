@@ -175,6 +175,17 @@ describe("stable package exports", () => {
 		expect(typeof superjson.superjsonCodec).toBe("function")
 	})
 
+	test("validation feature is self-contained from classic validation sources", async () => {
+		const source = await Bun.file(new URL("../src/features/validation.ts", import.meta.url)).text()
+
+		expect(source.includes('from "../validation.ts"'), "imports classic validation module").toBe(false)
+		expect(source.includes('from "../standard-schema.ts"'), "imports classic standard schema module").toBe(
+			false
+		)
+		expect(source.includes('from "../channel.ts"'), "imports classic channel module").toBe(false)
+		expect(source.includes('from "../interface.ts"'), "imports classic interface module").toBe(false)
+	})
+
 	test("deno entry avoids Node-specific stdio helpers", async () => {
 		const source = await Bun.file(new URL("../deno-mod.ts", import.meta.url)).text()
 
