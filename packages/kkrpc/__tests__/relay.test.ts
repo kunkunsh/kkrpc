@@ -1,168 +1,143 @@
-import { describe, expect, test } from "bun:test"
-import type { IoMessage } from "../src/interface.ts"
-import { createRelay } from "../src/relay.ts"
+import { describe, expect, spyOn, test } from "bun:test"
+import type { RPCMessage } from "../src/core/protocol.ts"
+import type { Transport } from "../src/core/transport.ts"
+import { relayTransport } from "../src/relay.ts"
 
-describe("Transparent Relay", () => {
-	test("should forward messages from A to B", async () => {
-		const a = new MockIo("A")
-		const b = new MockIo("B")
+describe("relayTransport", () => {
+	test("forwards messages from left to right", () => {
+		const left = new MemoryTransport()
+		const right = new MemoryTransport()
 
-		const relay = createRelay(a, b)
+		const relay = relayTransport(left, right)
+		const message = request("left-to-right")
 
-		const message = "Hello from A"
-		a.simulateMessage(message)
+		left.emit(message)
 
-		// Wait for async relay
-		await delay(10)
+		expect(right.sent).toEqual([message])
+		expect(left.sent).toEqual([])
 
-		expect(b.getReceivedMessages()).toContain(message)
-
-		relay.destroy()
+		relay.dispose()
 	})
 
-	test("should forward messages from B to A", async () => {
-		const a = new MockIo("A")
-		const b = new MockIo("B")
+	test("forwards messages from right to left", () => {
+		const left = new MemoryTransport()
+		const right = new MemoryTransport()
 
-		const relay = createRelay(a, b)
+		const relay = relayTransport(left, right)
+		const message = request("right-to-left")
 
-		const message = "Hello from B"
-		b.simulateMessage(message)
+		right.emit(message)
 
-		await delay(10)
+		expect(left.sent).toEqual([message])
+		expect(right.sent).toEqual([])
 
-		expect(a.getReceivedMessages()).toContain(message)
-
-		relay.destroy()
+		relay.dispose()
 	})
 
-	test("should support multiple messages", async () => {
-		const a = new MockIo("A")
-		const b = new MockIo("B")
+	test("cleans up subscriptions on dispose", () => {
+		const left = new MemoryTransport()
+		const right = new MemoryTransport()
 
-		const relay = createRelay(a, b)
+		const relay = relayTransport(left, right)
 
-		a.simulateMessage("msg1")
-		a.simulateMessage("msg2")
-		b.simulateMessage("msg3")
+		expect(left.listenerCount).toBe(1)
+		expect(right.listenerCount).toBe(1)
 
-		await delay(10)
+		relay.dispose()
 
-		expect(b.getReceivedMessages()).toContain("msg1")
-		expect(b.getReceivedMessages()).toContain("msg2")
-		expect(a.getReceivedMessages()).toContain("msg3")
-
-		relay.destroy()
+		expect(left.listenerCount).toBe(0)
+		expect(right.listenerCount).toBe(0)
 	})
 
-	test("should cleanup on destroy", () => {
-		const a = new MockIo("A")
-		const b = new MockIo("B")
+	test("stops forwarding after dispose", () => {
+		const left = new MemoryTransport()
+		const right = new MemoryTransport()
+		const relay = relayTransport(left, right)
 
-		const relay = createRelay(a, b)
+		left.emit(request("before"))
+		expect(right.sent).toHaveLength(1)
 
-		expect(a.listenerCount()).toBe(1)
-		expect(b.listenerCount()).toBe(1)
+		relay.dispose()
+		left.emit(request("after"))
 
-		relay.destroy()
-
-		expect(a.listenerCount()).toBe(0)
-		expect(b.listenerCount()).toBe(0)
+		expect(right.sent).toHaveLength(1)
 	})
 
-	test("should stop forwarding after destroy", async () => {
-		const a = new MockIo("A")
-		const b = new MockIo("B")
+	test("supports bidirectional flow", () => {
+		const left = new MemoryTransport()
+		const right = new MemoryTransport()
+		const relay = relayTransport(left, right)
+		const ping = request("ping")
+		const pong = response("ping", "pong")
 
-		const relay = createRelay(a, b)
+		left.emit(ping)
+		right.emit(pong)
 
-		a.simulateMessage("before")
-		await delay(5)
-		expect(b.getReceivedMessages().length).toBe(1)
+		expect(right.sent).toEqual([ping])
+		expect(left.sent).toEqual([pong])
 
-		relay.destroy()
-
-		a.simulateMessage("after")
-		await delay(5)
-		expect(b.getReceivedMessages().length).toBe(1)
+		relay.dispose()
 	})
 
-	test("should handle bidirectional flow", async () => {
-		const a = new MockIo("A")
-		const b = new MockIo("B")
+	test("reports sync and async send failures without throwing", async () => {
+		const left = new MemoryTransport()
+		const right = new MemoryTransport({
+			send(message) {
+				if (message.t === "q") throw new Error("sync send failed")
+				return Promise.reject(new Error("async send failed"))
+			}
+		})
+		const errorSpy = spyOn(console, "error").mockImplementation(() => {})
 
-		const relay = createRelay(a, b)
+		try {
+			const relay = relayTransport(left, right)
 
-		// A -> B
-		a.simulateMessage("ping")
-		await delay(5)
-		expect(b.getReceivedMessages()).toContain("ping")
+			expect(() => left.emit(request("sync"))).not.toThrow()
+			left.emit(response("async", "value"))
+			await Promise.resolve()
 
-		// B -> A
-		b.simulateMessage("pong")
-		await delay(5)
-		expect(a.getReceivedMessages()).toContain("pong")
+			expect(errorSpy).toHaveBeenCalledTimes(2)
+			expect(String(errorSpy.mock.calls[0]?.[0])).toContain("left-to-right")
+			expect(errorSpy.mock.calls[0]?.[1]).toBeInstanceOf(Error)
+			expect(String(errorSpy.mock.calls[1]?.[0])).toContain("left-to-right")
+			expect(errorSpy.mock.calls[1]?.[1]).toBeInstanceOf(Error)
 
-		relay.destroy()
+			relay.dispose()
+		} finally {
+			errorSpy.mockRestore()
+		}
 	})
 })
 
-class MockIo {
-	name: string
-	private messageListeners: Set<(message: string | IoMessage) => void> = new Set()
-	private errorListeners: Set<(error: Error) => void> = new Set()
-	private receivedMessages: string[] = []
+class MemoryTransport implements Transport<RPCMessage> {
+	readonly sent: RPCMessage[] = []
+	private listeners = new Set<(message: RPCMessage) => void>()
 
-	constructor(name: string) {
-		this.name = name
+	constructor(private options: { send?: (message: RPCMessage) => void | Promise<void> } = {}) {}
+
+	send(message: RPCMessage): void | Promise<void> {
+		if (this.options.send) return this.options.send(message)
+		this.sent.push(message)
 	}
 
-	on(event: "message", listener: (message: string | IoMessage) => void): void
-	on(event: "error", listener: (error: Error) => void): void
-	on(event: "message" | "error", listener: Function): void {
-		if (event === "message") {
-			this.messageListeners.add(listener as (message: string | IoMessage) => void)
-		} else if (event === "error") {
-			this.errorListeners.add(listener as (error: Error) => void)
-		}
+	subscribe(listener: (message: RPCMessage) => void): () => void {
+		this.listeners.add(listener)
+		return () => this.listeners.delete(listener)
 	}
 
-	off(event: "message" | "error", listener: Function): void {
-		if (event === "message") {
-			this.messageListeners.delete(listener as (message: string | IoMessage) => void)
-		} else if (event === "error") {
-			this.errorListeners.delete(listener as (error: Error) => void)
-		}
+	emit(message: RPCMessage): void {
+		for (const listener of this.listeners) listener(message)
 	}
 
-	read(): Promise<string | null> {
-		return Promise.resolve(null)
-	}
-
-	write(message: string | IoMessage): Promise<void> {
-		const msg = typeof message === "string" ? message : JSON.stringify(message.data)
-		this.receivedMessages.push(msg)
-		return Promise.resolve()
-	}
-
-	simulateMessage(message: string): void {
-		this.messageListeners.forEach((listener) => listener(message))
-	}
-
-	getReceivedMessages(): string[] {
-		return [...this.receivedMessages]
-	}
-
-	listenerCount(): number {
-		return this.messageListeners.size
-	}
-
-	destroy(): void {
-		this.messageListeners.clear()
-		this.errorListeners.clear()
+	get listenerCount(): number {
+		return this.listeners.size
 	}
 }
 
-function delay(ms: number): Promise<void> {
-	return new Promise((resolve) => setTimeout(resolve, ms))
+function request(id: string): RPCMessage {
+	return { t: "q", id, op: "call", p: [id] }
+}
+
+function response(id: string, value: unknown): RPCMessage {
+	return { t: "r", id, v: value }
 }

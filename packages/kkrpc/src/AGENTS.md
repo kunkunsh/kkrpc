@@ -12,8 +12,7 @@ src/
 ├── transports/        # Native runtime transport factories
 ├── features/          # Optional validation, middleware, SuperJSON features
 ├── relay.ts           # Transport relay helper
-├── adapters/          # Legacy adapter source retained until cleanup tasks remove it
-└── inspector/         # Legacy inspector internals retained until cleanup tasks remove them
+└── adapters/          # Legacy adapter source retained until cleanup tasks remove it
 ```
 
 ## KEY FILES
