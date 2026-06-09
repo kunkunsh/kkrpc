@@ -1,5 +1,5 @@
 import { RPCChannel } from "../core/channel.ts"
-import type { RPCMessage, RPCResponse } from "../core/protocol.ts"
+import type { RPCMessage, RPCOperation, RPCRequest, RPCResponse } from "../core/protocol.ts"
 import type { Transport } from "../core/transport.ts"
 
 export interface HttpClientTransportOptions {
@@ -11,6 +11,8 @@ export interface HttpClientTransportOptions {
 export interface HttpHandlerOptions {
 	timeout?: number
 }
+
+const RPC_OPERATIONS = new Set<RPCOperation>(["call", "get", "set", "new"])
 
 export function httpClientTransport(options: HttpClientTransportOptions): Transport<RPCMessage> {
 	const fetchImpl = options.fetch ?? fetch
@@ -45,12 +47,13 @@ export function createHttpHandler<LocalAPI extends object>(
 	options: HttpHandlerOptions = {}
 ): (request: Request) => Promise<Response> {
 	return async (request) => {
-		let message: RPCMessage
+		let message: RPCRequest
 		try {
-			message = (await request.json()) as RPCMessage
-			if (message.t !== "q" || typeof message.id !== "string") {
+			const body = await request.json()
+			if (!isRPCRequestMessage(body)) {
 				throw new Error("invalid RPC request")
 			}
+			message = body
 		} catch {
 			return new Response("Bad request", { status: 400 })
 		}
@@ -60,16 +63,51 @@ export function createHttpHandler<LocalAPI extends object>(
 			expose: api,
 			timeout: options.timeout
 		})
+		let timeout: ReturnType<typeof setTimeout> | undefined
+		const response =
+			options.timeout !== undefined && options.timeout > 0
+				? Promise.race([
+						transport.response,
+						new Promise<RPCResponse>((resolve) => {
+							timeout = setTimeout(() => {
+								resolve({
+									t: "r",
+									id: message.id,
+									e: {
+										n: "RPCTimeoutError",
+										m: `RPC request ${message.id} timed out after ${options.timeout}ms`
+									}
+								})
+							}, options.timeout)
+						})
+					])
+				: transport.response
 
 		try {
-			const response = await transport.response
-			return new Response(JSON.stringify(response), {
+			const message = await response
+			return new Response(JSON.stringify(message), {
+				status: message.e?.n === "RPCTimeoutError" ? 504 : 200,
 				headers: { "Content-Type": "application/json" }
 			})
 		} finally {
+			if (timeout) clearTimeout(timeout)
 			channel.destroy()
 		}
 	}
+}
+
+function isRPCRequestMessage(value: unknown): value is RPCRequest {
+	if (typeof value !== "object" || value === null) return false
+	const message = value as Partial<RPCRequest>
+	return (
+		message.t === "q" &&
+		typeof message.id === "string" &&
+		typeof message.op === "string" &&
+		RPC_OPERATIONS.has(message.op as RPCOperation) &&
+		Array.isArray(message.p) &&
+		message.p.every((segment) => typeof segment === "string") &&
+		(message.a === undefined || Array.isArray(message.a))
+	)
 }
 
 function createRequestScopedTransport(request: RPCMessage): Transport<RPCMessage> & {

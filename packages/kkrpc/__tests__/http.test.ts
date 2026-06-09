@@ -54,4 +54,41 @@ describe("HTTP RPC", () => {
 		const response = await fetch(`${baseUrl}/rpc`, { method: "POST", body: "not-json" })
 		expect(response.status).toBe(400)
 	})
+
+	test("structurally invalid RPC request returns 400", async () => {
+		const response = await fetch(`${baseUrl}/rpc`, {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ t: "q", id: "bad" })
+		})
+		expect(response.status).toBe(400)
+	})
+
+	test("handler timeout returns 504 with RPC error response", async () => {
+		const handler = createHttpHandler(
+			{
+				hang: () => new Promise(() => {})
+			},
+			{ timeout: 5 }
+		)
+		const response = await Promise.race([
+			handler(
+				new Request("http://127.0.0.1/rpc", {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({ t: "q", id: "timeout-id", op: "call", p: ["hang"], a: [] })
+				})
+			),
+			new Promise<"pending">((resolve) => setTimeout(() => resolve("pending"), 50))
+		])
+
+		expect(response).toBeInstanceOf(Response)
+		if (!(response instanceof Response)) return
+		expect(response.status).toBe(504)
+		expect(await response.json()).toMatchObject({
+			t: "r",
+			id: "timeout-id",
+			e: { n: "RPCTimeoutError" }
+		})
+	})
 })
