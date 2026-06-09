@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test"
 
-import { jsonCodec, jsonLineCodec, objectCodec } from "../next-codecs.ts"
-import { createTransport, type Platform } from "../next-transport.ts"
-import type { RPCMessage } from "../next.ts"
+import { jsonCodec, jsonLineCodec, objectCodec } from "../codecs.ts"
+import { createTransport, type Platform } from "../transport.ts"
+import type { RPCMessage } from "../mod.ts"
 
 class StringPlatform implements Platform<string> {
 	capabilities = { objectMode: false, transfer: true }
@@ -40,7 +40,7 @@ class TransferObjectPlatform extends ObjectPlatform {
 	capabilities = { objectMode: true, transfer: true }
 }
 
-describe("next transport codecs", () => {
+describe("stable transport codecs", () => {
 	test("objectCodec passes messages through and supports transfer", () => {
 		const codec = objectCodec<RPCMessage>()
 		const message: RPCMessage = { t: "q", id: "1", op: "call", p: ["add"], a: [1, 2] }

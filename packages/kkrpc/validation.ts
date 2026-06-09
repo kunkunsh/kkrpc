@@ -1,1 +1,1 @@
-export * from "./src/next/validation.ts"
+export * from "./src/features/validation.ts"

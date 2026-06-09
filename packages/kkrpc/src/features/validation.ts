@@ -1,19 +1,19 @@
 /**
- * Standard Schema validation plugin for kkrpc/next.
+ * Standard Schema validation plugin for stable kkrpc.
  *
  * The plugin reuses the classic validation primitives but exposes them through
- * the vNext plugin lifecycle. Input validation runs before the local method is
+ * the stable plugin lifecycle. Input validation runs before the local method is
  * invoked, output validation runs after the method returns, and transformed
  * values are written back into the argument/result context.
  *
- * This module is intentionally separate from `kkrpc/next` so importing the core
+ * This module is intentionally separate from `kkrpc` so importing the core
  * channel does not pull validation helpers or schema-library related code into
  * small browser bundles.
  *
  * @example
  * ```ts
- * import { expose } from "kkrpc/next"
- * import { validationPlugin, defineAPI, defineMethod } from "kkrpc/next/validation"
+ * import { expose } from "kkrpc"
+ * import { validationPlugin, defineAPI, defineMethod } from "kkrpc/validation"
  * import { z } from "zod"
  *
  * const validators = defineAPI({
@@ -40,7 +40,7 @@ import {
 	type RPCValidators,
 	type StandardSchemaV1
 } from "../validation.ts"
-import type { RPCPlugin, RPCRequestContext, RPCResponseContext } from "./plugins.ts"
+import type { RPCPlugin, RPCRequestContext, RPCResponseContext } from "../core/plugins.ts"
 
 export {
 	RPCValidationError,

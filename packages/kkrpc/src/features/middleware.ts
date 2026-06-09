@@ -1,16 +1,16 @@
 /**
- * Interceptor-style middleware plugin for kkrpc/next.
+ * Interceptor-style middleware plugin for stable kkrpc.
  *
  * Middleware is implemented as a plugin wrapper around local handler execution.
  * Interceptors run in onion order, can inspect or replace arguments, can block a
  * call by not invoking `next()`, and share per-request data through `ctx.state`.
- * This file is optional and separate from `kkrpc/next` so core users do not pay
- * for middleware helpers unless they import `kkrpc/next/middleware`.
+ * This file is optional and separate from `kkrpc` so core users do not pay
+ * for middleware helpers unless they import `kkrpc/middleware`.
  *
  * @example
  * ```ts
- * import { expose } from "kkrpc/next"
- * import { middlewarePlugin } from "kkrpc/next/middleware"
+ * import { expose } from "kkrpc"
+ * import { middlewarePlugin } from "kkrpc/middleware"
  *
  * const auth = middlewarePlugin([
  * 	async (ctx, next) => {
@@ -23,7 +23,7 @@
  * ```
  */
 
-import type { RPCPlugin } from "./plugins.ts"
+import type { RPCPlugin } from "../core/plugins.ts"
 
 /** Context passed through each middleware interceptor for a single RPC call. */
 export interface RPCCallContext {

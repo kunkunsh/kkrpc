@@ -1,1 +1,1 @@
-export * from "./src/next/middleware.ts"
+export * from "./src/features/middleware.ts"

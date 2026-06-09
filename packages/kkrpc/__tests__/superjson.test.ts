@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test"
 
-import { createTransport, type Platform } from "../next-transport.ts"
-import { superJsonCodec, superJsonLineCodec } from "../next-superjson.ts"
+import { createTransport, type Platform } from "../transport.ts"
+import { superjsonCodec, superjsonLineCodec } from "../superjson.ts"
 
 class StringPlatform implements Platform<string> {
 	capabilities = { objectMode: false, transfer: false }
@@ -35,9 +35,9 @@ class TransferCapableStringPlatform implements Platform<string> {
 	}
 }
 
-describe("kkrpc/next SuperJSON codecs", () => {
-	test("superJsonCodec round-trips non-JSON values", () => {
-		const codec = superJsonCodec<unknown>()
+describe("kkrpc SuperJSON codecs", () => {
+	test("superjsonCodec round-trips non-JSON values", () => {
+		const codec = superjsonCodec<unknown>()
 		const input = {
 			date: new Date("2026-06-07T00:00:00.000Z"),
 			map: new Map([["a", 1]]),
@@ -56,8 +56,8 @@ describe("kkrpc/next SuperJSON codecs", () => {
 		expect(codec.capabilities?.transfer).toBe(false)
 	})
 
-	test("superJsonLineCodec adds newline framing", () => {
-		const codec = superJsonLineCodec<{ value: Date }>()
+	test("superjsonLineCodec adds newline framing", () => {
+		const codec = superjsonLineCodec<{ value: Date }>()
 		const wire = codec.encode({ value: new Date("2026-06-07T00:00:00.000Z") })
 		const decoded = codec.decode(wire)
 
@@ -67,7 +67,7 @@ describe("kkrpc/next SuperJSON codecs", () => {
 
 	test("composes with createTransport", () => {
 		const platform = new StringPlatform()
-		const transport = createTransport({ platform, codec: superJsonCodec<{ value: bigint }>() })
+		const transport = createTransport({ platform, codec: superjsonCodec<{ value: bigint }>() })
 		const received: Array<{ value: bigint }> = []
 
 		const unsubscribe = transport.subscribe((message) => {
@@ -84,7 +84,7 @@ describe("kkrpc/next SuperJSON codecs", () => {
 
 	test("does not forward transfers through SuperJSON codecs", () => {
 		const platform = new TransferCapableStringPlatform()
-		const transport = createTransport({ platform, codec: superJsonCodec<{ value: bigint }>() })
+		const transport = createTransport({ platform, codec: superjsonCodec<{ value: bigint }>() })
 
 		transport.send({ value: 5n }, [new ArrayBuffer(1)])
 

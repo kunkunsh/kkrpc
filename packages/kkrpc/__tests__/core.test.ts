@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test"
 
-import { dispose, expose, RPCChannel, transfer, wrap } from "../next.ts"
-import type { RPCMessage, Transport } from "../next.ts"
+import { dispose, expose, RPCChannel, transfer, wrap } from "../mod.ts"
+import type { RPCMessage, Transport } from "../mod.ts"
 
 interface RemoteWidget {
 	name: string
@@ -102,7 +102,7 @@ function createAPI() {
 
 type LocalAPI = ReturnType<typeof createAPI>
 
-describe("next core RPC", () => {
+describe("stable core RPC", () => {
 	test("RPCChannel supports method calls, nested getters, assignment setters, constructors, callback args, and parent-bound method this", async () => {
 		const [a, b] = createPair()
 		const serverAPI = createAPI()
