@@ -116,6 +116,21 @@ describe("stable package exports", () => {
 		}
 	})
 
+	test("deno manifest mirrors stable package exports", async () => {
+		const denoConfig = await import("../deno.json")
+		const exportsMap = denoConfig.default.exports as Record<string, unknown>
+
+		expect(exportsMap["./next"]).toBeUndefined()
+		expect(Object.keys(exportsMap).some((key) => key.startsWith("./next/"))).toBe(false)
+		expect(exportsMap["./browser-lite"]).toBeUndefined()
+		expect(exportsMap["./browser-mini"]).toBeUndefined()
+		expect(exportsMap["./electron-ipc"]).toBeUndefined()
+
+		for (const [key] of stableEntries.slice(1)) {
+			expect(exportsMap[key], key).toBeDefined()
+		}
+	})
+
 	test("stable entries do not expose classic API names", async () => {
 		for (const [key, importEntry] of stableEntries) {
 			const module = await importEntry()
