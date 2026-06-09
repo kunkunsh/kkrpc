@@ -40,7 +40,6 @@
 		"docs": "typedoc --out docs",
 		"check-types": "tsc --noEmit",
 		"build": "tsdown",
-		"check:browser-lite-bundle": "pnpm build && bun run scripts/check-browser-lite-bundle.ts",
 		"compare:browser-bundle-size": "pnpm build && bun run scripts/compare-browser-bundle-size.ts",
 		"postbuild": "pnpm run docs && verify-package-export verify",
 		"dev": "tsdown --watch"

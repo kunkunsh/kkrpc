@@ -1,7 +1,4 @@
 import { describe, expect, test } from "bun:test"
-import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises"
-import { tmpdir } from "node:os"
-import { join } from "node:path"
 import {
 	createBenchmarkCases,
 	formatBytes,
@@ -9,7 +6,6 @@ import {
 	formatMeasurementTable,
 	getRequiredBundleFailures,
 	getTopContributorsFromMetafile,
-	stageLocalComctxSource,
 	type BuildMetafile,
 	type BundleMeasurement
 } from "../scripts/compare-browser-bundle-size.ts"
@@ -24,7 +20,7 @@ describe("browser bundle benchmark helpers", () => {
 	test("formats successful and skipped measurements as a Markdown table", () => {
 		const rows: BundleMeasurement[] = [
 			{
-				name: "kkrpc/browser-lite",
+				name: "kkrpc/browser",
 				rawBytes: 2048,
 				gzipBytes: 1024,
 				brotliBytes: 512,
@@ -32,8 +28,8 @@ describe("browser bundle benchmark helpers", () => {
 				contributors: []
 			},
 			{
-				name: "comctx",
-				skipped: "Cannot resolve comctx"
+				name: "kkrpc/worker",
+				skipped: "Cannot resolve kkrpc/worker"
 			}
 		]
 
@@ -41,11 +37,11 @@ describe("browser bundle benchmark helpers", () => {
 			[
 				"| Bundle | Raw minified | Gzip | Brotli | Modules |",
 				"| --- | ---: | ---: | ---: | ---: |",
-				"| `kkrpc/browser-lite` | 2.00 KB | 1.00 KB | 0.50 KB | 6 |",
-				"| `comctx` | skipped | skipped | skipped | skipped |",
+				"| `kkrpc/browser` | 2.00 KB | 1.00 KB | 0.50 KB | 6 |",
+				"| `kkrpc/worker` | skipped | skipped | skipped | skipped |",
 				"",
 				"Skipped bundles:",
-				"- `comctx`: Cannot resolve comctx"
+				"- `kkrpc/worker`: Cannot resolve kkrpc/worker"
 			].join("\n")
 		)
 	})
@@ -75,94 +71,34 @@ describe("browser bundle benchmark helpers", () => {
 		])
 	})
 
-	test("creates benchmark cases with public, vNext, mini, direct, and comctx entries", () => {
+	test("creates benchmark cases with stable public entries", () => {
 		const cases = createBenchmarkCases({
-			packageRoot: "/repo/packages/kkrpc",
-			repoRoot: "/repo",
-			workDir: "/repo/packages/kkrpc/.browser-bundle-benchmark",
-			comctxEntrypoint: "/repo/packages/kkrpc/.browser-bundle-benchmark/comctx-local/index.ts"
+			workDir: "/repo/packages/kkrpc/.browser-bundle-benchmark"
 		})
 
 		expect(cases.map((entry) => entry.name)).toEqual([
+			"kkrpc",
 			"kkrpc/browser",
-			"kkrpc/browser-lite",
-			"kkrpc/next",
-			"kkrpc/next/worker",
-			"kkrpc/next/validation",
-			"kkrpc/next/middleware",
-			"kkrpc/next/superjson",
-			"kkrpc/next/classic-compat",
-			"kkrpc/browser-mini",
-			"kkrpc-lite direct",
-			"comctx"
+			"kkrpc/worker",
+			"kkrpc/validation",
+			"kkrpc/middleware",
+			"kkrpc/superjson"
 		])
-		expect(cases[0]?.source).toContain('from "kkrpc/browser"')
-		expect(cases[1]?.source).toContain('from "kkrpc/browser-lite"')
-		expect(cases[2]?.source).toContain('from "kkrpc/next"')
-		expect(cases[3]?.source).toContain('from "kkrpc/next/worker"')
-		expect(cases[4]?.source).toContain('from "kkrpc/next/validation"')
-		expect(cases[5]?.source).toContain('from "kkrpc/next/middleware"')
-		expect(cases[6]?.source).toContain('from "kkrpc/next/superjson"')
-		expect(cases[7]?.source).toContain('from "kkrpc/next/classic-compat"')
-		expect(cases[8]?.source).toContain('from "kkrpc/browser-mini"')
-		expect(cases[9]?.source).toContain("src/channel-lite.ts")
-		expect(cases[10]?.source).toContain("comctx-local/index.ts")
+		expect(cases[0]?.source).toContain('from "kkrpc"')
+		expect(cases[1]?.source).toContain('from "kkrpc/browser"')
+		expect(cases[2]?.source).toContain('from "kkrpc/worker"')
+		expect(cases[3]?.source).toContain('from "kkrpc/validation"')
+		expect(cases[4]?.source).toContain('from "kkrpc/middleware"')
+		expect(cases[5]?.source).toContain('from "kkrpc/superjson"')
 		for (const entry of cases) {
 			expect(entry.source).toContain("Object.assign(globalThis")
 		}
 	})
 
-	test("stages local comctx source with rewritten alias imports", async () => {
-		const sourceRoot = await mkdtemp(join(tmpdir(), "comctx-source-"))
-		const targetRoot = await mkdtemp(join(tmpdir(), "comctx-target-"))
-
-		await mkdir(join(sourceRoot, "utils"), { recursive: true })
-		await writeFile(join(sourceRoot, "index.ts"), "export * from './comctx'\n", "utf8")
-		await writeFile(
-			join(sourceRoot, "comctx.ts"),
-			[
-				"import uuid from '@/utils/uuid'",
-				"import setIntervalImmediate from '@/utils/setIntervalImmediate'",
-				"import extractTransfer from '@/utils/extractTransfer'",
-				"export const value = [uuid, setIntervalImmediate, extractTransfer]"
-			].join("\n"),
-			"utf8"
-		)
-		await writeFile(join(sourceRoot, "protocol.ts"), "export const protocol = true\n", "utf8")
-		await writeFile(
-			join(sourceRoot, "utils/uuid.ts"),
-			"export default function uuid() { return 'id' }\n",
-			"utf8"
-		)
-		await writeFile(
-			join(sourceRoot, "utils/setIntervalImmediate.ts"),
-			"export default function setIntervalImmediate() { return () => {} }\n",
-			"utf8"
-		)
-		await writeFile(
-			join(sourceRoot, "utils/extractTransfer.ts"),
-			"export default function extractTransfer() { return [] }\n",
-			"utf8"
-		)
-		await writeFile(
-			join(sourceRoot, "utils/safeInstanceOf.ts"),
-			"export default function safeInstanceOf() { return false }\n",
-			"utf8"
-		)
-
-		const entrypoint = await stageLocalComctxSource(sourceRoot, targetRoot)
-		const stagedComctx = await readFile(join(targetRoot, "comctx.ts"), "utf8")
-
-		expect(entrypoint).toBe(join(targetRoot, "index.ts"))
-		expect(stagedComctx).toContain('from "./utils/uuid.ts"')
-		expect(stagedComctx).toContain('from "./utils/setIntervalImmediate.ts"')
-		expect(stagedComctx).toContain('from "./utils/extractTransfer.ts"')
-	})
-
 	test("formats contributor tables for measured bundles only", () => {
 		const rows: BundleMeasurement[] = [
 			{
-				name: "kkrpc/browser-lite",
+				name: "kkrpc/browser",
 				rawBytes: 1024,
 				gzipBytes: 512,
 				brotliBytes: 256,
@@ -173,14 +109,14 @@ describe("browser bundle benchmark helpers", () => {
 				]
 			},
 			{
-				name: "comctx",
-				skipped: "Cannot resolve comctx"
+				name: "kkrpc/worker",
+				skipped: "Cannot resolve kkrpc/worker"
 			}
 		]
 
 		expect(formatContributorTables(rows)).toBe(
 			[
-				"### kkrpc/browser-lite contributors",
+				"### kkrpc/browser contributors",
 				"",
 				"| Module | Bytes |",
 				"| --- | ---: |",
@@ -190,12 +126,11 @@ describe("browser bundle benchmark helpers", () => {
 		)
 	})
 
-	test("treats skipped kkrpc bundles as required failures", () => {
+	test("treats all skipped stable bundles as required failures", () => {
 		const rows: BundleMeasurement[] = [
-			{ name: "kkrpc/browser-mini", skipped: "Cannot resolve kkrpc/browser-mini" },
-			{ name: "comctx", skipped: "Cannot resolve comctx" },
+			{ name: "kkrpc/worker", skipped: "Cannot resolve kkrpc/worker" },
 			{
-				name: "kkrpc/browser-lite",
+				name: "kkrpc/browser",
 				rawBytes: 1,
 				gzipBytes: 1,
 				brotliBytes: 1,
@@ -204,7 +139,7 @@ describe("browser bundle benchmark helpers", () => {
 		]
 
 		expect(getRequiredBundleFailures(rows)).toEqual([
-			{ name: "kkrpc/browser-mini", skipped: "Cannot resolve kkrpc/browser-mini" }
+			{ name: "kkrpc/worker", skipped: "Cannot resolve kkrpc/worker" }
 		])
 	})
 })

@@ -1,6 +1,5 @@
-import { existsSync } from "node:fs"
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises"
-import { dirname, join } from "node:path"
+import { join } from "node:path"
 import { brotliCompressSync, gzipSync } from "node:zlib"
 
 export interface Contributor {
@@ -17,10 +16,7 @@ export interface BenchmarkCase {
 }
 
 export interface BenchmarkCaseOptions {
-	packageRoot: string
-	repoRoot: string
 	workDir: string
-	comctxEntrypoint: string
 }
 
 export interface BundleMeasurement {
@@ -77,7 +73,7 @@ export function formatMeasurementTable(rows: BundleMeasurement[]): string {
 }
 
 export function getRequiredBundleFailures(rows: BundleMeasurement[]): BundleMeasurement[] {
-	return rows.filter((row) => row.skipped && row.name !== "comctx")
+	return rows.filter((row) => row.skipped)
 }
 
 export function getTopContributorsFromMetafile(
@@ -94,70 +90,37 @@ export function getTopContributorsFromMetafile(
 		.slice(0, limit)
 }
 
-function toImportPath(path: string): string {
-	return path.replaceAll("\\", "/")
-}
-
 export function createBenchmarkCases(options: BenchmarkCaseOptions): BenchmarkCase[] {
-	const directChannelImport = toImportPath(join(options.packageRoot, "src/channel-lite.ts"))
-	const directInterfaceImport = toImportPath(join(options.packageRoot, "src/interface.ts"))
-	const comctxImport = toImportPath(options.comctxEntrypoint)
-
 	const cases: Array<{ name: string; fileName: string; source: string }> = [
+		{
+			name: "kkrpc",
+			fileName: "kkrpc.ts",
+			source: createKkrpcCoreSample("kkrpc")
+		},
 		{
 			name: "kkrpc/browser",
 			fileName: "kkrpc-browser.ts",
-			source: createKkrpcPublicSample("kkrpc/browser")
+			source: createKkrpcCoreSample("kkrpc/browser")
 		},
 		{
-			name: "kkrpc/browser-lite",
-			fileName: "kkrpc-browser-lite.ts",
-			source: createKkrpcPublicSample("kkrpc/browser-lite")
+			name: "kkrpc/worker",
+			fileName: "kkrpc-worker.ts",
+			source: createKkrpcWorkerSample("kkrpc", "kkrpc/worker")
 		},
 		{
-			name: "kkrpc/next",
-			fileName: "kkrpc-next.ts",
-			source: createKkrpcNextCoreSample("kkrpc/next")
+			name: "kkrpc/validation",
+			fileName: "kkrpc-validation.ts",
+			source: createKkrpcFeatureSample("kkrpc/validation", "validationPlugin")
 		},
 		{
-			name: "kkrpc/next/worker",
-			fileName: "kkrpc-next-worker.ts",
-			source: createKkrpcNextWorkerSample("kkrpc/next", "kkrpc/next/worker")
+			name: "kkrpc/middleware",
+			fileName: "kkrpc-middleware.ts",
+			source: createKkrpcFeatureSample("kkrpc/middleware", "middlewarePlugin")
 		},
 		{
-			name: "kkrpc/next/validation",
-			fileName: "kkrpc-next-validation.ts",
-			source: createKkrpcNextFeatureSample("kkrpc/next/validation", "validationPlugin")
-		},
-		{
-			name: "kkrpc/next/middleware",
-			fileName: "kkrpc-next-middleware.ts",
-			source: createKkrpcNextFeatureSample("kkrpc/next/middleware", "middlewarePlugin")
-		},
-		{
-			name: "kkrpc/next/superjson",
-			fileName: "kkrpc-next-superjson.ts",
-			source: createKkrpcNextFeatureSample("kkrpc/next/superjson", "superJsonCodec")
-		},
-		{
-			name: "kkrpc/next/classic-compat",
-			fileName: "kkrpc-next-classic-compat.ts",
-			source: createKkrpcNextFeatureSample("kkrpc/next/classic-compat", "classicPlugins")
-		},
-		{
-			name: "kkrpc/browser-mini",
-			fileName: "kkrpc-browser-mini.ts",
-			source: createKkrpcPublicSample("kkrpc/browser-mini")
-		},
-		{
-			name: "kkrpc-lite direct",
-			fileName: "kkrpc-lite-direct.ts",
-			source: createKkrpcDirectSample(directChannelImport, directInterfaceImport)
-		},
-		{
-			name: "comctx",
-			fileName: "comctx.ts",
-			source: createComctxSample(comctxImport)
+			name: "kkrpc/superjson",
+			fileName: "kkrpc-superjson.ts",
+			source: createKkrpcFeatureSample("kkrpc/superjson", "superJsonCodec")
 		}
 	]
 
@@ -170,23 +133,7 @@ export function createBenchmarkCases(options: BenchmarkCaseOptions): BenchmarkCa
 	}))
 }
 
-function createKkrpcPublicSample(importPath: string): string {
-	return `import { RPCChannel, WorkerParentIO } from "${importPath}"
-
-interface RemoteAPI {
-	add(a: number, b: number): Promise<number>
-}
-
-export function createRPC(worker: Worker) {
-	const channel = new RPCChannel<{}, RemoteAPI>(new WorkerParentIO(worker))
-	return channel.getAPI()
-}
-
-Object.assign(globalThis, { createRPC })
-`
-}
-
-function createKkrpcNextCoreSample(importPath: string): string {
+function createKkrpcCoreSample(importPath: string): string {
 	return `import { RPCChannel, type RPCMessage, type Transport } from "${importPath}"
 
 interface RemoteAPI {
@@ -202,7 +149,7 @@ Object.assign(globalThis, { createRPC })
 `
 }
 
-function createKkrpcNextWorkerSample(coreImport: string, workerImport: string): string {
+function createKkrpcWorkerSample(coreImport: string, workerImport: string): string {
 	return `import { wrap } from "${coreImport}"
 import { workerTransport } from "${workerImport}"
 
@@ -218,7 +165,7 @@ Object.assign(globalThis, { createRPC })
 `
 }
 
-function createKkrpcNextFeatureSample(importPath: string, exportName: string): string {
+function createKkrpcFeatureSample(importPath: string, exportName: string): string {
 	return `import { ${exportName} } from "${importPath}"
 
 export function getFeature() {
@@ -227,115 +174,6 @@ export function getFeature() {
 
 Object.assign(globalThis, { getFeature })
 `
-}
-
-function createKkrpcDirectSample(channelImport: string, interfaceImport: string): string {
-	return `import { RPCChannel } from "${channelImport}"
-import type { IoInterface, IoMessage } from "${interfaceImport}"
-
-interface RemoteAPI {
-	add(a: number, b: number): Promise<number>
-}
-
-class TinyWorkerIO implements IoInterface {
-	name = "tiny-worker-io"
-	capabilities = { structuredClone: true, transfer: true }
-	private queue: Array<string | IoMessage> = []
-	private resolveRead: ((value: string | IoMessage | null) => void) | null = null
-
-	constructor(private worker: Worker) {
-		this.worker.onmessage = (event) => {
-			const value = event.data && typeof event.data === "object" && "version" in event.data
-				? { data: event.data, transfers: event.data.__transferredValues ?? [] }
-				: event.data
-			if (this.resolveRead) {
-				this.resolveRead(value)
-				this.resolveRead = null
-				return
-			}
-			this.queue.push(value)
-		}
-	}
-
-	read(): Promise<string | IoMessage | null> {
-		if (this.queue.length > 0) return Promise.resolve(this.queue.shift() ?? null)
-		return new Promise((resolve) => { this.resolveRead = resolve })
-	}
-
-	write(message: string | IoMessage): Promise<void> {
-		if (typeof message === "string") this.worker.postMessage(message)
-		else if (message.transfers?.length) this.worker.postMessage(message.data, message.transfers as Transferable[])
-		else this.worker.postMessage(message.data)
-		return Promise.resolve()
-	}
-
-	on(_event: "message" | "error", _listener: Function): void {}
-	off(_event: "message" | "error", _listener: Function): void {}
-}
-
-export function createRPC(worker: Worker) {
-	const channel = new RPCChannel<{}, RemoteAPI>(new TinyWorkerIO(worker))
-	return channel.getAPI()
-}
-
-Object.assign(globalThis, { createRPC })
-`
-}
-
-function createComctxSample(comctxImport: string): string {
-	return `import { defineProxy, type Adapter } from "${comctxImport}"
-
-interface RemoteAPI {
-	add(a: number, b: number): Promise<number>
-}
-
-const [, injectMath] = defineProxy(() => ({
-	add: async (a: number, b: number) => a + b
-}))
-
-export function createRPC(adapter: Adapter) {
-	return injectMath(adapter) as RemoteAPI
-}
-
-Object.assign(globalThis, { createRPC })
-`
-}
-
-export async function stageLocalComctxSource(
-	sourceRoot: string,
-	targetRoot: string
-): Promise<string> {
-	await rm(targetRoot, { recursive: true, force: true })
-	await mkdir(join(targetRoot, "utils"), { recursive: true })
-
-	const files = [
-		"index.ts",
-		"comctx.ts",
-		"protocol.ts",
-		"utils/uuid.ts",
-		"utils/setIntervalImmediate.ts",
-		"utils/extractTransfer.ts",
-		"utils/safeInstanceOf.ts"
-	]
-
-	for (const file of files) {
-		const source = await readFile(join(sourceRoot, file), "utf8")
-		const rewritten = file === "comctx.ts" ? rewriteComctxAliases(source) : source
-		await mkdir(dirname(join(targetRoot, file)), { recursive: true })
-		await writeFile(join(targetRoot, file), rewritten, "utf8")
-	}
-
-	return join(targetRoot, "index.ts")
-}
-
-function rewriteComctxAliases(source: string): string {
-	return source
-		.replaceAll("'@/utils/uuid'", '"./utils/uuid.ts"')
-		.replaceAll("'@/utils/setIntervalImmediate'", '"./utils/setIntervalImmediate.ts"')
-		.replaceAll("'@/utils/extractTransfer'", '"./utils/extractTransfer.ts"')
-		.replaceAll('"@/utils/uuid"', '"./utils/uuid.ts"')
-		.replaceAll('"@/utils/setIntervalImmediate"', '"./utils/setIntervalImmediate.ts"')
-		.replaceAll('"@/utils/extractTransfer"', '"./utils/extractTransfer.ts"')
 }
 
 async function runBuild(caseEntry: BenchmarkCase, packageRoot: string): Promise<void> {
@@ -410,19 +248,13 @@ export function formatContributorTables(rows: BundleMeasurement[]): string {
 
 async function main(): Promise<void> {
 	const packageRoot = join(import.meta.dir, "..")
-	const repoRoot = join(packageRoot, "..", "..")
 	const workDir = join(packageRoot, ".browser-bundle-benchmark")
-	const localComctxSource = join(repoRoot, "references/comctx/core/src")
-	const localComctxTarget = join(workDir, "comctx-local")
 
 	await rm(workDir, { recursive: true, force: true })
 	await mkdir(workDir, { recursive: true })
 
 	try {
-		const comctxEntrypoint = existsSync(localComctxSource)
-			? await stageLocalComctxSource(localComctxSource, localComctxTarget)
-			: "comctx"
-		const cases = createBenchmarkCases({ packageRoot, repoRoot, workDir, comctxEntrypoint })
+		const cases = createBenchmarkCases({ workDir })
 		const rows: BundleMeasurement[] = []
 
 		for (const caseEntry of cases) {

@@ -9,9 +9,11 @@
     "baseUrl": ".",
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "paths": {
-      "@/*": ["src/*"]
-    },
+		"paths": {
+			"@/*": ["src/*"],
+			"kkrpc/browser": ["../../packages/kkrpc/browser-mod.ts"],
+			"kkrpc/chrome-extension": ["../../packages/kkrpc/chrome-extension.ts"]
+		},
     "types": ["vite/client", "chrome"],
     "allowImportingTsExtensions": true,
     "strict": true,

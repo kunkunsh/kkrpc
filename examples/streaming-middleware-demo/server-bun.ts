@@ -10,13 +10,19 @@
  * Run with: bun run server-bun.ts
  * Then in another terminal: bun run client.ts
  */
-import { RPCChannel, WebSocketServerIO, type RPCInterceptor, type WebSocketLike } from "kkrpc"
+import { RPCChannel } from "kkrpc"
+import { middlewarePlugin, type RPCInterceptor } from "kkrpc/middleware"
+import { webSocketTransport, type WebSocketLike } from "kkrpc/ws"
 import { createApi, type StreamingMiddlewareAPI } from "./api.ts"
 
 const PORT = 3100
 
 // Map to track Bun ServerWebSocket -> our wrapper
-const connections = new Map<any, WebSocketLike>()
+interface BunWebSocketLike extends WebSocketLike {
+	onmessage: ((event: { data: unknown }) => void) | null
+}
+
+const connections = new Map<any, BunWebSocketLike>()
 
 // ─── Interceptor factories ───────────────────────────────────────────────────
 
@@ -71,10 +77,9 @@ function createRateLimiter(max: number, windowMs: number = 1000): RPCInterceptor
  * Bun uses a different pattern (callback-based) vs DOM WebSocket (event setters).
  * This wrapper bridges the two patterns.
  */
-function createBunWebSocketLike(bunWs: any): WebSocketLike {
+function createBunWebSocketLike(bunWs: any): BunWebSocketLike {
 	return {
 		onmessage: null,
-		onerror: null,
 		send(data: string) {
 			bunWs.send(data)
 		},
@@ -112,9 +117,9 @@ Bun.serve({
 			const auth = createAuthInterceptor(session)
 			const rateLimiter = createRateLimiter(5)
 
-			new RPCChannel<StreamingMiddlewareAPI, {}>(new WebSocketServerIO(wrapper), {
+			new RPCChannel<StreamingMiddlewareAPI, {}>(webSocketTransport(wrapper), {
 				expose: api,
-				interceptors: [logger, timing, auth, rateLimiter]
+				plugins: [middlewarePlugin([logger, timing, auth, rateLimiter])]
 			})
 		},
 		message(bunWs, message) {
@@ -129,7 +134,6 @@ Bun.serve({
 			if (wrapper) {
 				// Trigger any cleanup
 				wrapper.onmessage = null
-				wrapper.onerror = null
 				connections.delete(bunWs)
 			}
 			console.log(`[server] Client disconnected`)

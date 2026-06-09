@@ -1,12 +1,8 @@
-import {
-	apiImplementation,
-	apiImplementationNested,
-	type API,
-	type APINested
-} from "@kksh/demo-api"
-import { NodeIo, RPCChannel } from "kkrpc"
+import { apiImplementationNested, type APINested } from "@kksh/demo-api"
+import { RPCChannel } from "kkrpc"
+import { nodeStdioTransport } from "kkrpc/stdio"
 
-const stdio = new NodeIo(process.stdin, process.stdout)
+const stdio = nodeStdioTransport()
 
 const rpc = new RPCChannel<APINested, APINested>(stdio, {
 	expose: apiImplementationNested

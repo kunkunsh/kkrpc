@@ -10,7 +10,9 @@
  * Run with: bun run server.ts
  * Then in another terminal: bun run client.ts
  */
-import { RPCChannel, WebSocketServerIO, type RPCInterceptor } from "kkrpc"
+import { RPCChannel } from "kkrpc"
+import { middlewarePlugin, type RPCInterceptor } from "kkrpc/middleware"
+import { webSocketTransport } from "kkrpc/ws"
 import { WebSocketServer, type WebSocket } from "ws"
 import { createApi, type StreamingMiddlewareAPI } from "./api.ts"
 
@@ -98,14 +100,13 @@ wss.on("connection", (ws: WebSocket) => {
 	const auth = createAuthInterceptor(session)
 	const rateLimiter = createRateLimiter(5) // 5 calls per second
 
-	const io = new WebSocketServerIO(ws)
-	new RPCChannel<StreamingMiddlewareAPI, {}>(io, {
+	new RPCChannel<StreamingMiddlewareAPI, {}>(webSocketTransport(ws), {
 		expose: api,
 		// Onion order: logger → timing → auth → rateLimiter → handler
 		// Logger is outermost so it logs everything including rejected calls.
 		// Timing wraps auth + handler so it measures total including auth check.
 		// Auth runs before rate limiter so unauthorized calls don't consume quota.
-		interceptors: [logger, timing, auth, rateLimiter]
+		plugins: [middlewarePlugin([logger, timing, auth, rateLimiter])]
 	})
 
 	ws.on("close", () => {

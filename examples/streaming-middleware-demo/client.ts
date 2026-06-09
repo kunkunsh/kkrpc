@@ -8,15 +8,14 @@
  *   Streaming  — countdown, log tail, progress tracker, concurrent streams
  *   Middleware — auth rejection/success, rate limiting, timing/logging (server-side)
  */
-import { RPCChannel, WebSocketClientIO } from "kkrpc"
-import type { IoInterface } from "kkrpc"
+import { wrap } from "kkrpc"
+import { webSocketClientTransport } from "kkrpc/ws"
 import type { StreamingMiddlewareAPI } from "./api.ts"
 
 const PORT = 3100
 
-const io = new WebSocketClientIO({ url: `ws://localhost:${PORT}` })
-const rpc = new RPCChannel<{}, StreamingMiddlewareAPI, IoInterface>(io)
-const api = rpc.getAPI()
+const transport = webSocketClientTransport({ url: `ws://localhost:${PORT}` })
+const api = wrap<StreamingMiddlewareAPI>(transport)
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PART 1: Middleware demos
@@ -126,5 +125,5 @@ console.log(`  cleanup steps: ${results2.join(" → ")}`)
 
 // ─── Done ────────────────────────────────────────────────────────────────
 console.log("\n=== All demos complete ===\n")
-io.destroy()
+transport.close?.()
 process.exit(0)

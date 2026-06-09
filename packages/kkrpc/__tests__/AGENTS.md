@@ -66,8 +66,8 @@ __tests__/
 
 ```typescript
 // Setup both sides
-const serverRPC = new RPCChannel(serverIO, { expose: api })
-const clientRPC = new RPCChannel(clientIO)
+const serverRPC = new RPCChannel(serverTransport, { expose: api })
+const clientRPC = new RPCChannel(clientTransport)
 const api = clientRPC.getAPI<typeof api>()
 
 // Bidirectional calls
@@ -76,9 +76,9 @@ expect(await api.add(1, 2)).toBe(3)
 
 ## ANTI-PATTERNS
 
-- ❌ Don't mock IoInterface - test real adapters
+- ❌ Don't mock native transports when a real transport can be exercised
 - ❌ Don't skip stress tests - they catch race conditions
-- ❌ Don't forget to call `io.destroy()` in cleanup
+- ❌ Don't forget to call `channel.destroy()` or `transport.close?.()` in cleanup
 - ❌ Don't use `@ts-expect-error` without explanation
 
 ## COMMANDS
