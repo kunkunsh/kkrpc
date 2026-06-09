@@ -68,134 +68,124 @@
 				"default": "./dist/browser-mod.cjs"
 			}
 		},
-		"./browser-lite": {
+		"./transport": {
 			"import": {
-				"types": "./dist/browser-lite-mod.d.ts",
-				"default": "./dist/browser-lite-mod.js"
+				"types": "./dist/transport.d.ts",
+				"default": "./dist/transport.js"
 			},
 			"require": {
-				"types": "./dist/browser-lite-mod.d.cts",
-				"default": "./dist/browser-lite-mod.cjs"
+				"types": "./dist/transport.d.cts",
+				"default": "./dist/transport.cjs"
 			}
 		},
-		"./browser-mini": {
+		"./codecs": {
 			"import": {
-				"types": "./dist/browser-mini-mod.d.ts",
-				"default": "./dist/browser-mini-mod.js"
+				"types": "./dist/codecs.d.ts",
+				"default": "./dist/codecs.js"
 			},
 			"require": {
-				"types": "./dist/browser-mini-mod.d.cts",
-				"default": "./dist/browser-mini-mod.cjs"
+				"types": "./dist/codecs.d.cts",
+				"default": "./dist/codecs.cjs"
 			}
 		},
-		"./next": {
+		"./plugins": {
 			"import": {
-				"types": "./dist/next.d.ts",
-				"default": "./dist/next.js"
+				"types": "./dist/plugins.d.ts",
+				"default": "./dist/plugins.js"
 			},
 			"require": {
-				"types": "./dist/next.d.cts",
-				"default": "./dist/next.cjs"
+				"types": "./dist/plugins.d.cts",
+				"default": "./dist/plugins.cjs"
 			}
 		},
-		"./next/worker": {
+		"./validation": {
 			"import": {
-				"types": "./dist/next-worker.d.ts",
-				"default": "./dist/next-worker.js"
+				"types": "./dist/validation.d.ts",
+				"default": "./dist/validation.js"
 			},
 			"require": {
-				"types": "./dist/next-worker.d.cts",
-				"default": "./dist/next-worker.cjs"
+				"types": "./dist/validation.d.cts",
+				"default": "./dist/validation.cjs"
 			}
 		},
-		"./next/stdio": {
+		"./middleware": {
 			"import": {
-				"types": "./dist/next-stdio.d.ts",
-				"default": "./dist/next-stdio.js"
+				"types": "./dist/middleware.d.ts",
+				"default": "./dist/middleware.js"
 			},
 			"require": {
-				"types": "./dist/next-stdio.d.cts",
-				"default": "./dist/next-stdio.cjs"
+				"types": "./dist/middleware.d.cts",
+				"default": "./dist/middleware.cjs"
 			}
 		},
-		"./next/io": {
+		"./superjson": {
 			"import": {
-				"types": "./dist/next-io.d.ts",
-				"default": "./dist/next-io.js"
+				"types": "./dist/superjson.d.ts",
+				"default": "./dist/superjson.js"
 			},
 			"require": {
-				"types": "./dist/next-io.d.cts",
-				"default": "./dist/next-io.cjs"
+				"types": "./dist/superjson.d.cts",
+				"default": "./dist/superjson.cjs"
 			}
 		},
-		"./next/transport": {
+		"./worker": {
 			"import": {
-				"types": "./dist/next-transport.d.ts",
-				"default": "./dist/next-transport.js"
+				"types": "./dist/worker.d.ts",
+				"default": "./dist/worker.js"
 			},
 			"require": {
-				"types": "./dist/next-transport.d.cts",
-				"default": "./dist/next-transport.cjs"
+				"types": "./dist/worker.d.cts",
+				"default": "./dist/worker.cjs"
 			}
 		},
-		"./next/codecs": {
+		"./stdio": {
 			"import": {
-				"types": "./dist/next-codecs.d.ts",
-				"default": "./dist/next-codecs.js"
+				"types": "./dist/stdio.d.ts",
+				"default": "./dist/stdio.js"
 			},
 			"require": {
-				"types": "./dist/next-codecs.d.cts",
-				"default": "./dist/next-codecs.cjs"
+				"types": "./dist/stdio.d.cts",
+				"default": "./dist/stdio.cjs"
 			}
 		},
-		"./next/plugins": {
+		"./ws": {
 			"import": {
-				"types": "./dist/next-plugins.d.ts",
-				"default": "./dist/next-plugins.js"
+				"types": "./dist/ws.d.ts",
+				"default": "./dist/ws.js"
 			},
 			"require": {
-				"types": "./dist/next-plugins.d.cts",
-				"default": "./dist/next-plugins.cjs"
+				"types": "./dist/ws.d.cts",
+				"default": "./dist/ws.cjs"
 			}
 		},
-		"./next/validation": {
+		"./ws/hono": {
 			"import": {
-				"types": "./dist/next-validation.d.ts",
-				"default": "./dist/next-validation.js"
+				"types": "./dist/ws-hono.d.ts",
+				"default": "./dist/ws-hono.js"
 			},
 			"require": {
-				"types": "./dist/next-validation.d.cts",
-				"default": "./dist/next-validation.cjs"
+				"types": "./dist/ws-hono.d.cts",
+				"default": "./dist/ws-hono.cjs"
 			}
 		},
-		"./next/middleware": {
+		"./ws/elysia": {
 			"import": {
-				"types": "./dist/next-middleware.d.ts",
-				"default": "./dist/next-middleware.js"
+				"types": "./dist/ws-elysia.d.ts",
+				"default": "./dist/ws-elysia.js"
 			},
 			"require": {
-				"types": "./dist/next-middleware.d.cts",
-				"default": "./dist/next-middleware.cjs"
+				"types": "./dist/ws-elysia.d.cts",
+				"default": "./dist/ws-elysia.cjs"
 			}
 		},
-		"./next/superjson": {
+		"./iframe": {
 			"import": {
-				"types": "./dist/next-superjson.d.ts",
-				"default": "./dist/next-superjson.js"
+				"types": "./dist/iframe.d.ts",
+				"default": "./dist/iframe.js"
 			},
 			"require": {
-				"types": "./dist/next-superjson.d.cts",
-				"default": "./dist/next-superjson.cjs"
-			}
-		},
-		"./next/classic-compat": {
-			"import": {
-				"types": "./dist/next-classic-compat.d.ts",
-				"default": "./dist/next-classic-compat.js"
-			},
-			"require": {
-				"types": "./dist/next-classic-compat.d.cts",
-				"default": "./dist/next-classic-compat.cjs"
+				"types": "./dist/iframe.d.cts",
+				"default": "./dist/iframe.cjs"
 			}
 		},
 		"./http": {
@@ -226,6 +216,16 @@
 			"require": {
 				"types": "./dist/chrome-extension.d.cts",
 				"default": "./dist/chrome-extension.cjs"
+			}
+		},
+		"./tauri": {
+			"import": {
+				"types": "./dist/tauri.d.ts",
+				"default": "./dist/tauri.js"
+			},
+			"require": {
+				"types": "./dist/tauri.d.cts",
+				"default": "./dist/tauri.cjs"
 			}
 		},
 		"./socketio": {
@@ -288,14 +288,14 @@
 				"default": "./dist/electron.cjs"
 			}
 		},
-		"./electron-ipc": {
+		"./relay": {
 			"import": {
-				"types": "./dist/electron-ipc.d.ts",
-				"default": "./dist/electron-ipc.js"
+				"types": "./dist/relay.d.ts",
+				"default": "./dist/relay.js"
 			},
 			"require": {
-				"types": "./dist/electron-ipc.d.cts",
-				"default": "./dist/electron-ipc.cjs"
+				"types": "./dist/relay.d.cts",
+				"default": "./dist/relay.cjs"
 			}
 		},
 		"./inspector": {
