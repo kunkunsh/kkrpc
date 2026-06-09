@@ -28,11 +28,12 @@ interop/
 
 ### Protocol Compatibility
 
-All implementations use the same JSON message protocol:
+All implementations use the stable compact JSON `RPCMessage` protocol:
 
-- Message types: request, response, callback, get, set, construct
-- Request IDs: UUID format with 4 hex parts
-- Serialization: JSON or superjson compatible
+- Request: `{ t: "q", id, op: "call" | "get" | "set" | "new", p, a?, v? }`
+- Response: `{ t: "r", id, v?, e? }`
+- Callback: `{ t: "cb", id, a }`
+- JSON-only compact records; non-JS interop does not use JS codec configuration options.
 
 ### Adapter Parity
 

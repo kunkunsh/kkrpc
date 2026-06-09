@@ -59,12 +59,14 @@ print(result)
 from kkrpc import RpcServer, StdioTransport
 
 api = {
-    "math.add": lambda args: args[0] + args[1],
-    "echo": lambda args: args[0],
+    "math": {
+        "add": lambda a, b: a + b,
+    },
+    "echo": lambda value: value,
 }
 
 server = RpcServer(StdioTransport.from_stdio(), api)
-server.serve_forever()
+# Reader thread starts immediately. Call server.close() during shutdown.
 ```
 
 ## Tests

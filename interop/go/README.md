@@ -79,13 +79,17 @@ import (
 )
 
 func main() {
-	api := kkrpc.NewApi()
-	api.Register("math.add", func(args []any) any {
-		return args[0].(float64) + args[1].(float64)
-	})
+	api := map[string]any{
+		"math": map[string]any{
+			"add": func(args ...any) any {
+				return args[0].(float64) + args[1].(float64)
+			},
+		},
+	}
 
 	server := kkrpc.NewServer(kkrpc.NewStdioTransportFromStdIO(), api)
-	server.ServeForever()
+	defer server.Close()
+	select {}
 }
 ```
 
@@ -115,14 +119,22 @@ The Go server implementation uses a strict function signature: `func(...any) any
 
 ```go
 // Valid
-api.Register("math.add", func(args ...any) any {
-    return args[0].(float64) + args[1].(float64)
-})
+api := map[string]any{
+	"math": map[string]any{
+		"add": func(args ...any) any {
+			return args[0].(float64) + args[1].(float64)
+		},
+	},
+}
 
 // Invalid - will fail at runtime
-api.Register("math.add", func(a, b int) int {
-    return a + b
-})
+api := map[string]any{
+	"math": map[string]any{
+		"add": func(a, b int) int {
+			return a + b
+		},
+	},
+}
 ```
 
 This differs from the TypeScript implementation which can handle any callable. If you need more flexible signatures, consider using reflection or wrapper functions.
