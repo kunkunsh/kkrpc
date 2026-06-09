@@ -1,11 +1,12 @@
-import { ElectronUtilityProcessChildIO, RPCChannel } from "kkrpc/electron"
+import { RPCChannel } from "kkrpc"
+import { electronUtilityProcessChildTransport } from "kkrpc/electron"
 
 interface MainAPI {
 	showNotification(message: string): Promise<void>
 	getAppVersion(): Promise<string>
 }
 
-const io = new ElectronUtilityProcessChildIO()
+const io = electronUtilityProcessChildTransport()
 
 let rpc: RPCChannel<typeof workerAPI, MainAPI>
 

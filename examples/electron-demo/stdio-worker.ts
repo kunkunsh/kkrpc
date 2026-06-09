@@ -1,10 +1,11 @@
-import { NodeIo, RPCChannel } from "kkrpc"
+import { RPCChannel } from "kkrpc"
+import { nodeStdioTransport } from "kkrpc/stdio"
 
 interface MainAPI {
 	showNotification(message: string): Promise<void>
 }
 
-const io = new NodeIo(process.stdin, process.stdout)
+const io = nodeStdioTransport()
 
 const stdioWorkerAPI = {
 	calculateFactorial: async (n: number) => {

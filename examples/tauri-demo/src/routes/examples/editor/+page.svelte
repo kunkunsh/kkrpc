@@ -7,7 +7,8 @@
 	import CodeBlock from "$lib/components/code-block.svelte"
 	import CodeEditor from "$lib/components/code-editor.svelte"
 	import SelectRuntime from "$lib/components/select-runtime.svelte"
-	import { RPCChannel, TauriShellStdio } from "kkrpc/browser"
+	import { RPCChannel } from "kkrpc"
+	import { tauriShellStdioTransport } from "kkrpc/tauri"
 	import { PersistedState } from "runed"
 	import { onMount } from "svelte"
 	import { toast } from "svelte-sonner"
@@ -60,7 +61,7 @@
 		cmd
 			.spawn()
 			.then((proc) => {
-				const stdio = new TauriShellStdio(cmd.stdout, proc)
+				const stdio = tauriShellStdioTransport({ stdout: cmd.stdout, child: proc })
 				const stdioRPC = new RPCChannel<{}, typeof apiMethods>(stdio, {})
 				const api = stdioRPC.getAPI()
 				return api.eval(code).finally(() => {

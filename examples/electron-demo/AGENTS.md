@@ -54,7 +54,7 @@ electron-demo/
 
 ```typescript
 // Renderer
-const ipcIO = new ElectronIpcRendererIO()
+const ipcIO = electronIpcTransport({ endpoint: window.electron.ipcRenderer, channel: "kkrpc-ipc" })
 const rpc = new RPCChannel(rendererAPI, MainAPI>(ipcIO, { expose: rendererAPI })
 const mainAPI = rpc.getAPI()
 await mainAPI.showNotification("Hello!")
@@ -65,7 +65,7 @@ await mainAPI.showNotification("Hello!")
 ```typescript
 // Main
 const worker = utilityProcess.fork(workerPath)
-const io = new ElectronUtilityProcessIO(worker)
+const io = electronUtilityProcessTransport(worker)
 const rpc = new RPCChannel<MainAPI, WorkerAPI>(io, { expose: mainAPI })
 const workerAPI = rpc.getAPI()
 await workerAPI.add(2, 3)
@@ -74,13 +74,8 @@ await workerAPI.add(2, 3)
 ### 3. Renderer → External Process (Relay)
 
 ```typescript
-// Main bridges IPC to stdio
-const stdioIO = new NodeIo(process.stdout, process.stdin)
-const ipcIO = new ElectronIpcMainIO(ipcMain, webContents, "kkrpc-stdio-relay")
-const relay = createRelay(ipcIO, stdioIO)
-
-// Renderer uses relay channel
-const stdioIO = new ElectronIpcRendererIO("kkrpc-stdio-relay")
+// Main exposes a stdio worker through mainAPI.stdio
+const stdioIO = nodeStdioTransport({ readable: process.stdin, writable: process.stdout })
 const rpc = new RPCChannel(stdioIO)
 const stdioAPI = rpc.getAPI()
 ```

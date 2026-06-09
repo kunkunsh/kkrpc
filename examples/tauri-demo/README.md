@@ -182,15 +182,16 @@ console.log(hash.digest("hex"))
 
 ### Key Components
 
-**TauriShellStdio Adapter** (`src/routes/+page.svelte`):
+**Tauri shell stdio transport** (`src/routes/+page.svelte`):
 
 ```typescript
 import { Command } from "@tauri-apps/plugin-shell"
-import { RPCChannel, TauriShellStdio } from "kkrpc/browser"
+import { RPCChannel } from "kkrpc"
+import { tauriShellStdioTransport } from "kkrpc/tauri"
 
 const cmd = Command.sidecar(`binaries/${runtime}`)
 const process = await cmd.spawn()
-const stdio = new TauriShellStdio(cmd.stdout, process)
+const stdio = tauriShellStdioTransport({ stdout: cmd.stdout, child: process })
 const rpc = new RPCChannel(stdio, {})
 const api = rpc.getAPI()
 

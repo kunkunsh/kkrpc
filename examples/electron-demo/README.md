@@ -16,14 +16,14 @@ The demo UI provides three sections demonstrating different RPC patterns:
 
 ### 1. Renderer → Main (kkrpc IPC)
 
-Direct RPC calls from the renderer process to the main process using `ElectronIpcRendererIO`.
+Direct RPC calls from the renderer process to the main process using `electronIpcTransport`.
 
 - **`showNotification("Hello!")`**: Sends a notification message from renderer to main
 - **`getAppVersion()`**: Retrieves the Electron app version from main process
 
 ### 2. Main → Worker (Utility Process)
 
-RPC calls from main process to a utility process (worker) using `ElectronUtilityProcessIO`.
+RPC calls from main process to a utility process (worker) using `electronUtilityProcessTransport`.
 
 - **`add(2, 3)`**: Simple arithmetic operation in worker
 - **`multiply(4, 5)`**: Another arithmetic operation demonstrating stateless calls
@@ -84,10 +84,10 @@ electron-demo/
 │   ├── main.ts          # Main process: sets up both RPC channels
 │   └── preload.ts       # Preload script: exposes ipcRenderer securely
 ├── src/
-│   ├── App.tsx          # React UI: uses ElectronIpcRendererIO
+│   ├── App.tsx          # React UI: uses electronIpcTransport
 │   └── main.tsx         # Entry point
-├── worker.ts            # Utility Process: uses ElectronUtilityProcessChildIO
-├── stdio-worker.ts      # External Node.js Process: uses NodeIo (stdio)
+├── worker.ts            # Utility Process: uses electronUtilityProcessChildTransport
+├── stdio-worker.ts      # External Node.js Process: uses nodeStdioTransport
 └── README.md            # This file
 ```
 
@@ -179,8 +179,8 @@ The stdio worker pattern enables:
 ```typescript
 // Main spawns external process
 const stdioProcess = spawn("node", ["stdio-worker.js"])
-const io = new NodeIo(stdioProcess.stdout, stdioProcess.stdin)
-const stdioRPC = new RPCChannel(io, { expose: mainAPI })
+const stdio = nodeStdioTransport({ readable: stdioProcess.stdout, writable: stdioProcess.stdin })
+const stdioRPC = new RPCChannel(stdio)
 const stdioAPI = stdioRPC.getAPI()
 
 // Main bridges renderer IPC to stdio

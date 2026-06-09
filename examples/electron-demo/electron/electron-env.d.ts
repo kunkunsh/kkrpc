@@ -24,6 +24,6 @@ declare namespace NodeJS {
 // Used in Renderer process, expose in `preload.ts`
 interface Window {
 	electron?: {
-		ipcRenderer: import("kkrpc/electron-ipc").SecureIpcBridge
+		ipcRenderer: import("kkrpc/electron").SecureIpcBridge
 	}
 }

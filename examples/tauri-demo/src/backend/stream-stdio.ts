@@ -1,8 +1,6 @@
-import { parseArgs } from "jsr:@std/cli/parse-args"
-import { RPCChannel, stdioJsonTransport } from "kkrpc/deno"
-import pkg from "../../packages/kkrpc/package.json" with { type: "json" }
+import type { ReadableLike, WritableLike } from "kkrpc/stdio"
 
-class ReadableStreamLike {
+export class ReadableStreamLike implements ReadableLike {
 	private listeners = new Set<(chunk: Uint8Array | string) => void>()
 
 	constructor(stream: ReadableStream<Uint8Array>) {
@@ -33,34 +31,17 @@ class ReadableStreamLike {
 	}
 }
 
-const encoder = new TextEncoder()
-
-const flags = parseArgs(Deno.args, {
-	boolean: ["version"]
-})
-
-if (flags.version) {
-	console.log(pkg.version)
-	Deno.exit(0)
-}
-
-const stdio = stdioJsonTransport({
-	readable: new ReadableStreamLike(Deno.stdin.readable),
-	writable: {
+export function promiseWritable(write: (chunk: string) => unknown): WritableLike {
+	return {
 		write(chunk, callback) {
-			Deno.stdout.write(encoder.encode(chunk)).then(
-				() => callback?.(),
-				(error) => callback?.(error instanceof Error ? error : new Error(String(error)))
-			)
+			try {
+				Promise.resolve(write(chunk)).then(
+					() => callback?.(),
+					(error) => callback?.(error instanceof Error ? error : new Error(String(error)))
+				)
+			} catch (error) {
+				callback?.(error instanceof Error ? error : new Error(String(error)))
+			}
 		}
 	}
-})
-const channel = new RPCChannel(stdio, {
-	expose: {
-		eval: (code: string) => {
-			return eval(code)
-		}
-	}
-})
-
-console.error("Deno is running")
+}

@@ -1,8 +1,8 @@
-import { ElectronIpcRendererIO, RPCChannel } from "kkrpc/electron-ipc"
+import { RPCChannel } from "kkrpc"
+import { electronIpcTransport } from "kkrpc/electron"
 import { useState } from "react"
 import "./App.css"
 import type { MainAPI } from "../electron/main"
-import type { StdioWorkerAPI } from "../stdio-worker"
 
 const rendererAPI = {
 	showAlert: async (message: string) => {
@@ -23,13 +23,12 @@ interface LogEntry {
 	type: "success" | "error" | "info"
 }
 
-const ipcIO = new ElectronIpcRendererIO()
-const ipcRPC = new RPCChannel<RendererAPI, MainAPI>(ipcIO, { expose: rendererAPI })
+const ipcRPC = new RPCChannel<RendererAPI, MainAPI>(
+	electronIpcTransport({ endpoint: window.electron!.ipcRenderer, channel: "kkrpc-ipc" }),
+	{ expose: rendererAPI }
+)
 const mainAPI = ipcRPC.getAPI()
-
-const stdioIO = new ElectronIpcRendererIO("kkrpc-stdio-relay")
-const stdioRPC = new RPCChannel<object, StdioWorkerAPI>(stdioIO)
-const stdioAPI = stdioRPC.getAPI()
+const stdioAPI = mainAPI.stdio
 
 function App() {
 	const [logs, setLogs] = useState<LogEntry[]>([])

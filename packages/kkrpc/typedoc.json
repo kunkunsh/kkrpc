@@ -12,7 +12,7 @@
 		"redis-streams.ts",
 		"nats.ts",
 		"electron.ts",
-		"electron-ipc.ts",
+		"tauri.ts",
 		"inspector.ts"
 	],
 	"visibilityFilters": {
