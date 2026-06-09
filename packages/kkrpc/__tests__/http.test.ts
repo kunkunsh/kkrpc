@@ -64,6 +64,43 @@ describe("HTTP RPC", () => {
 		expect(response.status).toBe(400)
 	})
 
+	test("callback arguments are rejected as invalid unary HTTP requests", async () => {
+		const response = await fetch(`${baseUrl}/rpc`, {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({
+				t: "q",
+				id: "callback-id",
+				op: "call",
+				p: ["echo"],
+				a: [{ __kkrpc_next_arg__: "callback", id: "callback-arg" }]
+			})
+		})
+		expect(response.status).toBe(400)
+	})
+
+	test("client transport rejects callback arguments before fetch", async () => {
+		let called = false
+		const transport = httpClientTransport({
+			url: `${baseUrl}/rpc`,
+			fetch: (() => {
+				called = true
+				throw new Error("fetch should not be called")
+			}) as typeof fetch
+		})
+
+		await expect(
+			transport.send({
+				t: "q",
+				id: "callback-id",
+				op: "call",
+				p: ["echo"],
+				a: [{ __kkrpc_next_arg__: "callback", id: "callback-arg" }]
+			})
+		).rejects.toThrow("HTTP transport does not support callback arguments")
+		expect(called).toBe(false)
+	})
+
 	test("handler timeout returns 504 with RPC error response", async () => {
 		const handler = createHttpHandler(
 			{

@@ -13,6 +13,7 @@ export interface HttpHandlerOptions {
 }
 
 const RPC_OPERATIONS = new Set<RPCOperation>(["call", "get", "set", "new"])
+const ARG_ENVELOPE_TAG = "__kkrpc_next_arg__"
 
 export function httpClientTransport(options: HttpClientTransportOptions): Transport<RPCMessage> {
 	const fetchImpl = options.fetch ?? fetch
@@ -23,6 +24,9 @@ export function httpClientTransport(options: HttpClientTransportOptions): Transp
 		async send(message) {
 			if (message.t !== "q") {
 				throw new Error("HTTP transport only supports client request messages")
+			}
+			if (containsCallbackEnvelope(message.a) || containsCallbackEnvelope(message.v)) {
+				throw new Error("HTTP transport does not support callback arguments")
 			}
 			const response = await fetchImpl(options.url, {
 				method: "POST",
@@ -106,8 +110,29 @@ function isRPCRequestMessage(value: unknown): value is RPCRequest {
 		RPC_OPERATIONS.has(message.op as RPCOperation) &&
 		Array.isArray(message.p) &&
 		message.p.every((segment) => typeof segment === "string") &&
-		(message.a === undefined || Array.isArray(message.a))
+		(message.a === undefined || Array.isArray(message.a)) &&
+		!containsCallbackEnvelope(message.a) &&
+		!containsCallbackEnvelope(message.v)
 	)
+}
+
+function containsCallbackEnvelope(value: unknown, seen = new WeakSet<object>()): boolean {
+	if (typeof value !== "object" || value === null) return false
+	if (seen.has(value)) return false
+	seen.add(value)
+
+	if (
+		ARG_ENVELOPE_TAG in value &&
+		(value as { [ARG_ENVELOPE_TAG]?: unknown })[ARG_ENVELOPE_TAG] === "callback"
+	) {
+		return true
+	}
+
+	if (Array.isArray(value)) {
+		return value.some((item) => containsCallbackEnvelope(item, seen))
+	}
+
+	return Object.values(value).some((item) => containsCallbackEnvelope(item, seen))
 }
 
 function createRequestScopedTransport(request: RPCMessage): Transport<RPCMessage> & {
