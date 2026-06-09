@@ -1,10 +1,8 @@
-/**
- * RabbitMQ adapter for kkrpc
- * Provides topic-based message routing with RabbitMQ exchanges
- */
+import type { Transport } from "./src/core/transport.ts"
+import type { RPCMessage } from "./src/core/protocol.ts"
 
-export * from "./src/interface.ts"
-export * from "./src/channel.ts"
-export * from "./src/serialization.ts"
-export * from "./src/utils.ts"
-export { RabbitMQIO } from "./src/adapters/rabbitmq.ts"
+export type RabbitMQTransport = Transport<RPCMessage>
+
+export function createRabbitMQTransport(): RabbitMQTransport {
+	throw new Error("not implemented in this migration slice")
+}

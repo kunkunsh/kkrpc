@@ -1,28 +1,12 @@
-/**
- * @module @kunkun/kkrpc/http
- * @description This module contains the HTTP adapters for kkrpc.
- */
-import { HTTPClientIO, HTTPServerIO } from "./src/adapters/http"
-import { RPCChannel } from "./src/channel"
-import type { IoInterface } from "./src/interface"
+import type { Transport } from "./src/core/transport.ts"
+import type { RPCMessage } from "./src/core/protocol.ts"
 
-export function createHttpClient<API extends Record<string, any>>(
-	url: string
-): {
-	channel: RPCChannel<{}, API, IoInterface>
-	api: API
-} {
-	const channel = new RPCChannel<{}, API>(new HTTPClientIO({ url }))
-	const api = channel.getAPI()
-	return { channel, api }
+export type HttpTransport = Transport<RPCMessage>
+
+export function createHttpClientTransport(): HttpTransport {
+	throw new Error("not implemented in this migration slice")
 }
 
-export function createHttpHandler<API extends Record<string, any>>(
-	api: API
-): { handleRequest: (data: string) => Promise<string> } {
-	const serverIO = new HTTPServerIO()
-	new RPCChannel<{}, API>(serverIO, { expose: api })
-	return serverIO
+export function createHttpHandler(): never {
+	throw new Error("not implemented in this migration slice")
 }
-export { RPCChannel } from "./src/channel"
-export { HTTPClientIO, HTTPServerIO } from "./src/adapters/http"

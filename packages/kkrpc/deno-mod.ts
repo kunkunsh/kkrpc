@@ -1,5 +1,7 @@
-export { DenoIo } from "./src/adapters/deno.ts"
-export { RPCChannel } from "./src/channel.ts"
-export * from "./src/channel.ts"
-export * from "./src/transfer.ts"
-export * from "./src/transfer-handlers.ts"
+/**
+ * @module kkrpc/deno
+ * @description Deno-safe stable core entry. Runtime transports live in subpaths.
+ */
+export * from "./src/core/index.ts"
+export * from "./src/next/worker.ts"
+export * from "./src/next/stdio.ts"

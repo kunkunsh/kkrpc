@@ -1,23 +1,8 @@
-/**
- * Chrome Extension RPC Module
- *
- * This module provides comprehensive Chrome extension adapters for kkrpc,
- * including both basic and enhanced adapters with utility functions.
- *
- * @example
- * ```typescript
- * import { setupBackgroundRPC, setupContentRPC } from 'kkrpc/chrome-extension'
- *
- * // Background script
- * const rpcChannels = setupBackgroundRPC(backgroundAPI)
- *
- * // Content script
- * const { rpc, backgroundAPI } = setupContentRPC(contentAPI)
- * ```
- */
+import type { Transport } from "./src/core/transport.ts"
+import type { RPCMessage } from "./src/core/protocol.ts"
 
-export * from "./src/adapters/chrome-extension.ts"
-export * from "./src/channel.ts"
-export * from "./src/utils.ts"
-export * from "./src/serialization.ts"
-export * from "./src/interface.ts"
+export type ChromeExtensionTransport = Transport<RPCMessage>
+
+export function createChromeExtensionTransport(): ChromeExtensionTransport {
+	throw new Error("not implemented in this migration slice")
+}
