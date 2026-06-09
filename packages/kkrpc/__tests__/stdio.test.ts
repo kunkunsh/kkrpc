@@ -1,9 +1,9 @@
 import { describe, expect, test } from "bun:test"
 import { PassThrough } from "node:stream"
 
-import { dispose, expose, wrap } from "../next.ts"
-import { stdioJsonTransport, stdioPlatform } from "../next-stdio.ts"
-import type { ReadableLike } from "../next-stdio.ts"
+import { dispose, expose, wrap } from "../mod.ts"
+import { nodeStdioTransport, stdioJsonTransport, stdioPlatform } from "../stdio.ts"
+import type { ReadableLike } from "../stdio.ts"
 
 interface TestAPI {
 	add(a: number, b: number): Promise<number>
@@ -28,7 +28,11 @@ function createStreamPair() {
 	}
 }
 
-describe("next stdio transport", () => {
+describe("stdio transport", () => {
+	test("exports stable stdio helpers", () => {
+		expect(typeof nodeStdioTransport).toBe("function")
+	})
+
 	test("supports explicit readable/writable stream pairs", async () => {
 		const streams = createStreamPair()
 		const controller = expose<TestAPI>(

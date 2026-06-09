@@ -1,1 +1,1 @@
-export * from "./src/next/codecs.ts"
+export * from "./src/core/codecs.ts"

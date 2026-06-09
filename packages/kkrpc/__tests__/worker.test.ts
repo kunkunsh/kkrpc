@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test"
 
-import { dispose, transfer, wrap } from "../next.ts"
-import { workerTransport } from "../next-worker.ts"
+import { dispose, expose, transfer, wrap } from "../mod.ts"
+import { workerSelfTransport, workerTransport } from "../worker.ts"
 
 interface WorkerAPI {
 	add(a: number, b: number): Promise<number>
@@ -9,7 +9,12 @@ interface WorkerAPI {
 	createBuffer(size: number): Promise<ArrayBuffer>
 }
 
-describe("next worker transport", () => {
+describe("worker transport", () => {
+	test("exports stable worker helpers", () => {
+		expect(typeof expose).toBe("function")
+		expect(typeof workerSelfTransport).toBe("function")
+	})
+
 	test("wraps a worker object transport", async () => {
 		const worker = new Worker(new URL("./scripts/next-worker.ts", import.meta.url).href, {
 			type: "module"

@@ -1,1 +1,1 @@
-export * from "./src/next/stdio.ts"
+export * from "./src/transports/stdio.ts"
