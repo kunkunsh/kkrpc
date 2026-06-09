@@ -18,16 +18,36 @@ interface ChromePortLike {
 
 /** Create a transport backed by a chrome.runtime.Port. */
 export function chromePortTransport(port: ChromePortLike): Transport<RPCMessage> {
+	const messageListeners = new Set<(message: RPCMessage) => void>()
+	let closed = false
+
+	const cleanup = () => {
+		if (closed) return
+		closed = true
+		for (const listener of messageListeners) port.onMessage.removeListener(listener)
+		messageListeners.clear()
+		port.onDisconnect?.removeListener(cleanup)
+	}
+
+	port.onDisconnect?.addListener(cleanup)
+
 	return {
 		capabilities: { objectMode: true, transfer: false },
 		send(message: RPCMessage) {
+			if (closed) return
 			port.postMessage(message)
 		},
 		subscribe(listener: (message: RPCMessage) => void) {
+			if (closed) return () => {}
+			messageListeners.add(listener)
 			port.onMessage.addListener(listener)
-			return () => port.onMessage.removeListener(listener)
+			return () => {
+				messageListeners.delete(listener)
+				port.onMessage.removeListener(listener)
+			}
 		},
 		close() {
+			cleanup()
 			port.disconnect?.()
 		}
 	}

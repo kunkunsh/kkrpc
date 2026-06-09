@@ -1,5 +1,10 @@
 import { describe, expect, test } from "bun:test"
-import { iframeChildTransport, iframeParentTransport } from "../iframe.ts"
+import { chromePortTransport } from "../chrome-extension.ts"
+import {
+	iframeChildTransport,
+	iframeParentTransport,
+	iframeParentTransportReady
+} from "../iframe.ts"
 import type { RPCMessage } from "../src/core/protocol.ts"
 
 const forbidden = [
@@ -17,20 +22,29 @@ const forbidden = [
 
 interface TestWindow {
 	parent?: TestWindow
+	origin: string
 	postMessage(message: unknown, targetOrigin: string, transfers?: Transferable[]): void
 	addEventListener(type: "message", listener: (event: MessageEvent) => void): void
 	removeEventListener(type: "message", listener: (event: MessageEvent) => void): void
 }
 
-function createWindowPair() {
+function createWindowPair({
+	parentOrigin = "https://parent.example",
+	childOrigin = "https://child.example"
+}: {
+	parentOrigin?: string
+	childOrigin?: string
+} = {}) {
 	const parentListeners = new Set<(event: MessageEvent) => void>()
 	const childListeners = new Set<(event: MessageEvent) => void>()
 
 	const parentWindow: TestWindow = {
+		origin: parentOrigin,
 		postMessage(message, _targetOrigin, transfers = []) {
 			for (const listener of parentListeners) {
 				listener({
 					data: message,
+					origin: childWindow.origin,
 					ports: transfers,
 					source: childWindow
 				} as unknown as MessageEvent)
@@ -45,11 +59,13 @@ function createWindowPair() {
 	}
 
 	const childWindow: TestWindow = {
+		origin: childOrigin,
 		parent: parentWindow,
 		postMessage(message, _targetOrigin, transfers = []) {
 			for (const listener of childListeners) {
 				listener({
 					data: message,
+					origin: parentWindow.origin,
 					ports: transfers,
 					source: parentWindow
 				} as unknown as MessageEvent)
@@ -131,5 +147,94 @@ describe("iframe transports", () => {
 		expect(received[0]).toEqual({ t: "q", id: "1", op: "call", p: ["ping"] })
 		parentTransport.close?.()
 		childTransport.close?.()
+	})
+
+	test("parent rejects MessagePort init from mismatched origin before flushing queued messages", async () => {
+		const { parentWindow, childWindow } = createWindowPair({ childOrigin: "https://evil.example" })
+		const parentTransport = iframeParentTransport(childWindow as unknown as Window, {
+			sourceWindow: parentWindow,
+			targetOrigin: "https://child.example"
+		})
+		const childTransport = iframeChildTransport({ sourceWindow: childWindow })
+
+		parentTransport.send({ t: "q", id: "1", op: "call", p: ["secret"] })
+		await Bun.sleep(80)
+
+		expect(parentTransport.capabilities?.transfer).toBe(false)
+		parentTransport.close?.()
+		childTransport.close?.()
+	})
+
+	test("ready parent transport is MessagePort-backed before RPCChannel construction", async () => {
+		const { parentWindow, childWindow } = createWindowPair()
+		const parentTransportPromise = iframeParentTransportReady(childWindow as unknown as Window, {
+			sourceWindow: parentWindow,
+			targetOrigin: childWindow.origin
+		})
+		const childTransport = iframeChildTransport({
+			sourceWindow: childWindow,
+			targetOrigin: parentWindow.origin
+		})
+
+		const parentTransport = await parentTransportPromise
+		expect(parentTransport.capabilities?.transfer).toBe(true)
+
+		parentTransport.close?.()
+		childTransport.close?.()
+	})
+})
+
+describe("chrome extension transport", () => {
+	function createFakePort() {
+		const messageListeners = new Set<(message: RPCMessage) => void>()
+		const disconnectListeners = new Set<() => void>()
+		return {
+			port: {
+				postMessage(_message: RPCMessage) {},
+				onMessage: {
+					addListener(listener: (message: RPCMessage) => void) {
+						messageListeners.add(listener)
+					},
+					removeListener(listener: (message: RPCMessage) => void) {
+						messageListeners.delete(listener)
+					}
+				},
+				onDisconnect: {
+					addListener(listener: () => void) {
+						disconnectListeners.add(listener)
+					},
+					removeListener(listener: () => void) {
+						disconnectListeners.delete(listener)
+					}
+				},
+				disconnect() {
+					for (const listener of [...disconnectListeners]) listener()
+				}
+			},
+			messageListeners,
+			disconnectListeners
+		}
+	}
+
+	test("removes active listeners on close", () => {
+		const fake = createFakePort()
+		const transport = chromePortTransport(fake.port)
+		transport.subscribe(() => {})
+
+		expect(fake.messageListeners.size).toBe(1)
+		expect(fake.disconnectListeners.size).toBe(1)
+		transport.close?.()
+		expect(fake.messageListeners.size).toBe(0)
+		expect(fake.disconnectListeners.size).toBe(0)
+	})
+
+	test("cleans up listeners on remote disconnect", () => {
+		const fake = createFakePort()
+		const transport = chromePortTransport(fake.port)
+		transport.subscribe(() => {})
+
+		fake.port.disconnect()
+		expect(fake.messageListeners.size).toBe(0)
+		expect(fake.disconnectListeners.size).toBe(0)
 	})
 })

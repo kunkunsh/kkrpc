@@ -54,8 +54,9 @@ iframe-worker-demo/
 ```typescript
 // Parent
 import { RPCChannel } from "kkrpc/browser"
-import { iframeParentTransport } from "kkrpc/iframe"
-const rpc = new RPCChannel(iframeParentTransport(iframe.contentWindow!), { expose: parentAPI })
+import { iframeParentTransportReady } from "kkrpc/iframe"
+const transport = await iframeParentTransportReady(iframe.contentWindow!)
+const rpc = new RPCChannel(transport, { expose: parentAPI })
 const childAPI = rpc.getAPI()
 
 // Child (iframe content)

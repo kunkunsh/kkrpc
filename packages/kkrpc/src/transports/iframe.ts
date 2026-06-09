@@ -17,6 +17,7 @@ interface WindowLike {
 interface IframeTransportOptions {
 	targetOrigin?: string
 	sourceWindow?: WindowLike
+	onReady?: () => void
 }
 
 interface PortSignal {
@@ -33,6 +34,10 @@ function isPortSignal(message: unknown, type: PortSignal["type"]): message is Po
 		"id" in message &&
 		typeof message.id === "string"
 	)
+}
+
+function isAllowedOrigin(event: MessageEvent, targetOrigin: string): boolean {
+	return targetOrigin === "*" || event.origin === targetOrigin
 }
 
 function createPortTransport(port: MessagePort): Transport<RPCMessage> {
@@ -100,7 +105,11 @@ export function iframeParentTransport(
 	let unsubscribePort: (() => void) | undefined
 
 	const messageListener = (event: MessageEvent) => {
-		if (event.source !== targetWindow || !isPortSignal(event.data, PORT_INIT_SIGNAL)) {
+		if (
+			event.source !== targetWindow ||
+			!isAllowedOrigin(event, targetOrigin) ||
+			!isPortSignal(event.data, PORT_INIT_SIGNAL)
+		) {
 			return
 		}
 		if (event.ports.length === 0) return
@@ -117,6 +126,7 @@ export function iframeParentTransport(
 			targetOrigin
 		)
 		for (const item of queuedMessages.splice(0)) portTransport.send(item.message, item.transfers)
+		options.onReady?.()
 	}
 
 	sourceWindow.addEventListener("message", messageListener)
@@ -137,6 +147,19 @@ export function iframeParentTransport(
 			sourceWindow.removeEventListener("message", messageListener)
 		}
 	}
+}
+
+/** Create a parent iframe transport after the MessagePort handshake has completed. */
+export function iframeParentTransportReady(
+	targetWindow: Window,
+	options: IframeTransportOptions = {}
+): Promise<Transport<RPCMessage>> {
+	return new Promise((resolve) => {
+		const transport = iframeParentTransport(targetWindow, {
+			...options,
+			onReady: () => resolve(transport)
+		})
+	})
 }
 
 /** Create a transport for code running inside an iframe. */
@@ -174,7 +197,13 @@ export function iframeChildTransport(options: IframeTransportOptions = {}): Tran
 	}
 
 	const messageListener = (event: MessageEvent) => {
-		if (event.source !== targetWindow || !isPortSignal(event.data, PORT_ACK_SIGNAL)) return
+		if (
+			event.source !== targetWindow ||
+			!isAllowedOrigin(event, targetOrigin) ||
+			!isPortSignal(event.data, PORT_ACK_SIGNAL)
+		) {
+			return
+		}
 		if (event.data.id !== activeId) return
 		promoteCandidate()
 	}

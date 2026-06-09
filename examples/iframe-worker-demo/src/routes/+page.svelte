@@ -2,7 +2,7 @@
 	import { apiImplementation } from "@kksh/demo-api"
 	import type { API, APINested } from "@kksh/demo-api"
 	import { RPCChannel } from "kkrpc/browser"
-	import { iframeParentTransport } from "kkrpc/iframe"
+	import { iframeParentTransportReady } from "kkrpc/iframe"
 	import { onDestroy, onMount } from "svelte"
 	import { toast } from "svelte-sonner"
 
@@ -18,7 +18,8 @@
 
 	async function onIframeLoad() {
 		if (!iframeRef.contentWindow) return
-		rpc = new RPCChannel<API, APINested>(iframeParentTransport(iframeRef.contentWindow), {
+		const transport = await iframeParentTransportReady(iframeRef.contentWindow)
+		rpc = new RPCChannel<API, APINested>(transport, {
 			expose: apiImplementation
 		})
 	}
