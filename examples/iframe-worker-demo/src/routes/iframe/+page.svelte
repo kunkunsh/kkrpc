@@ -1,19 +1,18 @@
 <script lang="ts">
 	import { apiImplementationNested } from "@kksh/demo-api"
 	import type { API, APINested } from "@kksh/demo-api"
-	import { IframeChildIO, RPCChannel } from "kkrpc/browser"
-	import type { IoInterface } from "kkrpc/browser"
+	import { RPCChannel } from "kkrpc/browser"
+	import { iframeChildTransport } from "kkrpc/iframe"
 	import { onDestroy, onMount } from "svelte"
 	import { toast } from "svelte-sonner"
 
-	const io = new IframeChildIO(),
-		rpc = new RPCChannel<APINested, API, IoInterface>(io, {
-			expose: apiImplementationNested
-		})
+	const rpc = new RPCChannel<APINested, API>(iframeChildTransport(), {
+		expose: apiImplementationNested
+	})
 
 	onMount(() => {})
 	onDestroy(() => {
-		io.destroy()
+		rpc.destroy()
 	})
 
 	function onClick(e: MouseEvent) {

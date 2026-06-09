@@ -1,4 +1,4 @@
-import { RPCChannel, WorkerChildIO, transfer } from 'kkrpc/browser';
+import { RPCChannel, transfer, workerSelfTransport } from 'kkrpc/browser';
 import type {
 	MainAPI,
 	WorkerAPI,
@@ -16,7 +16,6 @@ function checksum(data: ArrayBuffer | Uint8Array): number {
 	return sum;
 }
 
-const io = new WorkerChildIO();
 let hostApi: MainAPI | null = null;
 
 const workerAPI: WorkerAPI = {
@@ -74,7 +73,7 @@ const workerAPI: WorkerAPI = {
 	}
 };
 
-const rpc = new RPCChannel<WorkerAPI, MainAPI>(io, { expose: workerAPI });
+const rpc = new RPCChannel<WorkerAPI, MainAPI>(workerSelfTransport(), { expose: workerAPI });
 hostApi = rpc.getAPI();
 
 hostApi.log('Worker initialised');

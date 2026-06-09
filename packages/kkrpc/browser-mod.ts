@@ -1,2 +1,6 @@
 export * from "./src/core/index.ts"
 export * from "./src/transports/worker.ts"
+export * from "./src/transports/iframe.ts"
+export * from "./src/transports/chrome-extension.ts"
+export { webSocketClientTransport } from "./src/transports/web-socket-client.ts"
+export type { WebSocketClientTransportOptions } from "./src/transports/web-socket-client.ts"

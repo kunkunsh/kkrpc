@@ -1,12 +1,11 @@
 <script lang="ts">
 	import { apiImplementation, type API, type APINested } from "@kksh/demo-api"
 	import Worker from "$lib/worker?worker"
-	import { RPCChannel, WorkerParentIO, type IoInterface } from "kkrpc/browser"
+	import { RPCChannel, workerTransport } from "kkrpc/browser"
 	import { toast } from "svelte-sonner"
 
 	const worker = new Worker()
-	const io = new WorkerParentIO(worker)
-	const rpc = new RPCChannel<API, APINested, IoInterface>(io, {
+	const rpc = new RPCChannel<API, APINested>(workerTransport(worker), {
 		expose: apiImplementation
 	})
 	const api = rpc.getAPI()

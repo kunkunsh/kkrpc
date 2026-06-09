@@ -1,6 +1,5 @@
 <script lang="ts">
-	import { RPCChannel, WorkerParentIO, transfer } from 'kkrpc/browser';
-	import type { IoInterface } from 'kkrpc/browser';
+	import { RPCChannel, transfer, workerTransport } from 'kkrpc/browser';
 	import { onMount } from 'svelte';
 	import type { MainAPI, WorkerAPI, WorkerTransferReport } from '$lib/worker/contracts';
 
@@ -66,8 +65,7 @@
 		const worker = new Worker(new URL('../lib/worker/transfer-worker.ts', import.meta.url), {
 			type: 'module'
 		});
-		const io = new WorkerParentIO(worker);
-		const rpc = new RPCChannel<MainAPI, WorkerAPI, IoInterface>(io, {
+		const rpc = new RPCChannel<MainAPI, WorkerAPI>(workerTransport(worker), {
 			expose: localAPI,
 			enableTransfer: true
 		});
@@ -77,7 +75,7 @@
 
 		return () => {
 			log('Tearing down worker');
-			io.destroy();
+			rpc.destroy();
 			remote = null;
 			status = 'connecting';
 		};
