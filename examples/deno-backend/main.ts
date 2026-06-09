@@ -35,6 +35,50 @@ class ReadableStreamLike {
 
 const encoder = new TextEncoder()
 
+interface EvalResult {
+	stdout: string
+	stderr: string
+}
+
+function formatConsoleArg(value: unknown): string {
+	if (typeof value === "string") return value
+	if (value instanceof Error) return value.stack ?? value.message
+	if (typeof value === "object" && value !== null) {
+		try {
+			return JSON.stringify(value) ?? String(value)
+		} catch {
+			return String(value)
+		}
+	}
+	return String(value)
+}
+
+function formatConsoleLine(args: unknown[]): string {
+	return `${args.map(formatConsoleArg).join(" ")}\n`
+}
+
+async function captureEvalOutput(run: () => unknown): Promise<EvalResult> {
+	let stdout = ""
+	let stderr = ""
+	const originalLog = console.log
+	const originalError = console.error
+
+	console.log = (...args: unknown[]) => {
+		stdout += formatConsoleLine(args)
+	}
+	console.error = (...args: unknown[]) => {
+		stderr += formatConsoleLine(args)
+	}
+
+	try {
+		await run()
+		return { stdout, stderr }
+	} finally {
+		console.log = originalLog
+		console.error = originalError
+	}
+}
+
 const flags = parseArgs(Deno.args, {
 	boolean: ["version"]
 })
@@ -58,7 +102,7 @@ const stdio = stdioJsonTransport({
 const channel = new RPCChannel(stdio, {
 	expose: {
 		eval: (code: string) => {
-			return eval(code)
+			return captureEvalOutput(() => eval(code))
 		}
 	}
 })

@@ -41,9 +41,6 @@
 
 	async function runCode() {
 		const cmd = Command.sidecar(`binaries/${currentRuntime}`)
-		cmd.stdout.on("data", (data) => {
-			stdout += data
-		})
 		cmd.stderr.on("data", (data) => {
 			stderr += data
 		})
@@ -64,20 +61,26 @@
 				const stdio = tauriShellStdioTransport({ stdout: cmd.stdout, child: proc })
 				const stdioRPC = new RPCChannel<{}, typeof apiMethods>(stdio, {})
 				const api = stdioRPC.getAPI()
-				return api.eval(code).finally(() => {
-					return proc
-						.kill()
-						.then(() => {
-							console.log("proc killed")
-							toast.info(`Process terminated`)
-						})
-						.catch((err) => {
-							console.error("failed to kill proc", err)
-							toast.error(`Failed to kill proc`, {
-								description: err
+				return api
+					.eval(code)
+					.then((result) => {
+						stdout += result.stdout
+						stderr += result.stderr
+					})
+					.finally(() => {
+						return proc
+							.kill()
+							.then(() => {
+								console.log("proc killed")
+								toast.info(`Process terminated`)
 							})
-						})
-				})
+							.catch((err) => {
+								console.error("failed to kill proc", err)
+								toast.error(`Failed to kill proc`, {
+									description: err
+								})
+							})
+					})
 			})
 			.catch((error) => {
 				console.error("error", error)
