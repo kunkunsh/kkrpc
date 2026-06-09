@@ -46,10 +46,14 @@ The stable package API should replace the temporary `kkrpc/next` namespace.
 | `kkrpc/validation` | Native validation plugin APIs |
 | `kkrpc/middleware` | Native middleware/interceptor plugin APIs |
 | `kkrpc/superjson` | SuperJSON codecs only |
+| `kkrpc/browser` | Browser-safe convenience entry for core plus browser transports |
+| `kkrpc/deno` | Deno-safe convenience entry for core plus Deno transports |
 | `kkrpc/worker` | Worker transports |
 | `kkrpc/stdio` | Node/Bun/Deno-style stdio transports |
 | `kkrpc/http` | Native HTTP client/server transports and handlers |
-| `kkrpc/websocket` | Native WebSocket transports |
+| `kkrpc/ws` | Native WebSocket transports |
+| `kkrpc/ws/hono` | Native Hono WebSocket integration |
+| `kkrpc/ws/elysia` | Native Elysia WebSocket integration |
 | `kkrpc/iframe` | Native iframe `postMessage` transports |
 | `kkrpc/chrome-extension` | Native Chrome extension port transports |
 | `kkrpc/electron` | Native Electron utility process and IPC transports |
@@ -59,9 +63,22 @@ The stable package API should replace the temporary `kkrpc/next` namespace.
 | `kkrpc/kafka` | Native Kafka transport |
 | `kkrpc/redis-streams` | Native Redis Streams transport |
 | `kkrpc/nats` | Native NATS transport |
+| `kkrpc/relay` | Native transport-to-transport relay helper |
 | `kkrpc/inspector` | Inspector tooling updated to native RPC events/plugins |
 
 The stable `kkrpc` main entry should stay browser-safe and feature-light. Runtime-specific or optional-peer code must live in subpaths.
+
+Existing export decisions:
+
+| Existing export | Decision |
+| --- | --- |
+| `kkrpc/browser` | Keep and rewrite as a native browser-safe entry. It may re-export core, Worker, iframe, browser WebSocket client, Chrome extension, and transferable helpers, but must not import Node-only or optional peer code. |
+| `kkrpc/browser-lite` | Remove. The stable core replaces this size-optimization experiment. |
+| `kkrpc/browser-mini` | Remove. The stable core replaces this size-optimization experiment. |
+| `kkrpc/deno` | Keep and rewrite as a native Deno-safe entry. It may re-export core plus Deno stdio/worker helpers. |
+| `kkrpc/electron-ipc` | Remove as a public subpath. IPC and utility-process transports live under `kkrpc/electron`. |
+| Hono helpers | Keep under `kkrpc/ws/hono`, not in `kkrpc` or `kkrpc/http`. |
+| Elysia helpers | Keep under `kkrpc/ws/elysia`, not in `kkrpc` or `kkrpc/http`. |
 
 ## Source Layout
 
@@ -72,6 +89,7 @@ Recommended source layout:
 | Current file | Stable role |
 | --- | --- |
 | `src/next/channel.ts` | `src/core/channel.ts` |
+| `src/next/index.ts` | `src/core/index.ts` |
 | `src/next/protocol.ts` | `src/core/protocol.ts` |
 | `src/next/transport.ts` | `src/core/transport.ts` |
 | `src/next/codecs.ts` | `src/core/codecs.ts` |
@@ -96,6 +114,8 @@ Entry wrappers should use stable names:
 | `next-worker.ts` | `worker.ts` |
 | `next-stdio.ts` | `stdio.ts` |
 
+`mod.ts` should export from `src/core/index.ts`. That core index owns the stable `wrap()`, `expose()`, and `dispose()` helpers.
+
 Files dedicated only to compatibility should be deleted:
 
 - `next-classic-compat.ts`
@@ -105,6 +125,17 @@ Files dedicated only to compatibility should be deleted:
 - `src/interface.ts`
 - classic `src/channel.ts`
 - classic `src/adapters/*` implementations after native replacements exist
+
+Shared classic-era files should be handled explicitly:
+
+| Existing file | Decision |
+| --- | --- |
+| `src/transfer.ts` | Keep the transferable marker, move it into `src/core/transfer.ts`, and export it from `kkrpc`. |
+| `src/utils.ts` | Move only still-used utilities, such as ID generation, into `src/core`. Delete unused classic helpers. |
+| `src/serialization.ts` | Delete or replace with native codecs. It must not remain as a classic wire serializer. |
+| `src/standard-schema.ts` | Keep only the parts required by native validation and place them under `src/features/validation.ts` or a feature-local helper. |
+| `src/relay.ts` | Rewrite as a native transport relay and export through `kkrpc/relay`. |
+| `src/transfer-handlers.ts` | Delete unless custom transfer handlers are redesigned as a native core feature with tests. |
 
 ## Transport Design
 
@@ -120,11 +151,25 @@ Stdio-style transports should use newline-delimited JSON with `jsonLineCodec`. P
 
 ### HTTP
 
-HTTP should be modeled as a request/response transport pair. The client transport sends one RPC request per HTTP request and emits the HTTP response back to the channel. The server handler receives an HTTP body, delivers it to a channel, waits for the matching response, and returns it as the HTTP response body.
+Unary HTTP should be modeled as client-request-only RPC. It supports client-initiated calls that produce one response. It must not imply full bidirectional RPC, server-initiated calls, or callback invocation over out-of-band messages. Examples that need callbacks, server pushes, or bidirectional calls should use WebSocket or another evented transport.
+
+The HTTP client transport sends only request messages (`t: "q"`). Each `send()` creates one HTTP request, waits for one response body, and emits that response to subscribers. Sending a response or callback message through the HTTP client transport is a misuse and should reject with a transport error.
+
+The HTTP server API should be handler-oriented rather than a long-lived bidirectional transport. A helper such as `createHttpHandler(api, options)` should create a request-scoped channel or dispatcher per HTTP request, deliver the decoded request, wait for exactly one response with the matching RPC id, and close the request-scoped resources after the response or timeout.
+
+HTTP error behavior should be explicit:
+
+| Situation | Behavior |
+| --- | --- |
+| Exposed API throws | Return a valid RPC error response for the request id. |
+| Malformed request body or invalid RPC message | Return HTTP 400. |
+| Handler timeout after a valid request id is known | Return HTTP 504, preferably with an RPC error response body carrying that id. |
+| Network or non-2xx response on the client | Reject the client transport `send()` and let the channel reject the pending call. |
+| Handler closes | Reject new requests and dispose request-scoped listeners. |
 
 ### WebSocket, Hono, Elysia, and Socket.IO
 
-Evented transports should subscribe to message events and send through the underlying socket. Framework-specific helpers should wrap the framework lifecycle and expose native transports without leaking framework internals into the core entry.
+Evented transports should subscribe to message events and send through the underlying socket. `kkrpc/ws` owns plain WebSocket transports. `kkrpc/ws/hono` and `kkrpc/ws/elysia` own framework lifecycle helpers. `kkrpc/socketio` remains separate because it uses Socket.IO-specific peers and semantics rather than the WebSocket object model.
 
 ### Electron and Tauri
 
@@ -133,6 +178,39 @@ Electron IPC and utility process transports should be native evented transports.
 ### RabbitMQ, Kafka, Redis Streams, and NATS
 
 Message-bus transports need peer identity, routing metadata, or correlation filtering so multiple peers sharing a topic, queue, stream, or subject do not consume their own outbound messages accidentally. These transports should remain behind optional-peer subpaths.
+
+All message-bus transports should use a common internal envelope around `RPCMessage`:
+
+```ts
+interface BusEnvelope {
+	protocol: "kkrpc.bus.v1"
+	transportId: string
+	from: string
+	to?: string
+	correlationId?: string
+	sequence?: number
+	sentAt?: number
+	message: RPCMessage
+}
+```
+
+Routing requirements:
+
+- Each transport instance has a stable local peer id.
+- Direct peer-to-peer transports should set `to` to the remote peer id and ignore envelopes addressed to other peers.
+- Transports should ignore their own envelopes by default when `from` matches the local peer id.
+- `correlationId` should mirror the RPC message id when available so broker diagnostics can group request/response traffic without changing the core protocol.
+- Ordering is best-effort unless the underlying broker partition, stream, or subject guarantees stronger ordering for the chosen key.
+- Duplicate delivery is possible on at-least-once brokers, so handlers should not claim exactly-once semantics.
+
+Ack and commit behavior should be platform-specific but consistent:
+
+| Transport | Ack/commit rule |
+| --- | --- |
+| RabbitMQ | Ack after the envelope is decoded, passes routing filters, and is delivered to local subscribers. Nack malformed envelopes without requeue by default to avoid poison loops. |
+| Redis Streams | XACK after successful local delivery. Pending-entry recovery is an operational concern and should be documented if supported. |
+| Kafka | Commit offsets after successful local delivery when manual commit is enabled; otherwise document reliance on the client auto-commit setting. |
+| NATS | Ack after successful local delivery for JetStream-style consumers; plain pub/sub has no ack. |
 
 ### SuperJSON
 
@@ -191,6 +269,21 @@ Test coverage should include:
 
 External service tests should remain gated by explicit environment variables or local service availability, matching existing project practice.
 
+Export-boundary tests should be added or updated so package verification catches stale classic paths. At minimum, tests should assert that removed exports are absent and stable exports resolve:
+
+| Export | Expected |
+| --- | --- |
+| `kkrpc` | resolves to native core only |
+| `kkrpc/browser` | resolves and does not import Node-only modules |
+| `kkrpc/deno` | resolves in Deno tests |
+| `kkrpc/browser-lite` | removed |
+| `kkrpc/browser-mini` | removed |
+| `kkrpc/next` | removed |
+| `kkrpc/next/*` | removed |
+| `kkrpc/electron-ipc` | removed |
+| `kkrpc/ws/hono` | resolves behind Hono peer dependency boundary |
+| `kkrpc/ws/elysia` | resolves behind Elysia peer dependency boundary |
+
 ## Docs And Skills
 
 Documentation should refer to the stable architecture rather than `next`.
@@ -216,6 +309,35 @@ The following terms should not appear in runtime code, examples, tests, package 
 - public class names ending in `IO` from the old adapter architecture
 
 The old `*IO` names may appear in deleted-file history but should not remain in live source or examples.
+
+Final cleanup commands should be explicit. These commands are expected to produce no matches outside allowed migration/spec documents. The only allowed live documents for old terms are this design spec, superpowers implementation plans, and `packages/kkrpc/BREAKING_MIGRATION.md` if that file is created during docs cleanup.
+
+```bash
+rg 'kkrpc/next|next/io|classic-compat|IoInterface|IoMessage|RPCValidators|RPCInterceptor' packages examples skills docs \
+	--glob '!docs/superpowers/specs/2026-06-09-next2main-native-migration-design.md' \
+	--glob '!docs/superpowers/plans/**' \
+	--glob '!packages/kkrpc/BREAKING_MIGRATION.md' \
+	--glob '!**/dist/**'
+```
+
+```bash
+rg 'export class [A-Za-z0-9_]+IO\b|class [A-Za-z0-9_]+IO\b|import \{[^}]*[A-Za-z0-9_]+IO\b' packages examples skills \
+	--glob '!**/dist/**'
+```
+
+Removed export checks should also be explicit:
+
+```bash
+rg '"\./next|"\./browser-lite"|"\./browser-mini"|"\./electron-ipc"' packages/kkrpc/package.json
+```
+
+The removed export command should return no matches after migration.
+
+Browser-safety gates should verify that stable browser-safe entries do not pull Node-only or optional-peer dependencies into browser bundles:
+
+- Add or update a browser import smoke test that bundles `kkrpc` and `kkrpc/browser` for the browser platform.
+- The smoke test should fail if Node built-ins, `process`, or optional peers such as `ws`, `hono`, `elysia`, `socket.io`, `amqplib`, `kafkajs`, `ioredis`, `@nats-io/transport-node`, or `@tauri-apps/plugin-shell` are pulled into the main or browser entries.
+- Update existing browser bundle comparison scripts to measure stable `kkrpc`, `kkrpc/browser`, and optional stable subpaths. Remove `browser-lite`, `browser-mini`, and `kkrpc/next` benchmark entries.
 
 ## Rollout Plan
 
@@ -245,5 +367,14 @@ pnpm --filter "./examples/*" build
 ```
 
 Focused example tests and manual smoke tests should run where package scripts exist.
+
+Package export verification and browser-safety verification should also run:
+
+```bash
+pnpm --filter kkrpc exec verify-package-export verify
+pnpm --filter kkrpc compare:browser-bundle-size
+```
+
+If the bundle-size command is renamed during migration, the replacement command must measure the stable main/browser entries and optional feature entries.
 
 The final report should include any warnings that remain, especially Typedoc, Vite, Electron packaging, or external service test gating warnings.
