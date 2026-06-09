@@ -9,6 +9,7 @@ export default defineConfig({
 		"./next.ts",
 		"./next-worker.ts",
 		"./next-stdio.ts",
+		"./next-io.ts",
 		"./next-transport.ts",
 		"./next-codecs.ts",
 		"./next-plugins.ts",

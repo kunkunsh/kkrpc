@@ -19,7 +19,7 @@ Demonstrates kkrpc's AsyncIterable streaming and interceptor middleware over Web
 - **Concurrent streams** — two streams running in parallel over one connection
 - **Coexistence** — regular request/response calls work alongside streams
 
-## Run
+## Manual Testing
 
 ### Option 1: `ws` library (works with Node.js, Bun, Deno)
 
@@ -42,6 +42,17 @@ bun run client.ts
 ```
 
 Both servers are interchangeable — the client connects to `ws://localhost:3100` and works the same way.
+
+### What To Verify
+
+- The client should log successful login/auth behavior before protected calls succeed.
+- Countdown, log tail, progress tracker, and concurrent stream output should arrive incrementally.
+- Rate-limit or auth examples should print expected errors rather than crashing the process.
+
+### Troubleshooting
+
+- Stop the previous server before switching between `server.ts` and `server-bun.ts`; both listen on `localhost:3100`.
+- If the client exits with a connection error, start one of the servers first and rerun `bun run client.ts`.
 
 ## How middleware works in kkrpc
 

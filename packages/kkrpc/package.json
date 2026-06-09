@@ -118,6 +118,16 @@
 				"default": "./dist/next-stdio.cjs"
 			}
 		},
+		"./next/io": {
+			"import": {
+				"types": "./dist/next-io.d.ts",
+				"default": "./dist/next-io.js"
+			},
+			"require": {
+				"types": "./dist/next-io.d.cts",
+				"default": "./dist/next-io.cjs"
+			}
+		},
 		"./next/transport": {
 			"import": {
 				"types": "./dist/next-transport.d.ts",

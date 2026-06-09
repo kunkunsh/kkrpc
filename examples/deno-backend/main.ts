@@ -20,7 +20,4 @@ const channel = new RPCChannel(stdio, {
 	}
 })
 
-const api = channel.getAPI()
-api.eval("console.log('Hello, world!')")
-
 console.error("Deno is running")

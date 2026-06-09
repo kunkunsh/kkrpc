@@ -1,6 +1,6 @@
 ---
 name: kkrpc
-description: Build bidirectional RPC systems in TypeScript with kkrpc. Use this skill when wiring RPCChannel, choosing adapters, integrating HTTP/Hono/Fastify/Express/Bun/Deno/WebSocket/Hono WebSocket/Elysia/Socket.IO/Worker/Iframe/Tauri/Electron/Chrome extension/message queues, transferables, streaming, middleware, validation, or inspector tooling.
+description: Build bidirectional RPC systems in TypeScript with kkrpc. Use this skill when wiring kkrpc/next wrap/expose/RPCChannel, choosing native next transports, migrating classic RPCChannel code, integrating adapters, transferables, middleware, validation, or inspector tooling.
 version: 1.1.0
 license: MIT
 metadata:
@@ -23,7 +23,26 @@ compatibility: Works in Node.js, Deno, Bun, browsers, Electron, Tauri, Chrome ex
 # kkrpc - TypeScript RPC Library
 
 Use kkrpc to expose a local TypeScript object and call the remote side as a typed proxy.
-The central pattern is always:
+
+For new code and migrated repo examples, prefer the native vNext API:
+
+```typescript
+import { expose, wrap } from "kkrpc/next"
+
+const controller = expose(localAPI, serverTransport)
+const remote = wrap<RemoteAPI>(clientTransport)
+```
+
+Use low-level `RPCChannel` when both sides expose APIs or when you need explicit channel ownership:
+
+```typescript
+import { RPCChannel } from "kkrpc/next"
+
+const channel = new RPCChannel<LocalAPI, RemoteAPI>(transport, { expose: localAPI })
+const remote = channel.getAPI()
+```
+
+The stable classic API remains available for existing adapter integrations:
 
 ```typescript
 import { RPCChannel } from "kkrpc"
@@ -41,10 +60,27 @@ const remote = channel.getAPI()
 3. Decide whether both sides expose APIs.
 4. Use the examples below as the source of truth for framework integration shape.
 
+## Next-First Migration Rules
+
+| Situation | Use |
+| --- | --- |
+| New code or repo examples with native Worker/stdio/custom transport | `kkrpc/next` native API |
+| Bidirectional vNext APIs | `RPCChannel` from `kkrpc/next` |
+| Existing classic code with `validators` or `interceptors` options | `kkrpc/next/classic-compat` temporarily |
+| Existing user-owned classic `IoInterface` adapter with no native next transport | `kkrpc/next/io` temporarily |
+| Repo tests/examples for classic-only adapters | Keep classic or add a native vNext transport first |
+
+Do not use `classic-compat` or `next/io` as the default path for new repo examples. They are migration helpers, not native vNext transports.
+
 ## Entry Points
 
 | Runtime or adapter | Import path | Notes |
 | --- | --- | --- |
+| Native vNext core | `kkrpc/next` | Preferred for new code: `wrap`, `expose`, `RPCChannel` |
+| Native vNext Worker | `kkrpc/next/worker` | Native Worker transports |
+| Native vNext stdio | `kkrpc/next/stdio` | Native JSON-line stdio transports |
+| Native vNext codecs/transports | `kkrpc/next/codecs`, `kkrpc/next/transport` | Custom native transports |
+| vNext migration helpers | `kkrpc/next/classic-compat`, `kkrpc/next/io` | Temporary migration only |
 | Node.js, Bun, most server adapters | `kkrpc` | Core, stdio, HTTP, WebSocket, Worker, Hono WebSocket, Elysia WebSocket |
 | Browser, Web Worker, iframe, Tauri frontend | `kkrpc/browser` | Avoid Node-specific imports in browser bundles |
 | Deno stdio package entry | `kkrpc/deno` or `jsr:@kunkun/kkrpc` | Use `DenoIo` |

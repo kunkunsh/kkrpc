@@ -20,7 +20,7 @@ async function runDenoExample() {
     };
     await kv.set(["preferences", "ada"], prefs);
     const pref = await kv.get(["preferences", "ada"]);
-    console.log(JSON.stringify(pref, null, 2));
+    console.log("Preferences:", JSON.stringify(pref));
 
   } catch (error) {
     console.error("Error:", error.message);
@@ -45,7 +45,7 @@ db.run("INSERT INTO users (name, age) VALUES (?, ?)", ["Bob", 30]);
 // Query the data
 const query = db.query("SELECT * FROM users WHERE age > ?");
 const results = query.all(20);
-console.log("Users over 20:", results);
+console.log("Users over 20:", JSON.stringify(results));
 
 // Simple aggregation
 const avgAge = db.query("SELECT AVG(age) as average_age FROM users").get();

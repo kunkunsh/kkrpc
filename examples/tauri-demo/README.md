@@ -45,9 +45,9 @@ tauri-demo/
 └── build.ts                # Build script for sidecar binaries
 ```
 
-## Quick Start
+## Manual Testing
 
-### 1. Build the Monorepo
+### 1. Build The Monorepo
 
 First, build the entire kkrpc monorepo from the root directory:
 
@@ -76,13 +76,30 @@ This will:
 
 **Note**: The first build may take several minutes as `pkg` downloads Node.js binaries.
 
-### 3. Run the Tauri App
+### 3. Run The Tauri App
 
 ```bash
 pnpm tauri dev
 ```
 
 This starts the Tauri development server with hot reload.
+
+### What To Verify
+
+- The Tauri desktop window opens and renders the Svelte UI.
+- Select the Node.js runtime, run the default script, and verify stdout appears.
+- Select the Deno runtime, run the default script, and verify Deno-specific output appears.
+- On platforms where Bun stdio works, select Bun and run its sample script.
+- The stderr panel should only show expected runtime output, not kkrpc transport crashes.
+
+### Build Smoke Test
+
+```bash
+bun run build
+pnpm tauri build
+```
+
+Use this when you want to test bundled sidecars and a packaged desktop app. The first sidecar build can take several minutes.
 
 ## Usage
 

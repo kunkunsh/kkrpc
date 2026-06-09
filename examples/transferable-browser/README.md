@@ -23,20 +23,30 @@ Transferable objects are a browser feature that allows **zero-copy** transfer of
 - `OffscreenCanvas` - Off-screen canvas rendering
 - And more... [See MDN](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Transferable_objects)
 
-## 🛠️ Running the demo
+## Manual Testing
 
 ```sh
-# Install dependencies
 pnpm install
-
-# Start development server
 pnpm dev -- --open
 ```
+
+### What To Verify
+
+- The browser opens the transferable object demo UI.
+- Choose a buffer size and click the control that sends a buffer to the worker.
+- The log should show that the original buffer's `byteLength` drops to `0` after transfer.
+- Request a buffer from the worker and verify the received byte length matches the selected size.
+- Larger buffers should transfer quickly and preserve checksum or integrity indicators shown in the UI.
 
 Two helpful scripts live in `package.json` as well:
 
 - `pnpm test` – runs the Vitest component suite (with the worker mocked)
 - `pnpm test:e2e` – launches Playwright and validates the end-to-end transfer flow in the browser
+
+### Troubleshooting
+
+- If Playwright browsers are missing, install them with `pnpm exec playwright install` from this example directory.
+- If the worker fails to load, check browser DevTools for a worker script 404 or Vite dev server error.
 
 ## 🏗️ How it works
 

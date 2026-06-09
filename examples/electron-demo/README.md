@@ -197,18 +197,36 @@ const result = await window.electronAPI.stdio.factorial(5)
 // Goes: Renderer → Main IPC → Main Handler → Stdio RPC → External Process
 ```
 
-## Running the Demo
+## Manual Testing
 
 ```bash
-# Install dependencies
-npm install
-
-# Run in development mode
-npm run dev
-
-# Build for production
-npm run build
+pnpm install
+pnpm dev
 ```
+
+The Electron app should open a React window. Use every button in the demo UI once.
+
+### What To Verify
+
+- Renderer to main calls return values or show notifications.
+- Main to utility process calls return arithmetic results and process info.
+- Worker to main callback calls complete successfully.
+- Stdio relay calls such as factorial, fibonacci, system info, and code execution return output.
+- The terminal running `pnpm dev` does not show unhandled IPC, utility process, or stdio errors.
+
+### Production Build Smoke Test
+
+```bash
+pnpm build
+```
+
+The build should compile TypeScript, build the Vite renderer, and package the Electron app into `release/`.
+
+### Troubleshooting
+
+- If the renderer cannot access `window.electron`, rebuild after checking `electron/preload.ts` and `electron/electron-env.d.ts`.
+- If packaging is unexpectedly huge or slow, make sure generated monorepo cache files are not being bundled.
+- macOS notarization may be skipped in local builds; that is expected for manual testing.
 
 ## Key Implementation Details
 

@@ -183,7 +183,9 @@ It does three things:
 - Converts `interceptors` into `middlewarePlugin()`.
 - Preserves explicitly supplied plugins after the generated plugins.
 
-It does not convert old `IoInterface` adapters into `Transport<RPCMessage>`. Classic adapters such as `RabbitMQIO`, `RedisStreamsIO`, `NatsIO`, and `KafkaIO` still use the classic `RPCChannel` today. To use those systems with `kkrpc/next`, we need either new next transports or explicit adapter bridges.
+Classic compatibility does not make classic adapters native vNext transports. `kkrpc/next/io` is a separate migration bridge that adapts an existing `IoInterface` to `Transport<RPCMessage>` over JSON strings. Use it for existing user code that needs an incremental path to vNext.
+
+Repo tests and examples should not use `kkrpc/next/io` as a fake native transport. If a transport family does not yet have a native vNext implementation, keep that example classic or add a native transport in a dedicated slice.
 
 ## Current Test Coverage
 
@@ -207,6 +209,6 @@ Before `kkrpc/next` can be treated as the replacement path for all examples, we 
 
 - A coverage matrix mapping classic behavior tests to vNext equivalents.
 - vNext examples for the public docs and `examples/` directory.
-- vNext transport implementations or bridges for RabbitMQ, Redis Streams, NATS, Kafka, HTTP, WebSocket, and framework adapters.
-- A migration guide that explains when to use `wrap()`, `expose()`, `RPCChannel`, and `classic-compat`.
+- Native vNext transport implementations for RabbitMQ, Redis Streams, NATS, Kafka, HTTP, WebSocket, framework adapters, iframe, Chrome extension, Electron, and Tauri.
+- Incremental migration of examples/tests only after each transport family has a native vNext transport.
 - A release decision on whether `kkrpc/next` is experimental, beta, or stable.
