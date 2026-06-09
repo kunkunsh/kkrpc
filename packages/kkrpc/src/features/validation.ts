@@ -90,11 +90,11 @@ export interface MethodValidators<Args extends unknown[] = unknown[], Return = u
 	output?: StandardSchemaV1<UnwrapPromise<Return>, UnwrapPromise<Return>>
 }
 
-export type RPCValidators<API> = {
+export type ValidatorMap<API> = {
 	[K in keyof API]?: API[K] extends (...args: infer A) => infer R
 		? MethodValidators<A, R>
 		: API[K] extends Record<string, unknown>
-			? RPCValidators<API[K]>
+			? ValidatorMap<API[K]>
 			: never
 }
 
@@ -277,7 +277,7 @@ async function validateOutput(
  * transformed values, those values replace the original non-callback arguments
  * before the exposed method is called.
  */
-export function validationPlugin<API extends object>(validators: RPCValidators<API> | undefined): RPCPlugin
+export function validationPlugin<API extends object>(validators: ValidatorMap<API> | undefined): RPCPlugin
 export function validationPlugin(validators: Record<string, unknown> | undefined): RPCPlugin
 export function validationPlugin(validators: Record<string, unknown> | undefined): RPCPlugin {
 	return {

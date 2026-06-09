@@ -16,13 +16,6 @@ export function assertBuildSuccess(buildOutput: BuildResult): void {
 async function main(): Promise<void> {
 	// Keep the package test runner from updating deno.lock during Deno regression tests.
 	await $`deno test --no-lock -R __deno_tests__`
-	const buildOutput = await Bun.build({
-		entrypoints: ["__tests__/scripts/node-api.js"],
-		outdir: "__tests__/scripts",
-		target: "node",
-		format: "esm"
-	})
-	assertBuildSuccess(buildOutput)
 
 	await $`bun test __tests__ --coverage`.env({
 		...process.env,

@@ -39,14 +39,12 @@ chrome.runtime.onMessage.addListener(
 
 ```ts {maxHeight:'300px'}
 // content.ts - Direct function call
-import { ChromePortIO, RPCChannel } from "kkrpc/chrome-extension"
+import { wrap } from "kkrpc"
+import { chromePortTransport } from "kkrpc/chrome-extension"
 import type { BackgroundAPI } from "./types"
 
 const port = chrome.runtime.connect({ name: "content" })
-const io = new ChromePortIO(port)
-const rpc = new RPCChannel<{}, BackgroundAPI>(io)
-
-const bg = rpc.getAPI()
+const bg = wrap<BackgroundAPI>(chromePortTransport(port))
 const version = await bg.getExtensionVersion()
 // Full type safety! ✨
 ```

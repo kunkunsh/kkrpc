@@ -11,7 +11,7 @@
  * Then in another terminal: bun run client.ts
  */
 import { RPCChannel } from "kkrpc"
-import { middlewarePlugin, type RPCInterceptor } from "kkrpc/middleware"
+import { middlewarePlugin, type MiddlewareHandler } from "kkrpc/middleware"
 import { webSocketTransport, type WebSocketLike } from "kkrpc/ws"
 import { createApi, type StreamingMiddlewareAPI } from "./api.ts"
 
@@ -26,7 +26,7 @@ const connections = new Map<any, BunWebSocketLike>()
 
 // ─── Interceptor factories ───────────────────────────────────────────────────
 
-const logger: RPCInterceptor = async (ctx, next) => {
+const logger: MiddlewareHandler = async (ctx, next) => {
 	const argsStr = ctx.args
 		.map((a) => (typeof a === "object" ? JSON.stringify(a) : String(a)))
 		.join(", ")
@@ -34,7 +34,7 @@ const logger: RPCInterceptor = async (ctx, next) => {
 	return next()
 }
 
-const timing: RPCInterceptor = async (ctx, next) => {
+const timing: MiddlewareHandler = async (ctx, next) => {
 	const start = performance.now()
 	const result = await next()
 	const elapsed = (performance.now() - start).toFixed(1)
@@ -45,7 +45,7 @@ const timing: RPCInterceptor = async (ctx, next) => {
 function createAuthInterceptor(session: {
 	authenticated: boolean
 	username: string
-}): RPCInterceptor {
+}): MiddlewareHandler {
 	const protectedMethods = new Set(["getSecretData"])
 	return async (ctx, next) => {
 		if (protectedMethods.has(ctx.method) && !session.authenticated) {
@@ -55,7 +55,7 @@ function createAuthInterceptor(session: {
 	}
 }
 
-function createRateLimiter(max: number, windowMs: number = 1000): RPCInterceptor {
+function createRateLimiter(max: number, windowMs: number = 1000): MiddlewareHandler {
 	const calls: number[] = []
 	return async (ctx, next) => {
 		const now = Date.now()

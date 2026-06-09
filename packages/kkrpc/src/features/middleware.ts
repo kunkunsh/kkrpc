@@ -2,7 +2,7 @@
  * Interceptor-style middleware plugin for stable kkrpc.
  *
  * Middleware is implemented as a plugin wrapper around local handler execution.
- * Interceptors run in onion order, can inspect or replace arguments, can block a
+ * Middleware handlers run in onion order, can inspect or replace arguments, can block a
  * call by not invoking `next()`, and share per-request data through `ctx.state`.
  * This file is optional and separate from `kkrpc` so core users do not pay
  * for middleware helpers unless they import `kkrpc/middleware`.
@@ -34,7 +34,7 @@ export interface RPCCallContext {
 }
 
 /** A receive-side onion middleware function. */
-export type RPCInterceptor = (ctx: RPCCallContext, next: () => Promise<unknown>) => Promise<unknown>
+export type MiddlewareHandler = (ctx: RPCCallContext, next: () => Promise<unknown>) => Promise<unknown>
 
 /**
  * Run interceptors in onion order around a final handler.
@@ -43,7 +43,7 @@ export type RPCInterceptor = (ctx: RPCCallContext, next: () => Promise<unknown>)
  * common middleware frameworks and prevents duplicated RPC handler execution.
  */
 export function runInterceptors(
-	interceptors: readonly RPCInterceptor[],
+	interceptors: readonly MiddlewareHandler[],
 	ctx: RPCCallContext,
 	handler: () => Promise<unknown>
 ): Promise<unknown> {
@@ -59,7 +59,7 @@ export function runInterceptors(
 }
 
 /** Create an RPC plugin from interceptor functions. */
-export function middlewarePlugin(interceptors: readonly RPCInterceptor[]): RPCPlugin {
+export function middlewarePlugin(interceptors: readonly MiddlewareHandler[]): RPCPlugin {
 	return {
 		name: "middleware",
 		wrapHandler: async (ctx, next) => {

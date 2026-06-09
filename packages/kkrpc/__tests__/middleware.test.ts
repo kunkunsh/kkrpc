@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test"
 
 import { expose, wrap } from "../mod.ts"
 import type { RPCMessage, Transport } from "../mod.ts"
-import { middlewarePlugin, type RPCInterceptor } from "../middleware.ts"
+import { middlewarePlugin, type MiddlewareHandler } from "../middleware.ts"
 
 interface API {
 	add(a: number, b: number): Promise<number>
@@ -40,7 +40,7 @@ const apiImpl: API = {
 describe("kkrpc middleware plugin", () => {
 	test("runs interceptors in onion order", async () => {
 		const events: string[] = []
-		const interceptors: RPCInterceptor[] = [
+		const interceptors: MiddlewareHandler[] = [
 			async (ctx, next) => {
 				events.push(`outer before ${ctx.method}`)
 				const value = await next()

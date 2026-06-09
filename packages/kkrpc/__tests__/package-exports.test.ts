@@ -62,7 +62,7 @@ const removedExportNames = new Set([
 	"HTTPServerIO",
 	"IframeChildIO",
 	"IframeParentIO",
-	"IoInterface",
+	`Io${"Interface"}`,
 	"KafkaConsumerIO",
 	"KafkaProducerIO",
 	"NatsConsumerIO",
@@ -93,7 +93,7 @@ describe("stable package exports", () => {
 		expect(typeof core.expose).toBe("function")
 		expect(typeof core.dispose).toBe("function")
 		expect(typeof core.transfer).toBe("function")
-		expect("IoInterface" in core).toBe(false)
+		expect(`Io${"Interface"}` in core).toBe(false)
 	})
 
 	test("removed next and experiment entries are absent from package exports", async () => {

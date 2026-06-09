@@ -11,7 +11,7 @@
  * Then in another terminal: bun run client.ts
  */
 import { RPCChannel } from "kkrpc"
-import { middlewarePlugin, type RPCInterceptor } from "kkrpc/middleware"
+import { middlewarePlugin, type MiddlewareHandler } from "kkrpc/middleware"
 import { webSocketTransport } from "kkrpc/ws"
 import { WebSocketServer, type WebSocket } from "ws"
 import { createApi, type StreamingMiddlewareAPI } from "./api.ts"
@@ -23,7 +23,7 @@ const PORT = 3100
 /**
  * Logging interceptor — logs method name and stringified args.
  */
-const logger: RPCInterceptor = async (ctx, next) => {
+const logger: MiddlewareHandler = async (ctx, next) => {
 	const argsStr = ctx.args
 		.map((a) => (typeof a === "object" ? JSON.stringify(a) : String(a)))
 		.join(", ")
@@ -35,7 +35,7 @@ const logger: RPCInterceptor = async (ctx, next) => {
  * Timing interceptor — measures wall-clock time for handler execution.
  * Wraps `next()` so it captures time spent in all downstream interceptors + the handler.
  */
-const timing: RPCInterceptor = async (ctx, next) => {
+const timing: MiddlewareHandler = async (ctx, next) => {
 	const start = performance.now()
 	const result = await next()
 	const elapsed = (performance.now() - start).toFixed(1)
@@ -53,7 +53,7 @@ const timing: RPCInterceptor = async (ctx, next) => {
 function createAuthInterceptor(session: {
 	authenticated: boolean
 	username: string
-}): RPCInterceptor {
+}): MiddlewareHandler {
 	const protectedMethods = new Set(["getSecretData"])
 
 	return async (ctx, next) => {
@@ -70,7 +70,7 @@ function createAuthInterceptor(session: {
  * Tracks call timestamps in a window. If the number of calls within the
  * window exceeds `max`, the call is rejected immediately with an error.
  */
-function createRateLimiter(max: number, windowMs: number = 1000): RPCInterceptor {
+function createRateLimiter(max: number, windowMs: number = 1000): MiddlewareHandler {
 	const calls: number[] = []
 
 	return async (ctx, next) => {

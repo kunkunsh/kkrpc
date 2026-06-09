@@ -138,7 +138,7 @@ for await (const item of await api.data.stream(3)) {
 Interceptors wrap the handler call (which returns the `AsyncIterable`) — not each individual chunk:
 
 ```ts
-const logger: RPCInterceptor = async (ctx, next) => {
+const logger: MiddlewareHandler = async (ctx, next) => {
 	console.log(`stream started: ${ctx.method}`)
 	const result = await next() // returns the AsyncIterable
 	console.log(`stream created: ${ctx.method}`)
