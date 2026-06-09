@@ -81,12 +81,16 @@ describe("HTTP RPC", () => {
 
 	test("client transport rejects callback arguments before fetch", async () => {
 		let called = false
-		const transport = httpClientTransport({
-			url: `${baseUrl}/rpc`,
-			fetch: (() => {
+		const fetchStub: typeof fetch = Object.assign(
+			async (..._args: Parameters<typeof fetch>) => {
 				called = true
 				throw new Error("fetch should not be called")
-			}) as typeof fetch
+			},
+			{ preconnect: fetch.preconnect }
+		)
+		const transport = httpClientTransport({
+			url: `${baseUrl}/rpc`,
+			fetch: fetchStub
 		})
 
 		await expect(
