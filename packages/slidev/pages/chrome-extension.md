@@ -73,9 +73,11 @@ layoutClass: gap-4
 
 ```ts {maxHeight:'300px'}
 // background.ts - Expose API
+import { RPCChannel } from "kkrpc"
+import { chromePortTransport } from "kkrpc/chrome-extension"
+
 chrome.runtime.onConnect.addListener((port) => {
-	const io = new ChromePortIO(port)
-	new RPCChannel(io, {
+	new RPCChannel(chromePortTransport(port), {
 		expose: {
 			getExtensionVersion: () => {
 				return chrome.runtime.getManifest().version

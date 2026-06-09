@@ -300,7 +300,8 @@ Renderer (IPC) → Main (relay) → External Node Process (stdio)
 
 ```ts title="main.ts"
 import { spawn } from "child_process"
-import { createRelay, NodeIo } from "kkrpc"
+import { relayTransport } from "kkrpc/relay"
+import { stdioJsonTransport } from "kkrpc/stdio"
 import { ElectronIpcMainIO } from "kkrpc/electron-ipc"
 
 // Spawn external Node.js process
@@ -308,14 +309,14 @@ const workerPath = path.join(__dirname, "./external-worker.js")
 const workerProcess = spawn("node", [workerPath])
 
 // Create transparent relay: IPC channel "external-relay" <-> stdio
-const relay = createRelay(
+const relay = relayTransport(
 	new ElectronIpcMainIO(ipcMain, win.webContents, "external-relay"),
-	new NodeIo(workerProcess.stdout, workerProcess.stdin)
+	stdioJsonTransport({ readable: workerProcess.stdout!, writable: workerProcess.stdin! })
 )
 
 // Cleanup
 app.on("window-all-closed", () => {
-	relay.destroy()
+	relay.dispose()
 	workerProcess.kill()
 })
 ```
@@ -338,7 +339,8 @@ const result = await externalAPI.heavyCalculation(1000)
 ### External Process
 
 ```ts title="external-worker.ts"
-import { NodeIo, RPCChannel } from "kkrpc"
+import { RPCChannel } from "kkrpc"
+import { nodeStdioTransport } from "kkrpc/stdio"
 import type { ExternalAPI } from "./api"
 
 const externalAPI: ExternalAPI = {
@@ -348,8 +350,7 @@ const externalAPI: ExternalAPI = {
 	}
 }
 
-const io = new NodeIo(process.stdin, process.stdout)
-const rpc = new RPCChannel<ExternalAPI, {}>(io, { expose: externalAPI })
+const rpc = new RPCChannel<ExternalAPI, object>(nodeStdioTransport(), { expose: externalAPI })
 ```
 
 ## Adapter Reference
@@ -392,7 +393,10 @@ const mainRPC = new RPCChannel<MainAPI, RendererAPI>(defaultIO, { expose: mainAP
 // Separate channel for external process relay
 const externalIO = new ElectronIpcMainIO(ipcMain, win.webContents, "external-channel")
 const externalProcess = spawn("node", ["./worker.js"])
-createRelay(externalIO, new NodeIo(externalProcess.stdout, externalProcess.stdin))
+relayTransport(
+	externalIO,
+	stdioJsonTransport({ readable: externalProcess.stdout!, writable: externalProcess.stdin! })
+)
 ```
 
 ```ts title="renderer.ts"

@@ -141,7 +141,7 @@ expose(api, transport, {
 When validation fails, the caller receives an `RPCValidationError`:
 
 ```ts
-import { isRPCValidationError } from "kkrpc"
+import { isRPCValidationError } from "kkrpc/validation"
 
 try {
 	await api.add("not", "numbers")

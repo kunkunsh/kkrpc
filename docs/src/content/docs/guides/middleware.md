@@ -157,35 +157,31 @@ try {
 	await api.slowOperation()
 } catch (error) {
 	if (error instanceof Error && error.name === "RPCTimeoutError") {
-		console.log(error.method) // "slowOperation"
-		console.log(error.timeoutMs) // 5000
+		console.log(error.message)
 	}
 }
 ```
 
-### RPCTimeoutError properties
+### Timeout Error Shape
 
-| Property    | Type     | Description                             |
-| ----------- | -------- | --------------------------------------- |
-| `method`    | `string` | Method path or operation that timed out |
-| `timeoutMs` | `number` | The configured timeout in milliseconds  |
-| `name`      | `string` | Always `"RPCTimeoutError"`              |
-| `message`   | `string` | Human-readable summary                  |
+The stable timeout behavior rejects the pending client call with an `Error` whose `name` is `"RPCTimeoutError"`. There is no stable timeout-specific exported class or type guard.
 
 ### Error serialization
 
-`RPCTimeoutError` survives kkrpc's error serialization automatically — all custom properties (`method`, `timeoutMs`) are preserved across the wire. The `isRPCTimeoutError()` type guard works on both the original error and the deserialized version.
+Timeouts are produced locally by the caller while waiting for a response. Remote errors still use kkrpc's normal error serialization.
 
 ### Cleanup on destroy
 
 When `destroy()` is called, kkrpc rejects all pending requests with `"RPC channel destroyed"` and clears all timers. This prevents memory leaks from abandoned pending promises.
 
-### No timeout (default)
+### Default and disabled timeout
 
 ```ts
-// Default: timeout is 0 (no timeout)
-// Calls will wait indefinitely for a response
-new RPCChannel(io, { expose: api })
+// Default: 30 seconds
+new RPCChannel(transport, { expose: api })
+
+// Disable request timeout for this channel.
+new RPCChannel(transport, { expose: api, timeout: 0 })
 ```
 
 ## Combining Features
@@ -219,9 +215,7 @@ expose(api, transport, {
 
 - `RPCCallContext` — `{ method: string, args: unknown[], state: Record<string, unknown> }`
 - `MiddlewareHandler` — `(ctx: RPCCallContext, next: () => Promise<unknown>) => Promise<unknown>`
-- `RPCTimeoutError` — error class with `method`, `timeoutMs`
 
 ### Functions
 
 - `runInterceptors(interceptors, ctx, handler)` — runs the interceptor chain (used internally, exported for testing)
-- `isRPCTimeoutError(error)` — type guard that works across serialization boundaries
