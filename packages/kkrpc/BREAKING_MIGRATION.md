@@ -2,6 +2,11 @@
 
 The stable `kkrpc` entry now uses the native `Transport<RPCMessage>` architecture. Classic `IoInterface`, `IoMessage`, `RPCValidators`, `RPCInterceptor`, `classic-compat`, `next/io`, `browser-lite`, `browser-mini`, and `electron-ipc` public entries were removed in the next2main migration.
 
+The canonical migration guide is maintained in the docs site:
+
+- Source: `docs/src/content/docs/guides/migration-1-0.md`
+- Published URL: <https://docs.kkrpc.kunkun.sh/guides/migration-1-0/>
+
 Use stable native imports for new code:
 
 ```ts

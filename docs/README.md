@@ -51,5 +51,5 @@ pnpm preview
 
 - Package README: `packages/kkrpc/README.md`
 - API reference output: `packages/kkrpc/docs/`
-- Migration notes: `packages/kkrpc/BREAKING_MIGRATION.md`
+- Migration guide: `src/content/docs/guides/migration-1-0.md`
 - Examples: `examples/`

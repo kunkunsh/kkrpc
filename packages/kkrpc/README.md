@@ -427,7 +427,7 @@ const channel = new RPCChannel(transport, { expose: api, plugins: [inspector.plu
 
 The stable native API removed the classic `IoInterface` adapter model and the temporary `next` entries. Use native `Transport<RPCMessage>` factories from the subpath exports listed above.
 
-See [`BREAKING_MIGRATION.md`](./BREAKING_MIGRATION.md) for migration notes.
+See the [0.7.x to 1.0 migration guide](https://docs.kkrpc.kunkun.sh/guides/migration-1-0/) for detailed migration notes. AI coding assistants can also use [`skills/kkrpc-migration`](../../skills/kkrpc-migration/SKILL.md).
 
 ## License
 
