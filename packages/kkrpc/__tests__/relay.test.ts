@@ -79,6 +79,21 @@ describe("relayTransport", () => {
 		relay.dispose()
 	})
 
+	test("preserves transferable values when forwarding to transfer-capable transports", () => {
+		const left = new MemoryTransport()
+		const right = new MemoryTransport({ transfer: true })
+		const relay = relayTransport(left, right)
+		const buffer = new ArrayBuffer(8)
+		const message: RPCMessage = { t: "q", id: "transfer", op: "call", p: ["take"], a: [buffer] }
+
+		left.emit(message)
+
+		expect(right.sent).toEqual([message])
+		expect(right.sentTransfers).toEqual([[buffer]])
+
+		relay.dispose()
+	})
+
 	test("reports sync and async send failures without throwing", async () => {
 		const left = new MemoryTransport()
 		const right = new MemoryTransport({
@@ -110,14 +125,19 @@ describe("relayTransport", () => {
 })
 
 class MemoryTransport implements Transport<RPCMessage> {
+	capabilities?: { transfer?: boolean }
 	readonly sent: RPCMessage[] = []
+	readonly sentTransfers: Transferable[][] = []
 	private listeners = new Set<(message: RPCMessage) => void>()
 
-	constructor(private options: { send?: (message: RPCMessage) => void | Promise<void> } = {}) {}
+	constructor(private options: { send?: (message: RPCMessage) => void | Promise<void>; transfer?: boolean } = {}) {
+		this.capabilities = options.transfer ? { transfer: true } : undefined
+	}
 
-	send(message: RPCMessage): void | Promise<void> {
+	send(message: RPCMessage, transfers: Transferable[] = []): void | Promise<void> {
 		if (this.options.send) return this.options.send(message)
 		this.sent.push(message)
+		this.sentTransfers.push(transfers)
 	}
 
 	subscribe(listener: (message: RPCMessage) => void): () => void {

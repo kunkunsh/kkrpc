@@ -26,10 +26,56 @@ function forwardMessage(
 	message: RPCMessage
 ): void {
 	try {
-		void Promise.resolve(target.send(message)).catch((error) => reportRelayError(direction, error))
+		const transfers = target.capabilities?.transfer === true ? collectTransferables(message) : []
+		void Promise.resolve(target.send(message, transfers)).catch((error) =>
+			reportRelayError(direction, error)
+		)
 	} catch (error) {
 		reportRelayError(direction, error)
 	}
+}
+
+function collectTransferables(value: unknown): Transferable[] {
+	const transfers: Transferable[] = []
+	const seen = new WeakSet<object>()
+	visitTransferables(value, transfers, seen)
+	return transfers
+}
+
+function visitTransferables(
+	value: unknown,
+	transfers: Transferable[],
+	seen: WeakSet<object>
+): void {
+	if (typeof value !== "object" || value === null) return
+	if (seen.has(value)) return
+	seen.add(value)
+
+	if (Array.isArray(value)) {
+		for (const item of value) visitTransferables(item, transfers, seen)
+		return
+	}
+
+	if (isTransferable(value)) {
+		transfers.push(value)
+		return
+	}
+
+	for (const item of Object.values(value as Record<string, unknown>)) {
+		visitTransferables(item, transfers, seen)
+	}
+}
+
+function isTransferable(value: object): value is Transferable {
+	return (
+		value instanceof ArrayBuffer ||
+		(typeof MessagePort !== "undefined" && value instanceof MessagePort) ||
+		(typeof ImageBitmap !== "undefined" && value instanceof ImageBitmap) ||
+		(typeof OffscreenCanvas !== "undefined" && value instanceof OffscreenCanvas) ||
+		(typeof ReadableStream !== "undefined" && value instanceof ReadableStream) ||
+		(typeof WritableStream !== "undefined" && value instanceof WritableStream) ||
+		(typeof TransformStream !== "undefined" && value instanceof TransformStream)
+	)
 }
 
 function reportRelayError(direction: "left-to-right" | "right-to-left", error: unknown): void {
