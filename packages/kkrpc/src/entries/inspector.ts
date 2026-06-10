@@ -115,8 +115,11 @@ export class MemoryBackend implements InspectorBackend {
 
 /** Inspector backend and plugin factory for observing kkrpc traffic. */
 export class KKRPCInspector implements InspectorBackend {
+	/** Request start timestamps used to compute response latency. */
 	private readonly requestStarts = new Map<string, number>()
+	/** Recorded response latency samples in milliseconds. */
 	private readonly latencies: number[] = []
+	/** Mutable aggregate counters for observed inspector events. */
 	private readonly stats: InspectorStats = {
 		totalMessages: 0,
 		sent: 0,
