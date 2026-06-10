@@ -72,7 +72,8 @@ export interface Codec<TMessage, TWire> {
  * advertise `transfer: true`.
  *
  * ```ts
- * import { createTransport, jsonLineCodec } from "kkrpc/transport"
+ * import { jsonLineCodec } from "kkrpc/codecs"
+ * import { createTransport } from "kkrpc/transport"
  *
  * const transport = createTransport({ platform: stdioPlatform, codec: jsonLineCodec() })
  * ```
