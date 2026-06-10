@@ -5,14 +5,15 @@ import { createElysiaWebSocketHandler } from "../src/entries/ws-elysia.ts"
 import { webSocketClientTransport } from "../src/entries/ws.ts"
 import { apiMethods, type API } from "./scripts/api.ts"
 
-let server: Elysia | undefined
+let server: { stop(): unknown } | undefined
 let url: string
 
 beforeAll(() => {
-	server = new Elysia()
+	const app = new Elysia()
 		.ws("/rpc", createElysiaWebSocketHandler({ expose: apiMethods }))
 		.listen({ port: 0, hostname: "127.0.0.1" })
-	url = `ws://127.0.0.1:${server.server?.port}/rpc`
+	server = app
+	url = `ws://127.0.0.1:${app.server?.port}/rpc`
 })
 
 afterAll(() => {
