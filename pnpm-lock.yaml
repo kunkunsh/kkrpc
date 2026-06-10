@@ -59,6 +59,9 @@ importers:
 
   examples/chrome-extension:
     dependencies:
+      kkrpc:
+        specifier: workspace:*
+        version: link:../../packages/kkrpc
       react:
         specifier: ^19.1.0
         version: 19.1.1
@@ -6152,6 +6155,7 @@ packages:
 
   lucide-svelte@0.482.0:
     resolution: {integrity: sha512-C8JbaG0ZW6ap65xyUGlbp/1iOxVlSHhmLHp1lqP7AZu2gX/OoB7FjBroSOR8MTL3HjG4PrL+o0I50Yj6Tqh0iA==}
+    deprecated: Package deprecated. Please use @lucide/svelte instead.
     peerDependencies:
       svelte: ^3 || ^4 || ^5.0.0-next.42
 
