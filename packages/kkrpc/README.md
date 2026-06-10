@@ -43,6 +43,10 @@ The stable API is built on native `Transport<RPCMessage>` objects. The main `kkr
 
 Choose `kkrpc` when the hard part is not just an HTTP API. It is designed for cross-runtime systems: browser to worker, renderer to main process, app to plugin host, web server to child process, or one service connected to another through a message bus.
 
+## Bundle Size
+
+The core bundle is tracked with a Bun-based benchmark against equivalent `comctx` and `comlink` samples. See the [bundle-size benchmark example](./examples/bundle-size-benchmark/README.md) for the latest raw, gzip, brotli, and feature-scope comparison.
+
 ## Install
 
 ```bash
