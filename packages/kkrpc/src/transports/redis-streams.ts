@@ -1,8 +1,17 @@
+/**
+ * Redis Streams transport for stable kkrpc.
+ *
+ * Redis Streams can be consumed directly or through a consumer group. This
+ * transport stores bus envelopes in a stream, filters messages from this peer or
+ * other targets, and acknowledges processed entries when consumer groups are used.
+ */
+
 import type { default as Redis } from "ioredis"
 import type { RPCMessage } from "../core/protocol.ts"
 import type { Transport } from "../core/transport.ts"
 import { createBusEnvelope, parseBusEnvelope, shouldDeliverBusEnvelope } from "./bus-envelope.ts"
 
+/** Options for connecting a kkrpc transport to Redis Streams. */
 export interface RedisStreamsTransportOptions {
 	url?: string
 	stream?: string
@@ -16,6 +25,7 @@ export interface RedisStreamsTransportOptions {
 	remotePeerId?: string
 }
 
+/** Message-level Redis Streams transport type. */
 export type RedisStreamsTransport = Transport<RPCMessage>
 
 type RedisStreamFields = string[]
@@ -26,6 +36,7 @@ interface RedisAckClient {
 	xack(stream: string, group: string, id: string): Promise<unknown>
 }
 
+/** Inputs for parsing and acknowledging a batch of Redis stream messages. */
 export interface ProcessRedisStreamMessagesOptions {
 	stream: string
 	consumerGroup?: string
@@ -40,6 +51,12 @@ function extractRedisField(fields: RedisStreamFields, name: string): string | un
 	return index >= 0 ? fields[index + 1] : undefined
 }
 
+/**
+ * Parse, filter, optionally acknowledge, and deliver Redis stream messages.
+ *
+ * Invalid envelopes and messages for other peers are acknowledged when using a
+ * consumer group so they do not remain pending indefinitely.
+ */
 export async function processRedisStreamMessages({
 	stream,
 	consumerGroup,
@@ -72,6 +89,13 @@ export async function processRedisStreamMessages({
 	return lastId
 }
 
+/**
+ * Create a Redis Streams-backed kkrpc transport.
+ *
+ * The transport lazily opens publisher/subscriber clients, reads continuously in
+ * the background, and disconnects clients on close. It is bidirectional through
+ * the stream, callback-capable, and does not support transferables.
+ */
 export function redisStreamsTransport(
 	options: RedisStreamsTransportOptions
 ): RedisStreamsTransport {

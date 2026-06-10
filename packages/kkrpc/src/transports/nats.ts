@@ -1,3 +1,11 @@
+/**
+ * NATS subject transport for stable kkrpc.
+ *
+ * NATS subjects can deliver the same message to multiple subscribers. This
+ * transport wraps RPC messages in bus envelopes, filters self-delivery and
+ * explicit targets, and consumes messages from an async subscription loop.
+ */
+
 import type { RPCMessage } from "../core/protocol.ts"
 import type { Transport } from "../core/transport.ts"
 import { createBusEnvelope, parseBusEnvelope, shouldDeliverBusEnvelope } from "./bus-envelope.ts"
@@ -16,6 +24,7 @@ interface NatsConnectionLike {
 	close(): Promise<void>
 }
 
+/** Options for connecting a kkrpc transport to NATS. */
 export interface NatsTransportOptions {
 	servers?: string | string[]
 	subject?: string
@@ -27,8 +36,10 @@ export interface NatsTransportOptions {
 	__connect?: () => Promise<NatsConnectionLike>
 }
 
+/** Message-level NATS transport type. */
 export type NatsTransport = Transport<RPCMessage>
 
+/** Parse, filter, and deliver one NATS bus payload. */
 export function handleNatsBusMessage(
 	raw: string,
 	localPeerId: string,
@@ -36,6 +47,7 @@ export function handleNatsBusMessage(
 ): void {
 	const envelope = parseBusEnvelope(raw)
 	if (!envelope) return
+	// Ignore self-delivered messages and envelopes addressed to another peer.
 	if (!shouldDeliverBusEnvelope(envelope, { localPeerId })) return
 	try {
 		listeners.forEach((listener) => listener(envelope.message))
@@ -44,6 +56,13 @@ export function handleNatsBusMessage(
 	}
 }
 
+/**
+ * Create a NATS-backed kkrpc transport.
+ *
+ * The transport lazily connects, subscribes to a subject, publishes bus
+ * envelopes, and closes the subscription/connection on `close()`. It is
+ * bidirectional through NATS, callback-capable, and does not support transferables.
+ */
 export function natsTransport(options: NatsTransportOptions): NatsTransport {
 	const subject = options.subject || "kkrpc.messages"
 	const listeners = new Set<(message: RPCMessage) => void>()

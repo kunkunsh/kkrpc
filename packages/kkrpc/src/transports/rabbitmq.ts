@@ -1,8 +1,17 @@
+/**
+ * RabbitMQ exchange transport for stable kkrpc.
+ *
+ * RabbitMQ exchanges may fan messages out to multiple consumers. This transport
+ * wraps RPC messages in bus envelopes, filters self-delivery and targeted peers,
+ * and acknowledges or rejects consumed deliveries based on parse/delivery state.
+ */
+
 import type { Channel, ChannelModel, ConsumeMessage } from "amqplib"
 import type { RPCMessage } from "../core/protocol.ts"
 import type { Transport } from "../core/transport.ts"
 import { createBusEnvelope, parseBusEnvelope, shouldDeliverBusEnvelope } from "./bus-envelope.ts"
 
+/** Options for connecting a kkrpc transport to RabbitMQ. */
 export interface RabbitMQTransportOptions {
 	url?: string
 	exchange?: string
@@ -13,6 +22,7 @@ export interface RabbitMQTransportOptions {
 	remotePeerId?: string
 }
 
+/** Message-level RabbitMQ transport type. */
 export type RabbitMQTransport = Transport<RPCMessage>
 
 interface RabbitMqEnvelopeMessage {
@@ -24,6 +34,7 @@ interface RabbitMqAckChannel<TMessage> {
 	nack(message: TMessage, allUpTo?: boolean, requeue?: boolean): void
 }
 
+/** Parse, filter, acknowledge, and deliver one RabbitMQ envelope message. */
 export function handleRabbitMqBusEnvelope<TMessage extends RabbitMqEnvelopeMessage>(
 	message: TMessage,
 	channel: RabbitMqAckChannel<TMessage>,
@@ -37,6 +48,7 @@ export function handleRabbitMqBusEnvelope<TMessage extends RabbitMqEnvelopeMessa
 	}
 
 	if (!shouldDeliverBusEnvelope(envelope, { localPeerId })) {
+		// Ack filtered envelopes so self-delivery and other-peer traffic does not redeliver forever.
 		channel.ack(message)
 		return
 	}
@@ -49,6 +61,13 @@ export function handleRabbitMqBusEnvelope<TMessage extends RabbitMqEnvelopeMessa
 	}
 }
 
+/**
+ * Create a RabbitMQ-backed kkrpc transport.
+ *
+ * The transport lazily connects, declares an exchange and exclusive queue,
+ * publishes bus envelopes, and closes channel/connection best-effort. It is
+ * bidirectional through RabbitMQ, callback-capable, and does not support transferables.
+ */
 export function rabbitMqTransport(options: RabbitMQTransportOptions): RabbitMQTransport {
 	const exchange = options.exchange || "kkrpc-exchange"
 	const routingKey = `${options.routingKeyPrefix || "kkrpc"}.messages`

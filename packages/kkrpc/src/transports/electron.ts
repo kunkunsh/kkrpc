@@ -1,19 +1,31 @@
+/**
+ * Electron IPC and utility-process transports for stable kkrpc.
+ *
+ * These helpers use endpoint-like interfaces instead of importing Electron
+ * directly, keeping the package entry usable from main, preload, renderer, and
+ * tests. Electron IPC is bidirectional and supports callbacks, but these helpers
+ * do not expose transferable ownership moves.
+ */
+
 import type { RPCMessage } from "../core/protocol.ts"
 import type { Transport } from "../core/transport.ts"
 
 const DEFAULT_IPC_CHANNEL = "kkrpc:message"
 
+/** Minimal `ipcMain`/`ipcRenderer`-style endpoint used by `electronIpcTransport()`. */
 export interface ElectronMessageEndpoint {
 	send(channel: string, message: RPCMessage): void
 	on(channel: string, listener: (_event: unknown, message: RPCMessage) => void): void
 	off(channel: string, listener: (_event: unknown, message: RPCMessage) => void): void
 }
 
+/** Options for an Electron channel-backed transport. */
 export interface ElectronTransportOptions {
 	endpoint: ElectronMessageEndpoint
 	channel?: string
 }
 
+/** Parent-side Electron utility process endpoint shape. */
 export interface ElectronUtilityProcessEndpoint {
 	postMessage(message: RPCMessage): void
 	on(event: "message", listener: (message: RPCMessage) => void): void
@@ -21,6 +33,7 @@ export interface ElectronUtilityProcessEndpoint {
 	kill?(): unknown
 }
 
+/** Child-side Electron utility process endpoint shape. */
 export interface ElectronUtilityProcessChildEndpoint {
 	postMessage(message: RPCMessage): void
 	on(event: "message", listener: (event: { data: RPCMessage }) => void): void
@@ -33,12 +46,14 @@ interface ElectronUtilityProcessGlobal {
 	}
 }
 
+/** Options for restricting a preload IPC bridge to approved channels. */
 export interface SecureIpcBridgeOptions {
 	ipcRenderer: ElectronMessageEndpoint
 	allowedChannels?: string[]
 	channelPrefix?: string
 }
 
+/** Narrow IPC bridge surface that can be safely passed to `electronIpcTransport()`. */
 export interface SecureIpcBridge {
 	send(channel: string, message: RPCMessage): void
 	on(channel: string, listener: (_event: unknown, message: RPCMessage) => void): void
@@ -61,6 +76,13 @@ function getParentPort(): ElectronUtilityProcessChildEndpoint {
 	return parentPort
 }
 
+/**
+ * Create a transport over an Electron IPC channel.
+ *
+ * The endpoint can be an Electron object or a secure preload bridge. The
+ * transport is bidirectional, supports callbacks, and unsubscribes its listener
+ * when the channel subscription is disposed.
+ */
 export function electronIpcTransport(options: ElectronTransportOptions): Transport<RPCMessage> {
 	const channel = options.channel ?? DEFAULT_IPC_CHANNEL
 	return {
@@ -76,6 +98,12 @@ export function electronIpcTransport(options: ElectronTransportOptions): Transpo
 	}
 }
 
+/**
+ * Create a parent-side transport for an Electron utility process.
+ *
+ * Closing the transport calls `kill()` when provided. Messages use Electron's
+ * object-mode utility-process channel and do not transfer ownership.
+ */
 export function electronUtilityProcessTransport(
 	endpoint: ElectronUtilityProcessEndpoint
 ): Transport<RPCMessage> {
@@ -94,6 +122,12 @@ export function electronUtilityProcessTransport(
 	}
 }
 
+/**
+ * Create a child-side transport for code running inside an Electron utility process.
+ *
+ * By default this reads `process.parentPort`; pass an endpoint explicitly in
+ * tests or nonstandard hosts. The child endpoint is bidirectional and callback-capable.
+ */
 export function electronUtilityProcessChildTransport(
 	endpoint: ElectronUtilityProcessChildEndpoint = getParentPort()
 ): Transport<RPCMessage> {
@@ -110,6 +144,12 @@ export function electronUtilityProcessChildTransport(
 	}
 }
 
+/**
+ * Create a channel-filtering IPC bridge for Electron preload scripts.
+ *
+ * Only channels listed in `allowedChannels` or matching `channelPrefix` are
+ * forwarded. Use the returned bridge as the `endpoint` for `electronIpcTransport()`.
+ */
 export function createSecureIpcBridge(options: SecureIpcBridgeOptions): SecureIpcBridge {
 	const { ipcRenderer, allowedChannels, channelPrefix } = options
 	if (!allowedChannels?.length && !channelPrefix) {

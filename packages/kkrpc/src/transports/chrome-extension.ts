@@ -1,4 +1,10 @@
-/** Chrome extension transports for stable kkrpc. */
+/**
+ * Chrome extension Port transport for stable kkrpc.
+ *
+ * `chromePortTransport()` wraps a `chrome.runtime.Port`-like object. The port is
+ * bidirectional and supports callbacks, but Chrome extension messaging does not
+ * provide kkrpc transferables through this helper.
+ */
 
 import type { RPCMessage } from "../core/protocol.ts"
 import type { Transport } from "../core/transport.ts"
@@ -16,7 +22,13 @@ interface ChromePortLike {
 	disconnect?(): void
 }
 
-/** Create a transport backed by a chrome.runtime.Port. */
+/**
+ * Create a transport backed by a `chrome.runtime.Port`.
+ *
+ * The returned transport posts object-mode RPC messages, subscribes through
+ * `port.onMessage`, cleans listeners on disconnect, and calls `disconnect()`
+ * when the transport closes.
+ */
 export function chromePortTransport(port: ChromePortLike): Transport<RPCMessage> {
 	const messageListeners = new Set<(message: RPCMessage) => void>()
 	let closed = false

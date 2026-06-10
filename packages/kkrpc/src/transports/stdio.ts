@@ -1,20 +1,29 @@
-/** Stdio transports for stable kkrpc. */
+/**
+ * JSON-line stdio transports for stable kkrpc.
+ *
+ * Stdio transports wrap Node-style readable and writable streams. They are
+ * bidirectional when both processes wire stdin/stdout to each other, support
+ * callback arguments, and use newline-delimited JSON without transferables.
+ */
 
 import { jsonLineCodec } from "../core/codecs.ts"
 import type { RPCMessage } from "../core/protocol.ts"
 import { createTransport } from "../core/transport.ts"
 import type { Platform, Transport } from "../core/transport.ts"
 
+/** Minimal readable stream interface used by stdio transports. */
 export interface ReadableLike {
 	on(event: "data", listener: (chunk: Uint8Array | string) => void): unknown
 	off(event: "data", listener: (chunk: Uint8Array | string) => void): this
 }
 
+/** Minimal writable stream interface used by stdio transports. */
 export interface WritableLike {
 	write(chunk: string, callback?: (error?: Error | null) => void): unknown
 	end?(): unknown
 }
 
+/** Streams to compose into a stdio platform. */
 export interface StdioPlatformOptions {
 	readable: ReadableLike
 	writable: WritableLike
@@ -37,7 +46,12 @@ function getNodeProcess(): NodeProcessLike {
 	return maybeProcess
 }
 
-/** Create a string platform from Node-style readable/writable streams. */
+/**
+ * Create a string platform from Node-style readable/writable streams.
+ *
+ * The platform emits complete newline-delimited frames, writes string frames to
+ * the provided writable, and closes by calling `writable.end()` when available.
+ */
 export function stdioPlatform(options: StdioPlatformOptions): Platform<string> {
 	const { readable, writable } = options
 
@@ -80,7 +94,12 @@ export function stdioPlatform(options: StdioPlatformOptions): Platform<string> {
 	}
 }
 
-/** Create the standard JSON-line stdio transport for RPC messages. */
+/**
+ * Create the standard JSON-line stdio transport for RPC messages.
+ *
+ * This composes `stdioPlatform()` with `jsonLineCodec()`. It is bidirectional
+ * when paired with another process and supports callbacks, but not transferables.
+ */
 export function stdioJsonTransport(options: StdioPlatformOptions): Transport<RPCMessage> {
 	return createTransport({
 		platform: stdioPlatform(options),
@@ -88,7 +107,12 @@ export function stdioJsonTransport(options: StdioPlatformOptions): Transport<RPC
 	})
 }
 
-/** Create a stdio transport bound to Node's process.stdin and process.stdout. */
+/**
+ * Create a stdio transport bound to Node's `process.stdin` and `process.stdout`.
+ *
+ * Pass explicit streams in tests or embedded runtimes. Closing the transport ends
+ * the writable stream when the stream exposes `end()`.
+ */
 export function nodeStdioTransport(
 	options: Partial<StdioPlatformOptions> = {}
 ): Transport<RPCMessage> {

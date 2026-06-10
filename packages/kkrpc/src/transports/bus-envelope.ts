@@ -1,5 +1,15 @@
+/**
+ * Shared envelope helpers for broadcast-oriented message bus transports.
+ *
+ * RabbitMQ, Kafka, Redis Streams, and NATS can deliver the same payload to
+ * multiple peers, including the sender. These helpers wrap compact RPC messages
+ * with peer metadata so transports can filter by sender, target, and protocol
+ * version before forwarding a message into an `RPCChannel`.
+ */
+
 import type { RPCMessage } from "../core/protocol.ts"
 
+/** RPC message plus routing metadata used by message-bus transports. */
 export interface BusEnvelope {
 	protocol: "kkrpc.bus.v1"
 	transportId: string
@@ -11,6 +21,7 @@ export interface BusEnvelope {
 	message: RPCMessage
 }
 
+/** Metadata needed to wrap an outgoing RPC message for a bus transport. */
 export interface CreateBusEnvelopeOptions {
 	transportId: string
 	from: string
@@ -18,11 +29,13 @@ export interface CreateBusEnvelopeOptions {
 	sequence?: number
 }
 
+/** Local delivery settings used to decide whether an envelope is for this peer. */
 export interface BusEnvelopeDeliveryOptions {
 	localPeerId: string
 	allowSelfMessages?: boolean
 }
 
+/** Create a protocol-tagged bus envelope for an outgoing RPC message. */
 export function createBusEnvelope(
 	message: RPCMessage,
 	options: CreateBusEnvelopeOptions
@@ -58,6 +71,7 @@ function isRPCMessage(value: unknown): value is RPCMessage {
 	return false
 }
 
+/** Check whether an unknown value is a structurally valid bus envelope. */
 export function isBusEnvelope(value: unknown): value is BusEnvelope {
 	return (
 		isRecord(value) &&
@@ -72,6 +86,7 @@ export function isBusEnvelope(value: unknown): value is BusEnvelope {
 	)
 }
 
+/** Parse a JSON bus payload, returning `null` for invalid or non-kkrpc data. */
 export function parseBusEnvelope(raw: string): BusEnvelope | null {
 	try {
 		const value = JSON.parse(raw) as unknown
@@ -81,6 +96,12 @@ export function parseBusEnvelope(raw: string): BusEnvelope | null {
 	}
 }
 
+/**
+ * Decide whether this peer should receive an envelope.
+ *
+ * Session/source/target filtering prevents cross-talk when a bus topic, stream,
+ * exchange, or subject is shared by several kkrpc transports.
+ */
 export function shouldDeliverBusEnvelope(
 	envelope: BusEnvelope,
 	options: BusEnvelopeDeliveryOptions

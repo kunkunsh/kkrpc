@@ -1,4 +1,10 @@
-/** Worker transports for stable kkrpc. */
+/**
+ * Web Worker transports for stable kkrpc.
+ *
+ * Worker transports wrap `postMessage()` endpoints on either side of a worker.
+ * They are bidirectional, support callback arguments, and can forward browser
+ * transferables when `RPCChannel` passes a transfer list.
+ */
 
 import type { RPCMessage } from "../core/protocol.ts"
 import type { Transport } from "../core/transport.ts"
@@ -34,12 +40,22 @@ function createWorkerTransport(target: MessageTargetLike, close?: () => void): T
 	}
 }
 
-/** Create a transport for the main-thread side of a Web Worker. */
+/**
+ * Create a transport for the main-thread side of a Web Worker.
+ *
+ * Closing the transport terminates the worker. Object-mode messages and
+ * transferables are forwarded through `worker.postMessage()`.
+ */
 export function workerTransport(worker: Worker): Transport<RPCMessage> {
 	return createWorkerTransport(worker, () => worker.terminate())
 }
 
-/** Create a transport for code running inside the worker global scope. */
+/**
+ * Create a transport for code running inside the worker global scope.
+ *
+ * By default this wraps `globalThis`; pass a scope-like object for tests. Closing
+ * calls `scope.close()` when the worker global exposes it.
+ */
 export function workerSelfTransport(
 	scope: WorkerScopeLike = globalThis as unknown as WorkerScopeLike
 ): Transport<RPCMessage> {

@@ -1,8 +1,18 @@
+/**
+ * Hono WebSocket adapter for stable kkrpc.
+ *
+ * Hono delivers accepted WebSocket messages through framework callbacks rather
+ * than a standard socket event emitter. This module creates a feedable transport
+ * that framework callbacks can push messages into while `RPCChannel` sends JSON
+ * replies through Hono's `WSContext`.
+ */
+
 import type { WSContext, WSEvents } from "hono/ws"
 import { RPCChannel } from "../core/channel.ts"
 import type { RPCMessage } from "../core/protocol.ts"
 import type { Transport } from "../core/transport.ts"
 
+/** Options for exposing a local API through a Hono WebSocket route. */
 export interface HonoWebSocketOptions<LocalAPI extends object> {
 	expose: LocalAPI
 	timeout?: number
@@ -12,6 +22,13 @@ interface FeedableTransport extends Transport<RPCMessage> {
 	feed(message: unknown): void
 }
 
+/**
+ * Wrap a Hono WebSocket context in a feedable kkrpc transport.
+ *
+ * The transport is bidirectional and callback-capable. Incoming framework
+ * message events must be passed to `feed()`; `close()` marks the transport
+ * closed and closes the Hono socket.
+ */
 export function honoWebSocketTransport(
 	ws: Pick<WSContext<unknown>, "send" | "close">
 ): FeedableTransport {
@@ -34,6 +51,7 @@ export function honoWebSocketTransport(
 			ws.close()
 		},
 		feed(message) {
+			// Hono owns receive callbacks, so the route handler feeds raw events into the transport.
 			if (closed) return
 			const raw = typeof message === "string" ? message : String(message)
 			const parsed = parseMessage(raw)
@@ -51,6 +69,12 @@ function parseMessage(raw: string): RPCMessage | undefined {
 	}
 }
 
+/**
+ * Create Hono `WSEvents` that expose a local API over each WebSocket connection.
+ *
+ * Each open connection gets its own `RPCChannel`; close and error callbacks
+ * destroy that channel to remove pending requests and subscriptions.
+ */
 export function createHonoWebSocketHandler<LocalAPI extends object>(
 	options: HonoWebSocketOptions<LocalAPI>
 ): WSEvents<unknown> {

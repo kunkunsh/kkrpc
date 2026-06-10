@@ -1,8 +1,18 @@
+/**
+ * Kafka topic transport for stable kkrpc.
+ *
+ * Kafka is a broadcast-capable message bus, so this transport wraps RPC messages
+ * in bus envelopes and filters self-delivery or messages targeted at other
+ * peers. It supports callback arguments through normal RPC messages, but Kafka
+ * payloads do not carry transferables.
+ */
+
 import type { ConsumerConfig, KafkaConfig, ProducerConfig } from "kafkajs"
 import type { RPCMessage } from "../core/protocol.ts"
 import type { Transport } from "../core/transport.ts"
 import { createBusEnvelope, parseBusEnvelope, shouldDeliverBusEnvelope } from "./bus-envelope.ts"
 
+/** Options for connecting a kkrpc transport to a Kafka topic. */
 export interface KafkaTransportOptions {
 	brokers?: string[]
 	clientId?: string
@@ -22,6 +32,7 @@ export interface KafkaTransportOptions {
 	__client?: KafkaClientLike
 }
 
+/** Message-level Kafka transport type. */
 export type KafkaTransport = Transport<RPCMessage>
 
 interface KafkaProducerLike {
@@ -59,6 +70,7 @@ interface KafkaClientLike {
 	admin(): KafkaAdminLike
 }
 
+/** Parse, filter, and deliver one Kafka bus envelope payload. */
 export function handleKafkaBusMessage(
 	raw: string,
 	localPeerId: string,
@@ -66,10 +78,19 @@ export function handleKafkaBusMessage(
 ): void {
 	const envelope = parseBusEnvelope(raw)
 	if (!envelope) return
+	// Ignore self-delivered records and records explicitly addressed to another peer.
 	if (!shouldDeliverBusEnvelope(envelope, { localPeerId })) return
 	listeners.forEach((listener) => listener(envelope.message))
 }
 
+/**
+ * Create a Kafka-backed kkrpc transport.
+ *
+ * The transport lazily connects producer and consumer resources on first send or
+ * subscription, ensures the topic exists, and disconnects best-effort on close.
+ * It is bidirectional through the shared topic, callback-capable, and marks
+ * itself as broadcast when no `remotePeerId` target is configured.
+ */
 export function kafkaTransport(options: KafkaTransportOptions): KafkaTransport {
 	const topic = options.topic || "kkrpc-topic"
 	const listeners = new Set<(message: RPCMessage) => void>()

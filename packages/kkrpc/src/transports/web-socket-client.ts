@@ -1,11 +1,26 @@
+/**
+ * Browser-only WebSocket client transport.
+ *
+ * This entry creates a WebSocket from the ambient browser constructor and wraps
+ * it as a bidirectional kkrpc transport. It supports callbacks and queued sends
+ * before `open`, but not transferables.
+ */
+
 import type { RPCMessage } from "../core/protocol.ts"
 import type { Transport } from "../core/transport.ts"
 
+/** Options for creating a browser WebSocket client transport. */
 export interface WebSocketClientTransportOptions {
 	url: string
 	protocols?: string | string[]
 }
 
+/**
+ * Create a browser WebSocket client transport.
+ *
+ * Closing the transport removes event listeners, clears pending messages, and
+ * closes the underlying socket.
+ */
 export function webSocketClientTransport(
 	options: WebSocketClientTransportOptions
 ): Transport<RPCMessage> {
@@ -15,6 +30,7 @@ export function webSocketClientTransport(
 	let closed = false
 
 	const flush = () => {
+		// Calls made before the socket opens are serialized and sent once open fires.
 		if (closed || socket.readyState !== WebSocket.OPEN) return
 		while (pending.length > 0) socket.send(pending.shift() ?? "")
 	}

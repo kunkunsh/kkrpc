@@ -1,6 +1,15 @@
+/**
+ * WebSocket transports for stable bidirectional kkrpc channels.
+ *
+ * WebSockets provide a persistent full-duplex channel, so they support regular
+ * calls, server-initiated calls, and callback arguments. Messages are encoded as
+ * JSON strings; transferables are not supported by this transport.
+ */
+
 import type { RPCMessage } from "../core/protocol.ts"
 import type { Transport } from "../core/transport.ts"
 
+/** Minimal browser, Bun, Deno, or Node WebSocket shape used by `webSocketTransport()`. */
 export interface WebSocketLike {
 	readyState?: number
 	send(data: string): void
@@ -14,6 +23,7 @@ export interface WebSocketLike {
 	removeListener?: unknown
 }
 
+/** Options for creating a client WebSocket from the ambient `WebSocket` constructor. */
 export interface WebSocketClientTransportOptions {
 	url: string
 	protocols?: string | string[]
@@ -22,6 +32,13 @@ export interface WebSocketClientTransportOptions {
 const OPEN_READY_STATE = 1
 const textDecoder = new TextDecoder()
 
+/**
+ * Wrap an accepted or pre-created WebSocket-like object as a kkrpc transport.
+ *
+ * The transport is bidirectional and supports callback arguments. Sends before
+ * the socket reaches the open state are queued and flushed on `open`; `close()`
+ * clears queued data, detaches listeners, and closes the socket.
+ */
 export function webSocketTransport(socket: WebSocketLike): Transport<RPCMessage> {
 	const listeners = new Set<(message: RPCMessage) => void>()
 	const pending: string[] = []
@@ -30,6 +47,7 @@ export function webSocketTransport(socket: WebSocketLike): Transport<RPCMessage>
 	let closed = false
 
 	const flush = () => {
+		// Queueing lets callers create the channel before the socket has fully opened.
 		if (closed || (socket.readyState !== undefined && socket.readyState !== OPEN_READY_STATE))
 			return
 		while (pending.length > 0) socket.send(pending.shift() ?? "")
@@ -81,6 +99,12 @@ export function webSocketTransport(socket: WebSocketLike): Transport<RPCMessage>
 	}
 }
 
+/**
+ * Create a client WebSocket transport from a URL and optional protocols.
+ *
+ * This is bidirectional, supports callback arguments, does not support
+ * transferables, and closes the underlying socket when the transport closes.
+ */
 export function webSocketClientTransport(
 	options: WebSocketClientTransportOptions
 ): Transport<RPCMessage> {
