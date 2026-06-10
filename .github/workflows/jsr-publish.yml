@@ -26,5 +26,34 @@ jobs:
           deno-version: v2.x
       - run: pnpm install
       - name: Publish package
-        run: npx jsr publish
+        run: |
+          PACKAGE_NAME=$(node -p "require('./deno.json').name")
+          PACKAGE_VERSION=$(node -p "require('./deno.json').version")
+          PACKAGE_URL="https://jsr.io/${PACKAGE_NAME}@${PACKAGE_VERSION}"
+
+          if curl -fsS -o /dev/null "$PACKAGE_URL"; then
+            echo "$PACKAGE_NAME@$PACKAGE_VERSION is already published; skipping"
+            exit 0
+          fi
+
+          set +e
+          timeout 5m npx jsr publish
+          PUBLISH_STATUS=$?
+          set -e
+
+          if [ "$PUBLISH_STATUS" -eq 0 ]; then
+            exit 0
+          fi
+
+          echo "npx jsr publish exited with status $PUBLISH_STATUS; checking JSR for $PACKAGE_NAME@$PACKAGE_VERSION"
+          for attempt in {1..60}; do
+            if curl -fsS -o /dev/null "$PACKAGE_URL"; then
+              echo "$PACKAGE_NAME@$PACKAGE_VERSION is published on JSR"
+              exit 0
+            fi
+            echo "Waiting for JSR package page ($attempt/60)"
+            sleep 5
+          done
+
+          exit "$PUBLISH_STATUS"
         working-directory: ./packages/kkrpc
