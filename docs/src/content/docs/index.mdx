@@ -26,43 +26,51 @@ hero:
 
 import { Card, CardGrid } from "@astrojs/starlight/components"
 
-## 🤖 AI Support
+`kkrpc` lets two JavaScript or TypeScript runtimes call each other through type-safe proxy objects. Expose an API on one side, wrap a transport on the other side, and call remote functions, nested methods, properties, and callbacks like local code.
 
-Working with kkrpc in an AI-powered editor like Claude Code? Add these skills to get intelligent code assistance:
-
-```bash
-# Copy kkrpc skills to your global Claude Code skills folder
-cp -r skills/kkrpc ~/.claude/skills/
-cp -r skills/interop ~/.claude/skills/
-```
-
-This provides your AI assistant with:
-
-- **kkrpc skill**: How to use kkrpc in TypeScript projects
-- **interop skill**: How to implement kkrpc clients/servers in other languages
-
-See the [`skills/`](https://github.com/kunkunsh/kkrpc/tree/main/skills) directory in the GitHub repo for details.
+The stable API is built on native `Transport<RPCMessage>` objects. The core entry is browser-safe; runtime transports and optional peer dependencies live in subpath exports.
 
 ## Features
 
 <CardGrid stagger>
-	<Card title="Property Access">
-		Remote property getters and setters with dot notation (`await api.prop`, `api.prop = value`)
+	<Card title="Type-safe proxies">
+		Remote APIs keep TypeScript completion and checking, including nested methods and properties.
 	</Card>
-	<Card title="Enhanced Error Preservation">
-		Complete error object preservation across RPC boundaries including stack traces and custom
-		properties
+	<Card title="Bidirectional channels">
+		Evented transports let both sides expose APIs and pass callback arguments.
 	</Card>
-	<Card title="HTTP">Call API over HTTP like calling local functions (similar to tRPC)</Card>
-	<Card title="WebSocket">Call API over WebSocket (with callback support and bidirectional)</Card>
-	<Card title="Web Worker">Bidirectional communication between Web Worker and main thread</Card>
-	<Card title="iframe">Bidirectional communication between iframe and parent window</Card>
-	<Card title="stdio">
-		IPC over stdio between JavaScript/TypeScript processes (e.g. Node.js/Deno/Bun)
+	<Card title="Native transports">
+		Use stdio, HTTP, WebSocket, workers, iframes, Chrome extension ports, Electron, Tauri, Socket.IO, RabbitMQ, Kafka, Redis Streams, or NATS.
 	</Card>
-	<Card title="Chrome Extension">Communicate between content script and background script</Card>
-	<Card title="Tauri">Call functions in bun/node/deno processes from Tauri app with JS/TS</Card>
-	<Card title="RabbitMQ">Reliable message queue communication with AMQP protocol</Card>
-	<Card title="Redis Streams">High-performance stream-based messaging with persistence</Card>
-	<Card title="Kafka">Distributed streaming with high throughput and fault tolerance</Card>
+	<Card title="Browser-safe core">
+		`kkrpc` and `kkrpc/browser` avoid Node-only imports. Optional integrations stay behind explicit subpaths.
+	</Card>
+	<Card title="Validation and middleware">
+		Standard Schema validation and interceptor chains are available as plugins.
+	</Card>
+	<Card title="Transfer, relay, inspector">
+		Transfer ownership where supported, bridge two transports, or observe traffic.
+	</Card>
 </CardGrid>
+
+## Runtime Coverage
+
+| Runtime or system | Entry points |
+| --- | --- |
+| Browser and Web Worker | `kkrpc/browser`, `kkrpc/worker`, `kkrpc/iframe` |
+| Node.js, Deno, Bun processes | `kkrpc/stdio`, `kkrpc/deno` |
+| HTTP and WebSocket servers | `kkrpc/http`, `kkrpc/ws`, `kkrpc/ws/hono`, `kkrpc/ws/elysia` |
+| Desktop apps | `kkrpc/electron`, `kkrpc/tauri` |
+| Browser extensions | `kkrpc/chrome-extension` |
+| Message buses | `kkrpc/socketio`, `kkrpc/rabbitmq`, `kkrpc/kafka`, `kkrpc/redis-streams`, `kkrpc/nats` |
+
+## AI Support
+
+The repository includes agent skill docs for AI coding assistants. They describe the stable API, package layout, and language interop implementations.
+
+```bash
+cp -r skills/kkrpc ~/.claude/skills/
+cp -r skills/interop ~/.claude/skills/
+```
+
+See the [`skills/`](https://github.com/kunkunsh/kkrpc/tree/main/skills) directory for details.

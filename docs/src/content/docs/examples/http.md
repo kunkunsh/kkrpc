@@ -36,14 +36,14 @@ export const api: API = {
 ```ts title="server.ts"
 import { Hono } from "hono"
 import { createHttpHandler } from "kkrpc/http"
-import { apiImplementationNested, type APINested } from "./api.ts"
+import { api } from "./api.ts"
 
-const handler = createHttpHandler(apiImplementationNested)
+const handler = createHttpHandler(api)
 
 const app = new Hono()
 
 app.post("/rpc", async (c) => {
-	return c.text(await handler.handleRequest(await c.req.text()))
+	return handler(c.req.raw)
 })
 
 export default {
@@ -61,10 +61,11 @@ export default {
 Making an http RPC call is as simple as calling the methods defined in `api.ts`.
 
 ```ts title="client.ts"
-import { createHttpClient } from "kkrpc/http"
-import { api, type API } from "./api.ts"
+import { wrap } from "kkrpc"
+import { httpClientTransport } from "kkrpc/http"
+import type { API } from "./api.ts"
 
-const { api } = createHttpClient<API>("http://localhost:3000/rpc")
+const api = wrap<API>(httpClientTransport({ url: "http://localhost:3000/rpc" }))
 
 const echo = await api.echo("hello")
 console.log("echo", echo)
