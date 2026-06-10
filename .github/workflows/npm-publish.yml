@@ -38,6 +38,24 @@ jobs:
           pnpm check-types
       - name: Start integration services
         run: docker compose up -d redis rabbitmq kafka nats
+      - name: Wait for Kafka
+        run: |
+          for attempt in {1..60}; do
+            if docker compose exec -T kafka sh -lc '
+              KAFKA_TOPICS=$(command -v kafka-topics.sh || echo /opt/kafka/bin/kafka-topics.sh)
+              KAFKA_GROUPS=$(command -v kafka-consumer-groups.sh || echo /opt/kafka/bin/kafka-consumer-groups.sh)
+              "$KAFKA_TOPICS" --bootstrap-server localhost:9092 --list >/dev/null &&
+                "$KAFKA_GROUPS" --bootstrap-server localhost:9092 --list >/dev/null
+            '; then
+              echo "Kafka is ready"
+              exit 0
+            fi
+            echo "Waiting for Kafka ($attempt/60)"
+            sleep 2
+          done
+
+          docker compose logs kafka
+          exit 1
       - name: Test
         run: pnpm --filter kkrpc test
       - name: Stop integration services
