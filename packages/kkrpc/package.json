@@ -1,6 +1,6 @@
 {
 	"name": "kkrpc",
-	"version": "0.7.0",
+	"version": "1.0.0-beta.0",
 	"description": "TypeScript-first RPC library for seamless bi-directional communication between processes, workers, and contexts. Cross-runtime compatible with Node.js, Deno, Bun, and browsers.",
 	"type": "module",
 	"keywords": [
@@ -40,6 +40,7 @@
 		"docs": "typedoc --out docs",
 		"check-types": "tsc --noEmit",
 		"build": "tsdown",
+		"compare:browser-bundle-size": "pnpm build && bun run scripts/compare-browser-bundle-size.ts",
 		"postbuild": "pnpm run docs && verify-package-export verify",
 		"dev": "tsdown --watch"
 	},
@@ -64,6 +65,126 @@
 			"require": {
 				"types": "./dist/browser-mod.d.cts",
 				"default": "./dist/browser-mod.cjs"
+			}
+		},
+		"./transport": {
+			"import": {
+				"types": "./dist/transport.d.ts",
+				"default": "./dist/transport.js"
+			},
+			"require": {
+				"types": "./dist/transport.d.cts",
+				"default": "./dist/transport.cjs"
+			}
+		},
+		"./codecs": {
+			"import": {
+				"types": "./dist/codecs.d.ts",
+				"default": "./dist/codecs.js"
+			},
+			"require": {
+				"types": "./dist/codecs.d.cts",
+				"default": "./dist/codecs.cjs"
+			}
+		},
+		"./plugins": {
+			"import": {
+				"types": "./dist/plugins.d.ts",
+				"default": "./dist/plugins.js"
+			},
+			"require": {
+				"types": "./dist/plugins.d.cts",
+				"default": "./dist/plugins.cjs"
+			}
+		},
+		"./validation": {
+			"import": {
+				"types": "./dist/validation.d.ts",
+				"default": "./dist/validation.js"
+			},
+			"require": {
+				"types": "./dist/validation.d.cts",
+				"default": "./dist/validation.cjs"
+			}
+		},
+		"./middleware": {
+			"import": {
+				"types": "./dist/middleware.d.ts",
+				"default": "./dist/middleware.js"
+			},
+			"require": {
+				"types": "./dist/middleware.d.cts",
+				"default": "./dist/middleware.cjs"
+			}
+		},
+		"./superjson": {
+			"import": {
+				"types": "./dist/superjson.d.ts",
+				"default": "./dist/superjson.js"
+			},
+			"require": {
+				"types": "./dist/superjson.d.cts",
+				"default": "./dist/superjson.cjs"
+			}
+		},
+		"./worker": {
+			"import": {
+				"types": "./dist/worker.d.ts",
+				"default": "./dist/worker.js"
+			},
+			"require": {
+				"types": "./dist/worker.d.cts",
+				"default": "./dist/worker.cjs"
+			}
+		},
+		"./stdio": {
+			"import": {
+				"types": "./dist/stdio.d.ts",
+				"default": "./dist/stdio.js"
+			},
+			"require": {
+				"types": "./dist/stdio.d.cts",
+				"default": "./dist/stdio.cjs"
+			}
+		},
+		"./ws": {
+			"import": {
+				"types": "./dist/ws.d.ts",
+				"default": "./dist/ws.js"
+			},
+			"require": {
+				"types": "./dist/ws.d.cts",
+				"default": "./dist/ws.cjs"
+			}
+		},
+		"./ws/hono": {
+			"import": {
+				"types": "./dist/ws-hono.d.ts",
+				"default": "./dist/ws-hono.js"
+			},
+			"require": {
+				"types": "./dist/ws-hono.d.cts",
+				"default": "./dist/ws-hono.cjs"
+			}
+		},
+		"./ws/elysia": {
+			"import": {
+				"types": "./dist/ws-elysia.d.ts",
+				"default": "./dist/ws-elysia.js"
+			},
+			"require": {
+				"types": "./dist/ws-elysia.d.cts",
+				"default": "./dist/ws-elysia.cjs"
+			}
+		},
+		"./iframe": {
+			"import": {
+				"types": "./dist/iframe.d.ts",
+				"default": "./dist/iframe.js"
+			},
+			"require": {
+				"types": "./dist/iframe.d.cts",
+				"default": "./dist/iframe.cjs"
 			}
 		},
 		"./http": {
@@ -94,6 +215,16 @@
 			"require": {
 				"types": "./dist/chrome-extension.d.cts",
 				"default": "./dist/chrome-extension.cjs"
+			}
+		},
+		"./tauri": {
+			"import": {
+				"types": "./dist/tauri.d.ts",
+				"default": "./dist/tauri.js"
+			},
+			"require": {
+				"types": "./dist/tauri.d.cts",
+				"default": "./dist/tauri.cjs"
 			}
 		},
 		"./socketio": {
@@ -156,14 +287,14 @@
 				"default": "./dist/electron.cjs"
 			}
 		},
-		"./electron-ipc": {
+		"./relay": {
 			"import": {
-				"types": "./dist/electron-ipc.d.ts",
-				"default": "./dist/electron-ipc.js"
+				"types": "./dist/relay.d.ts",
+				"default": "./dist/relay.js"
 			},
 			"require": {
-				"types": "./dist/electron-ipc.d.cts",
-				"default": "./dist/electron-ipc.cjs"
+				"types": "./dist/relay.d.cts",
+				"default": "./dist/relay.cjs"
 			}
 		},
 		"./inspector": {
@@ -199,7 +330,7 @@
 		"kafkajs": "^2.2.4",
 		"socket.io": "^4.0.0",
 		"socket.io-client": "^4.0.0",
-		"typescript": "^5.0.0",
+		"typescript": "^5.0.0 || ^6.0.0",
 		"ws": "^8.18.0"
 	},
 	"peerDependenciesMeta": {

@@ -1,145 +1,147 @@
-import { afterAll, beforeAll, describe, expect, it } from "bun:test"
-import { RabbitMQIO } from "../src/adapters/rabbitmq"
-import { RPCChannel } from "../src/channel.ts"
+import { afterAll, beforeAll, describe, expect, test } from "bun:test"
+import { RPCChannel } from "../src/entries/mod.ts"
+import { rabbitMqTransport, type RabbitMQTransport } from "../src/entries/rabbitmq.ts"
+import { createBusEnvelope } from "../src/transports/bus-envelope.ts"
+import { handleRabbitMqBusEnvelope } from "../src/transports/rabbitmq.ts"
 import { apiMethods, type API } from "./scripts/api.ts"
 
 const RABBITMQ_URL = process.env.RABBITMQ_URL || "amqp://admin:admin@localhost:5672"
 const EXCHANGE_BASE = "kkrpc-test-exchange-" + Math.random().toString(36).substring(2, 8)
 
-describe("RabbitMQIO", () => {
-	describe("Adapter Construction", () => {
-		it("should create RabbitMQ adapter with provided options", () => {
-			const adapter = new RabbitMQIO({
-				url: RABBITMQ_URL,
-				exchange: EXCHANGE_BASE + "-construction",
-				sessionId: "rabbitmq-test-session",
-				exchangeType: "topic",
-				durable: true
-			})
+describe("rabbitMqTransport", () => {
+	test("nacks malformed envelopes without requeue", () => {
+		const message = { content: Buffer.from("not-json") }
+		const channel = {
+			acked: 0,
+			nacked: [] as Array<[unknown, boolean, boolean]>,
+			ack() {
+				this.acked++
+			},
+			nack(received: unknown, allUpTo: boolean, requeue: boolean) {
+				this.nacked.push([received, allUpTo, requeue])
+			}
+		}
 
-			expect(adapter.name).toBe("rabbitmq-io")
-			expect(adapter.getExchange()).toBe(EXCHANGE_BASE + "-construction")
-			expect(adapter.getSessionId()).toBe("rabbitmq-test-session")
+		handleRabbitMqBusEnvelope(message, channel, "server", new Set())
 
-			adapter.destroy()
-		})
+		expect(channel.acked).toBe(0)
+		expect(channel.nacked).toEqual([[message, false, false]])
 	})
 
-	describe("Message Flow", () => {
-		let adapter: RabbitMQIO
+	test("acks valid filtered envelopes", () => {
+		const envelope = createBusEnvelope(
+			{ t: "r", id: "request-1", v: "ok" },
+			{
+				transportId: "rabbitmq",
+				from: "client",
+				to: "server"
+			}
+		)
+		const message = { content: Buffer.from(JSON.stringify(envelope)) }
+		const channel = {
+			acked: [] as unknown[],
+			nacked: [] as unknown[],
+			ack(received: unknown) {
+				this.acked.push(received)
+			},
+			nack(received: unknown) {
+				this.nacked.push(received)
+			}
+		}
 
-		beforeAll(async () => {
-			// allowSelfMessages keeps the low-level adapter loopback test explicit.
-			adapter = new RabbitMQIO({
-				url: RABBITMQ_URL,
-				exchange: EXCHANGE_BASE + "-message",
-				allowSelfMessages: true
-			})
+		handleRabbitMqBusEnvelope(message, channel, "other", new Set())
 
-			// 等待连接 ready，避免消费队列还没创建就写入
-			await new Promise((resolve) => setTimeout(resolve, 1500))
-		})
-
-		afterAll(() => {
-			adapter.destroy()
-		})
-
-		it("should publish and consume plain strings", async () => {
-			await adapter.write("hello-rabbitmq")
-			const payload = await adapter.read()
-
-			expect(payload).toBe("hello-rabbitmq")
-		}, 15000)
+		expect(channel.acked).toEqual([message])
+		expect(channel.nacked).toEqual([])
 	})
 
-	describe("RPC Communication", () => {
-		let serverAdapter: RabbitMQIO
-		let clientAdapter: RabbitMQIO
+	test("nacks locally delivered envelopes when a subscriber throws", () => {
+		const envelope = createBusEnvelope(
+			{ t: "r", id: "request-1", v: "ok" },
+			{
+				transportId: "rabbitmq",
+				from: "client",
+				to: "server"
+			}
+		)
+		const message = { content: Buffer.from(JSON.stringify(envelope)) }
+		const channel = {
+			acked: 0,
+			nacked: [] as Array<[unknown, boolean, boolean]>,
+			ack() {
+				this.acked++
+			},
+			nack(received: unknown, allUpTo: boolean, requeue: boolean) {
+				this.nacked.push([received, allUpTo, requeue])
+			}
+		}
+		const listeners = new Set<() => void>([
+			() => {
+				throw new Error("listener failed")
+			}
+		])
+
+		handleRabbitMqBusEnvelope(message, channel, "server", listeners)
+
+		expect(channel.acked).toBe(0)
+		expect(channel.nacked).toEqual([[message, false, false]])
+	})
+
+	test("creates an object-mode transport with peer-routed capabilities", () => {
+		const transport = rabbitMqTransport({
+			url: RABBITMQ_URL,
+			exchange: EXCHANGE_BASE + "-construction",
+			localPeerId: "client",
+			remotePeerId: "server"
+		})
+
+		expect(transport.capabilities).toEqual({ objectMode: true, transfer: false, broadcast: false })
+		transport.close?.()
+	})
+
+	describe("RPC communication", () => {
+		let serverTransport: RabbitMQTransport
+		let clientTransport: RabbitMQTransport
 		let serverRPC: RPCChannel<API, API>
 		let clientRPC: RPCChannel<API, API>
 
 		beforeAll(async () => {
 			const exchange = EXCHANGE_BASE + "-rpc"
-
-			serverAdapter = new RabbitMQIO({
+			serverTransport = rabbitMqTransport({
 				url: RABBITMQ_URL,
 				exchange,
-				sessionId: "server-" + Math.random().toString(36).substring(2, 8)
+				localPeerId: "server",
+				remotePeerId: "client"
 			})
-
-			clientAdapter = new RabbitMQIO({
+			clientTransport = rabbitMqTransport({
 				url: RABBITMQ_URL,
 				exchange,
-				sessionId: "client-" + Math.random().toString(36).substring(2, 8)
+				localPeerId: "client",
+				remotePeerId: "server"
 			})
 
-			// RabbitMQ 需要一点时间建队列，先休眠
-			await new Promise((resolve) => setTimeout(resolve, 2000))
-
-			serverRPC = new RPCChannel<API, API>(serverAdapter, {
-				expose: apiMethods
-			})
-
-			// These local handlers throw if RabbitMQ echoes the client's own request back to itself.
-			clientRPC = new RPCChannel<API, API>(clientAdapter, {
-				expose: {
-					...apiMethods,
-					echo: async () => {
-						throw new Error("client loopback should not handle echo")
-					},
-					add: async () => {
-						throw new Error("client loopback should not handle add")
-					},
-					throwSimpleError: () => {
-						throw new Error("client loopback should not handle throwSimpleError")
-					},
-					throwCustomError: () => {
-						throw new Error("client loopback should not handle throwCustomError")
-					}
-				}
-			})
+			serverRPC = new RPCChannel<API, API>(serverTransport, { expose: apiMethods })
+			clientRPC = new RPCChannel<API, API>(clientTransport, { expose: apiMethods })
+			await new Promise((resolve) => setTimeout(resolve, 1500))
 		})
 
-		afterAll(async () => {
-			await Promise.all([clientAdapter.signalDestroy?.(), serverAdapter.signalDestroy?.()])
-			clientRPC.destroy?.()
-			serverRPC.destroy?.()
-			clientAdapter.destroy()
-			serverAdapter.destroy()
+		afterAll(() => {
+			clientRPC.destroy()
+			serverRPC.destroy()
 		})
 
-		it("should complete RPC calls over RabbitMQ", async () => {
+		test("completes RPC calls over RabbitMQ", async () => {
 			const serverAPI = clientRPC.getAPI()
 
-			const echoResult = await serverAPI.echo("Hello RabbitMQ!")
-			expect(echoResult).toBe("Hello RabbitMQ!")
+			expect(await serverAPI.echo("Hello RabbitMQ!")).toBe("Hello RabbitMQ!")
+			expect(await serverAPI.add(10, 20)).toBe(30)
+		}, 20_000)
 
-			const addResult = await serverAPI.add(10, 20)
-			expect(addResult).toBe(30)
-		}, 20000)
-
-		it("should propagate RPC errors", async () => {
+		test("propagates RPC errors", async () => {
 			const serverAPI = clientRPC.getAPI()
 
 			await expect(serverAPI.throwSimpleError()).rejects.toThrow("This is a simple error")
 			await expect(serverAPI.throwCustomError()).rejects.toThrow("This is a custom error")
-		}, 20000)
-	})
-
-	describe("Cleanup Handling", () => {
-		it("should destroy adapter and block future writes", async () => {
-			const adapter = new RabbitMQIO({
-				url: RABBITMQ_URL,
-				exchange: EXCHANGE_BASE + "-destroy"
-			})
-
-			await new Promise((resolve) => setTimeout(resolve, 1000))
-
-			adapter.destroy()
-
-			await expect(adapter.write("after-destroy")).rejects.toThrow(
-				"RabbitMQ adapter has been destroyed"
-			)
-		}, 10000)
+		}, 20_000)
 	})
 })

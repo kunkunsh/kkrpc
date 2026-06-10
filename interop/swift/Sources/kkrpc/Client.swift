@@ -30,68 +30,77 @@ public actor Client {
     }
     
     public func call(method: String, args: [Any] = []) async throws -> Any? {
-        return try await sendRequest(type: "request", method: method, args: args, path: nil, value: nil)
+        return try await sendRequest(op: "call", args: args, path: method.split(separator: ".").map(String.init), value: nil)
     }
     
     public func get(path: [String]) async throws -> Any? {
-        return try await sendRequest(type: "get", method: nil, args: [], path: path, value: nil)
+        return try await sendRequest(op: "get", args: [], path: path, value: nil)
     }
     
     public func set(path: [String], value: Any) async throws -> Any? {
-        return try await sendRequest(type: "set", method: nil, args: [], path: path, value: value)
+        return try await sendRequest(op: "set", args: [], path: path, value: value)
     }
     
     private func sendRequest(
-        type: String,
-        method: String?,
+        op: String,
         args: [Any],
-        path: [String]?,
+        path: [String],
         value: Any?
     ) async throws -> Any? {
         let requestId = generateUUID()
         
         var processedArgs: [Any] = []
-        var callbackIds: [String] = []
         
         for arg in args {
             if let cb = arg as? Callback {
                 let callbackId = generateUUID()
                 callbacks[callbackId] = cb
-                callbackIds.append(callbackId)
-                processedArgs.append("\(callbackPrefix)\(callbackId)")
+                processedArgs.append([argEnvelopeTag: "callback", "id": callbackId])
             } else {
                 processedArgs.append(arg)
             }
         }
         
         var payload: [String: Any] = [
+            "t": "q",
             "id": requestId,
-            "type": type,
-            "version": "json"
+            "op": op,
+            "p": path
         ]
         
-        if let method = method {
-            payload["method"] = method
-        }
         if !processedArgs.isEmpty {
-            payload["args"] = processedArgs
-        }
-        if !callbackIds.isEmpty {
-            payload["callbackIds"] = callbackIds
-        }
-        if let path = path {
-            payload["path"] = path
+            payload["a"] = processedArgs
         }
         if let value = value {
-            payload["value"] = value
+            payload["v"] = value
         }
         
         let message = try encodeMessage(payload)
-        try await transport.write(message)
+        let transport = self.transport
         
-        return await withCheckedContinuation { continuation in
+        let response = await withCheckedContinuation { continuation in
             pending[requestId] = continuation
-        }.result
+            Task {
+                do {
+                    try await transport.write(message)
+                } catch {
+                    self.handleWriteFailure(requestId: requestId, error: error)
+                }
+            }
+        }
+        if let error = response.error {
+            throw error
+        }
+        return response.result
+    }
+
+    private func handleWriteFailure(requestId: String, error: Error) {
+        guard let continuation = pending.removeValue(forKey: requestId) else {
+            return
+        }
+        let rpcError = error as? KkrpcError
+            ?? KkrpcError.rpcError(name: "Error", message: String(describing: error))
+        continuation.resume(returning: ResponsePayload(error: rpcError))
     }
     
     private func readLoop() async {
@@ -104,12 +113,12 @@ public actor Client {
                 guard !trimmed.isEmpty else { continue }
                 
                 guard let message = try? decodeMessage(trimmed) else { continue }
-                guard let messageType = message["type"] as? String else { continue }
+                guard let messageType = message["t"] as? String else { continue }
                 
                 switch messageType {
-                case "response":
+                case "r":
                     await handleResponse(message)
-                case "callback":
+                case "cb":
                     await handleCallback(message)
                 default:
                     break
@@ -126,26 +135,21 @@ public actor Client {
             return
         }
         
-        guard let args = message["args"] as? [String: Any] else {
-            continuation.resume(returning: ResponsePayload(result: nil))
-            return
-        }
-        
-        if let errorValue = args["error"] {
+        if let errorValue = message["e"] {
             let error = decodeError(errorValue)
             continuation.resume(returning: ResponsePayload(error: error))
         } else {
-            continuation.resume(returning: ResponsePayload(result: args["result"]))
+            continuation.resume(returning: ResponsePayload(result: message["v"]))
         }
     }
     
     private func handleCallback(_ message: [String: Any]) async {
-        guard let callbackId = message["method"] as? String,
+        guard let callbackId = message["id"] as? String,
               let callback = callbacks[callbackId] else {
             return
         }
         
-        let args = message["args"] as? [Any] ?? []
+        let args = (message["a"] as? [Any] ?? []).map(decodeArgument)
         callback(args)
     }
     

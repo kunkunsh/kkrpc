@@ -1,5 +1,5 @@
 /**
- * Streaming + Middleware demo — Bun native WebSocket server.
+ * Middleware demo — Bun native WebSocket server.
  *
  * Demonstrates four interceptor patterns:
  *   1. Logging    — logs every RPC call with method name and args
@@ -10,17 +10,23 @@
  * Run with: bun run server-bun.ts
  * Then in another terminal: bun run client.ts
  */
-import { RPCChannel, WebSocketServerIO, type RPCInterceptor, type WebSocketLike } from "kkrpc"
-import { createApi, type StreamingMiddlewareAPI } from "./api.ts"
+import { RPCChannel } from "kkrpc"
+import { middlewarePlugin, type MiddlewareHandler } from "kkrpc/middleware"
+import { webSocketTransport, type WebSocketLike } from "kkrpc/ws"
+import { createApi, type MiddlewareDemoAPI } from "./api.ts"
 
 const PORT = 3100
 
 // Map to track Bun ServerWebSocket -> our wrapper
-const connections = new Map<any, WebSocketLike>()
+interface BunWebSocketLike extends WebSocketLike {
+	onmessage: ((event: { data: unknown }) => void) | null
+}
+
+const connections = new Map<any, BunWebSocketLike>()
 
 // ─── Interceptor factories ───────────────────────────────────────────────────
 
-const logger: RPCInterceptor = async (ctx, next) => {
+const logger: MiddlewareHandler = async (ctx, next) => {
 	const argsStr = ctx.args
 		.map((a) => (typeof a === "object" ? JSON.stringify(a) : String(a)))
 		.join(", ")
@@ -28,7 +34,7 @@ const logger: RPCInterceptor = async (ctx, next) => {
 	return next()
 }
 
-const timing: RPCInterceptor = async (ctx, next) => {
+const timing: MiddlewareHandler = async (ctx, next) => {
 	const start = performance.now()
 	const result = await next()
 	const elapsed = (performance.now() - start).toFixed(1)
@@ -39,7 +45,7 @@ const timing: RPCInterceptor = async (ctx, next) => {
 function createAuthInterceptor(session: {
 	authenticated: boolean
 	username: string
-}): RPCInterceptor {
+}): MiddlewareHandler {
 	const protectedMethods = new Set(["getSecretData"])
 	return async (ctx, next) => {
 		if (protectedMethods.has(ctx.method) && !session.authenticated) {
@@ -49,7 +55,7 @@ function createAuthInterceptor(session: {
 	}
 }
 
-function createRateLimiter(max: number, windowMs: number = 1000): RPCInterceptor {
+function createRateLimiter(max: number, windowMs: number = 1000): MiddlewareHandler {
 	const calls: number[] = []
 	return async (ctx, next) => {
 		const now = Date.now()
@@ -71,10 +77,9 @@ function createRateLimiter(max: number, windowMs: number = 1000): RPCInterceptor
  * Bun uses a different pattern (callback-based) vs DOM WebSocket (event setters).
  * This wrapper bridges the two patterns.
  */
-function createBunWebSocketLike(bunWs: any): WebSocketLike {
+function createBunWebSocketLike(bunWs: any): BunWebSocketLike {
 	return {
 		onmessage: null,
-		onerror: null,
 		send(data: string) {
 			bunWs.send(data)
 		},
@@ -86,7 +91,7 @@ function createBunWebSocketLike(bunWs: any): WebSocketLike {
 
 // ─── Bun server setup ────────────────────────────────────────────────────────
 
-console.log(`[server] Streaming + Middleware demo (Bun native) listening on ws://localhost:${PORT}`)
+console.log(`[server] Middleware demo (Bun native) listening on ws://localhost:${PORT}`)
 console.log(`[server] Interceptors: logger → timing → auth → rateLimiter`)
 
 Bun.serve({
@@ -112,9 +117,9 @@ Bun.serve({
 			const auth = createAuthInterceptor(session)
 			const rateLimiter = createRateLimiter(5)
 
-			new RPCChannel<StreamingMiddlewareAPI, {}>(new WebSocketServerIO(wrapper), {
+			new RPCChannel<MiddlewareDemoAPI, {}>(webSocketTransport(wrapper), {
 				expose: api,
-				interceptors: [logger, timing, auth, rateLimiter]
+				plugins: [middlewarePlugin([logger, timing, auth, rateLimiter])]
 			})
 		},
 		message(bunWs, message) {
@@ -129,7 +134,6 @@ Bun.serve({
 			if (wrapper) {
 				// Trigger any cleanup
 				wrapper.onmessage = null
-				wrapper.onerror = null
 				connections.delete(bunWs)
 			}
 			console.log(`[server] Client disconnected`)

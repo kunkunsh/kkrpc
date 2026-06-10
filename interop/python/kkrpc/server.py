@@ -2,7 +2,7 @@ import threading
 from typing import Any, Dict, List
 
 from .adapters.base import Transport
-from .protocol import CALLBACK_PREFIX, decode_message, encode_message
+from .protocol import ARG_ENVELOPE_TAG, decode_message, encode_message
 
 
 class RpcServer:
@@ -36,15 +36,23 @@ class RpcServer:
             self._handle_message(message)
 
     def _handle_message(self, message: Dict[str, Any]) -> None:
-        message_type = message.get("type")
-        if message_type == "request":
+        if message.get("t") != "q":
+            return
+        operation = message.get("op")
+        if operation == "call":
             self._handle_request(message)
-        elif message_type == "get":
+        elif operation == "get":
             self._handle_get(message)
-        elif message_type == "set":
+        elif operation == "set":
             self._handle_set(message)
-        elif message_type == "construct":
+        elif operation == "new":
             self._handle_construct(message)
+
+    def _message_path(self, message: Dict[str, Any]) -> List[str]:
+        path = message.get("p")
+        if not isinstance(path, list):
+            return []
+        return [part for part in path if isinstance(part, str)]
 
     def _resolve_path(self, path: List[str]) -> Any:
         target: Any = self._api
@@ -54,74 +62,70 @@ class RpcServer:
             target = target[part]
         return target
 
-    def _wrap_callbacks(self, args: List[Any], request_id: str) -> List[Any]:
+    def _convert_inbound_arg(self, arg: Any, request_id: str) -> Any:
+        if not isinstance(arg, dict):
+            return arg
+        envelope_type = arg.get(ARG_ENVELOPE_TAG)
+        if envelope_type == "value":
+            return arg.get("v")
+        if envelope_type == "callback":
+            callback_id = str(arg.get("id", ""))
+
+            def _callback(*callback_args: Any, _callback_id: str = callback_id) -> None:
+                self._write_message(
+                    {
+                        "t": "cb",
+                        "id": _callback_id,
+                        "a": list(callback_args),
+                    }
+                )
+
+            return _callback
+        return arg
+
+    def _convert_inbound_args(self, args: List[Any], request_id: str) -> List[Any]:
         processed: List[Any] = []
         for arg in args:
-            if isinstance(arg, str) and arg.startswith(CALLBACK_PREFIX):
-                callback_id = arg[len(CALLBACK_PREFIX) :]
-
-                def _callback(
-                    *callback_args: Any, _callback_id: str = callback_id
-                ) -> None:
-                    self._write_message(
-                        {
-                            "id": request_id,
-                            "method": _callback_id,
-                            "args": list(callback_args),
-                            "type": "callback",
-                            "version": "json",
-                        }
-                    )
-
-                processed.append(_callback)
-            else:
-                processed.append(arg)
+            processed.append(self._convert_inbound_arg(arg, request_id))
         return processed
 
     def _send_response(self, request_id: str, result: Any) -> None:
         self._write_message(
             {
+                "t": "r",
                 "id": request_id,
-                "method": "",
-                "args": {"result": result},
-                "type": "response",
-                "version": "json",
+                "v": result,
             }
         )
 
     def _send_error(self, request_id: str, error: Exception) -> None:
         self._write_message(
             {
+                "t": "r",
                 "id": request_id,
-                "method": "",
-                "args": {
-                    "error": {"name": error.__class__.__name__, "message": str(error)}
-                },
-                "type": "response",
-                "version": "json",
+                "e": {"n": error.__class__.__name__, "m": str(error)},
             }
         )
 
     def _handle_request(self, message: Dict[str, Any]) -> None:
         request_id = message.get("id", "")
-        method = message.get("method", "")
-        args = message.get("args")
+        args = message.get("a")
         if not isinstance(args, list):
             args = []
         try:
-            path = method.split(".") if method else []
+            path = self._message_path(message)
             target = self._resolve_path(path)
             if not callable(target):
-                raise TypeError(f"Method {method} is not callable")
-            result = target(*self._wrap_callbacks(args, request_id))
+                raise TypeError(f"Method {'.'.join(path)} is not callable")
+            result = target(*self._convert_inbound_args(args, request_id))
             self._send_response(request_id, result)
         except Exception as error:
             self._send_error(request_id, error)
 
     def _handle_get(self, message: Dict[str, Any]) -> None:
         request_id = message.get("id", "")
-        path = message.get("path")
-        if not isinstance(path, list):
+        path = self._message_path(message)
+        if not path:
             self._send_error(request_id, ValueError("Missing path"))
             return
         try:
@@ -132,31 +136,30 @@ class RpcServer:
 
     def _handle_set(self, message: Dict[str, Any]) -> None:
         request_id = message.get("id", "")
-        path = message.get("path")
-        if not isinstance(path, list) or not path:
+        path = self._message_path(message)
+        if not path:
             self._send_error(request_id, ValueError("Missing path"))
             return
         try:
             parent = self._resolve_path(path[:-1])
             if not isinstance(parent, dict):
                 raise TypeError("Set target is not an object")
-            parent[path[-1]] = message.get("value")
+            parent[path[-1]] = message.get("v")
             self._send_response(request_id, True)
         except Exception as error:
             self._send_error(request_id, error)
 
     def _handle_construct(self, message: Dict[str, Any]) -> None:
         request_id = message.get("id", "")
-        method = message.get("method", "")
-        args = message.get("args")
+        args = message.get("a")
         if not isinstance(args, list):
             args = []
         try:
-            path = method.split(".") if method else []
+            path = self._message_path(message)
             constructor = self._resolve_path(path)
             if not callable(constructor):
-                raise TypeError(f"Constructor {method} is not callable")
-            result = constructor(*self._wrap_callbacks(args, request_id))
+                raise TypeError(f"Constructor {'.'.join(path)} is not callable")
+            result = constructor(*self._convert_inbound_args(args, request_id))
             self._send_response(request_id, result)
         except Exception as error:
             self._send_error(request_id, error)

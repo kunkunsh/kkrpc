@@ -19,7 +19,7 @@ Chrome extension demonstrating kkrpc for port-based communication between conten
        ▼
 ┌─────────────────┐
 │  Background     │
-│  (Service Worker│
+│  Service Worker │
 └─────────────────┘
 ```
 
@@ -28,6 +28,7 @@ Chrome extension demonstrating kkrpc for port-based communication between conten
 ```
 chrome-extension/
 ├── src/
+│   ├── background.ts   # Service worker exposing the background API
 │   ├── content/        # Content scripts (injected into pages)
 │   │   ├── main.tsx
 │   │   └── views/
@@ -48,6 +49,7 @@ chrome-extension/
 | File                    | Purpose                                |
 | ----------------------- | -------------------------------------- |
 | `manifest.config.ts`    | Extension permissions, content scripts |
+| `src/background.ts`     | Background service worker RPC endpoint |
 | `src/content/main.tsx`  | Content script entry (injected)        |
 | `src/popup/App.tsx`     | Popup UI with port connection          |
 | `src/sidepanel/App.tsx` | Side panel UI                          |
@@ -56,17 +58,16 @@ chrome-extension/
 
 ```typescript
 // Content script
-import { ChromePortIO, RPCChannel } from "kkrpc/chrome-extension"
+import { RPCChannel } from "kkrpc/browser"
+import { chromePortTransport } from "kkrpc/chrome-extension"
 
-const port = chrome.runtime.connect({ name: "content-to-popup" })
-const io = new ChromePortIO(port)
-const rpc = new RPCChannel(io, { expose: contentAPI })
-const popupAPI = rpc.getAPI()
+const port = chrome.runtime.connect({ name: "content" })
+const rpc = new RPCChannel(chromePortTransport(port), { expose: contentAPI })
+const backgroundAPI = rpc.getAPI()
 
-// Popup
+// Background service worker
 chrome.runtime.onConnect.addListener((port) => {
-	const io = new ChromePortIO(port)
-	const rpc = new RPCChannel(io, { expose: popupAPI })
+	new RPCChannel(chromePortTransport(port), { expose: backgroundAPI })
 })
 ```
 
@@ -86,7 +87,7 @@ pnpm dev
 
 ## NOTES
 
-- Uses `ChromePortIO` adapter for `chrome.runtime.Port`
+- Uses `chromePortTransport()` for `chrome.runtime.Port`
 - CRXJS plugin auto-generates manifest from config
 - Content scripts injected into matched pages
 - Ports provide long-lived bidirectional channels

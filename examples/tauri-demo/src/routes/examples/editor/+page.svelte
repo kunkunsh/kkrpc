@@ -7,7 +7,8 @@
 	import CodeBlock from "$lib/components/code-block.svelte"
 	import CodeEditor from "$lib/components/code-editor.svelte"
 	import SelectRuntime from "$lib/components/select-runtime.svelte"
-	import { RPCChannel, TauriShellStdio } from "kkrpc/browser"
+	import { RPCChannel } from "kkrpc"
+	import { tauriShellStdioTransport } from "kkrpc/tauri"
 	import { PersistedState } from "runed"
 	import { onMount } from "svelte"
 	import { toast } from "svelte-sonner"
@@ -40,9 +41,6 @@
 
 	async function runCode() {
 		const cmd = Command.sidecar(`binaries/${currentRuntime}`)
-		cmd.stdout.on("data", (data) => {
-			stdout += data
-		})
 		cmd.stderr.on("data", (data) => {
 			stderr += data
 		})
@@ -60,23 +58,29 @@
 		cmd
 			.spawn()
 			.then((proc) => {
-				const stdio = new TauriShellStdio(cmd.stdout, proc)
+				const stdio = tauriShellStdioTransport({ stdout: cmd.stdout, child: proc })
 				const stdioRPC = new RPCChannel<{}, typeof apiMethods>(stdio, {})
 				const api = stdioRPC.getAPI()
-				return api.eval(code).finally(() => {
-					return proc
-						.kill()
-						.then(() => {
-							console.log("proc killed")
-							toast.info(`Process terminated`)
-						})
-						.catch((err) => {
-							console.error("failed to kill proc", err)
-							toast.error(`Failed to kill proc`, {
-								description: err
+				return api
+					.eval(code)
+					.then((result) => {
+						stdout += result.stdout
+						stderr += result.stderr
+					})
+					.finally(() => {
+						return proc
+							.kill()
+							.then(() => {
+								console.log("proc killed")
+								toast.info(`Process terminated`)
 							})
-						})
-				})
+							.catch((err) => {
+								console.error("failed to kill proc", err)
+								toast.error(`Failed to kill proc`, {
+									description: err
+								})
+							})
+					})
 			})
 			.catch((error) => {
 				console.error("error", error)

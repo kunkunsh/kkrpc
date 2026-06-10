@@ -1,5 +1,6 @@
 import { WebSocketServer } from "ws"
-import { RPCChannel, WebSocketServerIO } from "../../packages/kkrpc/mod.ts"
+import { expose } from "../../packages/kkrpc/src/entries/mod.ts"
+import { webSocketTransport } from "../../packages/kkrpc/src/entries/ws.ts"
 
 const port = Number(process.env.PORT || 0)
 
@@ -28,14 +29,10 @@ const api = {
 const wss = new WebSocketServer({ port })
 
 wss.on("connection", (ws) => {
-	const io = new WebSocketServerIO(ws as unknown as WebSocket)
-	const rpc = new RPCChannel(io, {
-		expose: api,
-		serialization: { version: "json" }
-	})
+	const controller = expose(api, webSocketTransport(ws))
 
 	ws.on("close", () => {
-		rpc.destroy?.()
+		controller.dispose()
 	})
 })
 

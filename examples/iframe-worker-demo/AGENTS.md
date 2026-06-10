@@ -14,12 +14,12 @@ SvelteKit app demonstrating kkrpc across iframe boundaries and Web Workers. Show
 │  Parent Page (SvelteKit)                                     │
 │  ┌─────────────────┐  postMessage  ┌─────────────────────┐ │
 │  │  Parent RPC     │◄─────────────►│  iframe (child)     │ │
-│  │  (IframeParent) │               │  (IframeChildIO)    │ │
+│  │  iframe parent  │               │  iframe child       │ │
 │  └─────────────────┘               └─────────────────────┘ │
 │                                                              │
 │  ┌─────────────────┐  Worker API  ┌─────────────────────┐  │
 │  │  Worker Parent  │◄────────────►│  Web Worker         │  │
-│  │  (WorkerParent) │               │  (WorkerChildIO)    │  │
+│  │  worker parent  │               │  worker self        │  │
 │  └─────────────────┘               └─────────────────────┘  │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -53,15 +53,19 @@ iframe-worker-demo/
 
 ```typescript
 // Parent
-import { IframeParentIO, RPCChannel } from "kkrpc/browser"
-const io = new IframeParentIO(iframe.contentWindow!)
-const rpc = new RPCChannel(io, { expose: parentAPI })
+import { RPCChannel } from "kkrpc/browser"
+import { iframeParentTransportReady } from "kkrpc/iframe"
+const transport = await iframeParentTransportReady(iframe.contentWindow!, {
+	targetOrigin: window.location.origin
+})
+const rpc = new RPCChannel(transport, { expose: parentAPI })
 const childAPI = rpc.getAPI()
 
 // Child (iframe content)
-import { IframeChildIO, RPCChannel } from "kkrpc/browser"
-const io = new IframeChildIO()
-const rpc = new RPCChannel(io, { expose: childAPI })
+import { RPCChannel } from "kkrpc/browser"
+import { iframeChildTransportReady } from "kkrpc/iframe"
+const transport = await iframeChildTransportReady({ targetOrigin: window.location.origin })
+const rpc = new RPCChannel(transport, { expose: childAPI })
 ```
 
 ## RUNNING
@@ -77,7 +81,7 @@ pnpm test
 
 ## NOTES
 
-- `IframeParentIO` / `IframeChildIO` for cross-frame RPC
-- `WorkerParentIO` / `WorkerChildIO` for Web Worker RPC
+- `iframeParentTransport()` / `iframeChildTransport()` for cross-frame RPC
+- `workerTransport()` / `workerSelfTransport()` for Web Worker RPC
 - Playwright tests verify bidirectional calls
 - Both support transferable objects (ArrayBuffer)

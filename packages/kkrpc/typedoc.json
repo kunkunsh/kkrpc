@@ -1,19 +1,19 @@
 {
 	"$schema": "https://typedoc.org/schema.json",
 	"entryPoints": [
-		"mod.ts",
-		"browser-mod.ts",
-		"http.ts",
-		"chrome-extension.ts",
-		"deno-mod.ts",
-		"socketio.ts",
-		"rabbitmq.ts",
-		"kafka.ts",
-		"redis-streams.ts",
-		"nats.ts",
-		"electron.ts",
-		"electron-ipc.ts",
-		"inspector.ts"
+		"src/entries/mod.ts",
+		"src/entries/browser-mod.ts",
+		"src/entries/http.ts",
+		"src/entries/chrome-extension.ts",
+		"src/entries/deno-mod.ts",
+		"src/entries/socketio.ts",
+		"src/entries/rabbitmq.ts",
+		"src/entries/kafka.ts",
+		"src/entries/redis-streams.ts",
+		"src/entries/nats.ts",
+		"src/entries/electron.ts",
+		"src/entries/tauri.ts",
+		"src/entries/inspector.ts"
 	],
 	"visibilityFilters": {
 		"protected": false,

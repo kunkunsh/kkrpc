@@ -1,4 +1,4 @@
-# kkrpc Cross-Language Interop (Draft)
+# kkrpc Cross-Language Interop
 
 This folder provides a **JSON-only** interoperability layer so non-JS runtimes can
 speak to a TypeScript kkrpc endpoint over line-delimited JSON (stdio) or WebSocket.
@@ -9,43 +9,40 @@ speak to a TypeScript kkrpc endpoint over line-delimited JSON (stdio) or WebSock
   - **stdio**: newline-delimited UTF-8 JSON strings.
   - **ws**: text frames containing the same JSON payloads (newline suffix optional).
 - **Serialization**:
-  - `version: "json"` indicates plain JSON.
+  - Stable JS transports exchange compact JSON `RPCMessage` records.
   - SuperJSON messages start with `{ "json": ... }` and are parsed by JS/TS; other runtimes
-    can choose to ignore or only implement `version: "json"`.
+    can choose to implement only the compact JSON protocol first.
 - **Message shape**:
 
 ```json
 {
+	"t": "q",
 	"id": "<random-id>",
-	"method": "math.add",
-	"args": [1, 2],
-	"type": "request",
-	"version": "json",
-	"callbackIds": ["<optional-callback-id>"]
+	"op": "call",
+	"p": ["math", "add"],
+	"a": [1, 2]
 }
 ```
 
 ### Message Types
 
-| type        | Required fields                     | Notes                               |
-| ----------- | ----------------------------------- | ----------------------------------- |
-| `request`   | `id`, `method`, `args`              | Remote function call.               |
-| `response`  | `id`, `args.result` or `args.error` | Returned by server or client.       |
-| `callback`  | `method` (callback id), `args`      | Invokes a previously sent callback. |
-| `get`       | `id`, `path`                        | Property read.                      |
-| `set`       | `id`, `path`, `value`               | Property write.                     |
-| `construct` | `id`, `method`, `args`              | Remote constructor call.            |
+| Tag  | Required fields  | Notes                                            |
+| ---- | ---------------- | ------------------------------------------------ |
+| `q`  | `id`, `op`, `p`  | Request. `op` is `call`, `get`, `set`, or `new`. |
+| `r`  | `id`, `v` or `e` | Response. Errors use `{ n, m, s? }`.             |
+| `cb` | `id`, `a`        | Invokes a previously sent callback.              |
 
 ### Callback Encoding
 
-If an argument is a callable, it is replaced by a string marker:
+If an argument is a callable, it is replaced by an object marker:
 
-```
-"__callback__<callback-id>"
+```json
+{ "__kkrpc_next_arg__": "callback", "id": "<callback-id>" }
 ```
 
-The receiver stores a callback map keyed by `<callback-id>` and sends a `callback`
-message when invoked.
+The receiver stores a callback map keyed by `<callback-id>` and sends a `t: "cb"`
+message when invoked. JS callbacks may wrap non-callback values as
+`{ "__kkrpc_next_arg__": "value", "v": ... }`; non-JS runtimes should unwrap that shape.
 
 ## Implementations
 
@@ -153,11 +150,11 @@ cargo test
 
 ### Node Test Servers
 
-- `interop/node/server.ts` exposes `math.add`, `echo`, and `withCallback` using JSON mode.
+- `interop/node/server.ts` exposes `math.add`, `echo`, and `withCallback` using the stable protocol.
 - `interop/node/ws-server.ts` exposes the same API over WebSocket.
 
 ## Design Notes
 
 - This draft intentionally **omits transfer slots** and structured clone support.
-- Cross-language targets should start with `version: "json"` and add SuperJSON support later
+- Cross-language targets should start with the compact JSON protocol and add richer codecs later
   if needed.

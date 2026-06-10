@@ -1,22 +1,28 @@
-import crxLogo from "@/assets/crx.svg"
-import reactLogo from "@/assets/react.svg"
-import viteLogo from "@/assets/vite.svg"
-import HelloWorld from "@/components/HelloWorld"
+import { RPCChannel } from "kkrpc/browser"
+import { chromePortTransport } from "kkrpc/chrome-extension"
+import { useEffect, useState } from "react"
+import type { BackgroundAPI, ContentAPI } from "../rpc"
 import "./App.css"
 
 export default function App() {
+	const [message, setMessage] = useState("Connecting with kkrpc...")
+
+	useEffect(() => {
+		const port = chrome.runtime.connect({ name: "popup" })
+		const rpc = new RPCChannel<ContentAPI, BackgroundAPI>(chromePortTransport(port))
+		rpc
+			.getAPI()
+			.ping("popup")
+			.then(setMessage)
+			.catch((error: unknown) => setMessage(error instanceof Error ? error.message : String(error)))
+
+		return () => rpc.destroy()
+	}, [])
+
 	return (
-		<div>
-			<a href="https://vite.dev" target="_blank" rel="noreferrer">
-				<img src={viteLogo} className="logo" alt="Vite logo" />
-			</a>
-			<a href="https://reactjs.org/" target="_blank" rel="noreferrer">
-				<img src={reactLogo} className="logo react" alt="React logo" />
-			</a>
-			<a href="https://crxjs.dev/vite-plugin" target="_blank" rel="noreferrer">
-				<img src={crxLogo} className="logo crx" alt="crx logo" />
-			</a>
-			<HelloWorld msg="Vite + React + CRXJS" />
+		<div className="card">
+			<h1>kkrpc Chrome Port Demo</h1>
+			<p>{message}</p>
 		</div>
 	)
 }

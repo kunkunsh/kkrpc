@@ -72,11 +72,12 @@ pnpm tauri dev
 
 ```typescript
 import { Command } from "@tauri-apps/plugin-shell"
-import { RPCChannel, TauriShellStdio } from "kkrpc/browser"
+import { RPCChannel } from "kkrpc"
+import { tauriShellStdioTransport } from "kkrpc/tauri"
 
 const cmd = Command.create("deno", ["run", "backend/deno.ts"])
 const process = await cmd.spawn()
-const stdio = new TauriShellStdio(cmd.stdout, process)
+const stdio = tauriShellStdioTransport({ stdout: cmd.stdout, child: process })
 const channel = new RPCChannel(stdio, { expose: { sendNotification } })
 const api = channel.getAPI()
 
@@ -101,7 +102,7 @@ export const api = {
 
 ## NOTES
 
-- Uses `TauriShellStdio` adapter for stdin/stdout communication
+- Uses `tauriShellStdioTransport` for stdin/stdout communication
 - Supports Bun, Deno, and Node.js runtimes
 - Sidecars can be bundled (binaries/) or system-installed
 - ~60MB bundle size when including runtime binary

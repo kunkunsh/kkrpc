@@ -1,38 +1,40 @@
-# sv
+# iframe + Web Worker kkrpc Demo
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+This SvelteKit example demonstrates `kkrpc` communication across iframe boundaries and browser Web Workers.
 
-## Creating a project
+## Manual Testing
 
-If you're seeing this, you've probably already done this step. Congrats!
-
-```bash
-# create a new project in the current directory
-npx sv create
-
-# create a new project in my-app
-npx sv create my-app
-```
-
-## Developing
-
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+### Start The App
 
 ```bash
-npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
+pnpm install
+pnpm dev -- --open
 ```
 
-## Building
+### What To Verify
 
-To create a production version of your app:
+- The browser opens the SvelteKit app.
+- The iframe demo can call methods exposed by the parent page and the parent can call methods exposed by the iframe.
+- The Web Worker demo can call worker methods and receive responses.
+- Browser DevTools should not show unhandled `postMessage` or worker errors.
+
+### Automated Smoke Tests
 
 ```bash
-npm run build
+pnpm test
+pnpm test:e2e
 ```
 
-You can preview the production build with `npm run preview`.
+`pnpm test` runs unit tests. `pnpm test:e2e` runs Playwright tests against the browser flow.
 
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+### Build Check
+
+```bash
+pnpm check-types
+pnpm build
+```
+
+### Troubleshooting
+
+- If Playwright browsers are missing, install them with `pnpm exec playwright install` from this example directory.
+- If iframe calls fail, check that the app is served from the Vite dev server rather than opened as a local file.

@@ -4,7 +4,7 @@ transition: slide-left
 
 # Quick Example
 
-## Node.js to Deno via stdio
+## Node.js child process via stdio
 
 ````md magic-move {lines: true}
 ```ts
@@ -16,8 +16,9 @@ export type API = {
 ```
 
 ```ts
-// server.ts - Deno process
-import { DenoIo, RPCChannel } from "kkrpc"
+// server.ts - child process
+import { RPCChannel } from "kkrpc"
+import { nodeStdioTransport } from "kkrpc/stdio"
 import type { API } from "./api.ts"
 
 const api: API = {
@@ -25,19 +26,22 @@ const api: API = {
 	greet: (name) => Promise.resolve(`Hello, ${name}!`)
 }
 
-const io = new DenoIo(Deno.stdin.readable)
-const rpc = new RPCChannel(io, { expose: api })
+const rpc = new RPCChannel(nodeStdioTransport(), { expose: api })
 ```
 
 ```ts
 // client.ts - Node.js process
-import { spawn } from "child_process"
-import { NodeIo, RPCChannel } from "kkrpc"
+import { spawn } from "node:child_process"
+import { RPCChannel } from "kkrpc"
+import { stdioJsonTransport } from "kkrpc/stdio"
 import type { API } from "./api.ts"
 
-const worker = spawn("deno", ["run", "server.ts"])
-const io = new NodeIo(worker.stdout, worker.stdin)
-const rpc = new RPCChannel<{}, API>(io)
+const worker = spawn("node", ["server.js"], { stdio: ["pipe", "pipe", "inherit"] })
+const transport = stdioJsonTransport({
+	readable: worker.stdout!,
+	writable: worker.stdin!
+})
+const rpc = new RPCChannel<object, API>(transport)
 const api = rpc.getAPI()
 
 // Type-safe calls!
@@ -47,11 +51,11 @@ console.log(await api.greet("World")) // Hello, World!
 ````
 
 <!--
-Here's a complete example showing Node.js talking to Deno via stdio.
+Here's a complete example showing Node.js talking to a child process via stdio.
 
-First, define your API types. Then implement on the server side - this is Deno exposing the API.
+First, define your API types. Then implement on the server side - this is the child process exposing the API.
 
-On the client side - Node.js spawns the Deno process and gets a fully typed API proxy.
+On the client side - Node.js spawns the process and gets a fully typed API proxy.
 
 That's it. No boilerplate, no handlers, just type-safe function calls.
 -->

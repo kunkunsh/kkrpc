@@ -45,15 +45,12 @@ socket.timeout(5000).emit("getUser",
 
 ```ts {*}{maxHeight:'200px'}
 // Client
-import { SocketIOClientIO, RPCChannel } 
-	from "kkrpc/socketio"
+import { wrap } from "kkrpc"
+import { socketIoTransport } from "kkrpc/socketio"
+import { io } from "socket.io-client"
 
-const clientIO = new SocketIOClientIO({
-	url: "http://localhost:3000"
-})
-
-const rpc = new RPCChannel<{}, MathAPI>(clientIO)
-const math = rpc.getAPI()
+const socket = io("http://localhost:3000")
+const math = wrap<MathAPI>(socketIoTransport(socket))
 
 // Type-safe function calls!
 const sum = await math.add(5, 3)
@@ -64,18 +61,14 @@ const product = await math.grade2.multiply(4, 6)
 // Server
 import { createServer } from "http"
 import { Server as SocketIOServer } from "socket.io"
-import { SocketIOServerIO, RPCChannel } 
-	from "kkrpc/socketio"
+import { expose } from "kkrpc"
+import { socketIoTransport } from "kkrpc/socketio"
 
 const httpServer = createServer()
 const io = new SocketIOServer(httpServer)
 
 io.on("connection", (socket) => {
-  const serverIO = new SocketIOServerIO(socket)
-  const rpc = new RPCChannel<MathAPI, {}>(
-    serverIO, 
-    { expose: mathApiMethods }
-  )
+  expose(mathApi, socketIoTransport(socket))
 })
 
 httpServer.listen(3000)
@@ -88,7 +81,7 @@ With kkRPC over Socket.IO:
 - Event names become function calls with full TypeScript autocomplete
 - Automatic acknowledgements handled by RPC layer
 - Bidirectional - both client and server can expose APIs
-- Server creates SocketIOServerIO from the socket and wraps with RPCChannel
+- Server exposes the API over a Socket.IO-backed transport
 - Supports Socket.IO features like namespaces, rooms, auto-reconnection
 - Error preservation across the wire
 

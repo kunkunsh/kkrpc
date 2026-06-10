@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import Any, Callable, Dict, Iterable, List, Optional
 
 from .adapters.base import Transport
-from .protocol import CALLBACK_PREFIX, decode_message, encode_message, generate_uuid
+from .protocol import ARG_ENVELOPE_TAG, decode_message, encode_message, generate_uuid
 
 
 class RpcError(RuntimeError):
@@ -29,7 +29,7 @@ class RpcClient:
 		self._reader_thread.start()
 
 	def call(self, method: str, *args: Any) -> Any:
-		return self._send_request("request", method=method, args=list(args))
+		return self._send_request("call", path=method.split("."), args=list(args))
 
 	def get(self, path: Iterable[str]) -> Any:
 		return self._send_request("get", path=list(path))
@@ -38,15 +38,14 @@ class RpcClient:
 		return self._send_request("set", path=list(path), value=value)
 
 	def construct(self, method: str, *args: Any) -> Any:
-		return self._send_request("construct", method=method, args=list(args))
+		return self._send_request("new", path=method.split("."), args=list(args))
 
 	def close(self) -> None:
 		self._transport.close()
 
 	def _send_request(
 		self,
-		message_type: str,
-		method: str = "",
+		op: str,
 		args: Optional[List[Any]] = None,
 		path: Optional[List[str]] = None,
 		value: Any = None
@@ -54,33 +53,27 @@ class RpcClient:
 		request_id = generate_uuid()
 		pending = PendingRequest(queue=queue.Queue(maxsize=1))
 		self._pending[request_id] = pending
-		callback_ids: List[str] = []
-
 		processed_args: List[Any] = []
 		if args is not None:
 			for arg in args:
 				if callable(arg):
 					callback_id = generate_uuid()
 					self._callbacks[callback_id] = arg
-					callback_ids.append(callback_id)
-					processed_args.append(f"{CALLBACK_PREFIX}{callback_id}")
+					processed_args.append({ARG_ENVELOPE_TAG: "callback", "id": callback_id})
 				else:
 					processed_args.append(arg)
 
 		payload: Dict[str, Any] = {
+			"t": "q",
 			"id": request_id,
-			"method": method,
-			"args": processed_args,
-			"type": message_type,
-			"version": "json"
+			"op": op,
+			"p": path or []
 		}
 
-		if callback_ids:
-			payload["callbackIds"] = callback_ids
-		if path is not None:
-			payload["path"] = path
-		if value is not None:
-			payload["value"] = value
+		if processed_args:
+			payload["a"] = processed_args
+		if op == "set" or value is not None:
+			payload["v"] = value
 
 		self._write_message(payload)
 		response = pending.queue.get()
@@ -108,10 +101,10 @@ class RpcClient:
 			self._handle_message(message)
 
 	def _handle_message(self, message: Dict[str, Any]) -> None:
-		message_type = message.get("type")
-		if message_type == "response":
+		message_type = message.get("t")
+		if message_type == "r":
 			self._handle_response(message)
-		elif message_type == "callback":
+		elif message_type == "cb":
 			self._handle_callback(message)
 
 	def _handle_response(self, message: Dict[str, Any]) -> None:
@@ -119,28 +112,33 @@ class RpcClient:
 		pending = self._pending.pop(request_id, None)
 		if not pending:
 			return
-		args = message.get("args", {})
-		if isinstance(args, dict) and "error" in args:
-			error_value = args.get("error")
+		if "e" in message:
+			error_value = message.get("e")
 			if isinstance(error_value, dict):
 				pending.queue.put(
 					RpcError(
-						error_value.get("message", "RPC error"),
-						name=error_value.get("name"),
+						error_value.get("m", "RPC error"),
+						name=error_value.get("n"),
 						data=error_value
 					)
 				)
 			else:
 				pending.queue.put(RpcError(str(error_value)))
 			return
-		pending.queue.put(args.get("result"))
+		pending.queue.put(message.get("v"))
 
 	def _handle_callback(self, message: Dict[str, Any]) -> None:
-		callback_id = message.get("method")
+		callback_id = message.get("id")
 		callback = self._callbacks.get(callback_id)
 		if not callback:
 			return
-		args = message.get("args")
+		args = message.get("a")
 		if not isinstance(args, list):
 			args = []
-		callback(*args)
+		callback(*[_decode_arg(arg) for arg in args])
+
+
+def _decode_arg(arg: Any) -> Any:
+	if isinstance(arg, dict) and arg.get(ARG_ENVELOPE_TAG) == "value":
+		return arg.get("v")
+	return arg

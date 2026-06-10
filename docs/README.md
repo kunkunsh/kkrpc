@@ -1,55 +1,55 @@
-# Starlight Starter Kit: Basics
+# kkrpc Documentation Site
 
-[![Built with Starlight](https://astro.badg.es/v2/built-with-starlight/tiny.svg)](https://starlight.astro.build)
+This workspace contains the Astro Starlight documentation site for `kkrpc`.
 
-```
-npm create astro@latest -- --template starlight
-```
+Published site: <https://docs.kkrpc.kunkun.sh/>
 
-[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/withastro/starlight/tree/main/examples/basics)
-[![Open with CodeSandbox](https://assets.codesandbox.io/github/button-edit-lime.svg)](https://codesandbox.io/p/sandbox/github/withastro/starlight/tree/main/examples/basics)
-[![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/withastro/starlight&create_from_path=examples/basics)
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fwithastro%2Fstarlight%2Ftree%2Fmain%2Fexamples%2Fbasics&project-name=my-starlight-docs&repository-name=my-starlight-docs)
+## Structure
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
-
-## 🚀 Project Structure
-
-Inside of your Astro + Starlight project, you'll see the following folders and files:
-
-```
-.
-├── public/
-├── src/
-│   ├── assets/
-│   ├── content/
-│   │   ├── docs/
-│   │   └── config.ts
-│   └── env.d.ts
-├── astro.config.mjs
-├── package.json
-└── tsconfig.json
+```text
+docs/
+├── astro.config.mjs          # Starlight config and sidebar
+├── public/                   # Static assets
+├── src/content/docs/         # Markdown and MDX documentation pages
+│   ├── guides/               # Concepts and usage guides
+│   ├── examples/             # Transport-specific examples
+│   ├── reference/            # Protocol and design reference
+│   └── index.mdx             # Landing page
+└── package.json              # Docs scripts and dependencies
 ```
 
-Starlight looks for `.md` or `.mdx` files in the `src/content/docs/` directory. Each file is exposed as a route based on its file name.
+## Commands
 
-Images can be added to `src/assets/` and embedded in Markdown with a relative link.
+Run from the repository root with pnpm filters:
 
-Static assets, like favicons, can be placed in the `public/` directory.
+```bash
+pnpm --filter docs dev
+pnpm --filter docs build
+pnpm --filter docs preview
+```
 
-## 🧞 Commands
+Or run inside `docs/`:
 
-All commands are run from the root of the project, from a terminal:
+```bash
+pnpm dev
+pnpm build
+pnpm preview
+```
 
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `npm install`             | Installs dependencies                            |
-| `npm run dev`             | Starts local dev server at `localhost:4321`      |
-| `npm run build`           | Build your production site to `./dist/`          |
-| `npm run preview`         | Preview your build locally, before deploying     |
-| `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `npm run astro -- --help` | Get help using the Astro CLI                     |
+`pnpm build` runs `astro check` before generating the static site.
 
-## 👀 Want to learn more?
+## Content Guidelines
 
-Check out [Starlight’s docs](https://starlight.astro.build/), read [the Astro documentation](https://docs.astro.build), or jump into the [Astro Discord server](https://astro.build/chat).
+- Document the stable native `Transport<RPCMessage>` API, not removed classic `IoInterface` adapters.
+- Keep import examples aligned with package subpaths such as `kkrpc/ws`, `kkrpc/worker`, `kkrpc/validation`, and `kkrpc/relay`.
+- Mention optional peer dependencies on pages that require them.
+- HTTP examples should be clear that HTTP is unary request/response and does not support callback arguments.
+- Use `kkrpc/browser` for browser-specific examples when that makes the runtime boundary explicit.
+- Generated output in `dist/` should not be edited manually.
+
+## Related Docs
+
+- Package README: `packages/kkrpc/README.md`
+- API reference output: `packages/kkrpc/docs/`
+- Migration guide: `src/content/docs/guides/migration-1-0.md`
+- Examples: `examples/`

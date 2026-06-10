@@ -37,24 +37,26 @@ process.write(
 
 ```ts
 // sidecar.ts - Runs in Deno/Bun/Node
-import { DenoIo, RPCChannel } from "kkrpc"
+import { RPCChannel } from "kkrpc"
+import { nodeStdioTransport } from "kkrpc/stdio"
 import { api } from "./api.ts"
 
-const io = new DenoIo(Deno.stdin.readable)
-const rpc = new RPCChannel(io, { expose: api })
+const rpc = new RPCChannel(nodeStdioTransport(), { expose: api })
 ```
 
 ```ts
 // Frontend - TypeScript with full autocomplete
 import { Command } from "@tauri-apps/plugin-shell"
-import { RPCChannel, TauriShellStdio } from "kkrpc/browser"
+import { RPCChannel } from "kkrpc"
+import { tauriShellStdioTransport } from "kkrpc/tauri"
 import type { api as SidecarAPI } from "./api.ts"
 
 const cmd = Command.create("deno", ["sidecar.ts"])
 const process = await cmd.spawn()
 
-const io = new TauriShellStdio(cmd.stdout, process)
-const rpc = new RPCChannel<{}, typeof SidecarAPI>(io)
+const rpc = new RPCChannel<object, typeof SidecarAPI>(
+	tauriShellStdioTransport({ stdout: cmd.stdout, child: process })
+)
 const api = rpc.getAPI()
 
 await api.greet("World") // Direct function call!

@@ -16,14 +16,14 @@ The demo UI provides three sections demonstrating different RPC patterns:
 
 ### 1. Renderer → Main (kkrpc IPC)
 
-Direct RPC calls from the renderer process to the main process using `ElectronIpcRendererIO`.
+Direct RPC calls from the renderer process to the main process using `electronIpcTransport`.
 
 - **`showNotification("Hello!")`**: Sends a notification message from renderer to main
 - **`getAppVersion()`**: Retrieves the Electron app version from main process
 
 ### 2. Main → Worker (Utility Process)
 
-RPC calls from main process to a utility process (worker) using `ElectronUtilityProcessIO`.
+RPC calls from main process to a utility process (worker) using `electronUtilityProcessTransport`.
 
 - **`add(2, 3)`**: Simple arithmetic operation in worker
 - **`multiply(4, 5)`**: Another arithmetic operation demonstrating stateless calls
@@ -84,10 +84,10 @@ electron-demo/
 │   ├── main.ts          # Main process: sets up both RPC channels
 │   └── preload.ts       # Preload script: exposes ipcRenderer securely
 ├── src/
-│   ├── App.tsx          # React UI: uses ElectronIpcRendererIO
+│   ├── App.tsx          # React UI: uses electronIpcTransport
 │   └── main.tsx         # Entry point
-├── worker.ts            # Utility Process: uses ElectronUtilityProcessChildIO
-├── stdio-worker.ts      # External Node.js Process: uses NodeIo (stdio)
+├── worker.ts            # Utility Process: uses electronUtilityProcessChildTransport
+├── stdio-worker.ts      # External Node.js Process: uses nodeStdioTransport
 └── README.md            # This file
 ```
 
@@ -139,10 +139,10 @@ type MainAPI = {
 }
 
 // Main - expose entire API in one line
-const rpc = new RPCChannel(io, { expose: mainAPI })
+const rpc = new RPCChannel<object, MainAPI>(io, { expose: mainAPI })
 
 // Renderer - get typed API proxy
-const mainAPI = rpc.getAPI<MainAPI>()
+const mainAPI = rpc.getAPI()
 await mainAPI.math.add(1, 2) // Fully typed!
 ```
 
@@ -179,8 +179,8 @@ The stdio worker pattern enables:
 ```typescript
 // Main spawns external process
 const stdioProcess = spawn("node", ["stdio-worker.js"])
-const io = new NodeIo(stdioProcess.stdout, stdioProcess.stdin)
-const stdioRPC = new RPCChannel(io, { expose: mainAPI })
+const stdio = nodeStdioTransport({ readable: stdioProcess.stdout, writable: stdioProcess.stdin })
+const stdioRPC = new RPCChannel(stdio)
 const stdioAPI = stdioRPC.getAPI()
 
 // Main bridges renderer IPC to stdio
@@ -197,18 +197,36 @@ const result = await window.electronAPI.stdio.factorial(5)
 // Goes: Renderer → Main IPC → Main Handler → Stdio RPC → External Process
 ```
 
-## Running the Demo
+## Manual Testing
 
 ```bash
-# Install dependencies
-npm install
-
-# Run in development mode
-npm run dev
-
-# Build for production
-npm run build
+pnpm install
+pnpm dev
 ```
+
+The Electron app should open a React window. Use every button in the demo UI once.
+
+### What To Verify
+
+- Renderer to main calls return values or show notifications.
+- Main to utility process calls return arithmetic results and process info.
+- Worker to main callback calls complete successfully.
+- Stdio relay calls such as factorial, fibonacci, system info, and code execution return output.
+- The terminal running `pnpm dev` does not show unhandled IPC, utility process, or stdio errors.
+
+### Production Build Smoke Test
+
+```bash
+pnpm build
+```
+
+The build should compile TypeScript, build the Vite renderer, and package the Electron app into `release/`.
+
+### Troubleshooting
+
+- If the renderer cannot access `window.electron`, rebuild after checking `electron/preload.ts` and `electron/electron-env.d.ts`.
+- If packaging is unexpectedly huge or slow, make sure generated monorepo cache files are not being bundled.
+- macOS notarization may be skipped in local builds; that is expected for manual testing.
 
 ## Key Implementation Details
 
@@ -230,7 +248,8 @@ interface MainAPI {
 }
 
 // Type-safe usage
-const mainAPI = rpc.getAPI<MainAPI>()
+const rpc = new RPCChannel<object, MainAPI>(transport)
+const mainAPI = rpc.getAPI()
 await mainAPI.showNotification("Hello!") // ✓ TypeScript validates this
 ```
 

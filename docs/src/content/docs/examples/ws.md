@@ -11,9 +11,9 @@ export type API = {
 }
 
 export const apiMethods: API = {
-	add: (a, b, callback) => {
+	add: async (a, b, callback) => {
 		callback?.(a + b)
-		return Promise.resolve(a + b)
+		return a + b
 	}
 }
 ```
@@ -21,33 +21,27 @@ export const apiMethods: API = {
 ### Server
 
 ```ts title="server.ts"
-import { WebSocketClientIO, WebSocketServerIO } from "kkrpc"
+import { expose } from "kkrpc"
+import { webSocketTransport } from "kkrpc/ws"
 import { WebSocketServer } from "ws"
+import { apiMethods } from "./api"
 
-let serverRPC: RPCChannel<API, API>
+const wss = new WebSocketServer({ port: 3000 })
 
-let wss: WebSocketServer = new WebSocketServer({ port: PORT })
-wss.on("connection", (ws: WebSocket) => {
-	const serverIO = new WebSocketServerIO(ws)
-	serverRPC = new RPCChannel<API, API>(serverIO, { expose: apiMethods })
+wss.on("connection", (ws) => {
+	expose(apiMethods, webSocketTransport(ws))
 })
 ```
 
 ### Client
 
 ```ts title="client.ts"
-import { WebSocketClientIO, WebSocketServerIO } from "kkrpc"
+import { wrap } from "kkrpc"
+import { webSocketClientTransport } from "kkrpc/ws"
+import type { API } from "./api"
 
-const clientIO = new WebSocketClientIO({
-	url: `ws://localhost:${PORT}`
-})
-
-const clientRPC = new RPCChannel<API, API, IoInterface>(clientIO, { expose: apiMethods })
-const api = clientRPC.getAPI()
+const api = wrap<API>(webSocketClientTransport("ws://localhost:3000"))
 
 const sum = await api.add(5, 3)
-expect(sum).toBe(8)
-await api.add(10, 20, (sum) => {
-	expect(sum).toBe(30)
-})
+await api.add(10, 20, (value) => console.log(value))
 ```

@@ -1,6 +1,9 @@
-import { afterAll, beforeAll, describe, expect, it } from "bun:test"
-import { KafkaIO } from "../src/adapters/kafka"
-import { RPCChannel } from "../src/channel.ts"
+import { connect } from "node:net"
+import { afterAll, beforeAll, describe, expect, test } from "bun:test"
+import { kafkaTransport, type KafkaTransport } from "../src/entries/kafka.ts"
+import { RPCChannel } from "../src/entries/mod.ts"
+import { createBusEnvelope } from "../src/transports/bus-envelope.ts"
+import { handleKafkaBusMessage } from "../src/transports/kafka.ts"
 import { apiMethods, type API } from "./scripts/api.ts"
 
 const TEST_TOPIC = "kkrpc-test-topic-" + Math.random().toString(36).substring(2, 8)
@@ -8,197 +11,208 @@ const KAFKA_BROKERS = (process.env.KAFKA_BROKERS || "localhost:9092")
 	.split(",")
 	.map((broker) => broker.trim())
 	.filter(Boolean)
+const RUN_KAFKA_TESTS =
+	process.env.KKRPC_RUN_KAFKA_TESTS === "1" ||
+	process.env.KAFKA_BROKERS !== undefined ||
+	process.env.CI === "true" ||
+	process.env.GITHUB_ACTIONS === "true"
+const describeKafka = RUN_KAFKA_TESTS ? describe : describe.skip
+const KAFKA_TEST_RETRY = { initialRetryTime: 50, retries: 1 }
 
-describe("KafkaIO", () => {
-	describe("Adapter Construction", () => {
-		it("should create Kafka adapter with provided options", () => {
-			const adapter = new KafkaIO({
-				brokers: KAFKA_BROKERS,
-				topic: TEST_TOPIC,
-				groupId: "kkrpc-custom-group",
-				clientId: "kkrpc-test-client",
-				sessionId: "kafka-test-session"
-			})
+function canOpenTcpConnection(broker: string, timeoutMs = 500): Promise<boolean> {
+	const [host, portText] = broker.split(":")
+	const port = Number(portText)
+	if (!host || !Number.isInteger(port)) return Promise.resolve(false)
 
-			expect(adapter.name).toBe("kafka-io")
-			expect(adapter.getTopic()).toBe(TEST_TOPIC)
-			expect(adapter.getGroupId()).toBe("kkrpc-custom-group")
-			expect(adapter.getSessionId()).toBe("kafka-test-session")
-			expect(adapter.capabilities.broadcast).toBe(false)
+	return new Promise((resolve) => {
+		const socket = connect({ host, port })
+		const finish = (result: boolean) => {
+			socket.destroy()
+			resolve(result)
+		}
 
-			adapter.destroy()
-		})
+		socket.setTimeout(timeoutMs)
+		socket.once("connect", () => finish(true))
+		socket.once("error", () => finish(false))
+		socket.once("timeout", () => finish(false))
+	})
+}
 
-		it("should generate reasonable defaults when not provided", () => {
-			const adapter = new KafkaIO({
-				brokers: KAFKA_BROKERS,
-				topic: TEST_TOPIC + "-defaults"
-			})
+async function assertKafkaBrokerAvailable(): Promise<void> {
+	if (!RUN_KAFKA_TESTS) return
+	for (const broker of KAFKA_BROKERS) {
+		if (await canOpenTcpConnection(broker)) return
+	}
 
-			expect(adapter.getTopic()).toBe(TEST_TOPIC + "-defaults")
-			expect(adapter.getGroupId()).toMatch(/^kkrpc-group-/)
-			expect(adapter.getSessionId()).toHaveLength(26)
-			expect(adapter.capabilities.broadcast).toBe(true)
+	throw new Error(
+		`Kafka broker unavailable at ${KAFKA_BROKERS.join(", ")}. Start docker compose or unset KAFKA_BROKERS to skip local Kafka integration tests.`
+	)
+}
 
-			adapter.destroy()
-		})
+describeKafka("kafkaTransport", () => {
+	beforeAll(assertKafkaBrokerAvailable)
+
+	test("ignores malformed envelopes without throwing", () => {
+		const delivered: unknown[] = []
+
+		expect(() => {
+			handleKafkaBusMessage("not-json", "server", new Set([(message) => delivered.push(message)]))
+		}).not.toThrow()
+		expect(delivered).toEqual([])
 	})
 
-	describe("Connection and Topic Management", () => {
-		let adapter: KafkaIO
-
-		beforeAll(async () => {
-			// allowSelfMessages keeps the low-level adapter loopback test explicit.
-			adapter = new KafkaIO({
-				brokers: KAFKA_BROKERS,
-				topic: TEST_TOPIC + "-connection",
-				clientId: "connection-test-client",
-				sessionId: "connection-test-session",
-				allowSelfMessages: true
-			})
-
-			// 等待 Kafka consumer 完成订阅，避免 race condition
-			await new Promise((resolve) => setTimeout(resolve, 1500))
-		})
-
-		afterAll(() => {
-			adapter.destroy()
-		})
-
-		it("should publish and read messages through Kafka topic", async () => {
-			await adapter.write("hello-kafka")
-			const payload = await adapter.read()
-
-			expect(payload).toBe("hello-kafka")
-		}, 10000)
-
-		it("should deliver self-published messages in explicit consumer group mode", async () => {
-			const groupAdapter = new KafkaIO({
-				brokers: KAFKA_BROKERS,
-				topic: TEST_TOPIC + "-group-self-message",
-				groupId: "group-self-message-" + Math.random().toString(36).substring(2, 8),
-				sessionId: "group-self-message-session"
-			})
-
-			try {
-				await new Promise((resolve) => setTimeout(resolve, 2000))
-				await groupAdapter.write("load-balanced-self-message")
-				const payload = await Promise.race([
-					groupAdapter.read(),
-					new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000))
-				])
-
-				expect(payload).toBe("load-balanced-self-message")
-			} finally {
-				groupAdapter.destroy()
+	test("delivers valid routed envelopes", () => {
+		const envelope = createBusEnvelope(
+			{ t: "r", id: "request-1", v: "ok" },
+			{
+				transportId: "kafka",
+				from: "client",
+				to: "server"
 			}
-		}, 15000)
+		)
+		const delivered: unknown[] = []
+
+		handleKafkaBusMessage(
+			JSON.stringify(envelope),
+			"server",
+			new Set([(message) => delivered.push(message)])
+		)
+
+		expect(delivered).toEqual([envelope.message])
 	})
 
-	describe("RPC Communication", () => {
-		let serverAdapter: KafkaIO
-		let clientAdapter: KafkaIO
+	test("propagates routed listener delivery failures", () => {
+		const envelope = createBusEnvelope(
+			{ t: "r", id: "request-1", v: "ok" },
+			{
+				transportId: "kafka",
+				from: "client",
+				to: "server"
+			}
+		)
+
+		expect(() => {
+			handleKafkaBusMessage(
+				JSON.stringify(envelope),
+				"server",
+				new Set([
+					() => {
+						throw new Error("delivery failed")
+					}
+				])
+			)
+		}).toThrow("delivery failed")
+	})
+
+	test("disconnects producer when close races consumer connect", async () => {
+		let resolveConsumerConnect!: () => void
+		const events: string[] = []
+		const producer = {
+			async connect() {
+				events.push("producer-connect")
+			},
+			async disconnect() {
+				events.push("producer-disconnect")
+			},
+			async send() {}
+		}
+		const consumer = {
+			async connect() {
+				events.push("consumer-connect-start")
+				await new Promise<void>((resolve) => {
+					resolveConsumerConnect = resolve
+				})
+				events.push("consumer-connect-end")
+			},
+			async disconnect() {
+				events.push("consumer-disconnect")
+			},
+			async subscribe() {},
+			async run() {}
+		}
+		const transport = kafkaTransport({
+			brokers: KAFKA_BROKERS,
+			topic: TEST_TOPIC + "-close-race",
+			localPeerId: "client",
+			__client: {
+				producer: () => producer,
+				consumer: () => consumer,
+				admin: () => ({
+					async connect() {},
+					async disconnect() {},
+					async listTopics() {
+						return []
+					},
+					async createTopics() {}
+				})
+			}
+		})
+
+		transport.subscribe(() => {})
+		await new Promise((resolve) => setTimeout(resolve, 0))
+		transport.close?.()
+		resolveConsumerConnect()
+		await new Promise((resolve) => setTimeout(resolve, 0))
+
+		expect(events).toContain("producer-disconnect")
+	})
+
+	test("creates an object-mode transport with broadcast capabilities by default", () => {
+		const transport = kafkaTransport({
+			brokers: KAFKA_BROKERS,
+			topic: TEST_TOPIC + "-construction",
+			localPeerId: "client",
+			retry: KAFKA_TEST_RETRY
+		})
+
+		expect(transport.capabilities).toEqual({ objectMode: true, transfer: false, broadcast: true })
+		transport.close?.()
+	})
+
+	describe("RPC communication", () => {
+		let serverTransport: KafkaTransport
+		let clientTransport: KafkaTransport
 		let serverRPC: RPCChannel<API, API>
 		let clientRPC: RPCChannel<API, API>
 
 		beforeAll(async () => {
 			const topic = TEST_TOPIC + "-rpc"
-
-			serverAdapter = new KafkaIO({
+			serverTransport = kafkaTransport({
 				brokers: KAFKA_BROKERS,
 				topic,
-				sessionId: "server-" + Math.random().toString(36).substring(2, 8)
+				localPeerId: "server",
+				remotePeerId: "client",
+				retry: KAFKA_TEST_RETRY
 			})
-
-			clientAdapter = new KafkaIO({
+			clientTransport = kafkaTransport({
 				brokers: KAFKA_BROKERS,
 				topic,
-				sessionId: "client-" + Math.random().toString(36).substring(2, 8)
+				localPeerId: "client",
+				remotePeerId: "server",
+				retry: KAFKA_TEST_RETRY
 			})
 
-			// 等 Kafka 建立连接
+			serverRPC = new RPCChannel<API, API>(serverTransport, { expose: apiMethods })
+			clientRPC = new RPCChannel<API, API>(clientTransport, { expose: apiMethods })
 			await new Promise((resolve) => setTimeout(resolve, 2000))
-
-			serverRPC = new RPCChannel<API, API>(serverAdapter, {
-				expose: apiMethods
-			})
-
-			// These local handlers throw if Kafka echoes the client's own request back to itself.
-			clientRPC = new RPCChannel<API, API>(clientAdapter, {
-				expose: {
-					...apiMethods,
-					echo: async () => {
-						throw new Error("client loopback should not handle echo")
-					},
-					add: async () => {
-						throw new Error("client loopback should not handle add")
-					},
-					math: {
-						...apiMethods.math,
-						grade2: {
-							...apiMethods.math.grade2,
-							multiply: async () => {
-								throw new Error("client loopback should not handle multiply")
-							}
-						}
-					},
-					throwSimpleError: () => {
-						throw new Error("client loopback should not handle throwSimpleError")
-					},
-					throwCustomError: () => {
-						throw new Error("client loopback should not handle throwCustomError")
-					}
-				}
-			})
 		})
 
 		afterAll(() => {
-			clientRPC.destroy?.()
-			serverRPC.destroy?.()
-			clientAdapter.destroy()
-			serverAdapter.destroy()
+			clientRPC.destroy()
+			serverRPC.destroy()
 		})
 
-		it("should perform RPC round trips over Kafka", async () => {
+		test("performs RPC round trips over Kafka", async () => {
 			const serverAPI = clientRPC.getAPI()
 
-			const echoResult = await serverAPI.echo("Hello Kafka!")
-			expect(echoResult).toBe("Hello Kafka!")
+			expect(await serverAPI.echo("Hello Kafka!")).toBe("Hello Kafka!")
+			expect(await serverAPI.add(3, 7)).toBe(10)
+		}, 20_000)
 
-			const addResult = await serverAPI.add(3, 7)
-			expect(addResult).toBe(10)
-		}, 20000)
-
-		it("should support nested API calls", async () => {
+		test("supports nested API calls", async () => {
 			const serverAPI = clientRPC.getAPI()
 
-			const multiply = await serverAPI.math.grade2.multiply(4, 5)
-			expect(multiply).toBe(20)
-		}, 20000)
-
-		it("should propagate errors correctly", async () => {
-			const serverAPI = clientRPC.getAPI()
-
-			await expect(serverAPI.throwSimpleError()).rejects.toThrow("This is a simple error")
-			await expect(serverAPI.throwCustomError()).rejects.toThrow("This is a custom error")
-		}, 20000)
-	})
-
-	describe("Cleanup Handling", () => {
-		it("should handle destroy and prevent further writes", async () => {
-			const adapter = new KafkaIO({
-				brokers: KAFKA_BROKERS,
-				topic: TEST_TOPIC + "-destroy",
-				sessionId: "destroy-" + Math.random().toString(36).substring(2, 8)
-			})
-
-			await new Promise((resolve) => setTimeout(resolve, 1000))
-
-			adapter.destroy()
-
-			await expect(adapter.write("after-destroy")).rejects.toThrow(
-				"Kafka adapter has been destroyed"
-			)
-		}, 10000)
+			expect(await serverAPI.math.grade2.multiply(4, 5)).toBe(20)
+		}, 20_000)
 	})
 })

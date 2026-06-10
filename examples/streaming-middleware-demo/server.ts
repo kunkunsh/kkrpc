@@ -1,5 +1,5 @@
 /**
- * Streaming + Middleware demo — WebSocket server.
+ * Middleware demo — WebSocket server.
  *
  * Demonstrates four interceptor patterns:
  *   1. Logging    — logs every RPC call with method name and args
@@ -10,9 +10,11 @@
  * Run with: bun run server.ts
  * Then in another terminal: bun run client.ts
  */
-import { RPCChannel, WebSocketServerIO, type RPCInterceptor } from "kkrpc"
+import { RPCChannel } from "kkrpc"
+import { middlewarePlugin, type MiddlewareHandler } from "kkrpc/middleware"
+import { webSocketTransport } from "kkrpc/ws"
 import { WebSocketServer, type WebSocket } from "ws"
-import { createApi, type StreamingMiddlewareAPI } from "./api.ts"
+import { createApi, type MiddlewareDemoAPI } from "./api.ts"
 
 const PORT = 3100
 
@@ -21,7 +23,7 @@ const PORT = 3100
 /**
  * Logging interceptor — logs method name and stringified args.
  */
-const logger: RPCInterceptor = async (ctx, next) => {
+const logger: MiddlewareHandler = async (ctx, next) => {
 	const argsStr = ctx.args
 		.map((a) => (typeof a === "object" ? JSON.stringify(a) : String(a)))
 		.join(", ")
@@ -33,7 +35,7 @@ const logger: RPCInterceptor = async (ctx, next) => {
  * Timing interceptor — measures wall-clock time for handler execution.
  * Wraps `next()` so it captures time spent in all downstream interceptors + the handler.
  */
-const timing: RPCInterceptor = async (ctx, next) => {
+const timing: MiddlewareHandler = async (ctx, next) => {
 	const start = performance.now()
 	const result = await next()
 	const elapsed = (performance.now() - start).toFixed(1)
@@ -51,7 +53,7 @@ const timing: RPCInterceptor = async (ctx, next) => {
 function createAuthInterceptor(session: {
 	authenticated: boolean
 	username: string
-}): RPCInterceptor {
+}): MiddlewareHandler {
 	const protectedMethods = new Set(["getSecretData"])
 
 	return async (ctx, next) => {
@@ -68,7 +70,7 @@ function createAuthInterceptor(session: {
  * Tracks call timestamps in a window. If the number of calls within the
  * window exceeds `max`, the call is rejected immediately with an error.
  */
-function createRateLimiter(max: number, windowMs: number = 1000): RPCInterceptor {
+function createRateLimiter(max: number, windowMs: number = 1000): MiddlewareHandler {
 	const calls: number[] = []
 
 	return async (ctx, next) => {
@@ -98,14 +100,13 @@ wss.on("connection", (ws: WebSocket) => {
 	const auth = createAuthInterceptor(session)
 	const rateLimiter = createRateLimiter(5) // 5 calls per second
 
-	const io = new WebSocketServerIO(ws)
-	new RPCChannel<StreamingMiddlewareAPI, {}>(io, {
+	new RPCChannel<MiddlewareDemoAPI, {}>(webSocketTransport(ws), {
 		expose: api,
 		// Onion order: logger → timing → auth → rateLimiter → handler
 		// Logger is outermost so it logs everything including rejected calls.
 		// Timing wraps auth + handler so it measures total including auth check.
 		// Auth runs before rate limiter so unauthorized calls don't consume quota.
-		interceptors: [logger, timing, auth, rateLimiter]
+		plugins: [middlewarePlugin([logger, timing, auth, rateLimiter])]
 	})
 
 	ws.on("close", () => {
@@ -113,5 +114,5 @@ wss.on("connection", (ws: WebSocket) => {
 	})
 })
 
-console.log(`[server] Streaming + Middleware demo listening on ws://localhost:${PORT}`)
+console.log(`[server] Middleware demo listening on ws://localhost:${PORT}`)
 console.log(`[server] Interceptors: logger → timing → auth → rateLimiter`)

@@ -9,7 +9,12 @@ import { name, version } from "./package.json"
 export default defineConfig({
 	resolve: {
 		alias: {
-			"@": `${path.resolve(__dirname, "src")}`
+			"@": `${path.resolve(__dirname, "src")}`,
+			"kkrpc/browser": path.resolve(__dirname, "../../packages/kkrpc/src/entries/browser-mod.ts"),
+			"kkrpc/chrome-extension": path.resolve(
+				__dirname,
+				"../../packages/kkrpc/src/entries/chrome-extension.ts"
+			)
 		}
 	},
 	plugins: [

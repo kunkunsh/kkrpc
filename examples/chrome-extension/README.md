@@ -1,6 +1,6 @@
-# React + Vite + CRXJS
+# Chrome Extension kkrpc Demo
 
-This template helps you quickly start developing Chrome extensions with React, TypeScript and Vite. It includes the CRXJS Vite plugin for seamless Chrome extension development.
+This example demonstrates `kkrpc` communication between a Chrome extension popup, side panel, background service worker, and content script using Chrome runtime ports.
 
 ## Features
 
@@ -10,27 +10,45 @@ This template helps you quickly start developing Chrome extensions with React, T
 - CRXJS Vite plugin integration
 - Chrome extension manifest configuration
 
-## Quick Start
+## Manual Testing
 
-1. Install dependencies:
-
-```bash
-npm install
-```
-
-2. Start development server:
+### Build The Extension
 
 ```bash
-npm run dev
+pnpm install
+pnpm build
 ```
 
-3. Open Chrome and navigate to `chrome://extensions/`, enable "Developer mode", and load the unpacked extension from the `dist` directory.
+### Load It In Chrome
 
-4. Build for production:
+1. Open `chrome://extensions`.
+2. Enable `Developer mode`.
+3. Click `Load unpacked`.
+4. Select `examples/chrome-extension/dist`.
+5. Open any normal web page, then open the extension popup or side panel.
+
+### What To Verify
+
+- The extension loads without errors in `chrome://extensions`.
+- The popup and side panel render the React UI.
+- RPC calls between the popup or side panel and the content script complete and update the UI.
+- The extension service worker console does not show unhandled kkrpc errors.
+
+### Development Mode
+
+For iterative testing, run:
 
 ```bash
-npm run build
+pnpm dev
 ```
+
+Then reload the extension from `chrome://extensions` after source changes.
+
+### Troubleshooting
+
+- If Chrome says the manifest is missing, make sure you selected the `dist` folder, not the project folder.
+- If UI changes do not appear, click the reload button for the extension on `chrome://extensions`.
+- Content scripts usually do not run on Chrome internal pages such as `chrome://extensions`.
 
 ## Project Structure
 

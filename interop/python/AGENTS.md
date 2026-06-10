@@ -71,11 +71,13 @@ result = client.call("math.add", 1, 2)
 from kkrpc import RpcServer, StdioTransport
 
 api = {
-    "math.add": lambda args: args[0] + args[1],
-    "echo": lambda args: args[0],
+    "math": {
+        "add": lambda a, b: a + b,
+    },
+    "echo": lambda value: value,
 }
 server = RpcServer(StdioTransport.from_stdio(), api)
-server.serve_forever()
+# Reader thread starts immediately. Call server.close() during shutdown.
 ```
 
 ## CONVENTIONS
@@ -103,8 +105,8 @@ pytest --cov=kkrpc tests/
 - Python 3.12+ required
 - No external runtime dependencies
 - WebSocket uses stdlib-only RFC6455 implementation
-- Callbacks encoded as `__callback__<id>` strings
-- Compatible with kkrpc `serialization.version = "json"`
+- Callbacks use `{ "__kkrpc_next_arg__": "callback", "id": "..." }` marker objects
+- Compatible with kkrpc's stable compact JSON `RPCMessage` protocol
 
 ## TESTING
 

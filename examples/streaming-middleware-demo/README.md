@@ -1,67 +1,49 @@
-# Streaming + Middleware Demo
+# Middleware Demo
 
-Demonstrates kkrpc's AsyncIterable streaming and interceptor middleware over WebSocket.
+Demonstrates kkrpc middleware over WebSocket with stable request/response APIs.
 
-## What it shows
+Stable kkrpc does not currently expose first-class remote iterator streaming. Until native streaming is added with protocol and test coverage, model continuous work with callbacks, evented transports, or explicit chunk/result arrays.
 
-### Middleware (interceptors)
+## What It Shows
 
-- **Logging** — logs every RPC call with method name and args
-- **Timing** — measures and prints execution time per call
-- **Auth** — per-connection session; protected methods reject with "Unauthorized" until `login()` is called
-- **Rate limiting** — sliding-window counter (5 calls/sec); excess calls rejected with error
+### Middleware
 
-### Streaming (AsyncIterable)
+- **Logging**: logs every RPC call with method name and args
+- **Timing**: measures and prints execution time per call
+- **Auth**: per-connection session; protected methods reject until `login()` succeeds
+- **Rate limiting**: sliding-window counter; excess calls reject with an error
 
-- **Countdown** — finite stream, values arrive one per second
-- **Log tail** — infinite stream, consumer cancels with `break`
-- **Progress tracker** — structured data stream reporting task progress
-- **Concurrent streams** — two streams running in parallel over one connection
-- **Coexistence** — regular request/response calls work alongside streams
+### Stable Continuous-Work Patterns
 
-## Run
+- **Countdown**: returns a `number[]`
+- **Logs**: returns an array of log records
+- **Task progress**: returns an array of progress records
+- **Progress callback**: reports task progress through a callback argument
 
-### Option 1: `ws` library (works with Node.js, Bun, Deno)
+## Manual Testing
+
+### ws library server
 
 ```bash
-# Terminal 1 — start the server
 bun run server.ts
-
-# Terminal 2 — run the client
 bun run client.ts
 ```
 
-### Option 2: Bun native WebSocket (Bun only)
+### Bun native WebSocket server
 
 ```bash
-# Terminal 1 — start the Bun native server
 bun run server-bun.ts
-
-# Terminal 2 — run the client (same client works with both servers)
 bun run client.ts
 ```
 
-Both servers are interchangeable — the client connects to `ws://localhost:3100` and works the same way.
+Both servers listen on `ws://localhost:3100`.
 
-## How middleware works in kkrpc
+## Middleware Model
 
-Interceptors follow the **onion model** (like Koa, tRPC). Each interceptor wraps the next, and the innermost layer is the actual handler.
+Middleware handlers follow the onion model. Each handler receives `(ctx, next)`, can inspect or change `ctx.args`, can call `next()` to proceed, can transform the return value, or can throw to reject the RPC call.
 
+```text
+logger -> timing -> auth -> rateLimiter -> handler
 ```
-logger → timing → auth → rateLimiter → handler
-```
 
-- Interceptors receive `(ctx, next)` where `ctx` has `method`, `args`, and a shared `state` bag
-- Call `next()` to proceed; skip it to short-circuit (e.g., auth rejection)
-- Transform the return value to modify responses
-- Throw to abort the call — the error propagates to the client
-
-Per-connection state (like auth sessions) is achieved via closure scope — each connection creates its own interceptor instances.
-
-## How streaming works in kkrpc
-
-1. Server method returns an `AsyncIterable` (async generator)
-2. kkrpc detects it and sends chunks over the wire as `stream-chunk` messages
-3. Client receives an `AsyncIterable` and reads it with `for await...of`
-4. `break` sends `stream-cancel` back to stop the producer
-5. Errors in the generator propagate to the consumer
+Per-connection state, such as auth sessions, is stored in closure scope when each WebSocket connection creates its own API and middleware instances.

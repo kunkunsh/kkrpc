@@ -2,8 +2,8 @@ use kkrpc::{Arg, Client, WebSocketTransport};
 use serde_json::json;
 use std::io::{BufRead, BufReader};
 use std::process::{Command, Stdio};
-use std::sync::mpsc;
 use std::sync::Arc;
+use std::sync::mpsc;
 use std::time::Duration;
 
 #[test]

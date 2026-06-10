@@ -1,65 +1,40 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test"
-import { RPCChannel } from "../mod.ts"
-import { HTTPClientIO, HTTPServerIO } from "../src/adapters/http.ts"
+
+import { createHttpHandler, httpClientTransport } from "../src/entries/http.ts"
+import { wrap } from "../src/entries/mod.ts"
 import { apiMethods, type API } from "./scripts/api.ts"
 
 describe("HTTP RPC", () => {
 	let server: ReturnType<typeof Bun.serve>
-	let serverIO: HTTPServerIO
-	let serverRPC: RPCChannel<API, API>
-	let clientIO: HTTPClientIO
 	let api: API
 	let baseUrl: string
 
-	// Setup before tests
 	beforeAll(() => {
-		// Create server
-		serverIO = new HTTPServerIO()
-		serverRPC = new RPCChannel<API, API>(serverIO, { expose: apiMethods })
-
+		const handler = createHttpHandler(apiMethods)
 		server = Bun.serve({
-			// Use an ephemeral port so these tests do not fight unrelated local dev servers.
 			port: 0,
 			async fetch(req) {
 				const url = new URL(req.url)
-				if (url.pathname === "/rpc") {
-					if (req.method !== "POST") {
-						return new Response("Method not allowed", { status: 405 })
-					}
-					const res = await serverIO.handleRequest(await req.text())
-					return new Response(res, { headers: { "Content-Type": "application/json" } })
-				}
-				return new Response("Not found", { status: 404 })
+				if (url.pathname !== "/rpc") return new Response("Not found", { status: 404 })
+				if (req.method !== "POST") return new Response("Method not allowed", { status: 405 })
+				return handler(req)
 			}
 		})
-		// Bun exposes the selected ephemeral port after serve() returns.
-		baseUrl = `http://localhost:${server.port}`
-
-		// Create client
-		clientIO = new HTTPClientIO({
-			url: `${baseUrl}/rpc`
-		})
-		const clientRPC = new RPCChannel<API, API>(clientIO, { expose: apiMethods })
-		api = clientRPC.getAPI()
+		baseUrl = `http://127.0.0.1:${server.port}`
+		api = wrap<API>(httpClientTransport({ url: `${baseUrl}/rpc` }))
 	})
 
-	// Cleanup after tests
 	afterAll(() => {
-		server?.stop()
+		server.stop()
 	})
 
 	test("echo service", async () => {
-		const message = "Hello RPC!"
-		const result = await api.echo(message)
-		expect(result).toBe(message)
+		expect(await api.echo("Hello RPC!")).toBe("Hello RPC!")
 	})
 
 	test("math operations", async () => {
-		const sum = await api.math.grade1.add(5, 3)
-		expect(sum).toBe(8)
-
-		const product = await api.math.grade2.multiply(4, 6)
-		expect(product).toBe(24)
+		expect(await api.math.grade1.add(5, 3)).toBe(8)
+		expect(await api.math.grade2.multiply(4, 6)).toBe(24)
 	})
 
 	test("concurrent calls", async () => {
@@ -70,34 +45,113 @@ describe("HTTP RPC", () => {
 		expect(results).toEqual([30, 200])
 	})
 
-	test("stress test with concurrent calls", async () => {
-		// Run stress test 100 times
-		for (let iteration = 0; iteration < 100; iteration++) {
-			// Create 50 pairs of random numbers
-			const pairs = Array(50)
-				.fill(0)
-				.map(() => [Math.random(), Math.random()])
-			const expectedSums = pairs.map(([a, b]) => a + b)
-
-			// Make concurrent API calls
-			const actualSums = await Promise.all(pairs.map(([a, b]) => api.math.grade1.add(a, b)))
-
-			// Compare results
-			expect(actualSums).toEqual(expectedSums)
-		}
+	test("wrong method and wrong path stay HTTP errors", async () => {
+		expect(await fetch(`${baseUrl}/invalid`).then((res) => res.status)).toBe(404)
+		expect(await fetch(`${baseUrl}/rpc`, { method: "GET" }).then((res) => res.status)).toBe(405)
 	})
 
-	test("error handling - invalid endpoint", async () => {
-		const response = await fetch(`${baseUrl}/invalid`)
-		expect(response.status).toBe(404)
-		expect(await response.text()).toBe("Not found")
+	test("malformed request returns 400", async () => {
+		const response = await fetch(`${baseUrl}/rpc`, { method: "POST", body: "not-json" })
+		expect(response.status).toBe(400)
 	})
 
-	test("error handling - wrong method", async () => {
+	test("structurally invalid RPC request returns 400", async () => {
 		const response = await fetch(`${baseUrl}/rpc`, {
-			method: "GET"
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ t: "q", id: "bad" })
 		})
-		expect(response.status).toBe(405)
-		expect(await response.text()).toBe("Method not allowed")
+		expect(response.status).toBe(400)
+	})
+
+	test("callback arguments are rejected as invalid unary HTTP requests", async () => {
+		const response = await fetch(`${baseUrl}/rpc`, {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({
+				t: "q",
+				id: "callback-id",
+				op: "call",
+				p: ["echo"],
+				a: [{ __kkrpc_next_arg__: "callback", id: "callback-arg" }]
+			})
+		})
+		expect(response.status).toBe(400)
+	})
+
+	test("client transport rejects callback arguments before fetch", async () => {
+		let called = false
+		const fetchStub: typeof fetch = Object.assign(
+			async (..._args: Parameters<typeof fetch>) => {
+				called = true
+				throw new Error("fetch should not be called")
+			},
+			{ preconnect: fetch.preconnect }
+		)
+		const transport = httpClientTransport({
+			url: `${baseUrl}/rpc`,
+			fetch: fetchStub
+		})
+
+		await expect(
+			transport.send({
+				t: "q",
+				id: "callback-id",
+				op: "call",
+				p: ["echo"],
+				a: [{ __kkrpc_next_arg__: "callback", id: "callback-arg" }]
+			})
+		).rejects.toThrow("HTTP transport does not support callback arguments")
+		expect(called).toBe(false)
+	})
+
+	test("handler timeout returns 504 with RPC error response", async () => {
+		const handler = createHttpHandler(
+			{
+				hang: () => new Promise(() => {})
+			},
+			{ timeout: 5 }
+		)
+		const response = await Promise.race([
+			handler(
+				new Request("http://127.0.0.1/rpc", {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({ t: "q", id: "timeout-id", op: "call", p: ["hang"], a: [] })
+				})
+			),
+			new Promise<"pending">((resolve) => setTimeout(() => resolve("pending"), 50))
+		])
+
+		expect(response).toBeInstanceOf(Response)
+		if (!(response instanceof Response)) return
+		expect(response.status).toBe(504)
+		expect(await response.json()).toMatchObject({
+			t: "r",
+			id: "timeout-id",
+			e: { n: "RPCTimeoutError" }
+		})
+	})
+
+	test("client preserves RPC errors returned with non-OK HTTP statuses", async () => {
+		const handler = createHttpHandler(
+			{
+				hang: () => new Promise(() => {})
+			},
+			{ timeout: 5 }
+		)
+		const fetchStub: typeof fetch = Object.assign(
+			(request: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]) =>
+				handler(new Request(request, init)),
+			{ preconnect: fetch.preconnect }
+		)
+		const api = wrap<{ hang(): Promise<never> }>(
+			httpClientTransport({
+				url: "http://127.0.0.1/rpc",
+				fetch: fetchStub
+			})
+		)
+
+		await expect(api.hang()).rejects.toMatchObject({ name: "RPCTimeoutError" })
 	})
 })

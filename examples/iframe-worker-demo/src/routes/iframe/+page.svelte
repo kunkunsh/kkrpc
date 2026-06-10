@@ -1,22 +1,35 @@
 <script lang="ts">
 	import { apiImplementationNested } from "@kksh/demo-api"
 	import type { API, APINested } from "@kksh/demo-api"
-	import { IframeChildIO, RPCChannel } from "kkrpc/browser"
-	import type { IoInterface } from "kkrpc/browser"
+	import { RPCChannel } from "kkrpc/browser"
+	import { iframeChildTransportReady } from "kkrpc/iframe"
 	import { onDestroy, onMount } from "svelte"
 	import { toast } from "svelte-sonner"
 
-	const io = new IframeChildIO(),
-		rpc = new RPCChannel<APINested, API, IoInterface>(io, {
-			expose: apiImplementationNested
-		})
+	let rpc: RPCChannel<APINested, API> | undefined
 
-	onMount(() => {})
+	onMount(() => {
+		let mounted = true
+		void iframeChildTransportReady({ targetOrigin: window.location.origin }).then((transport) => {
+			if (!mounted) {
+				transport.close?.()
+				return
+			}
+			rpc = new RPCChannel<APINested, API>(transport, {
+				expose: apiImplementationNested
+			})
+		})
+		return () => {
+			mounted = false
+		}
+	})
+
 	onDestroy(() => {
-		io.destroy()
+		rpc?.destroy()
 	})
 
 	function onClick(e: MouseEvent) {
+		if (!rpc) return
 		const api = rpc.getAPI()
 		const randInt1 = Math.floor(Math.random() * 100),
 			randInt2 = Math.floor(Math.random() * 100)

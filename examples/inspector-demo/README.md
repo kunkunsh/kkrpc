@@ -9,15 +9,28 @@ Demonstrates kkrpc traffic inspection with multiple backends.
 - **Memory Backend**: Query and analyze traffic programmatically
 - **Latency Tracking**: Automatic request/response timing
 
-## Run
+## Manual Testing
 
 ```bash
-# Install dependencies
 pnpm install
-
-# Run client (spawns server automatically)
-bun run client
+pnpm run client
 ```
+
+`pnpm run client` starts the demo client. The client spawns the server automatically and records inspected traffic.
+
+### What To Verify
+
+- The terminal should print formatted request and response lines with arrows and latency.
+- `inspector.log` should be created or updated with NDJSON traffic records.
+- The demo should include calls such as `echo` and `math.add`.
+
+### Optional Server-Only Run
+
+```bash
+pnpm run server
+```
+
+Use this only when you want to inspect the server process separately. In normal manual testing, `pnpm run client` is enough.
 
 ## Output
 

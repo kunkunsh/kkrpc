@@ -31,18 +31,18 @@ func NewClient(transport Transport) *Client {
 }
 
 func (c *Client) Call(method string, args ...any) (any, error) {
-	return c.sendRequest("request", method, args, nil, nil)
+	return c.sendRequest("call", strings.Split(method, "."), args, nil)
 }
 
 func (c *Client) Get(path []string) (any, error) {
-	return c.sendRequest("get", "", nil, path, nil)
+	return c.sendRequest("get", path, nil, nil)
 }
 
 func (c *Client) Set(path []string, value any) (any, error) {
-	return c.sendRequest("set", "", nil, path, value)
+	return c.sendRequest("set", path, nil, value)
 }
 
-func (c *Client) sendRequest(messageType, method string, args []any, path []string, value any) (any, error) {
+func (c *Client) sendRequest(op string, path []string, args []any, value any) (any, error) {
 	requestID := GenerateUUID()
 	responseCh := make(chan responsePayload, 1)
 	c.mu.Lock()
@@ -50,39 +50,29 @@ func (c *Client) sendRequest(messageType, method string, args []any, path []stri
 	c.mu.Unlock()
 
 	processedArgs := make([]any, 0, len(args))
-	callbackIDs := make([]string, 0)
 	for _, arg := range args {
 		if cb, ok := arg.(Callback); ok {
 			callbackID := GenerateUUID()
 			c.mu.Lock()
 			c.callbacks[callbackID] = cb
 			c.mu.Unlock()
-			callbackIDs = append(callbackIDs, callbackID)
-			processedArgs = append(processedArgs, CallbackPrefix+callbackID)
+			processedArgs = append(processedArgs, map[string]any{ArgEnvelopeTag: "callback", "id": callbackID})
 			continue
 		}
 		processedArgs = append(processedArgs, arg)
 	}
 
 	payload := map[string]any{
-		"id":      requestID,
-		"type":    messageType,
-		"version": "json",
-	}
-	if method != "" {
-		payload["method"] = method
+		"t":  "q",
+		"id": requestID,
+		"op": op,
+		"p":  path,
 	}
 	if len(processedArgs) > 0 {
-		payload["args"] = processedArgs
+		payload["a"] = processedArgs
 	}
-	if len(callbackIDs) > 0 {
-		payload["callbackIds"] = callbackIDs
-	}
-	if path != nil {
-		payload["path"] = path
-	}
-	if value != nil {
-		payload["value"] = value
+	if op == "set" || value != nil {
+		payload["v"] = value
 	}
 
 	message, err := EncodeMessage(payload)
@@ -118,11 +108,11 @@ func (c *Client) readLoop() {
 		if err != nil {
 			continue
 		}
-		messageType, _ := message["type"].(string)
+		messageType, _ := message["t"].(string)
 		switch messageType {
-		case "response":
+		case "r":
 			c.handleResponse(message)
-		case "callback":
+		case "cb":
 			c.handleCallback(message)
 		}
 	}
@@ -140,20 +130,15 @@ func (c *Client) handleResponse(message map[string]any) {
 		return
 	}
 
-	args, _ := message["args"].(map[string]any)
-	if args == nil {
-		responseCh <- responsePayload{Result: nil}
-		return
-	}
-	if errValue, exists := args["error"]; exists {
+	if errValue, exists := message["e"]; exists {
 		responseCh <- responsePayload{Result: nil, Err: decodeError(errValue)}
 		return
 	}
-	responseCh <- responsePayload{Result: args["result"], Err: nil}
+	responseCh <- responsePayload{Result: message["v"], Err: nil}
 }
 
 func (c *Client) handleCallback(message map[string]any) {
-	callbackID, _ := message["method"].(string)
+	callbackID, _ := message["id"].(string)
 	c.mu.Lock()
 	callback := c.callbacks[callbackID]
 	c.mu.Unlock()
@@ -161,12 +146,28 @@ func (c *Client) handleCallback(message map[string]any) {
 		return
 	}
 
-	argsRaw, _ := message["args"].([]any)
+	argsRaw, _ := message["a"].([]any)
 	if argsRaw == nil {
 		callback()
 		return
 	}
-	callback(argsRaw...)
+	callback(decodeArgs(argsRaw)...)
+}
+
+func decodeArgs(args []any) []any {
+	decoded := make([]any, 0, len(args))
+	for _, arg := range args {
+		decoded = append(decoded, decodeArg(arg))
+	}
+	return decoded
+}
+
+func decodeArg(arg any) any {
+	envelope, ok := arg.(map[string]any)
+	if !ok || envelope[ArgEnvelopeTag] != "value" {
+		return arg
+	}
+	return envelope["v"]
 }
 
 type RpcError struct {
@@ -187,8 +188,8 @@ func decodeError(value any) error {
 		return errors.New("unknown error")
 	}
 	if errMap, ok := value.(map[string]any); ok {
-		name, _ := errMap["name"].(string)
-		message, _ := errMap["message"].(string)
+		name, _ := errMap["n"].(string)
+		message, _ := errMap["m"].(string)
 		return &RpcError{Name: name, Message: message, Data: errMap}
 	}
 	return errors.New("rpc error")

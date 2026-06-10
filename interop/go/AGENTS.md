@@ -59,20 +59,23 @@ result, _ := client.Call("math.add", []any{1, 2})
 ### Server Usage
 
 ```go
-api := kkrpc.NewApi()
-api.Register("math.add", func(args []any) any {
-    return args[0].(float64) + args[1].(float64)
-})
-server := kkrpc.NewServer(kkrpc.NewStdioTransportFromStdIO(), api)
-server.ServeForever()
+api := map[string]any{
+    "math": map[string]any{
+        "add": func(args ...any) any {
+            return args[0].(float64) + args[1].(float64)
+        },
+    },
+}
+server := kkrpc.NewServer(transport, api)
+defer server.Close()
 ```
 
 ## CONVENTIONS
 
-- **Function signatures**: Server handlers use `func([]any) any` signature
+- **Function signatures**: Server handlers use `func(...any) any` values nested in maps
 - **Error handling**: Explicit error returns (Go idiomatic)
 - **Concurrency**: Goroutines for read loops, mutex for state
-- **JSON only**: Compatible with kkrpc `serialization.version = "json"`
+- **JSON only**: Compatible with kkrpc's stable compact JSON `RPCMessage` protocol
 
 ## COMMANDS
 
@@ -88,7 +91,7 @@ go build -o myapp
 
 - Go 1.21+ required
 - No external dependencies (stdlib only)
-- Callbacks encoded as `__callback__<id>` strings
+- Callbacks use `{ "__kkrpc_next_arg__": "callback", "id": "..." }` marker objects
 - Line-delimited JSON protocol (`\n` terminated)
 
 ## LIMITATIONS
@@ -97,8 +100,8 @@ Server handlers must use strict signature:
 
 ```go
 // Valid
-api.Register("math.add", func(args []any) any { ... })
+api := map[string]any{"math": map[string]any{"add": func(args ...any) any { ... }}}
 
 // Invalid - will fail at runtime
-api.Register("math.add", func(a, b int) int { ... })
+api := map[string]any{"math": map[string]any{"add": func(a, b int) int { ... }}}
 ```

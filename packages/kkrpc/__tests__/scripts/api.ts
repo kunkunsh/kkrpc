@@ -1,4 +1,4 @@
-import { transfer } from "../../src/transfer.ts"
+import { transfer } from "../../src/entries/mod.ts"
 
 export interface API {
 	echo(message: string): Promise<string>

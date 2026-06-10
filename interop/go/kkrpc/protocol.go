@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-const CallbackPrefix = "__callback__"
+const ArgEnvelopeTag = "__kkrpc_next_arg__"
 
 func init() {
 	rand.Seed(time.Now().UnixNano())

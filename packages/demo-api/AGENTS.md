@@ -44,8 +44,8 @@ export type APINested = {
 ```typescript
 import { apiImplementation, type API } from "@kksh/demo-api"
 
-const rpc = new RPCChannel(io, { expose: apiImplementation })
-const api = rpc.getAPI<API>()
+const rpc = new RPCChannel<object, API>(io, { expose: apiImplementation })
+const api = rpc.getAPI()
 
 await api.add(1, 2) // 3
 await api.echo("hello") // "hello"

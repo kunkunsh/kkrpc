@@ -1,102 +1,111 @@
 # kkrpc - PACKAGE ROOT
 
-**Generated:** 2026-01-17
+**Generated:** 2026-06-09
 **Location:** packages/kkrpc
 
 ## OVERVIEW
 
-Main kkrpc package entry point with multi-runtime exports, build scripts, and package configuration.
+Main kkrpc package entry point with stable native RPC exports, runtime transport factories, feature plugins, build scripts, and package configuration.
 
 ## STRUCTURE
 
 ```
 packages/kkrpc/
-├── src/                    # Core implementation (see src/AGENTS.md)
+├── src/
+│   ├── core/              # RPCChannel, protocol, transport primitives, plugins, transfer
+│   ├── transports/        # Native transport factories
+│   ├── features/          # Validation, middleware, SuperJSON
+│   ├── entries/           # Public package entrypoint source files
+│   └── relay.ts           # Transport relay helper
 ├── __tests__/             # Bun test suite
 ├── __deno_tests__/        # Deno regression tests
-├── mod.ts                 # Main entry (Node/Deno/Bun)
-├── browser-mod.ts          # Browser entry
-├── deno-mod.ts            # Deno-specific entry
-├── http.ts                # HTTP adapter export
-├── socketio.ts            # Socket.IO adapter export
-├── rabbitmq.ts            # RabbitMQ adapter export
-├── kafka.ts               # Kafka adapter export
-├── redis-streams.ts       # Redis Streams adapter export
-├── chrome-extension.ts      # Chrome Extension adapter export
 ├── scripts/               # Build and test scripts
 ├── tsconfig.json          # TypeScript config
 ├── tsdown.config.ts       # Build configuration
 ├── package.json           # Package manifest
-├── deno.json             # Deno package config
-└── dist/                 # Build output (do not edit)
+├── deno.json              # Deno package config
+└── dist/                  # Build output, do not edit
 ```
 
 ## KEY FILES
 
-| File               | Purpose                                          |
-| ------------------ | ------------------------------------------------ |
-| mod.ts             | Main entry: exports all adapters (Node/Deno/Bun) |
-| browser-mod.ts     | Browser entry: excludes stdio adapters           |
-| deno-mod.ts        | Deno entry: exports Deno-compatible modules      |
-| package.json       | Exports, dependencies, scripts, peer deps        |
-| tsdown.config.ts   | Build: entry points, output formats              |
-| scripts/test.ts    | Bun test runner with coverage                    |
-| scripts/prepare.ts | Deno type generation                             |
+| File                                             | Purpose                         |
+| ------------------------------------------------ | ------------------------------- |
+| File                                                    | Purpose                         |
+| ------------------------------------------------------- | ------------------------------- |
+| `src/entries/mod.ts`                                    | Main stable entry for core APIs |
+| `src/entries/browser-mod.ts`                            | Browser-safe core entry         |
+| `src/entries/deno-mod.ts`                               | Deno-friendly core entry        |
+| `src/entries/transport.ts`                              | Transport primitives entry      |
+| `src/entries/codecs.ts`                                 | Codec helpers entry             |
+| `src/entries/plugins.ts`                                | Plugin helpers entry            |
+| `src/entries/worker.ts`, `src/entries/stdio.ts`         | Runtime transport entries       |
+| `src/entries/http.ts`, `src/entries/ws.ts`              | Runtime transport entries       |
+| `src/entries/validation.ts`, `src/entries/middleware.ts` | Feature entries                 |
+| `src/entries/relay.ts`, `src/entries/inspector.ts`      | Relay and observability entries |
+| `scripts/test.ts`                                       | Package test runner             |
+| `scripts/prepare.ts`                                    | Deno type generation            |
 
 ## EXPORT STRATEGY
 
-Package exports 9 entrypoints for tree-shaking:
+Package exports are stable subpaths for tree-shaking and runtime-specific imports:
 
 ```json
 {
 	"exports": {
-		".": "./mod.ts",
-		"./browser": "./browser-mod.ts",
-		"./deno": "./deno-mod.ts",
-		"./http": "./http.ts",
-		"./socketio": "./socketio.ts",
-		"./rabbitmq": "./rabbitmq.ts",
-		"./kafka": "./kafka.ts",
-		"./redis-streams": "./redis-streams.ts",
-		"./chrome-extension": "./chrome-extension.ts"
+		".": "./src/entries/mod.ts",
+		"./browser": "./src/entries/browser-mod.ts",
+		"./deno": "./src/entries/deno-mod.ts",
+		"./worker": "./src/entries/worker.ts",
+		"./stdio": "./src/entries/stdio.ts",
+		"./http": "./src/entries/http.ts",
+		"./ws": "./src/entries/ws.ts",
+		"./electron": "./src/entries/electron.ts"
 	}
 }
 ```
 
 ## ENTRY POINT SELECTION
 
-| Environment | Entry Point                     |
-| ----------- | ------------------------------- |
-| Node.js     | `kkrpc` (mod.ts)                |
-| Deno        | `kkrpc/deno` or `@kunkun/kkrpc` |
-| Bun         | `kkrpc` (mod.ts)                |
-| Browser     | `kkrpc/browser`                 |
-| Chrome Ext. | `kkrpc/chrome-extension`        |
+| Environment   | Entry Point                                                          |
+| ------------- | -------------------------------------------------------------------- |
+| Node.js       | `kkrpc` plus `kkrpc/stdio`, `kkrpc/ws`, or other transport subpaths  |
+| Deno          | `kkrpc/deno` or `@kunkun/kkrpc`                                      |
+| Bun           | `kkrpc`                                                              |
+| Browser       | `kkrpc/browser`                                                      |
+| Web Worker    | `kkrpc/worker`                                                       |
+| Electron      | `kkrpc/electron`                                                     |
+| Message buses | `kkrpc/rabbitmq`, `kkrpc/kafka`, `kkrpc/redis-streams`, `kkrpc/nats` |
 
 ## CONVENTIONS
 
-- **Entry re-exporting**: Each adapter export re-exports from `src/adapters/`
-- **Browser exclusion**: `browser-mod.ts` excludes stdio adapters (Node/Deno/Bun)
-- **Deno compatibility**: `deno-mod.ts` uses Deno-specific adapters only
-- **Build output**: ESM + CJS dual format via tsdown
-- **Type generation**: `scripts/prepare.ts` generates Deno types
+- Entry files live in `src/entries/` and re-export stable APIs from `src/core/`, `src/transports/`, `src/features/`, or `src/relay.ts`.
+- Browser entries avoid Node-specific stdio helpers.
+- Deno entries avoid Node `process` assumptions.
+- Build output is ESM plus CJS via tsdown.
+- Type generation uses `scripts/prepare.ts`.
+- New transport code should return `Transport<RPCMessage>` and declare capabilities when useful.
+
+## COMMON FACTORIES
+
+- `nodeStdioTransport()`, `denoStdioTransport()`, `bunStdioTransport()`
+- `webSocketTransport()`, `webSocketClientTransport()`
+- `workerTransport()`, `workerSelfTransport()`
+- `httpClientTransport()`
+- `electronIpcTransport()`, `electronUtilityProcessTransport()`
+- `rabbitMqTransport()`, `kafkaTransport()`, `redisStreamsTransport()`, `natsTransport()`
 
 ## SCRIPTS
 
 ```bash
-# Build
-bun run build          # tsdown build
-
-# Tests
-bun test              # Run Bun tests
-deno test -R __deno_tests__  # Deno regression
-
-# Type generation
-bun run prepare       # Generate Deno types
+pnpm --filter kkrpc check-types
+pnpm --filter kkrpc test
+bun run build
+bun run prepare
 ```
 
 ## NOTES
 
-- See `src/AGENTS.md` for core implementation details
-- See `src/adapters/AGENTS.md` for adapter patterns
-- Root `AGENTS.md` for monorepo-wide conventions
+- See `src/AGENTS.md` for core implementation details.
+- Root `AGENTS.md` covers monorepo-wide conventions.
+- Do not edit `dist/` directly.

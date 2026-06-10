@@ -13,6 +13,8 @@ Claude Code SKILL.md files for AI-assisted kkrpc development. These skills provi
 skills/
 ├── kkrpc/              # TypeScript kkrpc usage
 │   └── SKILL.md        # How to use kkrpc in TypeScript projects
+├── kkrpc-migration/    # 0.7.x to 1.0 migration
+│   └── SKILL.md        # How to migrate classic/next code to stable native APIs
 └── interop/            # Language interop
     └── SKILL.md        # Implement kkrpc in other languages
 ```
@@ -22,6 +24,7 @@ skills/
 | File               | Purpose                                                              |
 | ------------------ | -------------------------------------------------------------------- |
 | `kkrpc/SKILL.md`   | TypeScript usage: RPC channels, transports, callbacks, validation    |
+| `kkrpc-migration/SKILL.md` | Migration from 0.7.x/classic/next APIs to stable 1.0 native APIs |
 | `interop/SKILL.md` | Cross-language: Protocol, message formats, reference implementations |
 
 ## CONVENTIONS
@@ -53,6 +56,7 @@ license: MIT
 | Task             | Location                               | Notes                             |
 | ---------------- | -------------------------------------- | --------------------------------- |
 | TypeScript usage | `kkrpc/SKILL.md`                       | RPC setup, transports, validation |
+| 1.0 migration    | `kkrpc-migration/SKILL.md`             | Classic/next API migration        |
 | Go interop       | `interop/SKILL.md` + `interop/go/`     | Reference implementation          |
 | Python interop   | `interop/SKILL.md` + `interop/python/` | Reference implementation          |
 | Rust interop     | `interop/SKILL.md` + `interop/rust/`   | Reference implementation          |
@@ -63,10 +67,12 @@ license: MIT
 ```bash
 # Copy skills to global Claude Code config
 cp -r skills/kkrpc ~/.claude/skills/
+cp -r skills/kkrpc-migration ~/.claude/skills/
 cp -r skills/interop ~/.claude/skills/
 
 # Or symlink for development
 ln -s $(pwd)/skills/kkrpc ~/.claude/skills/kkrpc
+ln -s $(pwd)/skills/kkrpc-migration ~/.claude/skills/kkrpc-migration
 ln -s $(pwd)/skills/interop ~/.claude/skills/interop
 ```
 
@@ -77,6 +83,7 @@ ln -s $(pwd)/skills/interop ~/.claude/skills/interop
 Skills are automatically activated when Claude Code detects relevant context:
 
 - **kkrpc skill**: Triggered by mentions of "kkrpc", "RPCChannel", transport names
+- **kkrpc-migration skill**: Triggered by mentions of kkrpc 0.7, 1.0 migration, classic adapters, `IoInterface`, `*IO`, or `kkrpc/next`
 - **interop skill**: Triggered by mentions of cross-language RPC, Go/Python/Rust/Swift interop
 
 ### Skill Scope

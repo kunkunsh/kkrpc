@@ -5,9 +5,9 @@ message protocol using JSON only, enabling cross-language RPC.
 
 ## Features
 
-- JSON-mode request/response compatible with kkrpc `serialization.version = "json"`.
+- JSON request/response compatible with kkrpc's stable compact `RPCMessage` protocol.
 - `stdio` and `ws` transports with a shared `Transport` interface.
-- Callback support using `__callback__<id>` tokens.
+- Callback support using stable callback marker objects.
 
 ## Installation
 
@@ -79,13 +79,17 @@ import (
 )
 
 func main() {
-	api := kkrpc.NewApi()
-	api.Register("math.add", func(args []any) any {
-		return args[0].(float64) + args[1].(float64)
-	})
+	api := map[string]any{
+		"math": map[string]any{
+			"add": func(args ...any) any {
+				return args[0].(float64) + args[1].(float64)
+			},
+		},
+	}
 
 	server := kkrpc.NewServer(kkrpc.NewStdioTransportFromStdIO(), api)
-	server.ServeForever()
+	defer server.Close()
+	select {}
 }
 ```
 
@@ -99,14 +103,13 @@ go test ./...
 
 ## How it works with kkrpc
 
-- **Message format**: JSON objects with `id`, `method`, `args`, `type`, `version`.
+- **Message format**: compact JSON records with `t`, `id`, `op`, `p`, `a`, and `v` fields.
 - **Line-delimited transport**: each JSON message ends with `\n`.
-- **Callbacks**: function arguments are encoded as `__callback__<id>` and dispatched via
-  `type = "callback"`.
+- **Callbacks**: function arguments are encoded as `{ "__kkrpc_next_arg__": "callback", "id": "..." }` and dispatched with `t = "cb"`.
 - **Adapters**: `Transport` is the common interface for `StdioTransport` and
   `WebSocketTransport`.
 
-Set kkrpc JS clients/servers to `serialization.version = "json"` for interop.
+kkrpc JS clients/servers use the stable compact JSON `RPCMessage` protocol by default.
 
 ## Limitations
 
@@ -116,14 +119,22 @@ The Go server implementation uses a strict function signature: `func(...any) any
 
 ```go
 // Valid
-api.Register("math.add", func(args ...any) any {
-    return args[0].(float64) + args[1].(float64)
-})
+api := map[string]any{
+	"math": map[string]any{
+		"add": func(args ...any) any {
+			return args[0].(float64) + args[1].(float64)
+		},
+	},
+}
 
 // Invalid - will fail at runtime
-api.Register("math.add", func(a, b int) int {
-    return a + b
-})
+api := map[string]any{
+	"math": map[string]any{
+		"add": func(a, b int) int {
+			return a + b
+		},
+	},
+}
 ```
 
 This differs from the TypeScript implementation which can handle any callable. If you need more flexible signatures, consider using reflection or wrapper functions.

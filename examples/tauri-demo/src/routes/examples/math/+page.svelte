@@ -5,7 +5,8 @@
 	import { openUrl } from "@tauri-apps/plugin-opener"
 	import { Child, Command } from "@tauri-apps/plugin-shell"
 	import CodeBlock from "$lib/components/code-block.svelte"
-	import { RPCChannel, TauriShellStdio } from "kkrpc/browser"
+	import { RPCChannel } from "kkrpc"
+	import { tauriShellStdioTransport } from "kkrpc/tauri"
 	import { toast } from "svelte-sonner"
 	import { type apiMethods as remoteAPI } from "../../../../sample-script/api.js"
 
@@ -51,7 +52,7 @@
 			console.error("error", err)
 		})
 
-		const stdio = new TauriShellStdio(cmd.stdout, process)
+		const stdio = tauriShellStdioTransport({ stdout: cmd.stdout, child: process })
 		stdioRPC = new RPCChannel<typeof localAPIImplementation, RemoteAPI>(stdio, {
 			expose: localAPIImplementation
 		})
@@ -177,7 +178,7 @@
 		it from tauri app.
 	</p>
 	<CodeBlock
-		code={`const stdio = new TauriShellStdio(cmd.stdout, process)
+		code={`const stdio = tauriShellStdioTransport({ stdout: cmd.stdout, child: process })
 stdioRPC = new RPCChannel<{}, API>(stdio, {})
 const api = stdioRPC.getAPI()
 console.log(await api.fibonacci(fibNumber))

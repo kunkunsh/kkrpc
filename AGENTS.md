@@ -1,177 +1,158 @@
 # kkrpc - PROJECT KNOWLEDGE BASE
 
-**Generated:** 2026-02-06
-**Commit:** (current)
-**Branch:** main
+**Generated:** 2026-06-09
+**Branch:** next2main
 
 ## OVERVIEW
 
-TypeScript-first RPC library with bidirectional communication across Node.js, Deno, Bun, Browser, and Tauri. Supports 15+ transport protocols with full type safety and zero-copy transferable objects. Includes language interop for Go, Python, Rust, and Swift.
+TypeScript-first RPC library with bidirectional communication across Node.js, Deno, Bun, browsers, workers, desktop runtimes, and message buses. The stable package uses a native `Transport<RPCMessage>` architecture with compact request/response/callback records, type-safe proxy APIs, plugins, and zero-copy transfer descriptors where supported.
 
 ## STRUCTURE
 
 ```
 kkrpc/
 ├── packages/kkrpc/           # Core library
-│   ├── src/                  # Source code
-│   │   ├── channel.ts         # RPCChannel core
-│   │   ├── interface.ts       # IoInterface abstraction
-│   │   ├── adapters/         # Transport adapters (22 adapters)
-│   │   ├── transfer*.ts       # Transferable objects support
-│   │   └── serialization.ts  # JSON/superjson serialization
-│   ├── __tests__/            # Bun test suite (17+ tests)
+│   ├── src/
+│   │   ├── core/             # RPCChannel, protocol, transport primitives, plugins, transfer
+│   │   ├── transports/       # Native transport factories
+│   │   ├── features/         # Validation, middleware, SuperJSON plugins/codecs
+│   │   └── relay.ts          # Transport relay helper
+│   ├── __tests__/            # Bun test suite
 │   ├── __deno_tests__/       # Deno regression tests
-│   ├── mod.ts                # Main entry (Node/Deno/Bun)
+│   ├── mod.ts                # Main stable entry
 │   ├── browser-mod.ts        # Browser entry
-│   └── dist/                 # Build output (do not edit)
+│   └── dist/                 # Build output, do not edit
 ├── packages/demo-api/         # Sample API implementation
 ├── packages/slidev/           # Presentation slides
-├── examples/                  # 10+ usage examples
-├── interop/                   # Language interop (Go, Python, Rust, Swift)
+├── examples/                  # Usage examples
+├── interop/                   # Go, Python, Rust, Swift interop
 ├── docs/                      # Documentation site
 └── package.json               # pnpm workspace config
 ```
 
 ## WHERE TO LOOK
 
-| Task                | Location                           | Notes                                      |
-| ------------------- | ---------------------------------- | ------------------------------------------ |
-| Core implementation | `packages/kkrpc/src/`              | channel.ts, interface.ts, serialization.ts |
-| Transport adapters  | `packages/kkrpc/src/adapters/`     | 22 transport protocol adapters             |
-| Validation          | `packages/kkrpc/src/validation.ts` | Standard Schema runtime validation         |
-| Test code           | `packages/kkrpc/__tests__/`        | Bun tests, covers all adapters             |
-| Deno compatibility  | `packages/kkrpc/__deno_tests__/`   | Deno regression tests                      |
-| Usage examples      | `examples/`                        | HTTP, WebSocket, Worker, Chrome Extension  |
-| AI skills           | `skills/`                          | Claude Code SKILL.md files                 |
-| Build config        | `turbo.json`, `tsdown.config.ts`   | Turbo + tsdown build system                |
+| Task                    | Location                         | Notes                                                                  |
+| ----------------------- | -------------------------------- | ---------------------------------------------------------------------- |
+| Core RPC implementation | `packages/kkrpc/src/core/`       | `RPCChannel`, compact protocol, transport interface, plugins           |
+| Native transports       | `packages/kkrpc/src/transports/` | stdio, HTTP, WebSocket, Worker, iframe, Electron, Tauri, message buses |
+| Optional features       | `packages/kkrpc/src/features/`   | Validation, middleware, SuperJSON                                      |
+| Relay support           | `packages/kkrpc/src/relay.ts`    | Bidirectional transport relay                                          |
+| Test code               | `packages/kkrpc/__tests__/`      | Bun tests for stable entries and transports                            |
+| Deno compatibility      | `packages/kkrpc/__deno_tests__/` | Deno regression tests                                                  |
+| Usage examples          | `examples/`                      | HTTP, WebSocket, Worker, Chrome Extension, Electron, Tauri             |
+| Language interop        | `interop/`                       | Go, Python, Rust, Swift compact JSON protocol implementations          |
+| AI skills               | `skills/`                        | Agent skill docs                                                       |
+| Build config            | `turbo.json`, `tsdown.config.ts` | Turbo and tsdown build system                                          |
 
 ## CODE MAP
 
-| Symbol                        | Type      | Location                          | Role                                  |
-| ----------------------------- | --------- | --------------------------------- | ------------------------------------- |
-| RPCChannel                    | Class     | src/channel.ts                    | Bidirectional RPC channel core        |
-| IoInterface                   | Interface | src/interface.ts                  | Transport layer abstraction interface |
-| IoCapabilities                | Interface | src/interface.ts                  | Adapter capability declarations       |
-| serialize/deserialize         | Function  | src/serialization.ts              | Message serialization                 |
-| transfer()                    | Function  | src/transfer.ts                   | Mark zero-copy objects                |
-| RPCValidationError            | Class     | src/validation.ts                 | Validation error with context         |
-| defineMethod()                | Function  | src/validation.ts                 | Schema-first method definition        |
-| defineAPI()                   | Function  | src/validation.ts                 | Schema-first API definition           |
-| extractValidators()           | Function  | src/validation.ts                 | Extract validators from defined API   |
-| NodeIo                        | Class     | adapters/node.ts                  | Node.js stdio                         |
-| DenoIo                        | Class     | adapters/deno.ts                  | Deno stdio                            |
-| BunIo                         | Class     | adapters/bun.ts                   | Bun stdio                             |
-| WorkerParentIO                | Class     | adapters/worker.ts                | Web Worker parent side                |
-| WorkerChildIO                 | Class     | adapters/worker.ts                | Web Worker child side                 |
-| TauriShellStdio               | Class     | adapters/tauri.ts                 | Tauri shell plugin adapter            |
-| ElectronIpcMainIO             | Class     | adapters/electron-ipc-main.ts     | Electron main IPC                     |
-| ElectronIpcRendererIO         | Class     | adapters/electron-ipc-renderer.ts | Electron renderer IPC                 |
-| ElectronUtilityProcessIO      | Class     | adapters/electron.ts              | Electron utility process (main)       |
-| ElectronUtilityProcessChildIO | Class     | adapters/electron-child.ts        | Electron utility process (child)      |
+| Symbol                       | Type      | Location                          | Role                                                   |
+| ---------------------------- | --------- | --------------------------------- | ------------------------------------------------------ |
+| `RPCChannel`                 | Class     | `src/core/channel.ts`             | Bidirectional RPC channel core                         |
+| `wrap()`                     | Function  | `src/core/channel.ts`             | Create a remote API proxy                              |
+| `expose()`                   | Function  | `src/core/channel.ts`             | Expose a local API on a transport                      |
+| `RPCMessage`                 | Type      | `src/core/protocol.ts`            | Compact protocol union                                 |
+| `Transport`                  | Interface | `src/core/transport.ts`           | Stable transport abstraction                           |
+| `transfer()`                 | Function  | `src/core/transfer.ts`            | Mark values and transferables for zero-copy transports |
+| `validationPlugin()`         | Function  | `src/features/validation.ts`      | Standard Schema validation plugin                      |
+| `middlewarePlugin()`         | Function  | `src/features/middleware.ts`      | Request/response middleware plugin                     |
+| `superJsonCodec()`           | Function  | `src/features/superjson.ts`       | SuperJSON codec for stable transports                  |
+| `nodeStdioTransport()`       | Function  | `src/transports/stdio.ts`         | Node stdio transport                                   |
+| `denoStdioTransport()`       | Function  | `src/transports/stdio.ts`         | Deno stdio transport                                   |
+| `bunStdioTransport()`        | Function  | `src/transports/stdio.ts`         | Bun stdio transport                                    |
+| `webSocketTransport()`       | Function  | `src/transports/ws.ts`            | Existing socket transport wrapper                      |
+| `webSocketClientTransport()` | Function  | `src/transports/ws.ts`            | Client WebSocket factory                               |
+| `workerTransport()`          | Function  | `src/transports/worker.ts`        | Main-thread worker transport                           |
+| `workerSelfTransport()`      | Function  | `src/transports/worker.ts`        | Worker-global transport                                |
+| `electronIpcTransport()`     | Function  | `src/transports/electron.ts`      | Electron IPC endpoint transport                        |
+| `rabbitMqTransport()`        | Function  | `src/transports/rabbitmq.ts`      | RabbitMQ transport                                     |
+| `kafkaTransport()`           | Function  | `src/transports/kafka.ts`         | Kafka transport                                        |
+| `redisStreamsTransport()`    | Function  | `src/transports/redis-streams.ts` | Redis Streams transport                                |
+| `natsTransport()`            | Function  | `src/transports/nats.ts`          | NATS transport                                         |
 
 ## CONVENTIONS
 
 ### Code Style
 
-- **File naming**: TypeScript files use kebab-case (e.g. `stdio-rpc.ts`)
-- **Export naming**: Classes/interfaces use PascalCase (`RPCChannel`), functions use camelCase (`generateUUID`)
-- **Comment style**: Chinglish/mixed - English terminology with Chinese explanations
-- **Formatting**: Prettier config: tabs, 100 char width, no semicolons, auto-sort imports
+- TypeScript files use kebab-case where practical.
+- Public classes/interfaces use PascalCase; functions use camelCase.
+- Prettier uses tabs, 100 character width, no semicolons, and sorted imports.
+- Keep comments succinct and explain non-obvious behavior only.
 
 ### Module Organization
 
-- Shared types in `packages/kkrpc/src/*.ts`
-- Adapter helper code in `src/adapters/<transport>/`
-- Test fixtures in `__tests__/fixtures/`
-- Test scripts in `__tests__/scripts/`
+- Core protocol/channel code belongs in `packages/kkrpc/src/core/`.
+- Runtime communication helpers belong in `packages/kkrpc/src/transports/`.
+- Optional validation/middleware/codec features belong in `packages/kkrpc/src/features/`.
+- Tests live in `packages/kkrpc/__tests__/` and should use real transports where feasible.
 
 ### Build System
 
-- **pnpm workspaces**: Manage multi-package project
-- **Turbo**: Unified build pipeline (`pnpm dev/build/test`)
-- **tsdown**: TypeScript to ES module build (ESM + CJS dual output)
-- **Typedoc**: API documentation generation to `docs/`
-- **Changesets**: Version management and changelog generation
+- pnpm workspaces manage packages.
+- Turbo coordinates common scripts.
+- tsdown builds ESM/CJS outputs.
+- Typedoc output is generated and should not be edited manually.
+- Changesets handle versioning.
 
 ### Testing Strategy
 
-- **Primary tests**: Bun test runner (`bun test __tests__ --coverage`)
-- **Cross-runtime**: Deno regression tests (`deno test -R __deno_tests__`)
-- **No mocks**: Real client/server setups, no mocking
-- **Bidirectional testing**: Both sides expose and consume APIs
-- **Stress testing**: High-concurrency operations (5000+ calls)
+- Primary tests: `pnpm --filter kkrpc test`.
+- Type checks: `pnpm --filter kkrpc check-types`.
+- Deno regressions are included in the package test script.
+- Interop suites live under `interop/go`, `interop/python`, `interop/rust`, and `interop/swift`.
+- Prefer real client/server setups over mocks.
 
-## ANTI-PATTERNS (THIS PROJECT)
+## ANTI-PATTERNS
 
-- ❌ **Do not edit** `dist/` directory contents - auto-generated by build
-- ❌ **Do not edit** `docs/` directory contents - Typedoc auto-generated
-- ❌ **Do not use** `@ts-ignore`, `@ts-expect-error`, `as any` - Type suppression forbidden
-- ❌ **Do not import** Node.js-specific code in browser (e.g. `node:buffer`) - use `browser-mod.ts` entry
+- Do not edit `dist/` or generated Typedoc output.
+- Do not use type suppression comments or broad casts unless explicitly justified.
+- Do not import Node-specific modules from browser entry points.
+- Do not add compatibility bridges for removed public APIs unless the task explicitly requires one.
 
 ## UNIQUE STYLES
 
 ### Multi-Entry Point Strategy
 
-Main package exports 9 different entry points:
+Stable package exports include core and feature-specific entry points:
 
-- `.` - Core module
-- `./browser` - Browser-specific
-- `./http` - HTTP adapter
-- `./deno` - Deno adapter
-- `./chrome-extension` - Chrome extension
-- `./socketio`, `./rabbitmq`, `./kafka`, `./redis-streams` - Message queue adapters
+- `.` for core RPC APIs
+- `./browser`, `./deno`, `./transport`, `./codecs`, `./plugins`
+- `./worker`, `./stdio`, `./http`, `./ws`, `./ws/hono`, `./ws/elysia`
+- `./iframe`, `./chrome-extension`, `./electron`, `./tauri`
+- `./socketio`, `./rabbitmq`, `./kafka`, `./redis-streams`, `./nats`
+- `./validation`, `./middleware`, `./superjson`, `./relay`, `./inspector`
 
-### Adapter Capability Declarations
+### Transport Capabilities
 
-Each adapter declares its transport capabilities:
+Each native transport can declare capabilities such as object mode, transferable support, or broadcast behavior:
 
-```typescript
-capabilities: IoCapabilities = {
-	structuredClone: true, // Supports IoMessage objects
-	transfer: true, // Supports zero-copy
-	transferTypes: ["ArrayBuffer", "MessagePort"]
+```text
+capabilities: {
+	objectMode: true,
+	transfer: true
 }
 ```
 
-### Message Queue Empty Handling
+### Compact Protocol
 
-Most adapters use message queue pattern:
+Stable messages are compact JSON-compatible records:
 
-```typescript
-private messageQueue: string[] = []
-private resolveRead: ((value: string | null) => void) | null = null
-```
-
-### Destroy Signal Pattern
-
-7 adapters use `DESTROY_SIGNAL = "__DESTROY__"` for graceful shutdown:
-
-- Worker, iframe, Chrome extension, WebSocket, Socket.IO, Hono, Elysia
+- Request: `{ t: "q", id, op, p, a?, v? }`
+- Response: `{ t: "r", id, v?, e? }`
+- Callback: `{ t: "cb", id, a }`
 
 ## COMMANDS
 
 ```bash
-# Dependencies
 pnpm install
-
-# Development mode (Turbo watch)
 pnpm dev
-
-# Build (tsdown + Typedoc)
 pnpm build
-
-# Tests (Bun)
-pnpm test
-pnpm --filter kkrpc test -- --watch
-
-# Deno tests
-pnpm --filter kkrpc test:deno
-
-# Code quality
+pnpm --filter kkrpc check-types
+pnpm --filter kkrpc test
+pnpm --filter "./examples/*" check-types
 pnpm lint
 pnpm format
-
-# Version management (Changesets)
 pnpm changeset
 ```
 
@@ -179,49 +160,27 @@ pnpm changeset
 
 ### Cross-Runtime Compatibility
 
-- **stdio**: Node.js ↔ Deno ↔ Bun inter-process communication
-- **Web Workers**: Browser + Deno native support
-- **HTTP/WebSocket**: All runtimes
-- **Message queues**: RabbitMQ/Redis/Kafka (all runtimes)
-
-### Serialization Formats
-
-- **superjson** (default): Supports Date, Map, Set, BigInt, Uint8Array
-- **json**: Backward compatible, basic types
-- **Auto-detection**: Receiver auto-detects format
+- stdio: Node.js, Deno, Bun inter-process communication.
+- Workers: browser and Deno worker APIs.
+- HTTP/WebSocket: browser and server runtimes.
+- Message buses: RabbitMQ, Redis Streams, Kafka, NATS.
+- Desktop: Electron and Tauri helpers.
 
 ### Data Validation
 
-- **Standard Schema**: Compatible with Zod (v3.24+), Valibot (v1+), ArkType (v2+)
-- **Two patterns**: Type-first (separate validators map) or Schema-first (defineMethod/defineAPI)
-- **Bidirectional**: Each side validates its own exposed API
-- **Error handling**: RPCValidationError with phase (input/output), method path, and issues array
-
-### AI Skills
-
-- **Location**: `skills/` directory contains SKILL.md files for Claude Code
-- **kkrpc skill**: TypeScript usage patterns and best practices
-- **interop skill**: Cross-language RPC implementation (Go, Python, Rust, Swift)
-- **Usage**: Copy to `~/.claude/skills/` for AI-assisted development
+- Standard Schema compatible with Zod, Valibot, and ArkType.
+- Use `defineMethod()` and `defineAPI()` for schema-first APIs.
+- Use `validationPlugin()` to validate stable channel calls.
 
 ### Transferable Object Performance
 
-- **40-100x speedup**: Large data (>1MB) uses zero-copy
-- **Supported types**: ArrayBuffer, MessagePort, ImageBitmap, OffscreenCanvas
-- **Auto fallback**: Non-transferable transports auto-fallback to copy
+- Large browser transfers can use zero-copy ownership moves.
+- Supported types depend on the host runtime and transport.
+- Non-transferable transports fall back to regular serialization.
 
 ### Browser Import
 
-```typescript
-// Browser environment uses dedicated entry
+```text
 import { RPCChannel } from "kkrpc/browser"
-
-// Server-side uses main entry
-import { RPCChannel } from "kkrpc"
+import { workerTransport } from "kkrpc/worker"
 ```
-
-### Build Artifacts
-
-- **dist/**: ESM + CJS + .d.ts type definitions
-- **docs/**: Typedoc generated API documentation
-- **Do not commit**: These directories are in .gitignore

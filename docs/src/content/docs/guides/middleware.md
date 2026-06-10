@@ -11,7 +11,7 @@ kkrpc supports two features for production reliability: an **interceptor chain**
 
 ### How It Works
 
-1. You provide an `interceptors` array when creating an RPCChannel
+1. You provide middleware handlers through `middlewarePlugin()` when exposing an API
 2. When a call is received, kkrpc runs each interceptor in order (onion model)
 3. Each interceptor calls `next()` to proceed to the next interceptor (or the handler)
 4. Interceptors can inspect/modify args, transform return values, measure timing, or throw to abort
@@ -22,10 +22,11 @@ Since kkrpc is bidirectional, both sides can independently have interceptors for
 ### Basic Usage
 
 ```ts
-import { RPCChannel, type RPCInterceptor } from "kkrpc"
+import { expose } from "kkrpc"
+import { middlewarePlugin, type MiddlewareHandler } from "kkrpc/middleware"
 
 // Logging interceptor
-const logger: RPCInterceptor = async (ctx, next) => {
+const logger: MiddlewareHandler = async (ctx, next) => {
 	console.log(`→ ${ctx.method}`, ctx.args)
 	const result = await next()
 	console.log(`← ${ctx.method}`, result)
@@ -33,7 +34,7 @@ const logger: RPCInterceptor = async (ctx, next) => {
 }
 
 // Timing interceptor
-const timer: RPCInterceptor = async (ctx, next) => {
+const timer: MiddlewareHandler = async (ctx, next) => {
 	const start = performance.now()
 	const result = await next()
 	console.log(`${ctx.method} took ${(performance.now() - start).toFixed(1)}ms`)
@@ -41,16 +42,15 @@ const timer: RPCInterceptor = async (ctx, next) => {
 }
 
 // Auth interceptor (throw to reject)
-const auth: RPCInterceptor = async (ctx, next) => {
+const auth: MiddlewareHandler = async (ctx, next) => {
 	if (ctx.method.startsWith("admin.") && !isAuthorized()) {
 		throw new Error("Unauthorized")
 	}
 	return next()
 }
 
-new RPCChannel(io, {
-	expose: api,
-	interceptors: [logger, timer, auth]
+expose(api, transport, {
+	plugins: [middlewarePlugin([logger, timer, auth])]
 })
 ```
 
@@ -83,20 +83,19 @@ Each interceptor receives a `ctx` object:
 Use `ctx.state` to pass data between interceptors:
 
 ```ts
-const setUser: RPCInterceptor = async (ctx, next) => {
+const setUser: MiddlewareHandler = async (ctx, next) => {
 	ctx.state.userId = await authenticate(ctx)
 	return next()
 }
 
-const audit: RPCInterceptor = async (ctx, next) => {
+const audit: MiddlewareHandler = async (ctx, next) => {
 	const result = await next()
 	await logAudit(ctx.state.userId, ctx.method, ctx.args)
 	return result
 }
 
-new RPCChannel(io, {
-	expose: api,
-	interceptors: [setUser, audit]
+expose(api, transport, {
+	plugins: [middlewarePlugin([setUser, audit])]
 })
 ```
 
@@ -105,7 +104,7 @@ new RPCChannel(io, {
 Interceptors can modify the handler's return value:
 
 ```ts
-const doubler: RPCInterceptor = async (_ctx, next) => {
+const doubler: MiddlewareHandler = async (_ctx, next) => {
 	const result = (await next()) as number
 	return result * 2
 }
@@ -125,11 +124,11 @@ handleRequest flow:
 
 Interceptors see validated, clean args. They don't need to worry about malformed input. Output validation catches bad handler returns (including interceptor-modified returns).
 
-### No interceptors (backward compatible)
+### No middleware
 
 ```ts
-// Existing code works exactly as before — no interceptors, no overhead
-new RPCChannel(io, { expose: api })
+// No middleware plugin means no middleware overhead.
+expose(api, transport)
 ```
 
 ## Request Timeout
@@ -145,9 +144,9 @@ new RPCChannel(io, { expose: api })
 ### Basic Usage
 
 ```ts
-import { isRPCTimeoutError, RPCChannel } from "kkrpc"
+import { RPCChannel } from "kkrpc"
 
-const rpc = new RPCChannel(io, {
+const rpc = new RPCChannel(transport, {
 	expose: api,
 	timeout: 5000 // 5 second timeout
 })
@@ -157,36 +156,32 @@ const api = rpc.getAPI()
 try {
 	await api.slowOperation()
 } catch (error) {
-	if (isRPCTimeoutError(error)) {
-		console.log(error.method) // "slowOperation"
-		console.log(error.timeoutMs) // 5000
+	if (error instanceof Error && error.name === "RPCTimeoutError") {
+		console.log(error.message)
 	}
 }
 ```
 
-### RPCTimeoutError properties
+### Timeout Error Shape
 
-| Property    | Type     | Description                             |
-| ----------- | -------- | --------------------------------------- |
-| `method`    | `string` | Method path or operation that timed out |
-| `timeoutMs` | `number` | The configured timeout in milliseconds  |
-| `name`      | `string` | Always `"RPCTimeoutError"`              |
-| `message`   | `string` | Human-readable summary                  |
+The stable timeout behavior rejects the pending client call with an `Error` whose `name` is `"RPCTimeoutError"`. There is no stable timeout-specific exported class or type guard.
 
 ### Error serialization
 
-`RPCTimeoutError` survives kkrpc's error serialization automatically — all custom properties (`method`, `timeoutMs`) are preserved across the wire. The `isRPCTimeoutError()` type guard works on both the original error and the deserialized version.
+Timeouts are produced locally by the caller while waiting for a response. Remote errors still use kkrpc's normal error serialization.
 
 ### Cleanup on destroy
 
 When `destroy()` is called, kkrpc rejects all pending requests with `"RPC channel destroyed"` and clears all timers. This prevents memory leaks from abandoned pending promises.
 
-### No timeout (default)
+### Default and disabled timeout
 
 ```ts
-// Default: timeout is 0 (no timeout)
-// Calls will wait indefinitely for a response
-new RPCChannel(io, { expose: api })
+// Default: 30 seconds
+new RPCChannel(transport, { expose: api })
+
+// Disable request timeout for this channel.
+new RPCChannel(transport, { expose: api, timeout: -1 })
 ```
 
 ## Combining Features
@@ -194,19 +189,22 @@ new RPCChannel(io, { expose: api })
 Middleware, validation, and timeout work together:
 
 ```ts
-import { RPCChannel, type RPCInterceptor, type RPCValidators } from "kkrpc"
+import { expose } from "kkrpc"
+import { middlewarePlugin, type MiddlewareHandler } from "kkrpc/middleware"
+import { validationPlugin } from "kkrpc/validation"
 
-const logger: RPCInterceptor = async (ctx, next) => {
+const logger: MiddlewareHandler = async (ctx, next) => {
 	console.log(`→ ${ctx.method}`)
 	const result = await next()
 	console.log(`← ${ctx.method}`)
 	return result
 }
 
-new RPCChannel(io, {
-	expose: api,
-	validators, // Validate inputs/outputs
-	interceptors: [logger], // Log all calls
+expose(api, transport, {
+	plugins: [
+		validationPlugin(validators), // Validate inputs/outputs
+		middlewarePlugin([logger]) // Log all calls
+	],
 	timeout: 10_000 // 10 second timeout
 })
 ```
@@ -216,10 +214,8 @@ new RPCChannel(io, {
 ### Types
 
 - `RPCCallContext` — `{ method: string, args: unknown[], state: Record<string, unknown> }`
-- `RPCInterceptor` — `(ctx: RPCCallContext, next: () => Promise<unknown>) => Promise<unknown>`
-- `RPCTimeoutError` — error class with `method`, `timeoutMs`
+- `MiddlewareHandler` — `(ctx: RPCCallContext, next: () => Promise<unknown>) => Promise<unknown>`
 
 ### Functions
 
 - `runInterceptors(interceptors, ctx, handler)` — runs the interceptor chain (used internally, exported for testing)
-- `isRPCTimeoutError(error)` — type guard that works across serialization boundaries

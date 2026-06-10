@@ -2,9 +2,11 @@ import { spawn } from "node:child_process"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 import { app, BrowserWindow, ipcMain, Menu, screen, utilityProcess } from "electron"
-import { createRelay, NodeIo, RPCChannel } from "kkrpc"
-import { ElectronUtilityProcessIO } from "kkrpc/electron"
-import { ElectronIpcMainIO } from "kkrpc/electron-ipc"
+import { RPCChannel } from "kkrpc"
+import type { RPCMessage } from "kkrpc"
+import { electronIpcTransport, electronUtilityProcessTransport } from "kkrpc/electron"
+import { nodeStdioTransport } from "kkrpc/stdio"
+import type { StdioWorkerAPI } from "../stdio-worker"
 import type { WorkerAPI } from "../worker"
 
 const rendererMethods = {
@@ -24,6 +26,7 @@ export type MainAPI = {
 	getAppVersion(): Promise<string>
 	pingRenderer(message: string): Promise<string>
 	worker: WorkerAPI
+	stdio: StdioWorkerAPI
 	test: {
 		pingRenderer(message: string): Promise<{
 			success: boolean
@@ -52,7 +55,8 @@ let workerAPI!: WorkerAPI
 let ipcRPC: RPCChannel<MainAPI, RendererAPI> | null = null
 let rendererAPI!: RendererAPI
 let stdioProcess: ReturnType<typeof spawn> | null = null
-let stdioRelay: ReturnType<typeof createRelay> | null = null
+let stdioRPC: RPCChannel<{ showNotification(message: string): Promise<void> }, StdioWorkerAPI> | null = null
+let stdioAPI!: StdioWorkerAPI
 
 const mainAPI: MainAPI = {
 	showNotification: async (message: string) => {
@@ -72,6 +76,12 @@ const mainAPI: MainAPI = {
 		multiply: (a: number, b: number) => workerAPI.multiply(a, b),
 		getProcessInfo: () => workerAPI.getProcessInfo(),
 		pingMain: (message: string) => workerAPI.pingMain(message)
+	},
+	stdio: {
+		calculateFactorial: (n: number) => stdioAPI.calculateFactorial(n),
+		calculateFibonacci: (n: number) => stdioAPI.calculateFibonacci(n),
+		getSystemInfo: () => stdioAPI.getSystemInfo(),
+		executeCode: (code: string) => stdioAPI.executeCode(code)
 	},
 	test: {
 		pingRenderer: async (message: string) => {
@@ -98,8 +108,9 @@ const mainAPI: MainAPI = {
 async function spawnWorker() {
 	const workerPath = path.join(__dirname, "./worker.js")
 	workerProcess = utilityProcess.fork(workerPath)
-	const io = new ElectronUtilityProcessIO(workerProcess)
-	rpcChannel = new RPCChannel<MainAPI, WorkerAPI>(io, { expose: mainAPI })
+	rpcChannel = new RPCChannel<MainAPI, WorkerAPI>(electronUtilityProcessTransport(workerProcess), {
+		expose: mainAPI
+	})
 	workerAPI = rpcChannel.getAPI()
 }
 
@@ -107,11 +118,38 @@ async function spawnStdioWorker() {
 	const stdioWorkerPath = path.join(__dirname, "./stdio-worker.js")
 	stdioProcess = spawn("node", [stdioWorkerPath])
 
-	const stdioIO = new NodeIo(stdioProcess.stdout!, stdioProcess.stdin!)
-	const ipcIO = new ElectronIpcMainIO(ipcMain, win!.webContents, "kkrpc-stdio-relay")
+	stdioRPC = new RPCChannel<{ showNotification(message: string): Promise<void> }, StdioWorkerAPI>(
+		nodeStdioTransport({ readable: stdioProcess.stdout!, writable: stdioProcess.stdin! }),
+		{ expose: { showNotification: mainAPI.showNotification } }
+	)
+	stdioAPI = stdioRPC.getAPI()
+	console.log("[Main] Stdio RPC established")
+}
 
-	stdioRelay = createRelay(ipcIO, stdioIO)
-	console.log("[Main] Stdio relay established")
+function createIpcMainEndpoint(webContents: Electron.WebContents) {
+	const wrappers = new Map<
+		(_event: unknown, message: RPCMessage) => void,
+		(event: Electron.IpcMainEvent, message: RPCMessage) => void
+	>()
+
+	return {
+		send(channel: string, message: RPCMessage): void {
+			if (!webContents.isDestroyed()) webContents.send(channel, message)
+		},
+		on(channel: string, listener: (_event: unknown, message: RPCMessage) => void): void {
+			const wrapped = (event: Electron.IpcMainEvent, message: RPCMessage) => {
+				if (event.sender === webContents) listener(event, message)
+			}
+			wrappers.set(listener, wrapped)
+			ipcMain.on(channel, wrapped)
+		},
+		off(channel: string, listener: (_event: unknown, message: RPCMessage) => void): void {
+			const wrapped = wrappers.get(listener)
+			if (!wrapped) return
+			wrappers.delete(listener)
+			ipcMain.off(channel, wrapped)
+		}
+	}
 }
 
 function createWindow() {
@@ -131,8 +169,10 @@ function createWindow() {
 	if (ipcRPC) {
 		ipcRPC.destroy()
 	}
-	const ipcIO = new ElectronIpcMainIO(ipcMain, win.webContents)
-	ipcRPC = new RPCChannel<MainAPI, RendererAPI>(ipcIO, { expose: mainAPI })
+	ipcRPC = new RPCChannel<MainAPI, RendererAPI>(
+		electronIpcTransport({ endpoint: createIpcMainEndpoint(win.webContents), channel: "kkrpc-ipc" }),
+		{ expose: mainAPI }
+	)
 	rendererAPI = ipcRPC.getAPI()
 
 	win.webContents.on("context-menu", (_event, params) => {
@@ -170,8 +210,8 @@ function createWindow() {
 }
 
 app.on("window-all-closed", () => {
-	stdioRelay?.destroy()
-	stdioRelay = null
+	stdioRPC?.destroy()
+	stdioRPC = null
 	ipcRPC?.destroy()
 	rpcChannel?.destroy()
 	workerProcess?.kill()

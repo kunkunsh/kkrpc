@@ -1,95 +1,91 @@
 /**
- * API definition for the streaming + middleware demo.
+ * API definition for the middleware demo.
  *
- * Streaming patterns:
- *   - countdown   — finite async generator (yields numbers)
- *   - tailLogs    — infinite stream with consumer cancellation
- *   - processTask — progress reporting with structured data
- *
- * Middleware patterns:
- *   - login         — sets per-connection auth session
- *   - getSecretData — protected by auth interceptor
- *   - ping          — public, used to demo rate limiting
+ * Stable kkrpc is request/response with callback support. This demo models
+ * multi-step work with explicit array results instead of remote iterators.
  */
 
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
-export type StreamingMiddlewareAPI = {
-	// ─── Public methods ──────────────────────────────────────────────
+export interface LogEntry {
+	timestamp: string
+	level: string
+	message: string
+}
+
+export interface TaskProgress {
+	percent: number
+	status: string
+}
+
+export type MiddlewareDemoAPI = {
 	ping(): Promise<string>
-	countdown(from: number): AsyncIterable<number>
-	tailLogs(service: string): AsyncIterable<{ timestamp: string; level: string; message: string }>
-	processTask(taskName: string): AsyncIterable<{ percent: number; status: string }>
-
-	// ─── Auth-related methods ────────────────────────────────────────
+	countdown(from: number): Promise<number[]>
+	getLogs(service: string, count: number): Promise<LogEntry[]>
+	processTask(taskName: string): Promise<TaskProgress[]>
+	processTaskWithProgress(
+		taskName: string,
+		onProgress: (progress: TaskProgress) => void
+	): Promise<TaskProgress[]>
 	login(username: string, password: string): Promise<{ message: string }>
 	getSecretData(): Promise<{ classified: string; accessedBy: string }>
 }
 
-/**
- * Factory that creates an API instance with per-connection session state.
- *
- * Each WebSocket connection gets its own session object, so the `login()`
- * handler and the auth interceptor can share state via closure scope.
- */
 export function createApi(session: { authenticated: boolean; username: string }) {
-	const api: StreamingMiddlewareAPI = {
-		// ─── Public methods (no auth required) ───────────────────────
+	const createTaskSteps = (taskName: string): TaskProgress[] => [
+		{ percent: 0, status: `${taskName}: Initializing` },
+		{ percent: 15, status: `${taskName}: Loading data` },
+		{ percent: 35, status: `${taskName}: Validating schema` },
+		{ percent: 50, status: `${taskName}: Transforming records` },
+		{ percent: 70, status: `${taskName}: Writing output` },
+		{ percent: 85, status: `${taskName}: Running checks` },
+		{ percent: 100, status: `${taskName}: Complete` }
+	]
+
+	const api: MiddlewareDemoAPI = {
 		async ping() {
 			return "pong"
 		},
 
-		async *countdown(from: number) {
-			for (let i = from; i >= 0; i--) {
-				yield i
-				if (i > 0) await sleep(1000)
-			}
+		async countdown(from: number) {
+			return Array.from({ length: Math.max(0, from) + 1 }, (_, index) => from - index)
 		},
 
-		async *tailLogs(service: string) {
+		async getLogs(service: string, count: number) {
 			const levels = ["INFO", "DEBUG", "WARN", "ERROR"]
 			const messages = [
 				"Request received",
 				"Processing payload",
 				"Cache hit",
-				"Cache miss — fetching from DB",
+				"Cache miss, fetching from DB",
 				"Response sent",
 				"Connection closed",
 				"Health check passed",
 				"Retry attempt"
 			]
-			let seq = 0
-			while (true) {
-				await sleep(300 + Math.random() * 700)
-				const level = levels[Math.floor(Math.random() * levels.length)]!
-				const message = messages[Math.floor(Math.random() * messages.length)]!
-				yield {
-					timestamp: new Date().toISOString(),
-					level,
-					message: `[${service}#${seq++}] ${message}`
-				}
-			}
+
+			return Array.from({ length: Math.max(0, count) }, (_, index) => ({
+				timestamp: new Date(Date.now() + index * 250).toISOString(),
+				level: levels[index % levels.length]!,
+				message: `[${service}#${index}] ${messages[index % messages.length]!}`
+			}))
 		},
 
-		async *processTask(taskName: string) {
-			const steps = [
-				{ at: 0, status: "Initializing" },
-				{ at: 15, status: "Loading data" },
-				{ at: 35, status: "Validating schema" },
-				{ at: 50, status: "Transforming records" },
-				{ at: 70, status: "Writing output" },
-				{ at: 85, status: "Running checks" },
-				{ at: 100, status: "Complete" }
-			]
+		async processTask(taskName: string) {
+			await sleep(200)
+			return createTaskSteps(taskName)
+		},
+
+		async processTaskWithProgress(taskName: string, onProgress: (progress: TaskProgress) => void) {
+			const steps = createTaskSteps(taskName)
 			for (const step of steps) {
-				await sleep(200 + Math.random() * 300)
-				yield { percent: step.at, status: `${taskName}: ${step.status}` }
+				await sleep(80)
+				onProgress(step)
 			}
+			return steps
 		},
 
-		// ─── Auth-gated methods ──────────────────────────────────────
 		async login(username: string, password: string) {
-			// Simple demo credentials — in production you'd verify against a database
 			if (password === "demo123") {
 				session.authenticated = true
 				session.username = username
@@ -99,7 +95,6 @@ export function createApi(session: { authenticated: boolean; username: string })
 		},
 
 		async getSecretData() {
-			// Auth interceptor ensures only authenticated users reach here
 			return {
 				classified: "The answer to life, the universe, and everything is 42.",
 				accessedBy: session.username

@@ -7,11 +7,11 @@ sidebar:
 
 kkrpc supports optional runtime validation of RPC inputs and outputs. Validation uses the [Standard Schema](https://standardschema.dev) interface, which is implemented by Zod (v3.24+), Valibot (v1+), ArkType (v2+), and many other libraries. No additional kkrpc dependencies are required — bring your own validator.
 
-Validation is fully opt-in. Without it, kkrpc behaves exactly as before.
+Validation is fully opt-in. Without the validation plugin, kkrpc does not run schema checks.
 
 ## How It Works
 
-1. You provide a `validators` map when creating an RPCChannel
+1. You pass a validator map to `validationPlugin()` when exposing an API
 2. The validators map mirrors your API shape — each method can have `input` and/or `output` schemas
 3. When a call is received, kkrpc validates the arguments before invoking the handler
 4. After the handler returns, kkrpc validates the result before sending it back
@@ -19,12 +19,13 @@ Validation is fully opt-in. Without it, kkrpc behaves exactly as before.
 
 Since kkrpc is bidirectional, both sides can independently have validators for their own exposed API. Whichever side receives a call validates against its own schemas.
 
-## Approach 1: Type-first (validators option)
+## Approach 1: Type-first validator map
 
 This approach works with existing code — define your API types and implementation as usual, then add a `validators` map:
 
 ```ts
-import { RPCChannel, type RPCValidators } from "kkrpc"
+import { expose } from "kkrpc"
+import { validationPlugin, type ValidatorMap } from "kkrpc/validation"
 import { z } from "zod"
 
 // 1. Define your API type (existing code, no changes needed)
@@ -53,7 +54,7 @@ const api: API = {
 }
 
 // 3. Define validators — mirrors the API shape
-const validators: RPCValidators<API> = {
+const validators: ValidatorMap<API> = {
 	echo: {
 		input: z.tuple([z.string()]),
 		output: z.string()
@@ -83,8 +84,8 @@ const validators: RPCValidators<API> = {
 	}
 }
 
-// 4. Pass validators to RPCChannel
-new RPCChannel(io, { expose: api, validators })
+// 4. Attach validators through a plugin
+expose(api, transport, { plugins: [validationPlugin(validators)] })
 ```
 
 ### Key points
@@ -99,7 +100,8 @@ new RPCChannel(io, { expose: api, validators })
 For users who want types inferred from schemas (similar to tRPC), use `defineMethod` and `defineAPI`:
 
 ```ts
-import { defineAPI, defineMethod, extractValidators, RPCChannel, type InferAPI } from "kkrpc"
+import { expose } from "kkrpc"
+import { defineAPI, defineMethod, extractValidators, validationPlugin, type InferAPI } from "kkrpc/validation"
 import { z } from "zod"
 
 // Define API with schemas — types are inferred automatically
@@ -120,9 +122,8 @@ const api = defineAPI({
 type MyAPI = InferAPI<typeof api>
 
 // extractValidators() collects schema metadata from defineMethod calls
-new RPCChannel(io, {
-	expose: api,
-	validators: extractValidators(api)
+expose(api, transport, {
+	plugins: [validationPlugin(extractValidators(api))]
 })
 ```
 
@@ -132,7 +133,7 @@ new RPCChannel(io, {
 | ------------------------ | ------------------------------------- | ---------------------------------------------- |
 | **Best for**             | Adding validation to existing APIs    | New APIs where you want single source of truth |
 | **Types come from**      | Your `type API = { ... }` declaration | Schema inference (`InferAPI<typeof api>`)      |
-| **Validator definition** | Separate `RPCValidators<API>` object  | Inline with `defineMethod()`                   |
+| **Validator definition** | Separate `ValidatorMap<API>` object   | Inline with `defineMethod()`                   |
 | **Refactoring cost**     | Zero — existing code unchanged        | Requires wrapping handlers with `defineMethod` |
 
 ## Handling Validation Errors
@@ -140,7 +141,7 @@ new RPCChannel(io, {
 When validation fails, the caller receives an `RPCValidationError`:
 
 ```ts
-import { isRPCValidationError } from "kkrpc"
+import { isRPCValidationError } from "kkrpc/validation"
 
 try {
 	await api.add("not", "numbers")
@@ -172,7 +173,7 @@ try {
 ### Rejecting invalid email
 
 ```ts
-const validators: RPCValidators<API> = {
+const validators: ValidatorMap<API> = {
 	createUser: {
 		input: z.tuple([
 			z.object({
@@ -201,7 +202,7 @@ const validators = {
 ### Division by zero with custom refinement
 
 ```ts
-const validators: RPCValidators<API> = {
+const validators: ValidatorMap<API> = {
 	math: {
 		divide: {
 			input: z.tuple([z.number(), z.number().refine((n) => n !== 0, "Divisor cannot be zero")])
@@ -218,11 +219,11 @@ try {
 }
 ```
 
-### No validators (backward compatible)
+### No validators
 
 ```ts
-// Existing code works exactly as before — no validators, no validation
-new RPCChannel(io, { expose: api })
+// No validation plugin means no validation overhead.
+expose(api, transport)
 ```
 
 ## Standard Schema Compatibility
@@ -240,7 +241,7 @@ kkrpc embeds the Standard Schema TypeScript interface (~40 lines) directly — n
 
 ### Types
 
-- `RPCValidators<API>` — recursively maps an API type to its validator shape
+- `ValidatorMap<API>` — recursively maps an API type to its validator shape
 - `MethodValidators<Args, Return>` — `{ input?: StandardSchemaV1, output?: StandardSchemaV1 }`
 - `RPCValidationError` — error class with `phase`, `method`, `issues`
 - `InferAPI<T>` — extracts the plain API type from a `defineAPI()` result
@@ -251,5 +252,5 @@ kkrpc embeds the Standard Schema TypeScript interface (~40 lines) directly — n
 - `runValidation(schema, value)` — executes a Standard Schema validator, returns `{ success, value }` or `{ success, issues }`
 - `defineMethod(schemas, handler)` — creates a handler function with schema metadata attached
 - `defineAPI(api)` — identity function that enables `InferAPI<typeof api>` type inference
-- `extractValidators(api)` — walks a `defineAPI()` result and collects schema metadata into an `RPCValidators` object
+- `extractValidators(api)` — walks a `defineAPI()` result and collects schema metadata into a validator map
 - `isRPCValidationError(error)` — type guard that works across serialization boundaries

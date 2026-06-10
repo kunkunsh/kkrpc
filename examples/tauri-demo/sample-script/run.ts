@@ -1,9 +1,10 @@
 import { spawn } from "node:child_process"
-import { DenoIo, NodeIo, RPCChannel } from "kkrpc"
+import { RPCChannel } from "kkrpc"
+import { nodeStdioTransport } from "kkrpc/stdio"
 import { apiMethods } from "./api"
 
 const worker = spawn("bun", ["./bun.ts"])
-const io = new NodeIo(worker.stdout, worker.stdin)
+const io = nodeStdioTransport({ readable: worker.stdout, writable: worker.stdin })
 const rpc = new RPCChannel<{}, typeof apiMethods>(io)
 const api = rpc.getAPI()
 

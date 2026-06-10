@@ -47,15 +47,17 @@ Browser natively supports these transferable types:
 ### Simple Transfer
 
 ```typescript
-import { RPCChannel, transfer, WorkerParentIO } from "kkrpc/browser"
+import { RPCChannel, transfer } from "kkrpc/browser"
+import { workerTransport } from "kkrpc/worker"
 
 // Setup RPC channel
 const worker = new Worker("worker.js")
-const io = new WorkerParentIO(worker)
-const rpc = new RPCChannel(io)
-const api = rpc.getAPI<{
+const transport = workerTransport(worker)
+type WorkerAPI = {
 	processBuffer(buffer: ArrayBuffer): Promise<number>
-}>()
+}
+const rpc = new RPCChannel<object, WorkerAPI>(transport)
+const api = rpc.getAPI()
 
 // Create buffer to transfer
 const buffer = new ArrayBuffer(10 * 1024 * 1024) // 10MB
@@ -94,9 +96,10 @@ console.log(audioBuffer.byteLength) // 0
 
 ```typescript
 // Worker can transfer data back to caller
-const api = rpc.getAPI<{
+type WorkerAPI = {
 	generateData(size: number): Promise<ArrayBuffer>
-}>()
+}
+const api = rpc.getAPI()
 
 // Request data from worker (also transferred)
 const newBuffer = await api.generateData(5 * 1024 * 1024) // 5MB
@@ -149,9 +152,10 @@ await api.processVideo(frame) // No need to call transfer() manually
 
 ```typescript
 // Both directions can transfer data
-const api = rpc.getAPI<{
+type WorkerAPI = {
 	exchangeData(buffer: ArrayBuffer): Promise<ArrayBuffer>
-}>()
+}
+const api = rpc.getAPI()
 
 const sendBuffer = new ArrayBuffer(1024)
 const receiveBuffer = await api.exchangeData(transfer(sendBuffer, [sendBuffer]))
@@ -168,7 +172,8 @@ console.log(receiveBuffer.byteLength) // 1024
 
 ```typescript
 // worker.ts
-import { RPCChannel, transfer, WorkerChildIO } from "kkrpc/browser"
+import { RPCChannel, transfer } from "kkrpc/browser"
+import { workerSelfTransport } from "kkrpc/worker"
 
 const api = {
 	// Process transferred buffer
@@ -206,8 +211,8 @@ const api = {
 	}
 }
 
-const io = new WorkerChildIO()
-const rpc = new RPCChannel(io, { expose: api })
+const transport = workerSelfTransport()
+const rpc = new RPCChannel(transport, { expose: api })
 ```
 
 ## 🧪 Testing Transfers

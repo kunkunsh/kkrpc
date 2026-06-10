@@ -1,19 +1,21 @@
 import { expect, test } from "bun:test"
-import { RPCChannel, transfer, WorkerParentIO, type IoInterface } from "../mod.ts"
+import { RPCChannel, transfer } from "../src/entries/mod.ts"
+import { workerTransport } from "../src/entries/worker.ts"
 import { apiMethods, type API } from "./scripts/api.ts"
 
 function createRpc() {
 	const worker = new Worker(new URL("./scripts/worker.ts", import.meta.url).href, {
 		type: "module"
 	})
-	const io = new WorkerParentIO(worker)
-	const rpc = new RPCChannel<API, API, IoInterface>(io, { expose: apiMethods })
+	const transport = workerTransport(worker)
+	const rpc = new RPCChannel<API, API>(transport, { expose: apiMethods })
 	const api = rpc.getAPI()
-	return { worker, io, rpc, api }
+	return { api, rpc }
 }
 
 test("Bun Worker", async () => {
-	const { io, api } = createRpc()
+	const { api, rpc } = createRpc()
+	const callbackResults: number[] = []
 	for (let i = 0; i < 100; i++) {
 		const randInt1 = Math.floor(Math.random() * 100)
 		const randInt2 = Math.floor(Math.random() * 100)
@@ -22,15 +24,16 @@ test("Bun Worker", async () => {
 
 		const sum = await api.math.grade1.add(randInt1, randInt2)
 		expect(sum).toBe(randInt1 + randInt2)
-		api.math.grade1.add(randInt1, randInt2, (sum) => {
-			expect(sum).toBe(randInt1 + randInt2)
+		await api.math.grade1.add(randInt1, randInt2, (callbackSum) => {
+			callbackResults.push(callbackSum)
 		})
+		expect(callbackResults.at(-1)).toBe(randInt1 + randInt2)
 	}
-	io.destroy()
+	rpc.destroy()
 })
 
 test("Bun worker supports transferable buffers", async () => {
-	const { io, api } = createRpc()
+	const { api, rpc } = createRpc()
 	const buffer = new Uint8Array([1, 2, 3, 4])
 	const byteLength = buffer.byteLength
 
@@ -42,5 +45,5 @@ test("Bun worker supports transferable buffers", async () => {
 	expect(remoteBuffer).toBeInstanceOf(ArrayBuffer)
 	expect(remoteBuffer.byteLength).toBe(512)
 
-	io.destroy()
+	rpc.destroy()
 })

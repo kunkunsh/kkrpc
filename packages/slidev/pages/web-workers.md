@@ -40,28 +40,25 @@ self.onmessage = (e) => {
 
 ```ts
 // main.ts
-import { WorkerChildIO, RPCChannel } from "kkrpc"
+import { wrap } from "kkrpc"
+import { workerTransport } from "kkrpc/worker"
 
 const worker = new Worker("./worker.ts")
-const io = new WorkerChildIO(worker)
-const rpc = new RPCChannel(io)
+const api = wrap(workerTransport(worker))
 
-const api = rpc.getAPI()
 const result = await api.add(1, 2) // 3
 await api.math.grade1.add(2, 3) // Nested!
 ```
 
 ```ts
 // worker.ts
-import { WorkerParentIO, RPCChannel } from "kkrpc"
+import { expose } from "kkrpc"
+import { workerSelfTransport } from "kkrpc/worker"
 
-const io = new WorkerParentIO()
-const rpc = new RPCChannel(io, {
-	expose: {
-		add: (a, b) => a + b,
-		math: { grade1: { add: (a, b) => a + b } }
-	}
-})
+expose({
+	add: (a, b) => a + b,
+	math: { grade1: { add: (a, b) => a + b } }
+}, workerSelfTransport())
 ```
 
 <v-click>

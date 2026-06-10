@@ -1,11 +1,10 @@
 import { apiImplementationNested, type API, type APINested } from "@kunkun/demo-api"
-import { RPCChannel, WorkerChildIO } from "kkrpc"
-import type { IoInterface } from "kkrpc"
+import { RPCChannel } from "kkrpc"
+import { workerSelfTransport } from "kkrpc/worker"
 
 console.log("worker loaded")
 
-const io: IoInterface = new WorkerChildIO()
-const rpc = new RPCChannel<APINested, API, IoInterface>(io, {
+const rpc = new RPCChannel<APINested, API>(workerSelfTransport(), {
 	expose: apiImplementationNested
 })
 const api = rpc.getAPI()

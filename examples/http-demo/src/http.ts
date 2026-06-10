@@ -1,28 +1,27 @@
 import { createServer } from "node:http"
-import { apiImplementationNested, type APINested } from "@kksh/demo-api"
-import { HTTPServerIO, RPCChannel } from "kkrpc"
+import { apiImplementationNested } from "@kksh/demo-api"
+import { createHttpHandler } from "kkrpc/http"
 
-const serverIO = new HTTPServerIO()
-const serverRPC = new RPCChannel<APINested, APINested>(serverIO, {
-	expose: apiImplementationNested
-})
+const handler = createHttpHandler(apiImplementationNested)
 
 const server = createServer(async (req, res) => {
 	// Handle RPC endpoint
 	if (req.url === "/rpc" && req.method === "POST") {
 		try {
-			// Read request body
 			const chunks: Buffer[] = []
 			for await (const chunk of req) {
 				chunks.push(Buffer.from(chunk))
 			}
-			const message = Buffer.concat(chunks).toString("utf-8")
+			const response = await handler(
+				new Request("http://127.0.0.1/rpc", {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: Buffer.concat(chunks).toString("utf-8")
+				})
+			)
 
-			// Process RPC request
-			const response = await serverIO.handleRequest(message)
-
-			// Send response
-			res.end(response)
+			res.writeHead(response.status, { "Content-Type": "application/json" })
+			res.end(await response.text())
 		} catch (error) {
 			console.error("RPC error:", error)
 			res.writeHead(500)

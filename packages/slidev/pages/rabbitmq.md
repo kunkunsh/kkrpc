@@ -46,16 +46,18 @@ channel.assertQueue("", { exclusive: true }, function (error2, q) {
 
 ```ts
 // client.ts - Just call the function
-import { RabbitMQIO, RPCChannel } from "kkrpc"
+import { wrap } from "kkrpc"
+import { rabbitMqTransport } from "kkrpc/rabbitmq"
 import type { MathAPI } from "./types"
 
-const io = new RabbitMQIO({
+const transport = rabbitMqTransport({
 	url: "amqp://localhost",
-	exchange: "math-service"
+	exchange: "math-service",
+	localPeerId: "client",
+	remotePeerId: "server"
 })
 
-const rpc = new RPCChannel<{}, MathAPI>(io)
-const math = rpc.getAPI()
+const math = wrap<MathAPI>(transport)
 
 // Direct function call with full type safety!
 const result = await math.fibonacci(30)
@@ -97,18 +99,23 @@ channel.consume("rpc_queue", function reply(msg) {
 
 ```ts
 // server.ts - Expose your API
-import { RabbitMQIO, RPCChannel } from "kkrpc"
+import { expose } from "kkrpc"
+import { rabbitMqTransport } from "kkrpc/rabbitmq"
 
-const io = new RabbitMQIO({ url: "amqp://localhost" })
+const transport = rabbitMqTransport({
+	url: "amqp://localhost",
+	localPeerId: "server"
+})
 
-new RPCChannel(io, {
-	expose: {
+expose(
+	{
 		fibonacci: (n: number): number => {
 			if (n === 0 || n === 1) return n
 			return fibonacci(n - 1) + fibonacci(n - 2)
 		}
-	}
-})
+	},
+	transport
+)
 ```
 
 <v-click>

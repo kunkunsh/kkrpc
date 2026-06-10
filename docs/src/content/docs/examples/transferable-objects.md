@@ -147,7 +147,7 @@ npm install kkrpc
 
 ### 3. Type Definitions
 
-```typescript
+```text
 // src/types.ts
 export interface WorkerAPI {
 	// Process a transferred buffer
@@ -189,11 +189,11 @@ export interface ImageData {
 }
 ```
 
-### 4. Worker Implementation
+### 4. Worker Implementation (`src/worker.ts`)
 
-```typescript
-// src/worker.ts
-import { RPCChannel, transfer, WorkerChildIO } from "kkrpc/browser"
+```text
+import { RPCChannel, transfer } from "kkrpc/browser"
+import { workerSelfTransport } from "kkrpc/worker"
 import type { MainAPI, WorkerAPI } from "./types"
 
 // Calculate simple checksum
@@ -284,24 +284,24 @@ const workerAPI: WorkerAPI = {
 }
 
 // Setup RPC channel
-const io = new WorkerChildIO()
-const rpc = new RPCChannel<MainAPI, WorkerAPI>(io, {
+const transport = workerSelfTransport()
+const rpc = new RPCChannel<MainAPI, WorkerAPI>(transport, {
 	expose: workerAPI,
 	debug: true // Enable debug logging
 })
 
 // Get main thread API
-const mainAPI = rpc.getAPI<MainAPI>()
+const mainAPI = rpc.getAPI()
 
 // Notify when ready
 mainAPI.log("Worker initialized and ready")
 ```
 
-### 5. Main Thread Implementation
+### 5. Main Thread Implementation (`src/main.ts`)
 
-```typescript
-// src/main.ts
-import { RPCChannel, transfer, WorkerParentIO } from "kkrpc/browser"
+```text
+import { RPCChannel, transfer } from "kkrpc/browser"
+import { workerTransport } from "kkrpc/worker"
 import type { ImageData, MainAPI, WorkerAPI } from "./types"
 
 // UI Elements
@@ -314,8 +314,8 @@ const speedupElement = document.getElementById("speedup") as HTMLSpanElement
 
 // Setup worker
 const worker = new Worker(new URL("./worker.js", import.meta.url), { type: "module" })
-const io = new WorkerParentIO(worker)
-const rpc = new RPCChannel<WorkerAPI, MainAPI>(io, {
+const transport = workerTransport(worker)
+const rpc = new RPCChannel<WorkerAPI, MainAPI>(transport, {
 	expose: {
 		async log(message: string) {
 			addLog(`[Worker] ${message}`)
@@ -331,7 +331,7 @@ const rpc = new RPCChannel<WorkerAPI, MainAPI>(io, {
 })
 
 // Get worker API
-const workerAPI = rpc.getAPI<WorkerAPI>()
+const workerAPI = rpc.getAPI()
 
 // Logging
 function addLog(message: string) {
@@ -509,7 +509,7 @@ For large buffers (>10MB), you should see:
 
 ### Zero-Copy Transfer
 
-```typescript
+```text
 // Before transfer
 const buffer = new ArrayBuffer(1024)
 console.log(buffer.byteLength) // 1024
@@ -523,7 +523,7 @@ console.log(buffer.byteLength) // 0 (neutered)
 
 ### Bidirectional Transfer
 
-```typescript
+```text
 // Main → Worker
 const sendBuffer = new ArrayBuffer(1024)
 await api.send(transfer(sendBuffer, [sendBuffer]))
@@ -535,7 +535,7 @@ const receiveBuffer = await api.receive()
 
 ### Complex Object Transfer
 
-```typescript
+```text
 // Object containing transferable data
 const imageData = {
 	width: 1920,
@@ -552,7 +552,7 @@ await api.processImage(transfer(imageData, [imageData.buffer]))
 
 ### Buffer Not Neutered
 
-```typescript
+```text
 // Problem: Buffer still has data after "transfer"
 const buffer = new ArrayBuffer(1024)
 await api.process(buffer) // Missing transfer() wrapper
@@ -565,7 +565,7 @@ console.log(buffer.byteLength) // 0 (correct)
 
 ### Performance Not Improved
 
-```typescript
+```text
 // Problem: Small buffers don't show speedup
 const buffer = new ArrayBuffer(1024) // Too small
 await api.process(transfer(buffer, [buffer])) // Minimal benefit

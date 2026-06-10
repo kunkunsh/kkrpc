@@ -54,10 +54,16 @@ window.electron.doThing()`}
 		code={`/* -------------------------------------------------------------------------- */
 /*                                Deno Process                                */
 /* -------------------------------------------------------------------------- */
-import { DenoIo, RPCChannel } from "kkrpc"
+import { RPCChannel } from "kkrpc"
+import { stdioJsonTransport } from "kkrpc/deno"
 import { initSqlite } from "./api.ts"
+import { promiseWritable, ReadableStreamLike } from "./stream-stdio.ts"
 
-const stdio = new DenoIo(Deno.stdin.readable)
+const encoder = new TextEncoder()
+const stdio = stdioJsonTransport({
+  readable: new ReadableStreamLike(Deno.stdin.readable),
+  writable: promiseWritable((chunk) => Deno.stdout.write(encoder.encode(chunk)))
+})
 // expose an object containing functions to the other side
 // nested objects are supported
 const channel = new RPCChannel(stdio, { expose: { initSqlite } })
@@ -71,7 +77,8 @@ rendererAPI.sendNotification("Hello, world!")
 /*                               WebView Process                              */
 /* -------------------------------------------------------------------------- */
 // Spawn the sidecar process
-import { RPCChannel, TauriShellStdio } from "kkrpc/browser"
+import { RPCChannel } from "kkrpc"
+import { tauriShellStdioTransport } from "kkrpc/tauri"
 import { sendNotification } from '@tauri-apps/plugin-notification'
 const cmd = Command.sidecar("binaries/deno-sidecar")
 // or run deno binary directly
@@ -80,7 +87,7 @@ const cmd = Command.create("deno", ["main.ts"])
 const process = await cmd.spawn()
 
 // Establish the bidirectional kkrpc channel
-const stdio = new TauriShellStdio(cmd.stdout, process)
+const stdio = tauriShellStdioTransport({ stdout: cmd.stdout, child: process })
 const channel = new RPCChannel(stdio, { expose: { sendNotification } })
 const api = channel.getAPI()
 

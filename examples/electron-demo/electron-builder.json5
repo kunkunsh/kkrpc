@@ -10,7 +10,8 @@
   },
   "files": [
     "dist",
-    "dist-electron"
+    "dist-electron",
+    "!node_modules/**/.turbo/**"
   ],
   "mac": {
     "target": [
