@@ -21,6 +21,24 @@ export interface RPCError {
 /** Operation kind represented by an RPC request. */
 export type RPCOperation = "call" | "get" | "set" | "new"
 
+/** Optional out-of-band metadata carried with an RPC request. */
+export interface RPCMessageMetadata {
+	/** W3C trace context parent header value. */
+	traceparent?: string
+	/** W3C trace context state header value. */
+	tracestate?: string
+	/** W3C baggage header value. */
+	baggage?: string
+	/** Application or platform request id for log correlation. */
+	requestId?: string
+	/** Session id for grouping related RPC calls. */
+	sessionId?: string
+	/** Runtime-specific low-cardinality metadata. */
+	runtime?: Record<string, string | number | boolean | null | undefined>
+	/** Application-specific metadata fields. */
+	[key: string]: unknown
+}
+
 /** Request record for a remote property access, function call, setter, or constructor call. */
 export interface RPCRequest {
 	/** Message tag for requests. */
@@ -35,6 +53,8 @@ export interface RPCRequest {
 	a?: unknown[]
 	/** Encoded value for setter requests. */
 	v?: unknown
+	/** Optional protocol-level metadata, such as trace or log correlation context. */
+	meta?: RPCMessageMetadata
 }
 
 /** Response record matching one request id. */

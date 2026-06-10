@@ -13,6 +13,7 @@
  */
 
 import type { RPCPlugin } from "../core/plugins.ts"
+import type { RPCMessageMetadata } from "../core/protocol.ts"
 
 /**
  * Mutable context shared by all middleware for one receive-side RPC call.
@@ -25,6 +26,7 @@ export interface RPCCallContext {
 	id: string
 	method: string
 	args: unknown[]
+	meta?: RPCMessageMetadata
 	state: Record<string, unknown>
 }
 
@@ -77,6 +79,7 @@ export function middlewarePlugin(interceptors: readonly MiddlewareHandler[]): RP
 				id: ctx.id,
 				method: ctx.method,
 				args: ctx.args,
+				meta: ctx.meta,
 				state: ctx.state
 			}
 			const result = await runInterceptors(interceptors, callCtx, async () => {

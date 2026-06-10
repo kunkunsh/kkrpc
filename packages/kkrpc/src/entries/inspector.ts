@@ -224,6 +224,7 @@ function toRequestEvent(ctx: RPCRequestContext, sessionId: string): InspectEvent
 	const message: RPCMessage = { t: "q", id: ctx.id, op: ctx.operation, p: ctx.path }
 	if (ctx.args.length > 0) message.a = ctx.args
 	if ("value" in ctx) message.v = ctx.value
+	if (ctx.meta && Object.keys(ctx.meta).length > 0) message.meta = ctx.meta
 	return { timestamp: Date.now(), direction: "received", sessionId, message }
 }
 

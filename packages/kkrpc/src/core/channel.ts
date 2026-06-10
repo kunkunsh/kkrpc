@@ -21,6 +21,7 @@ import type {
 	RPCCallback,
 	RPCError,
 	RPCMessage,
+	RPCMessageMetadata,
 	RPCOperation,
 	RPCRequest,
 	RPCResponse
@@ -44,6 +45,8 @@ export interface RPCChannelOptions<LocalAPI extends object = object> {
 	enableTransfer?: boolean
 	/** Plugins that run while handling incoming requests. */
 	plugins?: RPCPlugin[]
+	/** Optional provider for protocol-level metadata on outgoing request messages. */
+	getMetadata?: () => RPCMessageMetadata | undefined
 }
 
 type PendingRequest = {
@@ -168,6 +171,7 @@ export class RPCChannel<LocalAPI extends object = object, RemoteAPI extends obje
 	private timeout: number
 	private expose?: LocalAPI
 	private plugins: readonly RPCPlugin[]
+	private getMetadata?: () => RPCMessageMetadata | undefined
 
 	constructor(
 		private transport: Transport<RPCMessage>,
@@ -175,6 +179,7 @@ export class RPCChannel<LocalAPI extends object = object, RemoteAPI extends obje
 	) {
 		this.expose = options.expose
 		this.plugins = options.plugins ?? []
+		this.getMetadata = options.getMetadata
 		this.supportsTransfer = options.enableTransfer !== false && transport.capabilities?.transfer === true
 		this.timeout = options.timeout ?? 30_000
 		this.unsubscribe = transport.subscribe((message) => void this.handleMessage(message))
@@ -224,11 +229,18 @@ export class RPCChannel<LocalAPI extends object = object, RemoteAPI extends obje
 	// Register the pending response before sending to avoid races with synchronous transports.
 	private request(op: RPCOperation, path: string[], args?: unknown[], value?: unknown): Promise<unknown> {
 		if (this.destroyed) return Promise.reject(new Error("RPC channel destroyed"))
+		let meta: RPCMessageMetadata | undefined
+		try {
+			meta = this.getMetadata?.()
+		} catch (error) {
+			return Promise.reject(error instanceof Error ? error : new Error(String(error)))
+		}
 		const id = generateId()
 		const transfers: Transferable[] = []
 		const message: RPCRequest = { t: "q", id, op, p: path }
 		if (args) message.a = this.encodeArgs(args, transfers)
 		if (arguments.length >= 4) message.v = this.encodeValue(value, transfers)
+		if (meta && Object.keys(meta).length > 0) message.meta = meta
 
 		const promise = new Promise<unknown>((resolve, reject) => {
 			const pending: PendingRequest = { resolve, reject }
@@ -316,6 +328,7 @@ export class RPCChannel<LocalAPI extends object = object, RemoteAPI extends obje
 			method: message.p.join("."),
 			args: this.decodeArgs(message.a ?? []),
 			value: message.v,
+			meta: message.meta,
 			state
 		}
 		try {
@@ -330,6 +343,7 @@ export class RPCChannel<LocalAPI extends object = object, RemoteAPI extends obje
 				path: message.p,
 				method: message.p.join("."),
 				result,
+				meta: message.meta,
 				state
 			}
 			await runResponseHooks(this.plugins, responseCtx)
@@ -341,6 +355,7 @@ export class RPCChannel<LocalAPI extends object = object, RemoteAPI extends obje
 				path: message.p,
 				method: message.p.join("."),
 				error,
+				meta: message.meta,
 				state
 			}
 			await runErrorHooks(this.plugins, errorCtx)

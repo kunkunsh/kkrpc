@@ -23,7 +23,15 @@ export type {
 	RPCRequestContext,
 	RPCResponseContext
 } from "./plugins.ts"
-export type { RPCCallback, RPCError, RPCMessage, RPCOperation, RPCRequest, RPCResponse } from "./protocol.ts"
+export type {
+	RPCCallback,
+	RPCError,
+	RPCMessage,
+	RPCMessageMetadata,
+	RPCOperation,
+	RPCRequest,
+	RPCResponse
+} from "./protocol.ts"
 export type {
 	Codec,
 	CodecCapabilities,

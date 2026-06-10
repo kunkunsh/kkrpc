@@ -6,7 +6,7 @@
  * failure. Each request gets a shared mutable `state` bag for plugin coordination.
  */
 
-import type { RPCOperation } from "./protocol.ts"
+import type { RPCMessageMetadata, RPCOperation } from "./protocol.ts"
 
 /** Plugin hooks invoked while a remote request is handled locally. */
 export interface RPCPlugin {
@@ -36,6 +36,8 @@ export interface RPCRequestContext {
 	args: unknown[]
 	/** Decoded setter value, present for `set` operations. */
 	value?: unknown
+	/** Protocol-level metadata attached to the incoming request. */
+	meta?: RPCMessageMetadata
 	/** Per-request state shared across plugin hooks. */
 	state: Record<string, unknown>
 }
@@ -58,6 +60,8 @@ export interface RPCResponseContext {
 	method: string
 	/** Mutable result that will be sent to the caller. */
 	result: unknown
+	/** Protocol-level metadata attached to the incoming request. */
+	meta?: RPCMessageMetadata
 	/** Per-request state shared across plugin hooks. */
 	state: Record<string, unknown>
 }
@@ -74,6 +78,8 @@ export interface RPCErrorContext {
 	method: string
 	/** Mutable error that will be serialized if rethrown. */
 	error: unknown
+	/** Protocol-level metadata attached to the incoming request. */
+	meta?: RPCMessageMetadata
 	/** Per-request state shared across plugin hooks. */
 	state: Record<string, unknown>
 }

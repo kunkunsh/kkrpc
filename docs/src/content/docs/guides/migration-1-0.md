@@ -19,6 +19,7 @@ Major changes:
 - Runtime transports live behind subpath exports such as `kkrpc/worker`, `kkrpc/stdio`, `kkrpc/http`, `kkrpc/ws`, and `kkrpc/electron`.
 - Optional integrations and peer dependencies are no longer pulled through the main entry.
 - Validation and middleware are plugins, not top-level classic channel options.
+- Request metadata for tracing and logging is configured with `getMetadata` and read from plugin or middleware `ctx.meta`.
 - SuperJSON is an opt-in codec feature, not a core dependency.
 - HTTP is explicitly unary request/response. Use WebSocket or another evented transport for bidirectional calls and callback arguments.
 - Temporary `kkrpc/next` entries were removed because the native API is now stable.
@@ -31,9 +32,10 @@ Major changes:
 4. Use `wrap()` for client-only proxies and `expose()` for server-only APIs.
 5. Use `new RPCChannel(transport, { expose })` when both sides expose APIs.
 6. Replace `validators` and `interceptors` channel options with `validationPlugin()` and `middlewarePlugin()`.
-7. Move SuperJSON usage to `kkrpc/superjson` and compose it through `createTransport()` only where needed.
-8. Remove temporary `kkrpc/next`, `classic-compat`, `next/io`, `browser-lite`, `browser-mini`, and `electron-ipc` imports.
-9. Run type checks and runtime tests for every migrated transport boundary.
+7. Move trace, logging, or activity context to request metadata. See [Request Metadata](/guides/metadata/).
+8. Move SuperJSON usage to `kkrpc/superjson` and compose it through `createTransport()` only where needed.
+9. Remove temporary `kkrpc/next`, `classic-compat`, `next/io`, `browser-lite`, `browser-mini`, and `electron-ipc` imports.
+10. Run type checks and runtime tests for every migrated transport boundary.
 
 ## Removed Public APIs
 
@@ -46,7 +48,7 @@ These names and entries should not remain in 1.0 applications.
 | Classic `validators` option | `validationPlugin()` from `kkrpc/validation` |
 | Classic `interceptors` option | `middlewarePlugin()` from `kkrpc/middleware` |
 | `RPCValidators`, classic validation helpers | `defineMethod()`, `defineAPI()`, `extractValidators()`, `validationPlugin()` |
-| `RPCInterceptor` from the old API | `RPCInterceptor` from `kkrpc/middleware` |
+| `RPCInterceptor` from the old API | `MiddlewareHandler` from `kkrpc/middleware` |
 | `kkrpc/next` and `kkrpc/next/*` | Stable `kkrpc` and stable subpaths |
 | `kkrpc/next/classic-compat` | Native plugins and options |
 | `kkrpc/next/io` | Native transport implementations |
@@ -309,9 +311,9 @@ Middleware is also a plugin.
 
 ```ts
 import { expose } from "kkrpc"
-import { middlewarePlugin, type RPCInterceptor } from "kkrpc/middleware"
+import { middlewarePlugin, type MiddlewareHandler } from "kkrpc/middleware"
 
-const logger: RPCInterceptor = async (ctx, next) => {
+const logger: MiddlewareHandler = async (ctx, next) => {
 	console.log("rpc:start", ctx.method)
 	const result = await next()
 	console.log("rpc:end", ctx.method)
@@ -323,7 +325,38 @@ expose(api, transport, {
 })
 ```
 
-If old code used classic `interceptors`, migrate each interceptor to the new `RPCInterceptor` context and install it with `middlewarePlugin()`.
+If old code used classic `interceptors`, migrate each interceptor to the new `MiddlewareHandler` context and install it with `middlewarePlugin()`.
+
+## Metadata Migration
+
+If your 0.7 code used `getMetadata` or interceptor `ctx.meta` for tracing, activity IDs, or logging correlation, keep that context as request metadata in 1.0. The option remains `getMetadata`, but it now belongs to the native `wrap()`, `expose()`, or `RPCChannel` options.
+
+```ts
+import { wrap } from "kkrpc"
+
+const api = wrap<API>(transport, {
+	getMetadata: () => ({
+		traceparent: currentTraceparent(),
+		requestId: currentRequestId(),
+		sessionId: currentSessionId()
+	})
+})
+```
+
+Receive-side plugins and middleware read the metadata from `ctx.meta`.
+
+```ts
+import { middlewarePlugin, type MiddlewareHandler } from "kkrpc/middleware"
+
+const logger: MiddlewareHandler = async (ctx, next) => {
+	console.log("rpc", ctx.method, ctx.meta?.requestId)
+	return await next()
+}
+
+const plugins = [middlewarePlugin([logger])]
+```
+
+See [Request Metadata](/guides/metadata/) for tracing, logging, and kunkun migration examples.
 
 ## SuperJSON Migration
 
