@@ -1,31 +1,26 @@
 /**
- * Interceptor-style middleware plugin for stable kkrpc.
+ * Receive-side middleware plugin for stable RPC channels.
  *
- * Middleware is implemented as a plugin wrapper around local handler execution.
- * Middleware handlers run in onion order, can inspect or replace arguments, can block a
- * call by not invoking `next()`, and share per-request data through `ctx.state`.
- * This file is optional and separate from `kkrpc` so core users do not pay
- * for middleware helpers unless they import `kkrpc/middleware`.
+ * Middleware wraps local handler execution using an onion model. It is useful for
+ * logging, authorization, metrics, argument inspection, or result transformation.
  *
- * @example
  * ```ts
  * import { expose } from "kkrpc"
  * import { middlewarePlugin } from "kkrpc/middleware"
  *
- * const auth = middlewarePlugin([
- * 	async (ctx, next) => {
- * 		if (ctx.method === "admin.deleteUser") throw new Error("forbidden")
- * 		return await next()
- * 	}
- * ])
- *
- * expose(api, transport, { plugins: [auth] })
+ * expose(api, transport, { plugins: [middlewarePlugin([logger])] })
  * ```
  */
 
 import type { RPCPlugin } from "../core/plugins.ts"
 
-/** Context passed through each middleware interceptor for a single RPC call. */
+/**
+ * Mutable context shared by all middleware for one receive-side RPC call.
+ *
+ * `args` may be replaced before `next()` is called to transform handler input.
+ * `state` is per-call scratch space for cross-cutting concerns such as auth,
+ * logging metadata, metrics spans, or request-scoped caches.
+ */
 export interface RPCCallContext {
 	id: string
 	method: string
@@ -33,11 +28,20 @@ export interface RPCCallContext {
 	state: Record<string, unknown>
 }
 
-/** A receive-side onion middleware function. */
-export type MiddlewareHandler = (ctx: RPCCallContext, next: () => Promise<unknown>) => Promise<unknown>
+/**
+ * Receive-side middleware function that wraps the next middleware or handler.
+ *
+ * Middleware runs in onion order: code before `await next()` executes on the way
+ * in, and code after it executes on the way out. Returning without calling
+ * `next()` short-circuits local handler invocation.
+ */
+export type MiddlewareHandler = (
+	ctx: RPCCallContext,
+	next: () => Promise<unknown>
+) => Promise<unknown>
 
 /**
- * Run interceptors in onion order around a final handler.
+ * Run middleware interceptors in onion order around a final handler.
  *
  * Throws if an interceptor calls the same `next()` more than once. This mirrors
  * common middleware frameworks and prevents duplicated RPC handler execution.
@@ -58,7 +62,13 @@ export function runInterceptors(
 	return dispatch(0)
 }
 
-/** Create an RPC plugin from interceptor functions. */
+/**
+ * Create an RPC plugin from receive-side middleware functions.
+ *
+ * The plugin wraps receive-side handler invocation for APIs exposed on this
+ * channel. It does not run for outgoing calls made by this channel's remote API
+ * proxy.
+ */
 export function middlewarePlugin(interceptors: readonly MiddlewareHandler[]): RPCPlugin {
 	return {
 		name: "middleware",
