@@ -16,7 +16,8 @@ describe("bundle-size benchmark helpers", () => {
 			"kkrpc + json codec",
 			"kkrpc + superjson",
 			"kkrpc/worker",
-			"comctx"
+			"comctx",
+			"comlink"
 		])
 		for (const entry of cases) {
 			expect(entry.source).toContain("add(a: number, b: number): Promise<number>")
@@ -29,12 +30,14 @@ describe("bundle-size benchmark helpers", () => {
 		expect(cases[3]?.source).toContain("expose(localAPI, transport)")
 		expect(cases[4]?.source).toContain("expose(localAPI, transport)")
 		expect(cases[5]?.source).toContain("exposeMath(adapter)")
+		expect(cases[6]?.source).toContain("Comlink.expose(localAPI, endpoint)")
 		expect(cases[0]?.source).toContain('from "kkrpc"')
 		expect(cases[1]?.source).toContain('from "kkrpc/browser"')
 		expect(cases[2]?.source).toContain('from "kkrpc/codecs"')
 		expect(cases[3]?.source).toContain('from "kkrpc/superjson"')
 		expect(cases[4]?.source).toContain('from "kkrpc/worker"')
 		expect(cases[5]?.source).toContain('from "comctx"')
+		expect(cases[6]?.source).toContain('from "comlink"')
 	})
 
 	test("formats bundle measurements as markdown", () => {

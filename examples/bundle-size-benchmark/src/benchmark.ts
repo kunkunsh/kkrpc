@@ -64,6 +64,11 @@ export function createBenchmarkCases(workDir: string): BenchmarkCase[] {
 			name: "comctx",
 			fileName: "comctx.ts",
 			source: createComctxSample()
+		},
+		{
+			name: "comlink",
+			fileName: "comlink.ts",
+			source: createComlinkSample()
 		}
 	]
 
@@ -229,6 +234,29 @@ const [exposeMath, injectMath] = defineProxy(() => ({
 export function createAddProxy(adapter: Adapter) {
 	exposeMath(adapter)
 	const api = injectMath(adapter) as RemoteAPI
+	return () => api.add(1, 2)
+}
+
+Object.assign(globalThis, { createAddProxy })
+`
+}
+
+function createComlinkSample(): string {
+	return `import * as Comlink from "comlink"
+
+interface RemoteAPI {
+	add(a: number, b: number): Promise<number>
+}
+
+const localAPI: RemoteAPI = {
+	async add(a, b) {
+		return a + b
+	}
+}
+
+export function createAddProxy(endpoint: Comlink.Endpoint) {
+	Comlink.expose(localAPI, endpoint)
+	const api = Comlink.wrap<RemoteAPI>(endpoint)
 	return () => api.add(1, 2)
 }
 

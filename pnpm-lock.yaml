@@ -62,6 +62,9 @@ importers:
       comctx:
         specifier: ^1.7.4
         version: 1.7.4
+      comlink:
+        specifier: ^4.4.2
+        version: 4.4.2
       kkrpc:
         specifier: workspace:*
         version: link:../../packages/kkrpc
@@ -4104,6 +4107,9 @@ packages:
 
   comctx@1.7.4:
     resolution: {integrity: sha512-c5j2twNsFePTxuyPuR1x7UhCxu+BaFtUk8S1okJW9/qcy02PN29P3O8dy4XTtyQIgXYRTZinOYPcZJYMAbg4WQ==}
+
+  comlink@4.4.2:
+    resolution: {integrity: sha512-OxGdvBmJuNKSCMO4NTl1L47VRp6xn2wG4F/2hYzB6tiCb709otOxtEYCSvK80PtjODfXXZu8ds+Nw5kVCjqd2g==}
 
   comma-separated-tokens@2.0.3:
     resolution: {integrity: sha512-Fu4hJdvzeylCfQPp9SGWidpzrMs7tTrlu6Vb8XGaRGck8QSNZJJp538Wrb60Lax4fPwR64ViY468OIUTbRlGZg==}
@@ -14198,6 +14204,8 @@ snapshots:
       delayed-stream: 1.0.0
 
   comctx@1.7.4: {}
+
+  comlink@4.4.2: {}
 
   comma-separated-tokens@2.0.3: {}
 

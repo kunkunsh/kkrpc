@@ -9,6 +9,7 @@
 		"check-types": "tsc --noEmit"
 	},
 	"dependencies": {
+		"comlink": "^4.4.2",
 		"comctx": "^1.7.4",
 		"kkrpc": "workspace:*"
 	},
