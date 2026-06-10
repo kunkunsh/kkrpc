@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test"
 
 import { dispose, expose, RPCChannel, transfer, wrap } from "../src/entries/mod.ts"
-import type { RPCMessage, Transport } from "../src/entries/mod.ts"
+import type { RPCMessage, RPCStreamRequest, Transport } from "../src/entries/mod.ts"
 
 interface RemoteWidget {
 	name: string
@@ -24,6 +24,7 @@ interface RemoteAPI {
 	call(): Promise<string>
 	Widget: new (name: string) => Promise<RemoteWidget>
 	takeBuffer(buffer: ArrayBuffer): Promise<number>
+	numbers(count: number): AsyncIterable<number>
 	hang(): Promise<never>
 }
 
@@ -32,11 +33,13 @@ class MemoryTransport implements Transport<RPCMessage> {
 	closed = false
 	peer?: MemoryTransport
 	postError?: Error
+	messages: RPCMessage[] = []
 	transfers: Transferable[][] = []
 	private listeners = new Set<(message: RPCMessage) => void>()
 
 	send(message: RPCMessage, transfers: Transferable[] = []): void {
 		if (this.postError) throw this.postError
+		this.messages.push(message)
 		this.transfers.push(transfers)
 		queueMicrotask(() => {
 			for (const listener of this.peer?.listeners ?? []) listener(message)
@@ -93,6 +96,11 @@ function createAPI() {
 		},
 		takeBuffer(buffer: ArrayBuffer) {
 			return buffer.byteLength
+		},
+		async *numbers(count: number) {
+			for (let i = 0; i < count; i++) {
+				yield i
+			}
 		},
 		async hang() {
 			return await new Promise<never>(() => {})
@@ -221,6 +229,318 @@ describe("stable core RPC", () => {
 		expect(await client.getAPI().takeBuffer(transfer(buffer, [buffer]))).toBe(8)
 		expect(a.transfers[0]).toHaveLength(0)
 		expect(buffer.byteLength).toBe(8)
+
+		client.destroy()
+		server.destroy()
+	})
+
+	test("streams async iterable results with backpressure", async () => {
+		const [a, b] = createPair()
+		const client = new RPCChannel<object, RemoteAPI>(a)
+		const server = new RPCChannel<LocalAPI, object>(b, { expose: createAPI() })
+		const values: number[] = []
+
+		for await (const value of client.getAPI().numbers(3)) {
+			values.push(value)
+		}
+
+		expect(values).toEqual([0, 1, 2])
+
+		client.destroy()
+		server.destroy()
+	})
+
+	test("streams async iterable results with windowed credit instead of per-chunk round trips", async () => {
+		const [a, b] = createPair()
+		const client = new RPCChannel<object, RemoteAPI>(a)
+		const server = new RPCChannel<LocalAPI, object>(b, { expose: createAPI() })
+		const values: number[] = []
+
+		for await (const value of client.getAPI().numbers(40)) {
+			values.push(value)
+		}
+
+		const pullMessages = a.messages.filter(
+			(message): message is RPCStreamRequest => message.t === "sq" && message.op === "pull"
+		)
+		expect(values).toHaveLength(40)
+		expect(pullMessages.length).toBeLessThan(40)
+		expect(pullMessages[0]?.n).toBeGreaterThan(1)
+
+		client.destroy()
+		server.destroy()
+	})
+
+	test("propagates async iterable errors to the remote consumer", async () => {
+		const [a, b] = createPair()
+		const client = new RPCChannel<object, { fail(): AsyncIterable<number> }>(a)
+		const server = new RPCChannel<{ fail(): AsyncIterable<number> }, object>(b, {
+			expose: {
+				async *fail() {
+					yield 1
+					throw new Error("stream failed")
+				}
+			}
+		})
+		const iterator = client.getAPI().fail()[Symbol.asyncIterator]()
+
+		expect(await iterator.next()).toEqual({ done: false, value: 1 })
+		await expect(iterator.next()).rejects.toThrow("stream failed")
+
+		client.destroy()
+		server.destroy()
+	})
+
+	test("drains buffered async iterable values before surfacing producer errors", async () => {
+		const [a, b] = createPair()
+		const client = new RPCChannel<object, { failAfterValues(): AsyncIterable<number> }>(a)
+		const server = new RPCChannel<{ failAfterValues(): AsyncIterable<number> }, object>(b, {
+			expose: {
+				async *failAfterValues() {
+					yield 1
+					yield 2
+					yield 3
+					throw new Error("stream failed after values")
+				}
+			}
+		})
+		const iterator = client.getAPI().failAfterValues()[Symbol.asyncIterator]()
+
+		await new Promise((resolve) => setTimeout(resolve, 0))
+
+		expect(await iterator.next()).toEqual({ done: false, value: 1 })
+		expect(await iterator.next()).toEqual({ done: false, value: 2 })
+		expect(await iterator.next()).toEqual({ done: false, value: 3 })
+		await expect(iterator.next()).rejects.toThrow("stream failed after values")
+
+		client.destroy()
+		server.destroy()
+	})
+
+	test("returns remote async iterators when consumers stop early", async () => {
+		const [a, b] = createPair()
+		let finalized = false
+		const client = new RPCChannel<
+			object,
+			{ values(): AsyncIterable<number>; echo(value: string): Promise<string> }
+		>(a)
+		const server = new RPCChannel<
+			{ values(): AsyncIterable<number>; echo(value: string): Promise<string> },
+			object
+		>(b, {
+			expose: {
+				async *values() {
+					try {
+						yield 1
+						yield 2
+					} finally {
+						finalized = true
+					}
+				},
+				async echo(value) {
+					return value
+				}
+			}
+		})
+
+		for await (const value of client.getAPI().values()) {
+			expect(value).toBe(1)
+			break
+		}
+
+		expect(finalized).toBe(true)
+		expect(await client.getAPI().echo("still works")).toBe("still works")
+
+		client.destroy()
+		server.destroy()
+	})
+
+	test("streams empty async iterable results", async () => {
+		const [a, b] = createPair()
+		const client = new RPCChannel<object, { empty(): AsyncIterable<number> }>(a)
+		const server = new RPCChannel<{ empty(): AsyncIterable<number> }, object>(b, {
+			expose: {
+				async *empty() {}
+			}
+		})
+		const values: number[] = []
+
+		for await (const value of client.getAPI().empty()) {
+			values.push(value)
+		}
+
+		expect(values).toEqual([])
+
+		client.destroy()
+		server.destroy()
+	})
+
+	test("streams concurrent async iterable results independently", async () => {
+		const [a, b] = createPair()
+		const client = new RPCChannel<object, RemoteAPI>(a)
+		const server = new RPCChannel<LocalAPI, object>(b, { expose: createAPI() })
+		const api = client.getAPI()
+		const left: number[] = []
+		const right: number[] = []
+
+		await Promise.all([
+			(async () => {
+				for await (const value of api.numbers(3)) left.push(value)
+			})(),
+			(async () => {
+				for await (const value of api.numbers(2)) right.push(value)
+			})()
+		])
+
+		expect(left).toEqual([0, 1, 2])
+		expect(right).toEqual([0, 1])
+
+		client.destroy()
+		server.destroy()
+	})
+
+	test("streams nested async iterable method results", async () => {
+		const [a, b] = createPair()
+		type NestedAPI = { nested: { stream(count: number): AsyncIterable<string> } }
+		const client = new RPCChannel<object, NestedAPI>(a)
+		const server = new RPCChannel<NestedAPI, object>(b, {
+			expose: {
+				nested: {
+					async *stream(count) {
+						for (let index = 0; index < count; index++) yield `item-${index}`
+					}
+				}
+			}
+		})
+		const values: string[] = []
+
+		for await (const value of client.getAPI().nested.stream(3)) {
+			values.push(value)
+		}
+
+		expect(values).toEqual(["item-0", "item-1", "item-2"])
+
+		client.destroy()
+		server.destroy()
+	})
+
+	test("stream chunks support transferred values", async () => {
+		const [a, b] = createPair()
+		type StreamAPI = { buffers(): AsyncIterable<ArrayBuffer> }
+		const client = new RPCChannel<object, StreamAPI>(a)
+		const server = new RPCChannel<StreamAPI, object>(b, {
+			expose: {
+				async *buffers() {
+					const buffer = new ArrayBuffer(32)
+					yield transfer(buffer, [buffer])
+				}
+			}
+		})
+		const values: ArrayBuffer[] = []
+
+		for await (const value of client.getAPI().buffers()) {
+			values.push(value)
+		}
+
+		expect(values).toHaveLength(1)
+		expect(values[0]).toBeInstanceOf(ArrayBuffer)
+		expect(values[0].byteLength).toBe(32)
+		expect(b.transfers.some((transfers) => transfers.length === 1)).toBe(true)
+
+		client.destroy()
+		server.destroy()
+	})
+
+	test("streams async iterable arguments to the remote handler", async () => {
+		const [a, b] = createPair()
+		const client = new RPCChannel<object, { sum(values: AsyncIterable<number>): Promise<number> }>(a)
+		const server = new RPCChannel<
+			{ sum(values: AsyncIterable<number>): Promise<number> },
+			object
+		>(b, {
+			expose: {
+				async sum(values) {
+					let total = 0
+					for await (const value of values) total += value
+					return total
+				}
+			}
+		})
+
+		async function* values() {
+			yield 2
+			yield 3
+			yield 5
+		}
+
+		expect(await client.getAPI().sum(values())).toBe(10)
+
+		client.destroy()
+		server.destroy()
+	})
+
+	test("closes async iterable arguments when the remote call fails before consuming them", async () => {
+		const [a, b] = createPair()
+		const client = new RPCChannel<object, { fail(values: AsyncIterable<number>): Promise<void> }>(a)
+		const server = new RPCChannel<
+			{ fail(values: AsyncIterable<number>): Promise<void> },
+			object
+		>(b, {
+			expose: {
+				async fail() {
+					throw new Error("boom")
+				}
+			}
+		})
+		let finalized = false
+
+		const values: AsyncIterable<number> = {
+			[Symbol.asyncIterator]() {
+				return {
+					async next() {
+						return { done: false, value: 1 }
+					},
+					async return() {
+						finalized = true
+						return { done: true, value: undefined }
+					}
+				}
+			}
+		}
+
+		await expect(client.getAPI().fail(values)).rejects.toThrow("boom")
+		expect(finalized).toBe(true)
+
+		client.destroy()
+		server.destroy()
+	})
+
+	test("rejects remote async iterable reads when the pull message cannot be sent", async () => {
+		const [a, b] = createPair()
+		const client = new RPCChannel<object, { numbers(): AsyncIterable<number> }>(a)
+		const server = new RPCChannel<{ numbers(): AsyncIterable<number> }, object>(b, {
+			expose: {
+				async *numbers() {
+					yield 1
+				}
+			}
+		})
+
+		const stream = await client.getAPI().numbers()
+		const iterator = stream[Symbol.asyncIterator]()
+		a.postError = new Error("pull write failed")
+
+		const result = await Promise.race([
+			iterator.next().then(
+				() => new Error("next resolved unexpectedly"),
+				(error) => error
+			),
+			new Promise<Error>((resolve) => {
+				setTimeout(() => resolve(new Error("next timed out")), 50)
+			})
+		])
+		expect(result).toBeInstanceOf(Error)
+		expect(result.message).toBe("pull write failed")
 
 		client.destroy()
 		server.destroy()

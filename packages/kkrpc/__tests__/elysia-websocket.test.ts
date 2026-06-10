@@ -5,14 +5,20 @@ import { createElysiaWebSocketHandler } from "../src/entries/ws-elysia.ts"
 import { webSocketClientTransport } from "../src/entries/ws.ts"
 import { apiMethods, type API } from "./scripts/api.ts"
 
-let server: Elysia | undefined
+let server: ReturnType<typeof createTestServer> | undefined
 let url: string
 
-beforeAll(() => {
-	server = new Elysia()
+function createTestServer() {
+	return new Elysia()
 		.ws("/rpc", createElysiaWebSocketHandler({ expose: apiMethods }))
 		.listen({ port: 0, hostname: "127.0.0.1" })
-	url = `ws://127.0.0.1:${server.server?.port}/rpc`
+}
+
+beforeAll(() => {
+	server = createTestServer()
+	const port = server.server?.port
+	if (port === undefined) throw new Error("Elysia test server did not expose a port")
+	url = `ws://127.0.0.1:${port}/rpc`
 })
 
 afterAll(() => {

@@ -79,6 +79,21 @@ describe("HTTP RPC", () => {
 		expect(response.status).toBe(400)
 	})
 
+	test("async iterable arguments are rejected as invalid unary HTTP requests", async () => {
+		const response = await fetch(`${baseUrl}/rpc`, {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({
+				t: "q",
+				id: "stream-id",
+				op: "call",
+				p: ["echo"],
+				a: [{ __kkrpc_next_arg__: "value", v: { __kkrpc_next_stream__: "async-iterable", id: "s1" } }]
+			})
+		})
+		expect(response.status).toBe(400)
+	})
+
 	test("client transport rejects callback arguments before fetch", async () => {
 		let called = false
 		const fetchStub: typeof fetch = Object.assign(
@@ -103,6 +118,60 @@ describe("HTTP RPC", () => {
 			})
 		).rejects.toThrow("HTTP transport does not support callback arguments")
 		expect(called).toBe(false)
+	})
+
+	test("client transport rejects async iterable arguments before fetch", async () => {
+		let called = false
+		const fetchStub: typeof fetch = Object.assign(
+			async (..._args: Parameters<typeof fetch>) => {
+				called = true
+				throw new Error("fetch should not be called")
+			},
+			{ preconnect: fetch.preconnect }
+		)
+		const transport = httpClientTransport({
+			url: `${baseUrl}/rpc`,
+			fetch: fetchStub
+		})
+
+		await expect(
+			transport.send({
+				t: "q",
+				id: "stream-id",
+				op: "call",
+				p: ["echo"],
+				a: [
+					{
+						__kkrpc_next_arg__: "value",
+						v: { __kkrpc_next_stream__: "async-iterable", id: "s1" }
+					}
+				]
+			})
+		).rejects.toThrow("HTTP transport does not support async iterable streams")
+		expect(called).toBe(false)
+	})
+
+	test("handler rejects async iterable results because HTTP cannot continue streams", async () => {
+		const handler = createHttpHandler({
+			async *numbers() {
+				yield 1
+			}
+		})
+
+		const response = await handler(
+			new Request("http://127.0.0.1/rpc", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ t: "q", id: "stream-result-id", op: "call", p: ["numbers"], a: [] })
+			})
+		)
+
+		expect(response.status).toBe(200)
+		expect(await response.json()).toMatchObject({
+			t: "r",
+			id: "stream-result-id",
+			e: { m: "HTTP transport does not support async iterable results" }
+		})
 	})
 
 	test("handler timeout returns 504 with RPC error response", async () => {

@@ -1,5 +1,18 @@
 import { defineConfig } from "tsdown"
 
+const externalDependencies = [
+	"amqplib",
+	"kafkajs",
+	"ioredis",
+	"@nats-io/transport-node",
+	"socket.io",
+	"socket.io-client",
+	"ws",
+	"elysia",
+	"hono",
+	"@tauri-apps/plugin-shell"
+]
+
 export default defineConfig({
 	entry: {
 		mod: "./src/entries/mod.ts",
@@ -33,16 +46,10 @@ export default defineConfig({
 	format: ["cjs", "esm"],
 	clean: true,
 	minify: true,
-	external: [
-		"amqplib",
-		"kafkajs",
-		"ioredis",
-		"@nats-io/transport-node",
-		"socket.io",
-		"socket.io-client",
-		"ws",
-		"elysia",
-		"hono",
-		"@tauri-apps/plugin-shell"
-	]
+	outExtensions: ({ format }) => ({
+		js: format === "cjs" ? ".cjs" : ".js"
+	}),
+	deps: {
+		neverBundle: externalDependencies
+	}
 })

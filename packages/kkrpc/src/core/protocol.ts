@@ -21,6 +21,9 @@ export interface RPCError {
 /** Operation kind represented by an RPC request. */
 export type RPCOperation = "call" | "get" | "set" | "new"
 
+/** Operation kind represented by a remote async iterator control message. */
+export type RPCStreamOperation = "pull" | "return" | "throw"
+
 /** Optional out-of-band metadata carried with an RPC request. */
 export interface RPCMessageMetadata {
 	/** W3C trace context parent header value. */
@@ -79,5 +82,37 @@ export interface RPCCallback {
 	a: unknown[]
 }
 
+/** Control record for pulling or closing a remote async iterator. */
+export interface RPCStreamRequest {
+	/** Message tag for async iterator control messages. */
+	t: "sq"
+	/** Control id. `return` and `throw` controls receive an acknowledgement with this id. */
+	id: string
+	/** Stream id allocated by the side that owns the local async iterator. */
+	sid: string
+	/** Stream operation to perform. */
+	op: RPCStreamOperation
+	/** Number of chunks the producer may send for a `pull` control. */
+	n?: number
+	/** Encoded value passed to `return()` or `throw()`. */
+	v?: unknown
+}
+
+/** Stream data or control acknowledgement record. */
+export interface RPCStreamResponse {
+	/** Message tag for async iterator data and acknowledgements. */
+	t: "sr"
+	/** Data message id, or the matching control id for `return` / `throw` acknowledgements. */
+	id: string
+	/** Stream id this response belongs to. */
+	sid: string
+	/** Whether the iterator is done. */
+	d?: boolean
+	/** Encoded yielded or returned value. */
+	v?: unknown
+	/** Error payload when the iterator operation failed. */
+	e?: RPCError
+}
+
 /** Any compact message accepted by an `RPCChannel` transport. */
-export type RPCMessage = RPCRequest | RPCResponse | RPCCallback
+export type RPCMessage = RPCRequest | RPCResponse | RPCCallback | RPCStreamRequest | RPCStreamResponse

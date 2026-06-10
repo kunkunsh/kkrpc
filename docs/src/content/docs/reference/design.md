@@ -20,7 +20,7 @@ Actually, the overall design of `kkRPC` is very similar to GraphQL (i.e. sending
 
 The message structure is different from JSON-RPC 2.0, but similar in concept.
 
-Stable kkrpc uses compact request, response, and callback records. Requests locate the exposed API with a path array.
+Stable kkrpc uses compact request, response, callback, and stream records. Requests locate the exposed API with a path array.
 
 ```ts
 type Operation = "call" | "get" | "set" | "new"
@@ -46,10 +46,30 @@ interface RPCCallback {
 	id: string
 	a: unknown[]
 }
+
+interface RPCStreamRequest {
+	t: "sq"
+	id: string
+	sid: string
+	op: "pull" | "return" | "throw"
+	n?: number
+	v?: unknown
+}
+
+interface RPCStreamResponse {
+	t: "sr"
+	id: string
+	sid: string
+	d?: boolean
+	v?: unknown
+	e?: { n: string; m: string; s?: string }
+}
 ```
 
 Since it's not possible to transfer a callback function over any protocol, the channel keeps track of callbacks,
 sends callback marker objects to the remote, and later routes `t: "cb"` records back to the stored local function.
+
+Async iterables use stream reference markers in normal request or response values. The consumer sends `t: "sq"` records to grant `pull` credit or close the iterator with `return()` / `throw()`, and the owner sends `t: "sr"` records for yielded values, completion, or errors.
 
 ## Transport
 

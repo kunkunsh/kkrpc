@@ -30,7 +30,7 @@ src/
 
 ### Message Protocol
 
-Stable messages use compact request, response, and callback records. Methods use path arrays that are exposed to plugin contexts as dot-joined method names.
+Stable messages use compact request, response, callback, and stream records. Methods use path arrays that are exposed to plugin contexts as dot-joined method names.
 
 ### Transport Capabilities
 

@@ -1,8 +1,8 @@
 /**
  * API definition for the middleware demo.
  *
- * Stable kkrpc is request/response with callback support. This demo models
- * multi-step work with explicit array results instead of remote iterators.
+ * Stable kkrpc supports request/response, callback arguments, and remote async
+ * iterables. This demo shows all three shapes for multi-step work.
  */
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
@@ -27,6 +27,7 @@ export type MiddlewareDemoAPI = {
 		taskName: string,
 		onProgress: (progress: TaskProgress) => void
 	): Promise<TaskProgress[]>
+	streamTask(taskName: string): AsyncIterable<TaskProgress>
 	login(username: string, password: string): Promise<{ message: string }>
 	getSecretData(): Promise<{ classified: string; accessedBy: string }>
 }
@@ -83,6 +84,13 @@ export function createApi(session: { authenticated: boolean; username: string })
 				onProgress(step)
 			}
 			return steps
+		},
+
+		async *streamTask(taskName: string) {
+			for (const step of createTaskSteps(taskName)) {
+				await sleep(80)
+				yield step
+			}
 		},
 
 		async login(username: string, password: string) {

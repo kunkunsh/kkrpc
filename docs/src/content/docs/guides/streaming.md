@@ -1,13 +1,67 @@
 ---
 title: Continuous Updates
-description: Current stable options for progress, events, and chunked responses
+description: Async iterables, callbacks, events, and chunked responses
 sidebar:
   order: 6
 ---
 
-Stable kkrpc is request/response with callback support. It does not currently define first-class remote iterator streaming or stream protocol messages in the stable wire protocol.
+Stable kkrpc supports request/response calls, callback arguments, and first-class remote async iterables over bidirectional transports.
 
-Until native streaming is added with protocol and test coverage, model continuous work explicitly with callbacks, evented transports, or chunked request methods.
+Use async iterables for windowed pull streams with backpressure. Use callbacks for simple progress notifications. Use chunked request methods for paginated data, especially over HTTP.
+
+## Async Iterable Results
+
+Return an `AsyncIterable` or async generator from an exposed method. The remote caller can consume it directly with `for await`.
+
+```ts
+type API = {
+	tailLogs(service: string): AsyncIterable<string>
+}
+
+const api: API = {
+	async *tailLogs(service) {
+		for await (const line of openLogTail(service)) {
+			yield line
+		}
+	}
+}
+```
+
+```ts
+for await (const line of remote.tailLogs("worker")) {
+	console.log(line)
+	if (line.includes("ready")) break
+}
+```
+
+The consumer controls backpressure: kkrpc grants the producer a bounded credit window and replenishes it as the consumer drains values. This avoids one round trip per chunk while still capping buffered values. If the consumer breaks early, kkrpc calls `return()` on the source iterator so generator `finally` blocks can release resources.
+
+```ts
+const iterator = remote.tailLogs("worker")[Symbol.asyncIterator]()
+
+console.log(await iterator.next())
+await iterator.return?.(undefined)
+```
+
+Errors thrown by the source iterator reject the remote `next()` call after any already-buffered values have been drained.
+
+HTTP is still unary request/response and cannot continue a remote async iterator after the initial response. Use WebSocket, stdio, workers, iframes, desktop IPC, Socket.IO, or message-bus transports for async iterable streams.
+
+## Async Iterable Arguments
+
+Async iterables can also be passed as top-level method arguments over bidirectional transports.
+
+```ts
+type API = {
+	sum(values: AsyncIterable<number>): Promise<number>
+}
+
+const total = await remote.sum((async function* () {
+	yield 2
+	yield 3
+	yield 5
+})())
+```
 
 ## Progress Callbacks
 

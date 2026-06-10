@@ -8,7 +8,6 @@
 
 import { jsonLineCodec } from "../core/codecs.ts"
 import type { RPCMessage } from "../core/protocol.ts"
-import { createTransport } from "../core/transport.ts"
 import type { Platform, Transport } from "../core/transport.ts"
 
 /** Minimal readable stream interface used by stdio transports. */
@@ -33,6 +32,12 @@ export interface StdioPlatformOptions {
 	readable: ReadableLike
 	/** Writable stream that receives outgoing JSON-line data. */
 	writable: WritableLike
+}
+
+/** Options for the standard JSON-line RPC stdio transport. */
+export interface StdioJsonTransportOptions extends StdioPlatformOptions {
+	/** Observe stdout lines that are not valid RPC frames. */
+	onInvalidFrame?(frame: string, error?: unknown): void
 }
 
 interface NodeProcessLike {
@@ -100,17 +105,42 @@ export function stdioPlatform(options: StdioPlatformOptions): Platform<string> {
 	}
 }
 
+function isLikelyRpcFrame(wire: string): boolean {
+	return wire.trimStart().startsWith("{")
+}
+
 /**
  * Create the standard JSON-line stdio transport for RPC messages.
  *
  * This composes `stdioPlatform()` with `jsonLineCodec()`. It is bidirectional
  * when paired with another process and supports callbacks, but not transferables.
  */
-export function stdioJsonTransport(options: StdioPlatformOptions): Transport<RPCMessage> {
-	return createTransport({
-		platform: stdioPlatform(options),
-		codec: jsonLineCodec<RPCMessage>()
-	})
+export function stdioJsonTransport(options: StdioJsonTransportOptions): Transport<RPCMessage> {
+	const platform = stdioPlatform(options)
+	const codec = jsonLineCodec<RPCMessage>()
+
+	return {
+		capabilities: { objectMode: false, transfer: false },
+		send(message: RPCMessage) {
+			return platform.send(codec.encode(message), [])
+		},
+		subscribe(listener: (message: RPCMessage) => void) {
+			return platform.subscribe((wire) => {
+				if (!isLikelyRpcFrame(wire)) {
+					options.onInvalidFrame?.(wire)
+					return
+				}
+				try {
+					listener(codec.decode(wire))
+				} catch (error) {
+					options.onInvalidFrame?.(wire, error)
+				}
+			})
+		},
+		close() {
+			platform.close?.()
+		}
+	}
 }
 
 /**

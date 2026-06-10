@@ -1,8 +1,8 @@
-# Middleware Demo
+# Streaming Middleware Demo
 
-Demonstrates kkrpc middleware over WebSocket with stable request/response APIs.
+Demonstrates kkrpc middleware over WebSocket with stable request/response APIs, callback progress, and native async iterable streaming.
 
-Stable kkrpc does not currently expose first-class remote iterator streaming. Until native streaming is added with protocol and test coverage, model continuous work with callbacks, evented transports, or explicit chunk/result arrays.
+Stable kkrpc supports first-class remote async iterables over bidirectional transports. HTTP remains unary request/response, so use WebSocket, stdio, workers, iframes, desktop IPC, Socket.IO, or message-bus transports for streaming.
 
 ## What It Shows
 
@@ -19,6 +19,7 @@ Stable kkrpc does not currently expose first-class remote iterator streaming. Un
 - **Logs**: returns an array of log records
 - **Task progress**: returns an array of progress records
 - **Progress callback**: reports task progress through a callback argument
+- **Async iterable stream**: yields task progress records with windowed pull backpressure
 
 ## Manual Testing
 

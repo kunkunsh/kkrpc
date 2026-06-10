@@ -79,6 +79,11 @@ await api.processTaskWithProgress("backup", (progress) => {
 })
 console.log(`  callback steps: ${callbackSteps.join(" -> ")}`)
 
+console.log("\n=== Task progress via async iterable ===")
+for await (const progress of api.streamTask("deploy")) {
+	console.log(`  stream: ${progress.percent}% - ${progress.status}`)
+}
+
 console.log("\n=== All demos complete ===\n")
 transport.close?.()
 process.exit(0)

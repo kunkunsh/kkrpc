@@ -67,6 +67,8 @@ sequenceDiagram
 - Request: `{ t: "q", id, op, p, a?, v? }`
 - Response: `{ t: "r", id, v?, e? }`
 - Callback: `{ t: "cb", id, a }`
+- Stream request: `{ t: "sq", id, sid, op, n?, v? }`
+- Stream response: `{ t: "sr", id, sid, d?, v?, e? }`
 
 The short keys reduce serialized size for string transports and make the protocol stable across codecs.
 

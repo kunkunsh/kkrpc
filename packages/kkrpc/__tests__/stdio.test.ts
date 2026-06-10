@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test"
 import { PassThrough } from "node:stream"
 
-import { dispose, expose, wrap } from "../src/entries/mod.ts"
+import { dispose, expose, wrap, type RPCMessage } from "../src/entries/mod.ts"
 import { nodeStdioTransport, stdioJsonTransport, stdioPlatform } from "../src/entries/stdio.ts"
 import type { ReadableLike } from "../src/entries/stdio.ts"
 
@@ -136,6 +136,28 @@ describe("stdio transport", () => {
 			unsubscribeB()
 			expect(readableA.listenerCount("data")).toBe(0)
 			expect(readableB.listenerCount("data")).toBe(0)
+		}
+	})
+
+	test("ignores invalid stdout frames and continues decoding later RPC frames", () => {
+		const readable = new PassThrough()
+		const writable = new PassThrough()
+		const received: RPCMessage[] = []
+		const transport = stdioJsonTransport({ readable, writable })
+		const unsubscribe = transport.subscribe((message) => received.push(message))
+		const message: RPCMessage = { t: "r", id: "1", v: "ok" }
+
+		try {
+			expect(() => {
+				readable.write("[sample-headless-worker] loading\n")
+				readable.write("{not valid json\n")
+				readable.write(`${JSON.stringify(message)}\n`)
+			}).not.toThrow()
+
+			expect(received).toEqual([message])
+		} finally {
+			unsubscribe()
+			expect(readable.listenerCount("data")).toBe(0)
 		}
 	})
 })

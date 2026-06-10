@@ -270,6 +270,23 @@ await api.onProgress("build", (percent) => {
 })
 ```
 
+## Async Iterable Streaming
+
+Bidirectional transports can stream async iterable results with windowed pull backpressure. The remote caller can consume an async generator directly with `for await`; kkrpc grants bounded credit to the producer and breaking early calls `return()` on the source iterator.
+
+```ts
+type RemoteAPI = {
+	tailLogs(service: string): AsyncIterable<string>
+}
+
+for await (const line of api.tailLogs("worker")) {
+	console.log(line)
+	if (line.includes("ready")) break
+}
+```
+
+Async iterables can also be passed as top-level method arguments. HTTP remains unary request/response and does not support async iterable streams.
+
 ## Transferable Objects
 
 Use `transfer()` when a transport supports zero-copy ownership transfer, such as Web Workers.

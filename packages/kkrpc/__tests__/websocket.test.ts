@@ -78,6 +78,42 @@ test("WebSocket ignores malformed frames", async () => {
 	}
 })
 
+test("WebSocket streams async iterable results", async () => {
+	type StreamAPI = {
+		numbers(count: number): AsyncIterable<number>
+		echo(value: string): Promise<string>
+	}
+	const server = new WebSocketServer({ port: 0 })
+	const address = server.address() as AddressInfo
+	const streamUrl = `ws://localhost:${address.port}`
+	server.on("connection", (socket) => {
+		new RPCChannel<StreamAPI, object>(webSocketTransport(socket), {
+			expose: {
+				async *numbers(count) {
+					for (let index = 0; index < count; index++) yield index
+				},
+				async echo(value) {
+					return value
+				}
+			}
+		})
+	})
+	const client = new RPCChannel<object, StreamAPI>(webSocketClientTransport({ url: streamUrl }))
+	const values: number[] = []
+
+	try {
+		for await (const value of client.getAPI().numbers(4)) {
+			values.push(value)
+		}
+
+		expect(values).toEqual([0, 1, 2, 3])
+		expect(await client.getAPI().echo("still works")).toBe("still works")
+	} finally {
+		client.destroy()
+		server.close()
+	}
+})
+
 test("WebSocket unsubscribe removes native listeners", async () => {
 	const server = new WebSocketServer({ port: 0 })
 	const address = server.address() as AddressInfo

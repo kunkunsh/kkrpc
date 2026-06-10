@@ -379,7 +379,7 @@ The stable wire protocol uses compact JSON-compatible records:
 { "t": "q", "id": "request-id", "op": "call", "p": ["math", "add"], "a": [1, 2] }
 ```
 
-Responses use `t: "r"`; callback invocations use `t: "cb"`. Non-TypeScript implementations should use the language interop references and the `skills/interop` guide.
+Responses use `t: "r"`; callback invocations use `t: "cb"`. Async iterable streams use `t: "sq"` credit/control requests and `t: "sr"` data/completion/error responses. Non-TypeScript implementations should use the language interop references and the `skills/interop` guide.
 
 ## Common Pitfalls
 

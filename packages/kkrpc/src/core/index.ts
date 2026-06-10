@@ -30,7 +30,10 @@ export type {
 	RPCMessageMetadata,
 	RPCOperation,
 	RPCRequest,
-	RPCResponse
+	RPCResponse,
+	RPCStreamOperation,
+	RPCStreamRequest,
+	RPCStreamResponse
 } from "./protocol.ts"
 export type {
 	Codec,

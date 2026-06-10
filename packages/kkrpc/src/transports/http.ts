@@ -36,6 +36,7 @@ export interface HttpHandlerOptions {
 
 const RPC_OPERATIONS = new Set<RPCOperation>(["call", "get", "set", "new"])
 const ARG_ENVELOPE_TAG = "__kkrpc_next_arg__"
+const STREAM_REF_TAG = "__kkrpc_next_stream__"
 
 /**
  * Create a client transport backed by `fetch()` POST requests.
@@ -56,6 +57,9 @@ export function httpClientTransport(options: HttpClientTransportOptions): Transp
 			}
 			if (containsCallbackEnvelope(message.a) || containsCallbackEnvelope(message.v)) {
 				throw new Error("HTTP transport does not support callback arguments")
+			}
+			if (containsStreamRefEnvelope(message.a) || containsStreamRefEnvelope(message.v)) {
+				throw new Error("HTTP transport does not support async iterable streams")
 			}
 			const response = await fetchImpl(options.url, {
 				method: "POST",
@@ -167,7 +171,9 @@ function isRPCRequestMessage(value: unknown): value is RPCRequest {
 		message.p.every((segment) => typeof segment === "string") &&
 		(message.a === undefined || Array.isArray(message.a)) &&
 		!containsCallbackEnvelope(message.a) &&
-		!containsCallbackEnvelope(message.v)
+		!containsCallbackEnvelope(message.v) &&
+		!containsStreamRefEnvelope(message.a) &&
+		!containsStreamRefEnvelope(message.v)
 	)
 }
 
@@ -189,6 +195,26 @@ function containsCallbackEnvelope(value: unknown, seen = new WeakSet<object>()):
 	}
 
 	return Object.values(value).some((item) => containsCallbackEnvelope(item, seen))
+}
+
+// HTTP only accepts one-shot requests; stream refs require follow-up iterator messages.
+function containsStreamRefEnvelope(value: unknown, seen = new WeakSet<object>()): boolean {
+	if (typeof value !== "object" || value === null) return false
+	if (seen.has(value)) return false
+	seen.add(value)
+
+	if (
+		STREAM_REF_TAG in value &&
+		(value as { [STREAM_REF_TAG]?: unknown })[STREAM_REF_TAG] === "async-iterable"
+	) {
+		return true
+	}
+
+	if (Array.isArray(value)) {
+		return value.some((item) => containsStreamRefEnvelope(item, seen))
+	}
+
+	return Object.values(value).some((item) => containsStreamRefEnvelope(item, seen))
 }
 
 function createRequestScopedTransport(request: RPCMessage): Transport<RPCMessage> & {
@@ -222,6 +248,17 @@ function createRequestScopedTransport(request: RPCMessage): Transport<RPCMessage
 		send(message) {
 			if (message.t !== "r") {
 				throw new Error("HTTP handler transport only supports response messages")
+			}
+			if (containsStreamRefEnvelope(message.v)) {
+				resolveOnce({
+					t: "r",
+					id: message.id,
+					e: {
+						n: "Error",
+						m: "HTTP transport does not support async iterable results"
+					}
+				})
+				return
 			}
 			resolveOnce(message)
 		},
