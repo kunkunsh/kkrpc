@@ -70,10 +70,17 @@ jobs:
             echo "already_published=false" >> "$GITHUB_OUTPUT"
             echo "Version $PACKAGE_VERSION not found, will publish"
           fi
+      - name: Set npm dist-tag
+        id: dist_tag
+        run: |
+          PACKAGE_VERSION=$(node -p "require('./packages/kkrpc/package.json').version")
+          DIST_TAG=$(node -e 'const version = process.argv[1]; const prerelease = version.match(/^[0-9]+\.[0-9]+\.[0-9]+-([0-9A-Za-z-]+)/); console.log(prerelease ? prerelease[1] : "latest")' "$PACKAGE_VERSION")
+          echo "tag=$DIST_TAG" >> "$GITHUB_OUTPUT"
+          echo "Publishing $PACKAGE_VERSION with npm dist-tag $DIST_TAG"
       - name: Publish
         if: steps.check_version.outputs.already_published == 'false'
         working-directory: ./packages/kkrpc
-        run: npm publish --provenance --access public
+        run: npm publish --provenance --access public --tag "${{ steps.dist_tag.outputs.tag }}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_CONFIG_PROVENANCE: true
