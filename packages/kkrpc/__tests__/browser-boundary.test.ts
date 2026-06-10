@@ -8,6 +8,7 @@ import {
 } from "../src/entries/iframe.ts"
 import { RPCChannel, transfer } from "../src/entries/mod.ts"
 import type { RPCMessage } from "../src/core/protocol.ts"
+import { webSocketClientTransport as browserWebSocketClientTransport } from "../src/transports/web-socket-client.ts"
 
 const forbidden = [
 	"node:",
@@ -117,18 +118,49 @@ describe("browser-safe entries", () => {
 })
 
 describe("iframe transports", () => {
-	test("parent transfer capability is enabled only after MessagePort handshake", async () => {
+	test("parent transfer capability is declared before MessagePort handshake", async () => {
 		const { parentWindow, childWindow } = createWindowPair()
 		const parentTransport = iframeParentTransport(childWindow as unknown as Window, {
 			sourceWindow: parentWindow
 		})
 
-		expect(parentTransport.capabilities?.transfer).toBe(false)
+		expect(parentTransport.capabilities?.transfer).toBe(true)
 		const childTransport = iframeChildTransport({ sourceWindow: childWindow })
 		await waitFor(() => parentTransport.capabilities?.transfer === true)
 
 		parentTransport.close?.()
 		childTransport.close?.()
+	})
+
+	test("pre-ready iframe RPCChannel transfers ArrayBuffer after handshake", async () => {
+		interface ParentAPI {
+			processBuffer(buffer: ArrayBuffer): Promise<number>
+		}
+
+		const { parentWindow, childWindow } = createWindowPair()
+		const parentTransport = iframeParentTransport(childWindow as unknown as Window, {
+			sourceWindow: parentWindow,
+			targetOrigin: childWindow.origin
+		})
+		const childTransport = iframeChildTransport({
+			sourceWindow: childWindow,
+			targetOrigin: parentWindow.origin
+		})
+		const parentRpc = new RPCChannel<ParentAPI, object>(parentTransport, {
+			expose: { processBuffer: async (buffer) => buffer.byteLength }
+		})
+		const childRpc = new RPCChannel<object, ParentAPI>(childTransport)
+		const api = childRpc.getAPI()
+		const buffer = new ArrayBuffer(16)
+
+		try {
+			await waitFor(() => childTransport.capabilities?.transfer === true)
+			expect(await api.processBuffer(transfer(buffer, [buffer]))).toBe(16)
+			expect(buffer.byteLength).toBe(0)
+		} finally {
+			childRpc.destroy()
+			parentRpc.destroy()
+		}
 	})
 
 	test("child retries MessagePort init until parent transport is listening", async () => {
@@ -158,11 +190,13 @@ describe("iframe transports", () => {
 			targetOrigin: "https://child.example"
 		})
 		const childTransport = iframeChildTransport({ sourceWindow: childWindow })
+		const received: RPCMessage[] = []
+		childTransport.subscribe((message) => received.push(message))
 
 		parentTransport.send({ t: "q", id: "1", op: "call", p: ["secret"] })
 		await Bun.sleep(80)
 
-		expect(parentTransport.capabilities?.transfer).toBe(false)
+		expect(received).toHaveLength(0)
 		parentTransport.close?.()
 		childTransport.close?.()
 	})
@@ -188,6 +222,34 @@ describe("iframe transports", () => {
 			expect(received).toHaveLength(0)
 		} finally {
 			parentTransport.close?.()
+			if (originalMessageChannel) Object.defineProperty(globalThis, "MessageChannel", originalMessageChannel)
+			else Reflect.deleteProperty(globalThis, "MessageChannel")
+		}
+	})
+
+	test("ready helpers resolve with window fallback transports", async () => {
+		const originalMessageChannel = Object.getOwnPropertyDescriptor(globalThis, "MessageChannel")
+		Object.defineProperty(globalThis, "MessageChannel", {
+			configurable: true,
+			value: undefined
+		})
+		const { parentWindow, childWindow } = createWindowPair()
+
+		try {
+			const parentTransport = await Promise.race([
+				iframeParentTransportReady(childWindow as unknown as Window, { sourceWindow: parentWindow }),
+				Bun.sleep(25).then(() => undefined)
+			])
+			const childTransport = await Promise.race([
+				iframeChildTransportReady({ sourceWindow: childWindow }),
+				Bun.sleep(25).then(() => undefined)
+			])
+
+			expect(parentTransport).toBeDefined()
+			expect(childTransport).toBeDefined()
+			parentTransport?.close?.()
+			childTransport?.close?.()
+		} finally {
 			if (originalMessageChannel) Object.defineProperty(globalThis, "MessageChannel", originalMessageChannel)
 			else Reflect.deleteProperty(globalThis, "MessageChannel")
 		}
@@ -256,6 +318,39 @@ describe("iframe transports", () => {
 		} finally {
 			childRpc.destroy()
 			parentRpc.destroy()
+		}
+	})
+})
+
+describe("browser WebSocket transport", () => {
+	test("client transport rejects sends after the socket is closed", () => {
+		const originalWebSocket = Object.getOwnPropertyDescriptor(globalThis, "WebSocket")
+		class ClosedWebSocket {
+			static OPEN = 1
+			static CLOSED = 3
+			readyState = ClosedWebSocket.CLOSED
+			constructor(_url: string, _protocols?: string | string[]) {}
+			addEventListener() {}
+			removeEventListener() {}
+			send() {
+				throw new Error("send should not be called")
+			}
+			close() {}
+		}
+
+		Object.defineProperty(globalThis, "WebSocket", {
+			configurable: true,
+			value: ClosedWebSocket
+		})
+
+		try {
+			const transport = browserWebSocketClientTransport({ url: "ws://example.test" })
+			expect(() => transport.send({ t: "q", id: "1", op: "call", p: ["ping"] })).toThrow(
+				"WebSocket is not open"
+			)
+		} finally {
+			if (originalWebSocket) Object.defineProperty(globalThis, "WebSocket", originalWebSocket)
+			else Reflect.deleteProperty(globalThis, "WebSocket")
 		}
 	})
 })

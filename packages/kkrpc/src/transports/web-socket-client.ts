@@ -55,6 +55,7 @@ export function webSocketClientTransport(
 				socket.send(raw)
 				return
 			}
+			if (socket.readyState !== WebSocket.CONNECTING) throw new Error("WebSocket is not open")
 			pending.push(raw)
 		},
 		subscribe(listener) {

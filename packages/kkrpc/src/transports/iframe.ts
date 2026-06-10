@@ -114,7 +114,7 @@ export function iframeParentTransport(
 	}
 
 	let portTransport: Transport<RPCMessage> | undefined
-	const capabilities = { objectMode: true, transfer: false }
+	const capabilities = { objectMode: true, transfer: true }
 	const queuedMessages: Array<{ message: RPCMessage; transfers: Transferable[] }> = []
 	const listeners = new Set<(message: RPCMessage) => void>()
 	let unsubscribePort: (() => void) | undefined
@@ -133,7 +133,6 @@ export function iframeParentTransport(
 		unsubscribePort?.()
 		portTransport?.close?.()
 		portTransport = createPortTransport(event.ports[0])
-		capabilities.transfer = true
 		unsubscribePort = portTransport.subscribe((message) => {
 			for (const listener of listeners) listener(message)
 		})
@@ -170,6 +169,9 @@ export function iframeParentTransportReady(
 	targetWindow: Window,
 	options: IframeTransportOptions = {}
 ): Promise<Transport<RPCMessage>> {
+	if (typeof MessageChannel === "undefined") {
+		return Promise.resolve(iframeParentTransport(targetWindow, options))
+	}
 	return new Promise((resolve) => {
 		const transport = iframeParentTransport(targetWindow, {
 			...options,
@@ -199,7 +201,7 @@ export function iframeChildTransport(options: IframeTransportOptions = {}): Tran
 	}
 
 	const targetOrigin = options.targetOrigin ?? "*"
-	const capabilities = { objectMode: true, transfer: false }
+	const capabilities = { objectMode: true, transfer: true }
 	const listeners = new Set<(message: RPCMessage) => void>()
 	const queuedMessages: Array<{ message: RPCMessage; transfers: Transferable[] }> = []
 	let readyTransport: Transport<RPCMessage> | undefined
@@ -214,7 +216,6 @@ export function iframeChildTransport(options: IframeTransportOptions = {}): Tran
 		retryTimer = undefined
 		readyTransport = candidateTransport
 		candidateTransport = undefined
-		capabilities.transfer = true
 		for (const item of queuedMessages.splice(0)) readyTransport.send(item.message, item.transfers)
 		options.onReady?.()
 	}
@@ -274,6 +275,9 @@ export function iframeChildTransport(options: IframeTransportOptions = {}): Tran
 export function iframeChildTransportReady(
 	options: IframeTransportOptions = {}
 ): Promise<Transport<RPCMessage>> {
+	if (typeof MessageChannel === "undefined") {
+		return Promise.resolve(iframeChildTransport(options))
+	}
 	return new Promise((resolve) => {
 		let ready = false
 		let transport: Transport<RPCMessage> | undefined

@@ -29,6 +29,7 @@ export interface WebSocketClientTransportOptions {
 	protocols?: string | string[]
 }
 
+const CONNECTING_READY_STATE = 0
 const OPEN_READY_STATE = 1
 const textDecoder = new TextDecoder()
 
@@ -80,6 +81,7 @@ export function webSocketTransport(socket: WebSocketLike): Transport<RPCMessage>
 				socket.send(raw)
 				return
 			}
+			if (socket.readyState !== CONNECTING_READY_STATE) throw new Error("WebSocket is not open")
 			pending.push(raw)
 		},
 		subscribe(listener) {

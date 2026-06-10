@@ -100,6 +100,21 @@ test("WebSocket unsubscribe removes native listeners", async () => {
 	server.close()
 })
 
+test("WebSocket transport rejects sends after the socket is closed", () => {
+	const socket = {
+		readyState: WebSocket.CLOSED,
+		send() {
+			throw new Error("send should not be called")
+		},
+		close() {}
+	}
+	const transport = webSocketTransport(socket)
+
+	expect(() => transport.send({ t: "q", id: "1", op: "call", p: ["ping"] })).toThrow(
+		"WebSocket is not open"
+	)
+})
+
 function waitForOpen(socket: WebSocket): Promise<void> {
 	return new Promise((resolve) => {
 		socket.addEventListener("open", () => resolve(), { once: true })
