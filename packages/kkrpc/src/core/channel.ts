@@ -1,5 +1,12 @@
 import { takeTransferDescriptor } from "./transfer.ts"
-import type { RPCError, RPCMessage, RPCOperation, RPCRequest } from "./protocol.ts"
+import type {
+	RPCCallback,
+	RPCError,
+	RPCMessage,
+	RPCOperation,
+	RPCRequest,
+	RPCResponse
+} from "./protocol.ts"
 import {
 	runErrorHooks,
 	runHandlerHooks,
@@ -23,6 +30,7 @@ type PendingRequest = {
 }
 
 const ARG_ENVELOPE_TAG = "__kkrpc_next_arg__"
+const RPC_OPERATIONS = new Set<RPCOperation>(["call", "get", "set", "new"])
 
 type ValueArgEnvelope = {
 	[ARG_ENVELOPE_TAG]: "value"
@@ -44,6 +52,32 @@ function isArgEnvelope(value: unknown): value is ArgEnvelope {
 		((value as { [ARG_ENVELOPE_TAG]: unknown })[ARG_ENVELOPE_TAG] === "value" ||
 			(value as { [ARG_ENVELOPE_TAG]: unknown })[ARG_ENVELOPE_TAG] === "callback")
 	)
+}
+
+function isRPCRequestMessage(value: unknown): value is RPCRequest {
+	if (typeof value !== "object" || value === null) return false
+	const message = value as Partial<RPCRequest>
+	return (
+		message.t === "q" &&
+		typeof message.id === "string" &&
+		typeof message.op === "string" &&
+		RPC_OPERATIONS.has(message.op as RPCOperation) &&
+		Array.isArray(message.p) &&
+		message.p.every((segment) => typeof segment === "string") &&
+		(message.a === undefined || Array.isArray(message.a))
+	)
+}
+
+function isRPCResponseMessage(value: unknown): value is RPCResponse {
+	if (typeof value !== "object" || value === null) return false
+	const message = value as Partial<RPCResponse>
+	return message.t === "r" && typeof message.id === "string"
+}
+
+function isRPCCallbackMessage(value: unknown): value is RPCCallback {
+	if (typeof value !== "object" || value === null) return false
+	const message = value as Partial<RPCCallback>
+	return message.t === "cb" && typeof message.id === "string" && Array.isArray(message.a)
 }
 
 function generateId(): string {
@@ -201,16 +235,16 @@ export class RPCChannel<LocalAPI extends object = object, RemoteAPI extends obje
 
 	private async handleMessage(message: RPCMessage): Promise<void> {
 		if (this.destroyed) return
-		if (message.t === "r") {
+		if (isRPCResponseMessage(message)) {
 			this.handleResponse(message.id, message.v, message.e)
 			return
 		}
-		if (message.t === "cb") {
+		if (isRPCCallbackMessage(message)) {
 			const callback = this.callbacks.get(message.id)
 			if (callback) void callback(...this.decodeArgs(message.a))
 			return
 		}
-		await this.handleRequest(message)
+		if (isRPCRequestMessage(message)) await this.handleRequest(message)
 	}
 
 	private handleResponse(id: string, value: unknown, error?: RPCError): void {

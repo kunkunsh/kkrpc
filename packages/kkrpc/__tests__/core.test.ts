@@ -163,6 +163,18 @@ describe("stable core RPC", () => {
 		client.destroy()
 	})
 
+	test("ignores non-RPC messages instead of responding with an undefined id", async () => {
+		const [clientTransport, serverTransport] = createPair()
+		const server = new RPCChannel<LocalAPI, object>(serverTransport, { expose: createAPI() })
+
+		clientTransport.send({} as RPCMessage)
+		await new Promise((resolve) => setTimeout(resolve, 0))
+
+		expect(serverTransport.transfers).toHaveLength(0)
+
+		server.destroy()
+	})
+
 	test("transfers top-level marked values when transport supports transfer", async () => {
 		const [a, b] = createPair()
 		const client = new RPCChannel<object, RemoteAPI>(a)
