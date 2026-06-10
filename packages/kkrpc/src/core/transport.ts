@@ -76,7 +76,10 @@ export interface Codec<TMessage, TWire> {
  * import { stdioPlatform } from "kkrpc/stdio"
  * import { createTransport } from "kkrpc/transport"
  *
- * const transport = createTransport({ platform: stdioPlatform, codec: jsonLineCodec() })
+ * const transport = createTransport({
+ * 	platform: stdioPlatform({ readable, writable }),
+ * 	codec: jsonLineCodec()
+ * })
  * ```
  */
 export function createTransport<TMessage, TWire>({
