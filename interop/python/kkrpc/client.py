@@ -72,7 +72,7 @@ class RpcClient:
 
 		if processed_args:
 			payload["a"] = processed_args
-		if value is not None:
+		if op == "set" or value is not None:
 			payload["v"] = value
 
 		self._write_message(payload)

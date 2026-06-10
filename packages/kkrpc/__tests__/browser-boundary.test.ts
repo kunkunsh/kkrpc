@@ -167,6 +167,32 @@ describe("iframe transports", () => {
 		childTransport.close?.()
 	})
 
+	test("window fallback rejects messages from mismatched origin", async () => {
+		const originalMessageChannel = Object.getOwnPropertyDescriptor(globalThis, "MessageChannel")
+		Object.defineProperty(globalThis, "MessageChannel", {
+			configurable: true,
+			value: undefined
+		})
+		const { parentWindow, childWindow } = createWindowPair({ childOrigin: "https://evil.example" })
+		const parentTransport = iframeParentTransport(childWindow as unknown as Window, {
+			sourceWindow: parentWindow,
+			targetOrigin: "https://child.example"
+		})
+		const received: RPCMessage[] = []
+
+		try {
+			parentTransport.subscribe((message) => received.push(message))
+			parentWindow.postMessage({ t: "q", id: "1", op: "call", p: ["secret"] }, "*")
+			await Bun.sleep(0)
+
+			expect(received).toHaveLength(0)
+		} finally {
+			parentTransport.close?.()
+			if (originalMessageChannel) Object.defineProperty(globalThis, "MessageChannel", originalMessageChannel)
+			else Reflect.deleteProperty(globalThis, "MessageChannel")
+		}
+	})
+
 	test("ready parent transport is MessagePort-backed before RPCChannel construction", async () => {
 		const { parentWindow, childWindow } = createWindowPair()
 		const parentTransportPromise = iframeParentTransportReady(childWindow as unknown as Window, {

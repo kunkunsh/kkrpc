@@ -59,6 +59,33 @@ def test_server_unwraps_stable_value_envelope_args() -> None:
     assert response["v"] == "payload"
 
 
+def test_client_sends_null_set_values() -> None:
+    transport = MemoryTransport()
+    client = RpcClient(transport)
+    result: dict[str, object] = {}
+
+    def set_value() -> None:
+        result["value"] = client.set(["settings", "theme"], None)
+
+    thread = threading.Thread(target=set_value)
+    thread.start()
+
+    for _ in range(10000):
+        if transport.outbox:
+            break
+        time.sleep(0.001)
+
+    assert transport.outbox
+    request = decode_message(transport.outbox[0])
+    assert "v" in request
+    assert request["v"] is None
+    transport.inbox.append(encode_message({"t": "r", "id": request["id"], "v": True}))
+    thread.join(timeout=2)
+
+    client.close()
+    assert result["value"] is True
+
+
 def test_stdio_calls() -> None:
     process = subprocess.Popen(
         ["bun", SERVER_PATH],

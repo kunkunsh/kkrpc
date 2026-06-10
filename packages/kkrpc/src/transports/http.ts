@@ -1,13 +1,31 @@
+/**
+ * Unary HTTP transport and handler for stable kkrpc.
+ *
+ * HTTP maps each RPC request to one POST request and one JSON response. It is
+ * useful for simple web APIs, but it cannot support callback arguments or
+ * server-initiated calls because the server has no persistent channel back to
+ * the client.
+ *
+ * ```ts
+ * import { wrap } from "kkrpc"
+ * import { httpClientTransport } from "kkrpc/http"
+ *
+ * const api = wrap<RemoteAPI>(httpClientTransport({ url: "http://localhost:3000/rpc" }))
+ * ```
+ */
+
 import { RPCChannel } from "../core/channel.ts"
 import type { RPCMessage, RPCOperation, RPCRequest, RPCResponse } from "../core/protocol.ts"
 import type { Transport } from "../core/transport.ts"
 
+/** Options for the client-side unary HTTP transport. */
 export interface HttpClientTransportOptions {
 	url: string
 	headers?: Record<string, string>
 	fetch?: typeof fetch
 }
 
+/** Options for `createHttpHandler()`. */
 export interface HttpHandlerOptions {
 	timeout?: number
 }
@@ -15,6 +33,13 @@ export interface HttpHandlerOptions {
 const RPC_OPERATIONS = new Set<RPCOperation>(["call", "get", "set", "new"])
 const ARG_ENVELOPE_TAG = "__kkrpc_next_arg__"
 
+/**
+ * Create a client transport backed by `fetch()` POST requests.
+ *
+ * The transport is unary and request-only: it sends compact RPC request messages
+ * and forwards the HTTP response back to the channel. It supports neither
+ * callbacks nor transferables, and there is no persistent connection to close.
+ */
 export function httpClientTransport(options: HttpClientTransportOptions): Transport<RPCMessage> {
 	const fetchImpl = options.fetch ?? fetch
 	const listeners = new Set<(message: RPCMessage) => void>()
@@ -33,9 +58,13 @@ export function httpClientTransport(options: HttpClientTransportOptions): Transp
 				headers: { "Content-Type": "application/json", ...options.headers },
 				body: JSON.stringify(message)
 			})
+			const reply = await readRPCResponse(response)
+			if (reply) {
+				for (const listener of listeners) listener(reply)
+				return
+			}
 			if (!response.ok) throw new Error(`HTTP error ${response.status}`)
-			const reply = (await response.json()) as RPCMessage
-			for (const listener of listeners) listener(reply)
+			throw new Error("Invalid RPC response")
 		},
 		subscribe(listener) {
 			listeners.add(listener)
@@ -46,6 +75,28 @@ export function httpClientTransport(options: HttpClientTransportOptions): Transp
 	}
 }
 
+async function readRPCResponse(response: Response): Promise<RPCResponse | undefined> {
+	try {
+		const body = await response.json()
+		return isRPCResponseMessage(body) ? body : undefined
+	} catch {
+		return undefined
+	}
+}
+
+function isRPCResponseMessage(value: unknown): value is RPCResponse {
+	if (typeof value !== "object" || value === null) return false
+	const message = value as Partial<RPCResponse>
+	return message.t === "r" && typeof message.id === "string"
+}
+
+/**
+ * Create a Fetch API handler that exposes a local API over unary HTTP.
+ *
+ * The handler validates that the request body is a compact RPC request and
+ * rejects callback envelopes because HTTP has no reverse channel for invoking
+ * callback arguments. A request-scoped channel is destroyed after each response.
+ */
 export function createHttpHandler<LocalAPI extends object>(
 	api: LocalAPI,
 	options: HttpHandlerOptions = {}
@@ -116,6 +167,7 @@ function isRPCRequestMessage(value: unknown): value is RPCRequest {
 	)
 }
 
+// HTTP only accepts one-shot requests; callback envelopes require a bidirectional transport.
 function containsCallbackEnvelope(value: unknown, seen = new WeakSet<object>()): boolean {
 	if (typeof value !== "object" || value === null) return false
 	if (seen.has(value)) return false

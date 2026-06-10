@@ -132,4 +132,26 @@ describe("HTTP RPC", () => {
 			e: { n: "RPCTimeoutError" }
 		})
 	})
+
+	test("client preserves RPC errors returned with non-OK HTTP statuses", async () => {
+		const handler = createHttpHandler(
+			{
+				hang: () => new Promise(() => {})
+			},
+			{ timeout: 5 }
+		)
+		const fetchStub: typeof fetch = Object.assign(
+			(request: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]) =>
+				handler(new Request(request, init)),
+			{ preconnect: fetch.preconnect }
+		)
+		const api = wrap<{ hang(): Promise<never> }>(
+			httpClientTransport({
+				url: "http://127.0.0.1/rpc",
+				fetch: fetchStub
+			})
+		)
+
+		await expect(api.hang()).rejects.toMatchObject({ name: "RPCTimeoutError" })
+	})
 })

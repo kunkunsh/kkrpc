@@ -1,4 +1,11 @@
-/** iframe transports for stable kkrpc. */
+/**
+ * iframe parent/child transports for stable kkrpc.
+ *
+ * The preferred path upgrades to a `MessagePort` through a small
+ * `postMessage()` handshake, enabling bidirectional RPC, callback arguments, and
+ * transferables. When `MessageChannel` is unavailable, the transport falls back
+ * to window-to-window `postMessage()` without transferable support.
+ */
 
 import type { RPCMessage } from "../core/protocol.ts"
 import type { Transport } from "../core/transport.ts"
@@ -79,6 +86,7 @@ function createWindowTransport({
 		subscribe(listener: (message: RPCMessage) => void) {
 			const messageListener = (event: MessageEvent<RPCMessage>) => {
 				if (event.source !== targetWindow) return
+				if (!isAllowedOrigin(event, targetOrigin)) return
 				listener(event.data)
 			}
 			sourceWindow.addEventListener("message", messageListener)
@@ -87,7 +95,14 @@ function createWindowTransport({
 	}
 }
 
-/** Create a transport for the parent-window side of an iframe. */
+/**
+ * Create a transport for the parent-window side of an iframe.
+ *
+ * Messages sent before the `MessageChannel` handshake completes are queued.
+ * Closing removes the window listener, closes the active port, and drops queued
+ * state. Callback arguments are supported; transferables are supported after the
+ * port handshake succeeds.
+ */
 export function iframeParentTransport(
 	targetWindow: Window,
 	options: IframeTransportOptions = {}
@@ -105,6 +120,7 @@ export function iframeParentTransport(
 	let unsubscribePort: (() => void) | undefined
 
 	const messageListener = (event: MessageEvent) => {
+		// Parent waits for the child to transfer a MessagePort, then acknowledges the active id.
 		if (
 			event.source !== targetWindow ||
 			!isAllowedOrigin(event, targetOrigin) ||
@@ -149,7 +165,7 @@ export function iframeParentTransport(
 	}
 }
 
-/** Create a parent iframe transport after the MessagePort handshake has completed. */
+/** Resolve with the parent iframe transport after the `MessagePort` handshake has completed. */
 export function iframeParentTransportReady(
 	targetWindow: Window,
 	options: IframeTransportOptions = {}
@@ -162,7 +178,13 @@ export function iframeParentTransportReady(
 	})
 }
 
-/** Create a transport for code running inside an iframe. */
+/**
+ * Create a transport for code running inside an iframe.
+ *
+ * The child repeatedly offers a `MessagePort` to its parent until the matching
+ * acknowledgement arrives. Calls made before readiness are queued; closing
+ * clears retries and closes candidate or ready ports.
+ */
 export function iframeChildTransport(options: IframeTransportOptions = {}): Transport<RPCMessage> {
 	const sourceWindow = options.sourceWindow ?? (globalThis as unknown as WindowLike)
 	const targetWindow = sourceWindow.parent
@@ -210,6 +232,7 @@ export function iframeChildTransport(options: IframeTransportOptions = {}): Tran
 	}
 
 	const attemptInit = () => {
+		// Retry until the parent accepts a port; this handles parent listeners attaching late.
 		candidateUnsubscribe?.()
 		candidateTransport?.close?.()
 		const channel = new MessageChannel()
@@ -247,7 +270,7 @@ export function iframeChildTransport(options: IframeTransportOptions = {}): Tran
 	}
 }
 
-/** Create a child iframe transport after the MessagePort handshake has completed. */
+/** Resolve with the child iframe transport after the `MessagePort` handshake has completed. */
 export function iframeChildTransportReady(
 	options: IframeTransportOptions = {}
 ): Promise<Transport<RPCMessage>> {
