@@ -434,8 +434,8 @@ importers:
   packages/demo-api:
     dependencies:
       typescript:
-        specifier: ^5.0.0
-        version: 5.5.4
+        specifier: ^5.0.0 || ^6.0.0
+        version: 5.9.3
     devDependencies:
       '@types/bun':
         specifier: latest
@@ -454,7 +454,7 @@ importers:
         version: 0.10.9
       elysia:
         specifier: ^1.0.0
-        version: 1.4.13(@sinclair/typebox@0.34.30)(@types/bun@1.2.20(@types/react@19.1.10))(exact-mirror@0.2.2(@sinclair/typebox@0.34.30))(file-type@21.0.0)(openapi-types@12.1.3)(typescript@5.8.2)
+        version: 1.4.13(@sinclair/typebox@0.34.30)(@types/bun@1.2.20(@types/react@19.1.10))(exact-mirror@0.2.2(@sinclair/typebox@0.34.30))(file-type@21.0.0)(openapi-types@12.1.3)(typescript@5.9.3)
       hono:
         specifier: ^4.10.4
         version: 4.10.4
@@ -474,8 +474,8 @@ importers:
         specifier: ^2.2.2
         version: 2.2.2
       typescript:
-        specifier: ^5.0.0
-        version: 5.8.2
+        specifier: ^5.0.0 || ^6.0.0
+        version: 5.9.3
       ws:
         specifier: ^8.18.0
         version: 8.18.3
@@ -497,16 +497,16 @@ importers:
         version: 8.18.0
       tsdown:
         specifier: ^0.15.9
-        version: 0.15.9(typescript@5.8.2)
+        version: 0.15.9(typescript@5.9.3)
       tslib:
         specifier: ^2.8.1
         version: 2.8.1
       typedoc:
         specifier: ^0.28.10
-        version: 0.28.10(typescript@5.8.2)
+        version: 0.28.10(typescript@5.9.3)
       verify-package-export:
         specifier: ^0.0.3
-        version: 0.0.3(typescript@5.8.2)
+        version: 0.0.3(typescript@5.9.3)
       zod:
         specifier: ^4.3.6
         version: 4.3.6
@@ -14826,7 +14826,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  elysia@1.4.13(@sinclair/typebox@0.34.30)(@types/bun@1.2.20(@types/react@19.1.10))(exact-mirror@0.2.2(@sinclair/typebox@0.34.30))(file-type@21.0.0)(openapi-types@12.1.3)(typescript@5.8.2):
+  elysia@1.4.13(@sinclair/typebox@0.34.30)(@types/bun@1.2.20(@types/react@19.1.10))(exact-mirror@0.2.2(@sinclair/typebox@0.34.30))(file-type@21.0.0)(openapi-types@12.1.3)(typescript@5.9.3):
     dependencies:
       '@sinclair/typebox': 0.34.30
       cookie: 1.0.2
@@ -14837,7 +14837,7 @@ snapshots:
       openapi-types: 12.1.3
     optionalDependencies:
       '@types/bun': 1.2.20(@types/react@19.1.10)
-      typescript: 5.8.2
+      typescript: 5.9.3
 
   embla-carousel-reactive-utils@8.5.2(embla-carousel@8.5.2):
     dependencies:
@@ -18292,7 +18292,7 @@ snapshots:
 
   robust-predicates@3.0.2: {}
 
-  rolldown-plugin-dts@0.16.12(rolldown@1.0.0-beta.44)(typescript@5.8.2):
+  rolldown-plugin-dts@0.16.12(rolldown@1.0.0-beta.44)(typescript@5.9.3):
     dependencies:
       '@babel/generator': 7.28.3
       '@babel/parser': 7.28.5
@@ -18305,7 +18305,7 @@ snapshots:
       magic-string: 0.30.21
       rolldown: 1.0.0-beta.44
     optionalDependencies:
-      typescript: 5.8.2
+      typescript: 5.9.3
     transitivePeerDependencies:
       - oxc-resolver
       - supports-color
@@ -19323,7 +19323,7 @@ snapshots:
     optionalDependencies:
       typescript: 5.6.3
 
-  tsdown@0.15.9(typescript@5.8.2):
+  tsdown@0.15.9(typescript@5.9.3):
     dependencies:
       ansis: 4.2.0
       cac: 6.7.14
@@ -19333,14 +19333,14 @@ snapshots:
       empathic: 2.0.0
       hookable: 5.5.3
       rolldown: 1.0.0-beta.44
-      rolldown-plugin-dts: 0.16.12(rolldown@1.0.0-beta.44)(typescript@5.8.2)
+      rolldown-plugin-dts: 0.16.12(rolldown@1.0.0-beta.44)(typescript@5.9.3)
       semver: 7.7.3
       tinyexec: 1.0.1
       tinyglobby: 0.2.15
       tree-kill: 1.2.2
       unconfig: 7.3.3
     optionalDependencies:
-      typescript: 5.8.2
+      typescript: 5.9.3
     transitivePeerDependencies:
       - '@ts-macro/tsc'
       - '@typescript/native-preview'
@@ -19427,13 +19427,13 @@ snapshots:
       media-typer: 0.3.0
       mime-types: 2.1.35
 
-  typedoc@0.28.10(typescript@5.8.2):
+  typedoc@0.28.10(typescript@5.9.3):
     dependencies:
       '@gerrit0/mini-shiki': 3.9.2
       lunr: 2.3.9
       markdown-it: 14.1.0
       minimatch: 9.0.5
-      typescript: 5.8.2
+      typescript: 5.9.3
       yaml: 2.8.1
 
   typesafe-path@0.2.2: {}
@@ -19730,9 +19730,9 @@ snapshots:
   valibot@0.31.1:
     optional: true
 
-  valibot@1.0.0-beta.11(typescript@5.8.2):
+  valibot@1.0.0-beta.11(typescript@5.9.3):
     optionalDependencies:
-      typescript: 5.8.2
+      typescript: 5.9.3
 
   valibot@1.0.0-rc.3(typescript@5.6.3):
     optionalDependencies:
@@ -19752,12 +19752,12 @@ snapshots:
       svelte: 5.23.1
       svelte-toolbelt: 0.4.6(svelte@5.23.1)
 
-  verify-package-export@0.0.3(typescript@5.8.2):
+  verify-package-export@0.0.3(typescript@5.9.3):
     dependencies:
       '@oclif/core': 4.2.3
       '@oclif/plugin-help': 6.2.21
       '@oclif/plugin-plugins': 5.4.25
-      valibot: 1.0.0-beta.11(typescript@5.8.2)
+      valibot: 1.0.0-beta.11(typescript@5.9.3)
     transitivePeerDependencies:
       - supports-color
       - typescript
