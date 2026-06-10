@@ -61,6 +61,25 @@ public actor Server {
         }
         return target
     }
+
+    private func setPath(_ path: [String], value: Any) throws {
+        try setPath(path, value: value, in: &api)
+    }
+
+    private func setPath(_ path: [String], value: Any, in target: inout [String: Any]) throws {
+        guard let key = path.first else {
+            throw KkrpcError.rpcError(name: "MissingPath", message: "Missing path")
+        }
+        if path.count == 1 {
+            target[key] = value
+            return
+        }
+        guard var child = target[key] as? [String: Any] else {
+            throw KkrpcError.rpcError(name: "TypeError", message: "Set target is not an object")
+        }
+        try setPath(Array(path.dropFirst()), value: value, in: &child)
+        target[key] = child
+    }
     
     private func convertInboundArg(_ arg: Any, requestId: String) -> Any {
         guard let envelope = arg as? [String: Any],
@@ -185,11 +204,7 @@ public actor Server {
         }
         
         do {
-            let parent = try resolvePath(Array(path.dropLast()))
-            guard var parentMap = parent as? [String: Any] else {
-                throw KkrpcError.rpcError(name: "TypeError", message: "Set target is not an object")
-            }
-            parentMap[path.last!] = message["v"]
+            try setPath(path, value: message["v"] ?? NSNull())
             await sendResponse(requestId: requestId, result: true)
         } catch {
             await sendError(requestId: requestId, error: error)

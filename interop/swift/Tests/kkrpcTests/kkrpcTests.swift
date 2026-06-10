@@ -75,6 +75,30 @@ final class StdioTransportTests: XCTestCase {
 }
 
 final class ClientServerTests: XCTestCase {
+    func testClientHandlesResponseBeforeWriteReturns() async throws {
+        let transport = ImmediateResponseTransport()
+        let client = Client(transport: transport)
+        let completed = expectation(description: "call completes")
+        var result: Any?
+        var thrownError: Error?
+
+        let task = Task {
+            do {
+                result = try await client.call(method: "fast.echo", args: ["ok"])
+            } catch {
+                thrownError = error
+            }
+            completed.fulfill()
+        }
+
+        await fulfillment(of: [completed], timeout: 1)
+        task.cancel()
+        await client.close()
+
+        XCTAssertNil(thrownError)
+        XCTAssertEqual(result as? String, "ok")
+    }
+
     func testClientCall() async throws {
         let inputPipe = Pipe()
         let outputPipe = Pipe()
@@ -114,6 +138,48 @@ final class ClientServerTests: XCTestCase {
         await server.close()
     }
 
+    func testServerPersistsSetValues() async throws {
+        let inputPipe = Pipe()
+        let outputPipe = Pipe()
+        let api: [String: Any] = [
+            "settings": [
+                "theme": "light"
+            ]
+        ]
+        let serverTransport = StdioTransport(
+            input: inputPipe.fileHandleForReading,
+            output: outputPipe.fileHandleForWriting
+        )
+        let server = Server(transport: serverTransport, api: api)
+
+        let setRequest = try encodeMessage([
+            "t": "q",
+            "id": "set-theme",
+            "op": "set",
+            "p": ["settings", "theme"],
+            "v": "dark"
+        ])
+        try inputPipe.fileHandleForWriting.write(contentsOf: setRequest.data(using: .utf8)!)
+        let setResponseData = outputPipe.fileHandleForReading.availableData
+        let setResponse = String(data: setResponseData, encoding: .utf8) ?? ""
+        let decodedSet = try decodeMessage(setResponse.trimmingCharacters(in: .whitespacesAndNewlines))
+        XCTAssertEqual(decodedSet["v"] as? Bool, true)
+
+        let getRequest = try encodeMessage([
+            "t": "q",
+            "id": "get-theme",
+            "op": "get",
+            "p": ["settings", "theme"]
+        ])
+        try inputPipe.fileHandleForWriting.write(contentsOf: getRequest.data(using: .utf8)!)
+        let getResponseData = outputPipe.fileHandleForReading.availableData
+        let getResponse = String(data: getResponseData, encoding: .utf8) ?? ""
+        let decodedGet = try decodeMessage(getResponse.trimmingCharacters(in: .whitespacesAndNewlines))
+
+        XCTAssertEqual(decodedGet["v"] as? String, "dark")
+        await server.close()
+    }
+
     func testServerUnwrapsStableValueEnvelopeArgs() async throws {
         let inputPipe = Pipe()
         let outputPipe = Pipe()
@@ -145,5 +211,39 @@ final class ClientServerTests: XCTestCase {
 
         XCTAssertEqual(decoded["v"] as? String, "payload")
         await server.close()
+    }
+}
+
+final class ImmediateResponseTransport: Transport {
+    private let continuation: AsyncStream<String>.Continuation
+    private let stream: AsyncStream<String>
+
+    init() {
+        var continuation: AsyncStream<String>.Continuation!
+        self.stream = AsyncStream<String> { continuation = $0 }
+        self.continuation = continuation
+    }
+
+    func read() async throws -> String? {
+        for await message in stream {
+            return message
+        }
+        return nil
+    }
+
+    func write(_ message: String) async throws {
+        let request = try decodeMessage(message.trimmingCharacters(in: .whitespacesAndNewlines))
+        let requestId = request["id"] as? String ?? "missing-id"
+        let response = try encodeMessage([
+            "t": "r",
+            "id": requestId,
+            "v": "ok"
+        ])
+        continuation.yield(response)
+        try await Task.sleep(nanoseconds: 10_000_000)
+    }
+
+    func close() async {
+        continuation.finish()
     }
 }

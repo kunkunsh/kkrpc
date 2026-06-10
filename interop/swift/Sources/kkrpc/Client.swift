@@ -76,15 +76,31 @@ public actor Client {
         }
         
         let message = try encodeMessage(payload)
-        try await transport.write(message)
+        let transport = self.transport
         
         let response = await withCheckedContinuation { continuation in
             pending[requestId] = continuation
+            Task {
+                do {
+                    try await transport.write(message)
+                } catch {
+                    self.handleWriteFailure(requestId: requestId, error: error)
+                }
+            }
         }
         if let error = response.error {
             throw error
         }
         return response.result
+    }
+
+    private func handleWriteFailure(requestId: String, error: Error) {
+        guard let continuation = pending.removeValue(forKey: requestId) else {
+            return
+        }
+        let rpcError = error as? KkrpcError
+            ?? KkrpcError.rpcError(name: "Error", message: String(describing: error))
+        continuation.resume(returning: ResponsePayload(error: rpcError))
     }
     
     private func readLoop() async {
