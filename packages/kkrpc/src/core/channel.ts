@@ -1,3 +1,21 @@
+/**
+ * Core bidirectional RPC channel implementation.
+ *
+ * `RPCChannel` owns one `Transport<RPCMessage>`, exposes an optional local API,
+ * and creates a proxy for the remote API. It handles request/response matching,
+ * callback argument routing, transfer descriptors, timeouts, plugin hooks, and
+ * lifecycle cleanup.
+ *
+ * ```ts
+ * import { RPCChannel } from "kkrpc"
+ *
+ * const channel = new RPCChannel<LocalAPI, RemoteAPI>(transport, { expose: localAPI })
+ * const remote = channel.getAPI()
+ * await remote.ping()
+ * channel.destroy()
+ * ```
+ */
+
 import { takeTransferDescriptor } from "./transfer.ts"
 import type {
 	RPCCallback,
@@ -16,10 +34,15 @@ import {
 } from "./plugins.ts"
 import type { Transport } from "./transport.ts"
 
+/** Options used to configure an `RPCChannel`. */
 export interface RPCChannelOptions<LocalAPI extends object = object> {
+	/** Local API object to expose to the remote side. */
 	expose?: LocalAPI
+	/** Request timeout in milliseconds. Set to `0` to disable timeouts. */
 	timeout?: number
+	/** Disable transferable forwarding even when the transport supports it. */
 	enableTransfer?: boolean
+	/** Plugins that run while handling incoming requests. */
 	plugins?: RPCPlugin[]
 }
 
@@ -29,8 +52,10 @@ type PendingRequest = {
 	timer?: ReturnType<typeof setTimeout>
 }
 
-const ARG_ENVELOPE_TAG = "__kkrpc_next_arg__"
 const RPC_OPERATIONS = new Set<RPCOperation>(["call", "get", "set", "new"])
+
+// Callback and value arguments are wrapped so user data cannot be confused with callback markers.
+const ARG_ENVELOPE_TAG = "__kkrpc_next_arg__"
 
 type ValueArgEnvelope = {
 	[ARG_ENVELOPE_TAG]: "value"
@@ -54,6 +79,7 @@ function isArgEnvelope(value: unknown): value is ArgEnvelope {
 	)
 }
 
+// Transports may share non-kkrpc frames; malformed frames are ignored by these guards.
 function isRPCRequestMessage(value: unknown): value is RPCRequest {
 	if (typeof value !== "object" || value === null) return false
 	const message = value as Partial<RPCRequest>
@@ -68,12 +94,14 @@ function isRPCRequestMessage(value: unknown): value is RPCRequest {
 	)
 }
 
+// Transports may share non-kkrpc frames; malformed frames are ignored by these guards.
 function isRPCResponseMessage(value: unknown): value is RPCResponse {
 	if (typeof value !== "object" || value === null) return false
 	const message = value as Partial<RPCResponse>
 	return message.t === "r" && typeof message.id === "string"
 }
 
+// Transports may share non-kkrpc frames; malformed frames are ignored by these guards.
 function isRPCCallbackMessage(value: unknown): value is RPCCallback {
 	if (typeof value !== "object" || value === null) return false
 	const message = value as Partial<RPCCallback>
@@ -128,6 +156,9 @@ function getParent(root: unknown, path: string[]): { parent: object; key: string
 	return { parent: Object(parent), key: path[path.length - 1] }
 }
 
+/**
+ * Owns one RPC transport, exposes an optional local API, and creates a typed remote proxy.
+ */
 export class RPCChannel<LocalAPI extends object = object, RemoteAPI extends object = object> {
 	private callbacks = new Map<string, (...args: unknown[]) => unknown>()
 	private destroyed = false
@@ -149,10 +180,12 @@ export class RPCChannel<LocalAPI extends object = object, RemoteAPI extends obje
 		this.unsubscribe = transport.subscribe((message) => void this.handleMessage(message))
 	}
 
+	/** Return a typed proxy that sends operations to the remote API. */
 	getAPI(): RemoteAPI {
 		return this.createProxy([]) as RemoteAPI
 	}
 
+	/** Close the transport subscription, reject pending calls, and release callback records. */
 	destroy(): void {
 		if (this.destroyed) return
 		this.destroyed = true
@@ -188,6 +221,7 @@ export class RPCChannel<LocalAPI extends object = object, RemoteAPI extends obje
 		})
 	}
 
+	// Register the pending response before sending to avoid races with synchronous transports.
 	private request(op: RPCOperation, path: string[], args?: unknown[], value?: unknown): Promise<unknown> {
 		if (this.destroyed) return Promise.reject(new Error("RPC channel destroyed"))
 		const id = generateId()
@@ -213,6 +247,7 @@ export class RPCChannel<LocalAPI extends object = object, RemoteAPI extends obje
 		return promise
 	}
 
+	// If a transport write fails, reject the matching pending request instead of waiting for timeout.
 	private post(message: RPCMessage, transfers: Transferable[] = [], pendingId?: string): void {
 		try {
 			const result = this.transport.send(message, transfers)
@@ -335,6 +370,7 @@ export class RPCChannel<LocalAPI extends object = object, RemoteAPI extends obje
 		return await Reflect.apply(target, receiver, ctx.args)
 	}
 
+	// Function arguments become callback records that can be invoked later by callback id.
 	private encodeArgs(args: unknown[], transfers: Transferable[]): unknown[] {
 		return args.map((arg) => {
 			if (typeof arg === "function") {
@@ -349,6 +385,7 @@ export class RPCChannel<LocalAPI extends object = object, RemoteAPI extends obje
 		})
 	}
 
+	// Callback records decode to functions that route calls back through the channel by id.
 	private decodeArgs(args: unknown[]): unknown[] {
 		return args.map((arg) => {
 			if (!isArgEnvelope(arg)) return arg
@@ -363,6 +400,7 @@ export class RPCChannel<LocalAPI extends object = object, RemoteAPI extends obje
 		})
 	}
 
+	// Transfer descriptors are consumed only when this channel and transport advertise transfer support.
 	private encodeValue(value: unknown, transfers: Transferable[]): unknown {
 		const descriptor = this.supportsTransfer ? takeTransferDescriptor(value) : undefined
 		if (!descriptor) return value
