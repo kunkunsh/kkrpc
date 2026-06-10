@@ -20,13 +20,17 @@ import type { Transport } from "../core/transport.ts"
 
 /** Options for the client-side unary HTTP transport. */
 export interface HttpClientTransportOptions {
+	/** Absolute or relative endpoint URL that accepts RPC POST requests. */
 	url: string
+	/** Headers merged with the default JSON content type. */
 	headers?: Record<string, string>
+	/** Fetch implementation to use; defaults to global `fetch`. */
 	fetch?: typeof fetch
 }
 
 /** Options for `createHttpHandler()`. */
 export interface HttpHandlerOptions {
+	/** Request-scoped RPC timeout in milliseconds. */
 	timeout?: number
 }
 

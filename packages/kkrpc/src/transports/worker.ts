@@ -9,13 +9,19 @@
 import type { RPCMessage } from "../core/protocol.ts"
 import type { Transport } from "../core/transport.ts"
 
-interface MessageTargetLike {
+/** Minimal `postMessage` target used by worker transports. */
+export interface MessageTargetLike {
+	/** Post one RPC message, optionally transferring ownership of supported values. */
 	postMessage(message: RPCMessage, transfer?: Transferable[]): void
+	/** Attach a message event listener. */
 	addEventListener(type: "message", listener: (event: MessageEvent<RPCMessage>) => void): void
+	/** Remove a message event listener. */
 	removeEventListener(type: "message", listener: (event: MessageEvent<RPCMessage>) => void): void
 }
 
-interface WorkerScopeLike extends MessageTargetLike {
+/** Worker global scope shape used by `workerSelfTransport()`. */
+export interface WorkerScopeLike extends MessageTargetLike {
+	/** Optionally close the current worker scope. */
 	close?(): void
 }
 

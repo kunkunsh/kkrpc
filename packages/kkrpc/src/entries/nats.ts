@@ -3,6 +3,7 @@
  *
  * Import this entry in Node.js or compatible runtimes that have the NATS client
  * installed and need kkrpc over a shared subject.
+ * @module
  */
 export {
 	natsTransport,

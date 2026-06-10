@@ -12,5 +12,6 @@
  *
  * const api = wrap<RemoteAPI>(webSocketClientTransport({ url: "ws://localhost:3000" }))
  * ```
+ * @module
  */
 export * from "../core/index.ts"

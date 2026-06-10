@@ -3,6 +3,7 @@
  *
  * Import this entry in Node.js or compatible runtimes that have `ioredis`
  * installed and need kkrpc over a Redis stream.
+ * @module
  */
 export {
 	redisStreamsTransport,

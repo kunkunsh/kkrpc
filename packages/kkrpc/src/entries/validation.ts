@@ -3,5 +3,6 @@
  *
  * Import this entry for `defineMethod()`, `defineAPI()`, and
  * `validationPlugin()` in type-first or schema-first APIs.
+ * @module
  */
 export * from "../features/validation.ts"

@@ -23,10 +23,15 @@ import type { RPCMessageMetadata } from "../core/protocol.ts"
  * logging metadata, metrics spans, or request-scoped caches.
  */
 export interface RPCCallContext {
+	/** Compact RPC request id. */
 	id: string
+	/** Dot-joined method path being handled. */
 	method: string
+	/** Mutable handler arguments. */
 	args: unknown[]
+	/** Optional request metadata sent by the caller. */
 	meta?: RPCMessageMetadata
+	/** Per-call shared state for middleware. */
 	state: Record<string, unknown>
 }
 

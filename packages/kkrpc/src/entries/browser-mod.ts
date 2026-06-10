@@ -9,6 +9,7 @@
  * import { wrap } from "kkrpc/browser"
  * import { workerTransport } from "kkrpc/browser"
  * ```
+ * @module
  */
 
 export * from "../core/index.ts"

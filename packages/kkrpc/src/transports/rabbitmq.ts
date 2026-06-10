@@ -13,12 +13,19 @@ import { createBusEnvelope, parseBusEnvelope, shouldDeliverBusEnvelope } from ".
 
 /** Options for connecting a kkrpc transport to RabbitMQ. */
 export interface RabbitMQTransportOptions {
+	/** AMQP connection URL. Defaults to `amqp://localhost`. */
 	url?: string
+	/** Exchange used to publish and consume kkrpc bus envelopes. */
 	exchange?: string
+	/** RabbitMQ exchange type to assert. */
 	exchangeType?: "topic" | "direct" | "fanout"
+	/** Whether the exchange should be durable. Defaults to true. */
 	durable?: boolean
+	/** Prefix for routing keys used by this transport. */
 	routingKeyPrefix?: string
+	/** Stable id for this endpoint; used to filter self-delivered messages. */
 	localPeerId: string
+	/** Optional target endpoint id for point-to-point delivery. */
 	remotePeerId?: string
 }
 

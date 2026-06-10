@@ -3,5 +3,6 @@
  *
  * Import this entry in browser pages that need RPC across iframe boundaries via
  * `postMessage()` and `MessageChannel` handshakes.
+ * @module
  */
 export * from "../transports/iframe.ts"

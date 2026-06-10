@@ -14,29 +14,41 @@ const DEFAULT_IPC_CHANNEL = "kkrpc:message"
 
 /** Minimal `ipcMain`/`ipcRenderer`-style endpoint used by `electronIpcTransport()`. */
 export interface ElectronMessageEndpoint {
+	/** Send one RPC message on the named Electron IPC channel. */
 	send(channel: string, message: RPCMessage): void
+	/** Attach a listener for the named Electron IPC channel. */
 	on(channel: string, listener: (_event: unknown, message: RPCMessage) => void): void
+	/** Remove a listener from the named Electron IPC channel. */
 	off(channel: string, listener: (_event: unknown, message: RPCMessage) => void): void
 }
 
 /** Options for an Electron channel-backed transport. */
 export interface ElectronTransportOptions {
+	/** Electron endpoint or preload bridge to send and receive through. */
 	endpoint: ElectronMessageEndpoint
+	/** IPC channel name. Defaults to the kkrpc message channel. */
 	channel?: string
 }
 
 /** Parent-side Electron utility process endpoint shape. */
 export interface ElectronUtilityProcessEndpoint {
+	/** Send one RPC message to the utility process. */
 	postMessage(message: RPCMessage): void
+	/** Attach a utility-process message listener. */
 	on(event: "message", listener: (message: RPCMessage) => void): void
+	/** Remove a utility-process message listener. */
 	off(event: "message", listener: (message: RPCMessage) => void): void
+	/** Optionally terminate the utility process when the transport closes. */
 	kill?(): unknown
 }
 
 /** Child-side Electron utility process endpoint shape. */
 export interface ElectronUtilityProcessChildEndpoint {
+	/** Send one RPC message to the parent process. */
 	postMessage(message: RPCMessage): void
+	/** Attach a parent-port message listener. */
 	on(event: "message", listener: (event: { data: RPCMessage }) => void): void
+	/** Remove a parent-port message listener. */
 	off(event: "message", listener: (event: { data: RPCMessage }) => void): void
 }
 
@@ -48,15 +60,21 @@ interface ElectronUtilityProcessGlobal {
 
 /** Options for restricting a preload IPC bridge to approved channels. */
 export interface SecureIpcBridgeOptions {
+	/** Raw Electron renderer endpoint to wrap. */
 	ipcRenderer: ElectronMessageEndpoint
+	/** Explicit channel allow-list. */
 	allowedChannels?: string[]
+	/** Channel prefix that is allowed in addition to explicit channels. */
 	channelPrefix?: string
 }
 
 /** Narrow IPC bridge surface that can be safely passed to `electronIpcTransport()`. */
 export interface SecureIpcBridge {
+	/** Send one RPC message if the channel is allowed. */
 	send(channel: string, message: RPCMessage): void
+	/** Attach a listener if the channel is allowed. */
 	on(channel: string, listener: (_event: unknown, message: RPCMessage) => void): void
+	/** Remove a listener if the channel is allowed. */
 	off(channel: string, listener: (_event: unknown, message: RPCMessage) => void): void
 }
 

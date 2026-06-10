@@ -12,23 +12,31 @@ import type { Transport } from "../core/transport.ts"
 
 /** Options for exposing a local API through an Elysia WebSocket route. */
 export interface ElysiaWebSocketOptions<LocalAPI extends object> {
+	/** Local API object exposed to each WebSocket client. */
 	expose: LocalAPI
+	/** Per-channel RPC timeout in milliseconds. */
 	timeout?: number
 }
 
 /** Minimal Elysia WebSocket shape used by the transport helper. */
 export interface ElysiaSocketLike {
+	/** Optional raw socket identity used as the WeakMap key. */
 	raw?: object
+	/** Optional data object used as the WeakMap key when `raw` is absent. */
 	data?: object
+	/** Send one JSON-encoded RPC message. */
 	send(message: string): void
+	/** Close the underlying socket. */
 	close(): void
 }
 
-interface FeedableTransport extends Transport<RPCMessage> {
+/** Transport that accepts Elysia framework message callbacks through `feed()`. */
+export interface FeedableElysiaWebSocketTransport extends Transport<RPCMessage> {
+	/** Feed one framework-delivered message into the transport. */
 	feed(message: unknown): void
 }
 
-const transports = new WeakMap<object, FeedableTransport>()
+const transports = new WeakMap<object, FeedableElysiaWebSocketTransport>()
 const channels = new WeakMap<object, RPCChannel<object, object>>()
 
 /**
@@ -37,7 +45,7 @@ const channels = new WeakMap<object, RPCChannel<object, object>>()
  * The transport is bidirectional and callback-capable. Framework message events
  * must be passed to `feed()`; `close()` closes the Elysia socket.
  */
-export function elysiaWebSocketTransport(ws: ElysiaSocketLike): FeedableTransport {
+export function elysiaWebSocketTransport(ws: ElysiaSocketLike): FeedableElysiaWebSocketTransport {
 	const listeners = new Set<(message: RPCMessage) => void>()
 	let closed = false
 

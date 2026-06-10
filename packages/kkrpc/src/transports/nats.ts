@@ -26,11 +26,17 @@ interface NatsConnectionLike {
 
 /** Options for connecting a kkrpc transport to NATS. */
 export interface NatsTransportOptions {
+	/** NATS server URL or URLs. Defaults to `nats://localhost:4222`. */
 	servers?: string | string[]
+	/** Subject used to exchange kkrpc bus envelopes. */
 	subject?: string
+	/** Optional queue group for load-balanced subscription delivery. */
 	queueGroup?: string
+	/** NATS connection timeout in milliseconds. */
 	timeout?: number
+	/** Stable id for this endpoint; used to filter self-delivered messages. */
 	localPeerId: string
+	/** Optional target endpoint id for point-to-point delivery. */
 	remotePeerId?: string
 	/** @internal Test seam for close/connect race coverage. */
 	__connect?: () => Promise<NatsConnectionLike>

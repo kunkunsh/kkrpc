@@ -5,5 +5,6 @@
  * WebSocket-backed `Transport<RPCMessage>`. Server runtimes can wrap accepted
  * socket objects with `webSocketTransport()`, while clients can use
  * `webSocketClientTransport()`.
+ * @module
  */
 export * from "../transports/ws.ts"

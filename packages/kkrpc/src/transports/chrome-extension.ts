@@ -9,16 +9,25 @@
 import type { RPCMessage } from "../core/protocol.ts"
 import type { Transport } from "../core/transport.ts"
 
-interface ChromePortLike {
+/** Minimal Chrome extension Port shape used by `chromePortTransport()`. */
+export interface ChromePortLike {
+	/** Post one object-mode RPC message to the port. */
 	postMessage(message: RPCMessage): void
+	/** Chrome message listener registry. */
 	onMessage: {
+		/** Attach an incoming message listener. */
 		addListener(listener: (message: RPCMessage) => void): void
+		/** Remove an incoming message listener. */
 		removeListener(listener: (message: RPCMessage) => void): void
 	}
+	/** Optional disconnect listener registry. */
 	onDisconnect?: {
+		/** Attach a disconnect listener. */
 		addListener(listener: () => void): void
+		/** Remove a disconnect listener. */
 		removeListener(listener: () => void): void
 	}
+	/** Optionally disconnect the port when the transport closes. */
 	disconnect?(): void
 }
 

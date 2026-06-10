@@ -52,7 +52,7 @@ export function superJsonLineCodec<TMessage>(): Codec<TMessage, string> {
 }
 
 /** Lowercase alias for {@link superJsonCodec}. */
-export const superjsonCodec = superJsonCodec
+export const superjsonCodec: typeof superJsonCodec = superJsonCodec
 
 /** Lowercase alias for {@link superJsonLineCodec}. */
-export const superjsonLineCodec = superJsonLineCodec
+export const superjsonLineCodec: typeof superJsonLineCodec = superJsonLineCodec

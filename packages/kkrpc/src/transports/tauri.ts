@@ -15,12 +15,15 @@ export interface TauriShellStdout extends ReadableLike {}
 
 /** Tauri shell child process shape used for stdin writes. */
 export interface TauriShellChild {
+	/** Write one JSON-line frame to the child process stdin. */
 	write(chunk: string): unknown
 }
 
 /** Options for creating a Tauri shell stdio transport. */
 export interface TauriShellStdioTransportOptions {
+	/** Child stdout stream to read incoming frames from. */
 	stdout: TauriShellStdout
+	/** Child process handle used for outgoing writes. */
 	child: TauriShellChild
 }
 

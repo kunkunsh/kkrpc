@@ -11,21 +11,33 @@ import type { Transport } from "../core/transport.ts"
 
 /** Minimal browser, Bun, Deno, or Node WebSocket shape used by `webSocketTransport()`. */
 export interface WebSocketLike {
+	/** WebSocket ready state when exposed by the host implementation. */
 	readyState?: number
+	/** Send one JSON-encoded RPC message. */
 	send(data: string): void
+	/** Close the underlying socket. */
 	close(): void
+	/** Browser-style message handler slot. */
 	onmessage?: unknown
+	/** Browser-style open handler slot. */
 	onopen?: unknown
+	/** Browser-style event listener registration. */
 	addEventListener?: unknown
+	/** Browser-style event listener removal. */
 	removeEventListener?: unknown
+	/** Node-style event listener registration. */
 	on?: unknown
+	/** Node-style event listener removal. */
 	off?: unknown
+	/** Legacy Node-style listener removal. */
 	removeListener?: unknown
 }
 
 /** Options for creating a client WebSocket from the ambient `WebSocket` constructor. */
 export interface WebSocketClientTransportOptions {
+	/** WebSocket URL to connect to. */
 	url: string
+	/** Optional protocols passed to the WebSocket constructor. */
 	protocols?: string | string[]
 }
 

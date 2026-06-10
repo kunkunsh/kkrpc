@@ -11,6 +11,7 @@
  * const inspector = createInspector()
  * expose(api, transport, { plugins: [inspector.plugin("server")] })
  * ```
+ * @module
  */
 
 import type {
@@ -23,51 +24,73 @@ import type { RPCMessage } from "../core/protocol.ts"
 
 /** Normalized event emitted by the inspector plugin. */
 export interface InspectEvent {
+	/** Unix timestamp in milliseconds when the event was emitted. */
 	timestamp: number
+	/** Whether the observed message was sent or received by this endpoint. */
 	direction: "sent" | "received"
+	/** Logical session id used to distinguish endpoints or test cases. */
 	sessionId: string
+	/** Compact RPC protocol message represented by this event. */
 	message: RPCMessage
+	/** Optional request latency in milliseconds when latency tracking is enabled. */
 	duration?: number
 }
 
 /** Destination for inspector events. */
 export interface InspectorBackend {
+	/** Record one inspector event. */
 	log(event: InspectEvent): void
+	/** Optionally flush buffered events. */
 	flush?(): Promise<void>
+	/** Optionally release backend resources. */
 	destroy?(): void
 }
 
 /** Runtime filtering, sanitization, and latency options for an inspector. */
 export interface InspectorOptions {
+	/** Drop events for which the predicate returns false. */
 	filter?: (event: InspectEvent) => boolean
+	/** Transform or redact events before they are recorded. */
 	sanitize?: (event: InspectEvent) => InspectEvent
+	/** Track request/response timings by request id. */
 	trackLatency?: boolean
 }
 
 /** Constructor options for `KKRPCInspector`. */
 export interface InspectorConfig {
+	/** Backends that receive sanitized inspector events. */
 	backends?: InspectorBackend[]
+	/** Filtering, sanitization, and latency tracking options. */
 	options?: InspectorOptions
 }
 
 /** Snapshot of message counts and optional latency metrics. */
 export interface InspectorStats {
+	/** Total number of recorded inspector events. */
 	totalMessages: number
+	/** Number of outgoing response events. */
 	sent: number
+	/** Number of incoming request events. */
 	received: number
+	/** Number of response events that carried an RPC error. */
 	errors: number
+	/** Average latency in milliseconds when latency tracking has samples. */
 	avgLatency?: number
+	/** Count of observed request events by dot-joined method path. */
 	methodCounts: Map<string, number>
 }
 
 /** Query fields supported by `MemoryBackend.query()`. */
 export interface MemoryBackendQuery {
+	/** Match only events with this session id. */
 	sessionId?: string
+	/** Match only events with this direction. */
 	direction?: InspectEvent["direction"]
 }
 
 /** In-memory inspector backend useful for tests and local assertions. */
 export class MemoryBackend implements InspectorBackend {
+	/** Stored inspector events in insertion order. */
 	events: InspectEvent[] = []
 
 	/** Store one inspector event. */
@@ -102,6 +125,7 @@ export class KKRPCInspector implements InspectorBackend {
 		methodCounts: new Map()
 	}
 
+	/** Create an inspector that writes events to configured backends. */
 	constructor(
 		private readonly config: InspectorConfig = {},
 		private readonly backends = config.backends ?? []
@@ -162,6 +186,7 @@ export class KKRPCInspector implements InspectorBackend {
 		this.requestStarts.clear()
 	}
 
+	/** Update aggregate inspector statistics for one emitted event. */
 	private recordStats(event: InspectEvent): void {
 		this.stats.totalMessages++
 		this.stats[event.direction]++

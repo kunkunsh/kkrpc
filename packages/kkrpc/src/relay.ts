@@ -1,10 +1,19 @@
 import type { RPCMessage } from "./core/protocol.ts"
 import type { Transport } from "./core/transport.ts"
 
+/** Controller returned by `relayTransport()` for stopping a relay. */
 export interface RelayController {
+	/** Stop forwarding messages in both directions. */
 	dispose(): void
 }
 
+/**
+ * Relay messages bidirectionally between two transports.
+ *
+ * The relay forwards raw compact RPC messages without exposing a local API. When
+ * the destination transport supports transferables, transferable objects found in
+ * the message payload are forwarded with the send call.
+ */
 export function relayTransport(
 	left: Transport<RPCMessage>,
 	right: Transport<RPCMessage>

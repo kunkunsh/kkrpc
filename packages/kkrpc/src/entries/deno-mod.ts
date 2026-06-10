@@ -9,6 +9,7 @@
  * import { expose } from "@kunkun/kkrpc"
  * import { stdioJsonTransport } from "@kunkun/kkrpc"
  * ```
+ * @module
  */
 
 export * from "../core/index.ts"

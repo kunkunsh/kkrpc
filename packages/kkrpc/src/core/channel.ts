@@ -173,6 +173,12 @@ export class RPCChannel<LocalAPI extends object = object, RemoteAPI extends obje
 	private plugins: readonly RPCPlugin[]
 	private getMetadata?: () => RPCMessageMetadata | undefined
 
+	/**
+	 * Create a channel over one transport.
+	 *
+	 * The constructor subscribes immediately so incoming messages can be handled as
+	 * soon as the transport starts delivering them.
+	 */
 	constructor(
 		private transport: Transport<RPCMessage>,
 		options: RPCChannelOptions<LocalAPI> = {}
@@ -204,6 +210,7 @@ export class RPCChannel<LocalAPI extends object = object, RemoteAPI extends obje
 		this.transport.close?.()
 	}
 
+	/** Create a remote proxy rooted at a protocol path. */
 	private createProxy(path: string[]): unknown {
 		const target = function () {}
 		return new Proxy(target, {
@@ -227,6 +234,7 @@ export class RPCChannel<LocalAPI extends object = object, RemoteAPI extends obje
 	}
 
 	// Register the pending response before sending to avoid races with synchronous transports.
+	/** Send one RPC request and return the pending response promise. */
 	private request(op: RPCOperation, path: string[], args?: unknown[], value?: unknown): Promise<unknown> {
 		if (this.destroyed) return Promise.reject(new Error("RPC channel destroyed"))
 		let meta: RPCMessageMetadata | undefined
@@ -260,6 +268,7 @@ export class RPCChannel<LocalAPI extends object = object, RemoteAPI extends obje
 	}
 
 	// If a transport write fails, reject the matching pending request instead of waiting for timeout.
+	/** Send one protocol message and reject the pending request on write failure. */
 	private post(message: RPCMessage, transfers: Transferable[] = [], pendingId?: string): void {
 		try {
 			const result = this.transport.send(message, transfers)
@@ -271,6 +280,7 @@ export class RPCChannel<LocalAPI extends object = object, RemoteAPI extends obje
 		}
 	}
 
+	/** Reject a pending request when its transport write fails. */
 	private rejectPendingWrite(pendingId: string | undefined, error: unknown): void {
 		if (!pendingId) return
 		const pending = this.pending.get(pendingId)
@@ -280,6 +290,7 @@ export class RPCChannel<LocalAPI extends object = object, RemoteAPI extends obje
 		pending.reject(error instanceof Error ? error : new Error(String(error)))
 	}
 
+	/** Dispatch one incoming protocol message by message kind. */
 	private async handleMessage(message: RPCMessage): Promise<void> {
 		if (this.destroyed) return
 		if (isRPCResponseMessage(message)) {
@@ -294,6 +305,7 @@ export class RPCChannel<LocalAPI extends object = object, RemoteAPI extends obje
 		if (isRPCRequestMessage(message)) await this.handleRequest(message)
 	}
 
+	/** Resolve or reject the pending request associated with a response. */
 	private handleResponse(id: string, value: unknown, error?: RPCError): void {
 		const pending = this.pending.get(id)
 		if (!pending) return
@@ -306,6 +318,7 @@ export class RPCChannel<LocalAPI extends object = object, RemoteAPI extends obje
 		pending.resolve(value)
 	}
 
+	/** Execute an incoming request and post a protocol response. */
 	private async handleRequest(message: RPCRequest): Promise<void> {
 		const transfers: Transferable[] = []
 		try {
@@ -318,6 +331,7 @@ export class RPCChannel<LocalAPI extends object = object, RemoteAPI extends obje
 		}
 	}
 
+	/** Run plugin hooks and invoke the local API for one incoming request. */
 	private async executeRequest(message: RPCRequest): Promise<unknown> {
 		if (!this.expose) throw new Error("No API exposed")
 		const state: Record<string, unknown> = {}
@@ -363,6 +377,7 @@ export class RPCChannel<LocalAPI extends object = object, RemoteAPI extends obje
 		}
 	}
 
+	/** Invoke the exposed local API according to one compact RPC operation. */
 	private async invokeRequest(ctx: {
 		operation: RPCOperation
 		path: string[]
@@ -386,6 +401,7 @@ export class RPCChannel<LocalAPI extends object = object, RemoteAPI extends obje
 	}
 
 	// Function arguments become callback records that can be invoked later by callback id.
+	/** Encode call arguments into value and callback envelopes. */
 	private encodeArgs(args: unknown[], transfers: Transferable[]): unknown[] {
 		return args.map((arg) => {
 			if (typeof arg === "function") {
@@ -401,6 +417,7 @@ export class RPCChannel<LocalAPI extends object = object, RemoteAPI extends obje
 	}
 
 	// Callback records decode to functions that route calls back through the channel by id.
+	/** Decode value and callback envelopes into local call arguments. */
 	private decodeArgs(args: unknown[]): unknown[] {
 		return args.map((arg) => {
 			if (!isArgEnvelope(arg)) return arg
@@ -416,6 +433,7 @@ export class RPCChannel<LocalAPI extends object = object, RemoteAPI extends obje
 	}
 
 	// Transfer descriptors are consumed only when this channel and transport advertise transfer support.
+	/** Encode a value and collect transferables when the transport supports them. */
 	private encodeValue(value: unknown, transfers: Transferable[]): unknown {
 		const descriptor = this.supportsTransfer ? takeTransferDescriptor(value) : undefined
 		if (!descriptor) return value

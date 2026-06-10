@@ -11,7 +11,9 @@ import type { Transport } from "../core/transport.ts"
 
 /** Options for creating a browser WebSocket client transport. */
 export interface WebSocketClientTransportOptions {
+	/** WebSocket URL to connect to. */
 	url: string
+	/** Optional protocols passed to the WebSocket constructor. */
 	protocols?: string | string[]
 }
 

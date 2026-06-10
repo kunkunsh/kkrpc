@@ -13,15 +13,23 @@ import { createBusEnvelope, parseBusEnvelope, shouldDeliverBusEnvelope } from ".
 
 /** Options for connecting a kkrpc transport to Redis Streams. */
 export interface RedisStreamsTransportOptions {
+	/** Redis connection URL. Defaults to `redis://localhost:6379`. */
 	url?: string
+	/** Stream name used to exchange kkrpc bus envelopes. */
 	stream?: string
+	/** Consumer group used for acknowledged stream consumption. */
 	consumerGroup?: string
+	/** Consumer name used within the consumer group. */
 	consumerName?: string
 	/** Set false to use plain XREAD; plain stream reads have no acknowledgement primitive. */
 	useConsumerGroup?: boolean
+	/** Blocking read timeout in milliseconds. */
 	blockTimeout?: number
+	/** Approximate maximum stream length to keep while publishing. */
 	maxLen?: number
+	/** Stable id for this endpoint; used to filter self-delivered messages. */
 	localPeerId: string
+	/** Optional target endpoint id for point-to-point delivery. */
 	remotePeerId?: string
 }
 
@@ -38,11 +46,17 @@ interface RedisAckClient {
 
 /** Inputs for parsing and acknowledging a batch of Redis stream messages. */
 export interface ProcessRedisStreamMessagesOptions {
+	/** Stream that produced the messages. */
 	stream: string
+	/** Consumer group to acknowledge against, if consumer groups are enabled. */
 	consumerGroup?: string
+	/** Stable id for this endpoint; used to filter self-delivered messages. */
 	localPeerId: string
+	/** Redis-like client used to acknowledge processed messages. */
 	subscriber: RedisAckClient
+	/** Raw Redis stream messages to parse and deliver. */
 	messages: RedisStreamMessage[]
+	/** Active RPC message listeners. */
 	listeners: Set<(message: RPCMessage) => void>
 }
 

@@ -3,5 +3,6 @@
  *
  * Import this entry in Hono servers that expose a local API over per-socket
  * kkrpc channels fed by Hono `WSEvents` callbacks.
+ * @module
  */
 export * from "../transports/ws-hono.ts"

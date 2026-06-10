@@ -44,60 +44,87 @@ import type { RPCPlugin, RPCRequestContext, RPCResponseContext } from "../core/p
  * `types` metadata used for TypeScript inference.
  */
 export interface StandardSchemaV1<Input = unknown, Output = Input> {
+	/** Standard Schema metadata and validation operations. */
 	readonly "~standard": StandardSchemaV1.Props<Input, Output>
 }
 
+/** Standard Schema v1 support types used by kkrpc validation helpers. */
 export declare namespace StandardSchemaV1 {
+	/** Required `~standard` property shape on compatible schema objects. */
 	interface Props<Input = unknown, Output = Input> {
+		/** Standard Schema major version. */
 		readonly version: 1
+		/** Schema library identifier. */
 		readonly vendor: string
+		/** Validate a value and return either a success or failure result. */
 		readonly validate: (
 			value: unknown,
 			options?: Options | undefined
 		) => Result<Output> | Promise<Result<Output>>
+		/** Optional static type metadata for inference. */
 		readonly types?: Types<Input, Output> | undefined
 	}
 
+	/** Result returned by a Standard Schema validator. */
 	type Result<Output> = SuccessResult<Output> | FailureResult
 
+	/** Successful validation result containing the transformed value. */
 	interface SuccessResult<Output> {
+		/** Validated and possibly transformed value. */
 		readonly value: Output
+		/** Success results do not carry validation issues. */
 		readonly issues?: undefined
 	}
 
+	/** Failed validation result containing issues. */
 	interface FailureResult {
+		/** Validation issues reported by the schema library. */
 		readonly issues: ReadonlyArray<Issue>
 	}
 
+	/** Optional validation options forwarded to schema libraries. */
 	interface Options {
+		/** Library-specific options. */
 		readonly libraryOptions?: Record<string, unknown> | undefined
 	}
 
+	/** One Standard Schema validation issue. */
 	interface Issue {
+		/** Human-readable validation failure message. */
 		readonly message: string
+		/** Optional path to the failing value. */
 		readonly path?: ReadonlyArray<PropertyKey | PathSegment> | undefined
 	}
 
+	/** Path segment for issue paths that need metadata beyond a property key. */
 	interface PathSegment {
+		/** Property key represented by this path segment. */
 		readonly key: PropertyKey
 	}
 
+	/** Static input/output types exposed by a schema. */
 	interface Types<Input = unknown, Output = Input> {
+		/** Input type accepted by the schema. */
 		readonly input: Input
+		/** Output type produced by successful validation. */
 		readonly output: Output
 	}
 
+	/** Infer a schema input type from Standard Schema metadata. */
 	type InferInput<S extends StandardSchemaV1> = NonNullable<S["~standard"]["types"]>["input"]
+	/** Infer a schema output type from Standard Schema metadata. */
 	type InferOutput<S extends StandardSchemaV1> = NonNullable<S["~standard"]["types"]>["output"]
 }
 
-type FilterCallbacks<T extends unknown[]> = T extends [infer Head, ...infer Tail]
+/** Remove callback function arguments before input validation. */
+export type FilterCallbacks<T extends unknown[]> = T extends [infer Head, ...infer Tail]
 	? Head extends (...args: unknown[]) => unknown
 		? FilterCallbacks<Tail>
 		: [Head, ...FilterCallbacks<Tail>]
 	: []
 
-type UnwrapPromise<T> = T extends Promise<infer U> ? U : T
+/** Awaited return type helper used for output validators. */
+export type UnwrapPromise<T> = T extends Promise<infer U> ? U : T
 
 /**
  * Input and output schemas for one RPC method.
@@ -107,7 +134,9 @@ type UnwrapPromise<T> = T extends Promise<infer U> ? U : T
  * the awaited return value.
  */
 export interface MethodValidators<Args extends unknown[] = unknown[], Return = unknown> {
+	/** Schema for non-callback method arguments. */
 	input?: StandardSchemaV1<FilterCallbacks<Args>, FilterCallbacks<Args>>
+	/** Schema for the awaited method result. */
 	output?: StandardSchemaV1<UnwrapPromise<Return>, UnwrapPromise<Return>>
 }
 
@@ -168,10 +197,14 @@ export type ValidatorMap<API> = {
  * errors or transport-level responses.
  */
 export class RPCValidationError extends Error {
+	/** Whether input or output validation failed. */
 	public readonly phase: "input" | "output"
+	/** Dot-joined method path that failed validation. */
 	public readonly method: string
+	/** Standard Schema issues reported for the failed validation. */
 	public readonly issues: ReadonlyArray<StandardSchemaV1.Issue>
 
+	/** Create a validation error for one method and phase. */
 	constructor(
 		phase: "input" | "output",
 		method: string,
@@ -242,7 +275,9 @@ export interface MethodSchemaConfig<
 	InputSchema extends StandardSchemaV1<unknown, unknown>,
 	OutputSchema extends StandardSchemaV1<unknown, unknown>
 > {
+	/** Input schema used to type and validate method arguments. */
 	input: InputSchema
+	/** Output schema used to type and validate the method result. */
 	output: OutputSchema
 }
 
@@ -265,7 +300,8 @@ export interface DefinedMethod<
 			: [StandardSchemaV1.InferOutput<InputSchema>]
 	): Promise<StandardSchemaV1.InferOutput<OutputSchema>>
 
-	readonly [VALIDATORS_KEY]: {
+	/** Schema marker consumed by `extractValidators()`. */
+	readonly "~validators": {
 		input: InputSchema
 		output: OutputSchema
 	}

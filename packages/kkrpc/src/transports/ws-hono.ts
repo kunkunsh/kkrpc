@@ -7,18 +7,41 @@
  * replies through Hono's `WSContext`.
  */
 
-import type { WSContext, WSEvents } from "hono/ws"
 import { RPCChannel } from "../core/channel.ts"
 import type { RPCMessage } from "../core/protocol.ts"
 import type { Transport } from "../core/transport.ts"
 
+/** Minimal Hono WebSocket context shape used by kkrpc helpers. */
+export interface HonoWebSocketContextLike {
+	/** Send one JSON-encoded RPC message. */
+	send(message: string): void
+	/** Close the underlying WebSocket connection. */
+	close(): void
+}
+
+/** Hono-style WebSocket event callbacks returned by `createHonoWebSocketHandler()`. */
+export interface HonoWebSocketHandlerEvents {
+	/** Initialize a channel for an opened socket. */
+	onOpen(_event: Event, ws: HonoWebSocketContextLike): void
+	/** Feed one incoming WebSocket message into the channel. */
+	onMessage(event: { data: unknown }): void
+	/** Destroy the channel when the socket closes. */
+	onClose(): void
+	/** Destroy the channel when the socket reports an error. */
+	onError(): void
+}
+
 /** Options for exposing a local API through a Hono WebSocket route. */
 export interface HonoWebSocketOptions<LocalAPI extends object> {
+	/** Local API object exposed to each WebSocket client. */
 	expose: LocalAPI
+	/** Per-channel RPC timeout in milliseconds. */
 	timeout?: number
 }
 
-interface FeedableTransport extends Transport<RPCMessage> {
+/** Transport that accepts Hono framework message callbacks through `feed()`. */
+export interface FeedableHonoWebSocketTransport extends Transport<RPCMessage> {
+	/** Feed one framework-delivered message into the transport. */
 	feed(message: unknown): void
 }
 
@@ -30,8 +53,8 @@ interface FeedableTransport extends Transport<RPCMessage> {
  * closed and closes the Hono socket.
  */
 export function honoWebSocketTransport(
-	ws: Pick<WSContext<unknown>, "send" | "close">
-): FeedableTransport {
+	ws: HonoWebSocketContextLike
+): FeedableHonoWebSocketTransport {
 	const listeners = new Set<(message: RPCMessage) => void>()
 	let closed = false
 
@@ -77,8 +100,8 @@ function parseMessage(raw: string): RPCMessage | undefined {
  */
 export function createHonoWebSocketHandler<LocalAPI extends object>(
 	options: HonoWebSocketOptions<LocalAPI>
-): WSEvents<unknown> {
-	let transport: FeedableTransport | undefined
+): HonoWebSocketHandlerEvents {
+	let transport: FeedableHonoWebSocketTransport | undefined
 	let channel: RPCChannel<LocalAPI, object> | undefined
 
 	return {

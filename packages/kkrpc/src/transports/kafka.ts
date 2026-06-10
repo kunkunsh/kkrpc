@@ -14,19 +14,33 @@ import { createBusEnvelope, parseBusEnvelope, shouldDeliverBusEnvelope } from ".
 
 /** Options for connecting a kkrpc transport to a Kafka topic. */
 export interface KafkaTransportOptions {
+	/** Kafka broker addresses passed to the KafkaJS client. */
 	brokers?: string[]
+	/** KafkaJS client id. Defaults to a kkrpc id derived from `localPeerId`. */
 	clientId?: string
+	/** Topic used to exchange kkrpc bus envelopes. */
 	topic?: string
+	/** Consumer group id used by the receiving side. */
 	groupId?: string
+	/** Whether the consumer should read from the beginning when subscribing. */
 	fromBeginning?: boolean
-	producerConfig?: ProducerConfig
-	consumerConfig?: ConsumerConfig
-	ssl?: KafkaConfig["ssl"]
-	sasl?: KafkaConfig["sasl"]
-	retry?: KafkaConfig["retry"]
+	/** Extra KafkaJS producer options. */
+	producerConfig?: Record<string, unknown>
+	/** Extra KafkaJS consumer options. */
+	consumerConfig?: Record<string, unknown>
+	/** KafkaJS SSL configuration. */
+	ssl?: boolean | Record<string, unknown>
+	/** KafkaJS SASL authentication configuration. */
+	sasl?: Record<string, unknown>
+	/** KafkaJS retry configuration. */
+	retry?: Record<string, unknown>
+	/** Number of partitions to request when creating the topic. */
 	numPartitions?: number
+	/** Replication factor to request when creating the topic. */
 	replicationFactor?: number
+	/** Stable id for this endpoint; used to filter self-delivered messages. */
 	localPeerId: string
+	/** Optional target endpoint id for point-to-point delivery. */
 	remotePeerId?: string
 	/** @internal Test seam for setup-race coverage. */
 	__client?: KafkaClientLike
@@ -132,7 +146,7 @@ export function kafkaTransport(options: KafkaTransportOptions): KafkaTransport {
 		if (connectionPromise) return connectionPromise
 		connectionPromise = (async () => {
 			const kafka = options.__client ?? (await createKafkaClient())
-			const nextProducer = kafka.producer(options.producerConfig)
+			const nextProducer = kafka.producer(options.producerConfig as ProducerConfig | undefined)
 			producer = nextProducer
 
 			const cleanup = async () => {
@@ -156,7 +170,7 @@ export function kafkaTransport(options: KafkaTransportOptions): KafkaTransport {
 				const nextConsumer = kafka.consumer({
 					groupId: options.groupId || `kkrpc-group-${topic}-${options.localPeerId}`,
 					...options.consumerConfig
-				})
+				} as ConsumerConfig)
 				consumer = nextConsumer
 				if (closed) {
 					await cleanup()
@@ -199,9 +213,9 @@ export function kafkaTransport(options: KafkaTransportOptions): KafkaTransport {
 		return new Kafka({
 			clientId: options.clientId || `kkrpc-client-${options.localPeerId}`,
 			brokers: options.brokers || ["localhost:9092"],
-			ssl: options.ssl,
-			sasl: options.sasl,
-			retry: options.retry,
+			ssl: options.ssl as KafkaConfig["ssl"],
+			sasl: options.sasl as KafkaConfig["sasl"],
+			retry: options.retry as KafkaConfig["retry"],
 			logLevel: logLevel.ERROR
 		}) as KafkaClientLike
 	}

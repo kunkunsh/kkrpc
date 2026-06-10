@@ -14,16 +14,25 @@ const PORT_INIT_SIGNAL = "__KKRPC_PORT_INIT__"
 const PORT_ACK_SIGNAL = "__KKRPC_PORT_ACK__"
 const PORT_RETRY_DELAY_MS = 25
 
-interface WindowLike {
+/** Minimal window-like object used by iframe transports and tests. */
+export interface WindowLike {
+	/** Parent window reference when running inside an iframe. */
 	parent?: WindowLike
+	/** Send a message to another window, optionally transferring values. */
 	postMessage(message: unknown, targetOrigin: string, transfers?: Transferable[]): void
+	/** Attach a window message listener. */
 	addEventListener(type: "message", listener: (event: MessageEvent) => void): void
+	/** Remove a window message listener. */
 	removeEventListener(type: "message", listener: (event: MessageEvent) => void): void
 }
 
-interface IframeTransportOptions {
+/** Options shared by iframe parent and child transports. */
+export interface IframeTransportOptions {
+	/** Allowed peer origin, or `*` for any origin. */
 	targetOrigin?: string
+	/** Source window to subscribe on. Defaults to `globalThis`. */
 	sourceWindow?: WindowLike
+	/** Callback invoked when the MessagePort handshake completes. */
 	onReady?: () => void
 }
 

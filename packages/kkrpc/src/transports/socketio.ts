@@ -14,9 +14,13 @@ export const SOCKET_IO_EVENT = "kkrpc:message"
 
 /** Minimal Socket.IO socket shape used by `socketIoTransport()`. */
 export interface SocketLike {
+	/** Emit one RPC message on the kkrpc event. */
 	emit(event: typeof SOCKET_IO_EVENT, message: RPCMessage): void
+	/** Attach a listener for incoming RPC messages. */
 	on(event: typeof SOCKET_IO_EVENT, listener: (message: RPCMessage) => void): void
+	/** Remove a listener for incoming RPC messages. */
 	off(event: typeof SOCKET_IO_EVENT, listener: (message: RPCMessage) => void): void
+	/** Optionally disconnect the socket when the transport closes. */
 	disconnect?(): void
 }
 

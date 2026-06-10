@@ -13,19 +13,25 @@ import type { Platform, Transport } from "../core/transport.ts"
 
 /** Minimal readable stream interface used by stdio transports. */
 export interface ReadableLike {
+	/** Attach a data listener for byte or string chunks. */
 	on(event: "data", listener: (chunk: Uint8Array | string) => void): unknown
+	/** Remove a previously attached data listener. */
 	off(event: "data", listener: (chunk: Uint8Array | string) => void): this
 }
 
 /** Minimal writable stream interface used by stdio transports. */
 export interface WritableLike {
+	/** Write one encoded frame. */
 	write(chunk: string, callback?: (error?: Error | null) => void): unknown
+	/** Optionally end the writable side when the transport closes. */
 	end?(): unknown
 }
 
 /** Streams to compose into a stdio platform. */
 export interface StdioPlatformOptions {
+	/** Readable stream that emits incoming JSON-line data. */
 	readable: ReadableLike
+	/** Writable stream that receives outgoing JSON-line data. */
 	writable: WritableLike
 }
 

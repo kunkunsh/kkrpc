@@ -3,6 +3,7 @@
  *
  * Import this entry in Node.js or compatible runtimes that have `amqplib`
  * installed and need kkrpc over a RabbitMQ exchange.
+ * @module
  */
 export {
 	rabbitMqTransport,
