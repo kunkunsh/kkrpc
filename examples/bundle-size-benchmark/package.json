@@ -1,0 +1,19 @@
+{
+	"name": "bundle-size-benchmark",
+	"module": "index.ts",
+	"type": "module",
+	"private": true,
+	"scripts": {
+		"benchmark": "bun run index.ts",
+		"test": "bun test",
+		"check-types": "tsc --noEmit"
+	},
+	"dependencies": {
+		"comctx": "^1.7.4",
+		"kkrpc": "workspace:*"
+	},
+	"devDependencies": {
+		"@types/bun": "latest",
+		"typescript": "^5"
+	}
+}

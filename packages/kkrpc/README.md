@@ -2,12 +2,16 @@
 
 <div align="center">
 
-[![npm version](https://img.shields.io/npm/v/kkrpc?style=flat-square&logo=npm)](https://www.npmjs.com/package/kkrpc)
-[![JSR](https://jsr.io/badges/@kunkun/kkrpc)](https://jsr.io/@kunkun/kkrpc)
-[![License](https://img.shields.io/npm/l/kkrpc?style=flat-square)](https://github.com/kunkunsh/kkrpc/blob/main/LICENSE)
-[![GitHub](https://img.shields.io/badge/github-kunkunsh%2Fkkrpc-black?style=flat-square&logo=github)](https://github.com/kunkunsh/kkrpc)
-[![Docs](https://img.shields.io/badge/docs-kkrpc.kunkun.sh-blue?style=flat-square)](https://docs.kkrpc.kunkun.sh/)
-[![Typedoc](https://img.shields.io/badge/api-typedoc-blue?style=flat-square&logo=typescript)](https://kunkunsh.github.io/kkrpc/)
+[![GitHub](https://img.shields.io/badge/github-kunkunsh%2Fkkrpc-black?style=for-the-badge&logo=github)](https://github.com/kunkunsh/kkrpc)
+[![Docs](https://img.shields.io/badge/docs-kkrpc.kunkun.sh-blue?style=for-the-badge)](https://docs.kkrpc.kunkun.sh/)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/kunkunsh/kkrpc)
+[![NPM Version](https://img.shields.io/npm/v/kkrpc?style=for-the-badge&logo=npm)](https://www.npmjs.com/package/kkrpc)
+[![JSR Version](https://img.shields.io/jsr/v/@kunkun/kkrpc?style=for-the-badge&logo=jsr)](https://jsr.io/@kunkun/kkrpc)
+[![Downloads](https://img.shields.io/npm/dm/kkrpc?style=for-the-badge&logo=npm)](https://www.npmjs.com/package/kkrpc)
+[![GitHub stars](https://img.shields.io/github/stars/kunkunsh/kkrpc?style=for-the-badge&logo=github)](https://github.com/kunkunsh/kkrpc)
+[![Typedoc Documentation](https://img.shields.io/badge/Docs-Typedoc-blue?style=for-the-badge&logo=typescript)](https://kunkunsh.github.io/kkrpc/)
+[![Excalidraw Diagrams](https://img.shields.io/badge/Diagrams-Excalidraw-orange?style=for-the-badge&logo=drawio)](https://excalidraw.com/#json=xp6GbAJVAx3nU-h3PhaxW,oYBNvYmCRsQ2XR3MQo73Ug)
+[![LLM Docs](https://img.shields.io/badge/LLM-Docs-green?style=for-the-badge&logo=openai)](https://docs.kkrpc.kunkun.sh/llms.txt)
 
 ![kkRPC Banner](https://imgur.com/19XswxO.jpg)
 
@@ -21,21 +25,21 @@ The stable API is built on native `Transport<RPCMessage>` objects. The main `kkr
 
 ## Why kkrpc
 
-| Feature | kkrpc | tRPC | Comlink |
-| --- | --- | --- | --- |
-| Type-safe remote calls | Yes | Yes | Yes |
-| Bidirectional APIs | Yes | No | Yes |
-| Browser-safe core entry | Yes | Mostly HTTP app focused | Browser focused |
-| Node.js, Deno, Bun stdio | Yes | No | No |
-| WebSocket and HTTP | Yes | HTTP focused | No |
-| Workers and iframes | Yes | No | Yes |
-| Electron, Tauri, Chrome extension | Yes | No | No |
-| Message buses | RabbitMQ, Kafka, Redis Streams, NATS | No | No |
-| Callback arguments | Evented transports | No | Yes |
-| Optional runtime validation | Standard Schema | Zod-oriented | No |
-| Middleware/interceptors | Yes | Yes | No |
-| Transferable objects | Where supported | No | Yes |
-| Code generation required | No | No | No |
+| Feature                           | kkrpc                                | tRPC                    | Comlink         |
+| --------------------------------- | ------------------------------------ | ----------------------- | --------------- |
+| Type-safe remote calls            | Yes                                  | Yes                     | Yes             |
+| Bidirectional APIs                | Yes                                  | No                      | Yes             |
+| Browser-safe core entry           | Yes                                  | Mostly HTTP app focused | Browser focused |
+| Node.js, Deno, Bun stdio          | Yes                                  | No                      | No              |
+| WebSocket and HTTP                | Yes                                  | HTTP focused            | No              |
+| Workers and iframes               | Yes                                  | No                      | Yes             |
+| Electron, Tauri, Chrome extension | Yes                                  | No                      | No              |
+| Message buses                     | RabbitMQ, Kafka, Redis Streams, NATS | No                      | No              |
+| Callback arguments                | Evented transports                   | No                      | Yes             |
+| Optional runtime validation       | Standard Schema                      | Zod-oriented            | No              |
+| Middleware/interceptors           | Yes                                  | Yes                     | No              |
+| Transferable objects              | Where supported                      | No                      | Yes             |
+| Code generation required          | No                                   | No                      | No              |
 
 Choose `kkrpc` when the hard part is not just an HTTP API. It is designed for cross-runtime systems: browser to worker, renderer to main process, app to plugin host, web server to child process, or one service connected to another through a message bus.
 
@@ -323,8 +327,8 @@ expose(api, transport, {
 The core protocol is JSON-compatible. Use the SuperJSON codec when you need richer values such as `Date`, `Map`, `Set`, or `BigInt` on transports created through `createTransport()`.
 
 ```ts
-import { createTransport } from "kkrpc/transport"
 import { superJsonCodec } from "kkrpc/superjson"
+import { createTransport } from "kkrpc/transport"
 
 const transport = createTransport({ platform, codec: superJsonCodec() })
 ```
@@ -356,64 +360,64 @@ const channel = new RPCChannel(transport, { expose: api, plugins: [inspector.plu
 
 ## Supported Transports
 
-| Transport | Entry | Notes |
-| --- | --- | --- |
-| Web Worker | `kkrpc/worker` | Main-thread and worker-global helpers |
-| stdio | `kkrpc/stdio` | Node.js, Deno, and Bun process pipes |
-| HTTP | `kkrpc/http` | Unary request/response only |
-| WebSocket | `kkrpc/ws` | Bidirectional socket transport |
-| Hono WebSocket | `kkrpc/ws/hono` | Framework handler for Hono |
-| Elysia WebSocket | `kkrpc/ws/elysia` | Framework handler for Elysia |
-| iframe | `kkrpc/iframe` | Parent/child `postMessage` transport |
-| Chrome extension | `kkrpc/chrome-extension` | `chrome.runtime.Port` transport |
-| Electron | `kkrpc/electron` | IPC endpoint and utility process transports |
-| Tauri | `kkrpc/tauri` | Tauri event and shell process transports |
-| Socket.IO | `kkrpc/socketio` | Socket.IO-backed event transport |
-| RabbitMQ | `kkrpc/rabbitmq` | AMQP transport |
-| Kafka | `kkrpc/kafka` | Kafka topic transport |
-| Redis Streams | `kkrpc/redis-streams` | Redis stream transport |
-| NATS | `kkrpc/nats` | NATS subject transport |
+| Transport        | Entry                    | Notes                                       |
+| ---------------- | ------------------------ | ------------------------------------------- |
+| Web Worker       | `kkrpc/worker`           | Main-thread and worker-global helpers       |
+| stdio            | `kkrpc/stdio`            | Node.js, Deno, and Bun process pipes        |
+| HTTP             | `kkrpc/http`             | Unary request/response only                 |
+| WebSocket        | `kkrpc/ws`               | Bidirectional socket transport              |
+| Hono WebSocket   | `kkrpc/ws/hono`          | Framework handler for Hono                  |
+| Elysia WebSocket | `kkrpc/ws/elysia`        | Framework handler for Elysia                |
+| iframe           | `kkrpc/iframe`           | Parent/child `postMessage` transport        |
+| Chrome extension | `kkrpc/chrome-extension` | `chrome.runtime.Port` transport             |
+| Electron         | `kkrpc/electron`         | IPC endpoint and utility process transports |
+| Tauri            | `kkrpc/tauri`            | Tauri event and shell process transports    |
+| Socket.IO        | `kkrpc/socketio`         | Socket.IO-backed event transport            |
+| RabbitMQ         | `kkrpc/rabbitmq`         | AMQP transport                              |
+| Kafka            | `kkrpc/kafka`            | Kafka topic transport                       |
+| Redis Streams    | `kkrpc/redis-streams`    | Redis stream transport                      |
+| NATS             | `kkrpc/nats`             | NATS subject transport                      |
 
 ## Entry Points
 
-| Entry | Purpose |
-| --- | --- |
-| `kkrpc` | Stable browser-safe core |
-| `kkrpc/browser` | Explicit browser-safe core entry |
-| `kkrpc/deno` | Deno-friendly core entry |
-| `kkrpc/transport` | Transport composition primitives |
-| `kkrpc/codecs` | Built-in JSON/object codecs |
-| `kkrpc/plugins` | Plugin types and helpers |
-| `kkrpc/worker` | Web Worker transports |
-| `kkrpc/stdio` | Node/Deno/Bun stdio transports |
-| `kkrpc/http` | HTTP client and handler helpers |
-| `kkrpc/ws` | WebSocket transports |
-| `kkrpc/ws/hono` | Hono WebSocket integration |
-| `kkrpc/ws/elysia` | Elysia WebSocket integration |
-| `kkrpc/iframe` | iframe transports |
-| `kkrpc/chrome-extension` | Chrome extension port transports |
-| `kkrpc/electron` | Electron transports |
-| `kkrpc/tauri` | Tauri transports |
-| `kkrpc/socketio` | Socket.IO transports |
-| `kkrpc/rabbitmq` | RabbitMQ transports |
-| `kkrpc/kafka` | Kafka transports |
-| `kkrpc/redis-streams` | Redis Streams transports |
-| `kkrpc/nats` | NATS transports |
-| `kkrpc/validation` | Standard Schema validation plugin |
-| `kkrpc/middleware` | Middleware plugin |
-| `kkrpc/superjson` | SuperJSON codec |
-| `kkrpc/relay` | Transport relay helper |
-| `kkrpc/inspector` | Native inspector helpers |
+| Entry                    | Purpose                           |
+| ------------------------ | --------------------------------- |
+| `kkrpc`                  | Stable browser-safe core          |
+| `kkrpc/browser`          | Explicit browser-safe core entry  |
+| `kkrpc/deno`             | Deno-friendly core entry          |
+| `kkrpc/transport`        | Transport composition primitives  |
+| `kkrpc/codecs`           | Built-in JSON/object codecs       |
+| `kkrpc/plugins`          | Plugin types and helpers          |
+| `kkrpc/worker`           | Web Worker transports             |
+| `kkrpc/stdio`            | Node/Deno/Bun stdio transports    |
+| `kkrpc/http`             | HTTP client and handler helpers   |
+| `kkrpc/ws`               | WebSocket transports              |
+| `kkrpc/ws/hono`          | Hono WebSocket integration        |
+| `kkrpc/ws/elysia`        | Elysia WebSocket integration      |
+| `kkrpc/iframe`           | iframe transports                 |
+| `kkrpc/chrome-extension` | Chrome extension port transports  |
+| `kkrpc/electron`         | Electron transports               |
+| `kkrpc/tauri`            | Tauri transports                  |
+| `kkrpc/socketio`         | Socket.IO transports              |
+| `kkrpc/rabbitmq`         | RabbitMQ transports               |
+| `kkrpc/kafka`            | Kafka transports                  |
+| `kkrpc/redis-streams`    | Redis Streams transports          |
+| `kkrpc/nats`             | NATS transports                   |
+| `kkrpc/validation`       | Standard Schema validation plugin |
+| `kkrpc/middleware`       | Middleware plugin                 |
+| `kkrpc/superjson`        | SuperJSON codec                   |
+| `kkrpc/relay`            | Transport relay helper            |
+| `kkrpc/inspector`        | Native inspector helpers          |
 
 ## Package Links
 
-| Platform | Package | Link |
-| --- | --- | --- |
-| npm | `kkrpc` | <https://www.npmjs.com/package/kkrpc> |
-| JSR | `@kunkun/kkrpc` | <https://jsr.io/@kunkun/kkrpc> |
-| Documentation | Starlight docs | <https://docs.kkrpc.kunkun.sh/> |
-| API reference | Typedoc | <https://kunkunsh.github.io/kkrpc/> |
-| Examples | Source examples | <https://github.com/kunkunsh/kkrpc/tree/main/examples> |
+| Platform      | Package         | Link                                                   |
+| ------------- | --------------- | ------------------------------------------------------ |
+| npm           | `kkrpc`         | <https://www.npmjs.com/package/kkrpc>                  |
+| JSR           | `@kunkun/kkrpc` | <https://jsr.io/@kunkun/kkrpc>                         |
+| Documentation | Starlight docs  | <https://docs.kkrpc.kunkun.sh/>                        |
+| API reference | Typedoc         | <https://kunkunsh.github.io/kkrpc/>                    |
+| Examples      | Source examples | <https://github.com/kunkunsh/kkrpc/tree/main/examples> |
 
 ## Migration
 
