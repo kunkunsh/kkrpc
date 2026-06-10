@@ -10,6 +10,7 @@ import { processValueForTransfer, reconstructValueFromTransfer } from "./seriali
 import {
 	type EnhancedError,
 	type Message,
+	type RPCMessageMetadata,
 	type RPCSerializationRuntime,
 	type Response,
 	type SerializationOptions,
@@ -152,6 +153,8 @@ export interface RPCChannelOptions<LocalAPI extends Record<string, any>> {
 	interceptors?: RPCInterceptor[]
 	/** Timeout in ms for outgoing RPC calls. Default: 0 (no timeout). */
 	timeout?: number
+	/** Optional metadata provider for outgoing request messages. */
+	getMetadata?: () => RPCMessageMetadata | undefined
 }
 
 /**
@@ -189,6 +192,8 @@ export class RPCChannelCore<
 	private structuredClone = false
 	/** Timeout in ms for outgoing RPC calls. 0 or Infinity means no timeout. */
 	private timeout: number
+	/** Optional metadata provider for outgoing request messages. */
+	private getMetadata: (() => RPCMessageMetadata | undefined) | undefined
 	/** Set after EOF/destroy so new outbound calls reject immediately instead of timing out. */
 	private isClosed = false
 
@@ -201,6 +206,7 @@ export class RPCChannelCore<
 		this.validators = options?.validators
 		this.interceptors = options?.interceptors ?? []
 		this.timeout = options?.timeout ?? 0
+		this.getMetadata = options?.getMetadata
 		this.serializationOptions = options?.serialization || {}
 		this.structuredClone = io.capabilities?.structuredClone === true
 		if (
@@ -353,6 +359,7 @@ export class RPCChannelCore<
 		if (this.isClosed) return Promise.reject(new Error("RPC channel closed"))
 
 		return new Promise((resolve, reject) => {
+			const meta = this.getMetadata?.()
 			const messageId = generateUUID()
 			this.pendingRequests[messageId] = { resolve, reject }
 			this.startTimeout(messageId, method as string)
@@ -389,7 +396,8 @@ export class RPCChannelCore<
 				args: finalArgs,
 				type: "request",
 				callbackIds: callbackIds.length > 0 ? callbackIds : undefined,
-				transferSlots: transferSlots.length > 0 ? transferSlots : undefined
+				transferSlots: transferSlots.length > 0 ? transferSlots : undefined,
+				...(meta && Object.keys(meta).length > 0 ? { meta } : {})
 			}
 
 			this.sendMessage(message, transferables, transferredValues)
