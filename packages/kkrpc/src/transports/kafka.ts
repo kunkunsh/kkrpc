@@ -42,45 +42,70 @@ export interface KafkaTransportOptions {
 	localPeerId: string
 	/** Optional target endpoint id for point-to-point delivery. */
 	remotePeerId?: string
-	/** @internal Test seam for setup-race coverage. */
+	/** Optional Kafka client factory override used by tests and custom integrations. */
 	__client?: KafkaClientLike
 }
 
 /** Message-level Kafka transport type. */
 export type KafkaTransport = Transport<RPCMessage>
 
-interface KafkaProducerLike {
+
+/** Minimal producer shape used by the Kafka transport. */
+export interface KafkaProducerLike {
+	/** Connect the producer before publishing records. */
 	connect(): Promise<void>
+	/** Disconnect the producer and release network resources. */
 	disconnect(): Promise<void>
+	/** Send one or more records to a Kafka topic. */
 	send(record: { topic: string; messages: Array<{ value: string }> }): Promise<unknown>
 }
 
-interface KafkaMessageLike {
+
+/** Minimal Kafka message shape consumed by the transport. */
+export interface KafkaMessageLike {
+	/** Encoded message payload. */
 	value?: { toString(encoding?: BufferEncoding): string } | null
 }
 
-interface KafkaConsumerLike {
+
+/** Minimal consumer shape used by the Kafka transport. */
+export interface KafkaConsumerLike {
+	/** Connect the consumer before subscribing. */
 	connect(): Promise<void>
+	/** Disconnect the consumer and release network resources. */
 	disconnect(): Promise<void>
+	/** Subscribe the consumer to one topic. */
 	subscribe(options: { topic: string; fromBeginning: boolean }): Promise<void>
+	/** Start consuming messages from the subscription. */
 	run(options: {
 		eachMessage(args: { message: KafkaMessageLike }): Promise<void> | void
 	}): Promise<void>
 }
 
-interface KafkaAdminLike {
+
+/** Minimal admin shape used to ensure the Kafka topic exists. */
+export interface KafkaAdminLike {
+	/** Connect the admin client before topic operations. */
 	connect(): Promise<void>
+	/** Disconnect the admin client. */
 	disconnect(): Promise<void>
+	/** List existing topic names. */
 	listTopics(): Promise<string[]>
+	/** Create topics when they do not already exist. */
 	createTopics(options: {
 		topics: Array<{ topic: string; numPartitions: number; replicationFactor: number }>
 		waitForLeaders: boolean
 	}): Promise<unknown>
 }
 
-interface KafkaClientLike {
-	producer(config?: ProducerConfig): KafkaProducerLike
-	consumer(config: ConsumerConfig): KafkaConsumerLike
+
+/** Minimal Kafka client factory shape accepted by the transport. */
+export interface KafkaClientLike {
+	/** Create a producer instance. */
+	producer(config?: unknown): KafkaProducerLike
+	/** Create a consumer instance. */
+	consumer(config: unknown): KafkaConsumerLike
+	/** Create an admin client instance. */
 	admin(): KafkaAdminLike
 }
 
@@ -217,7 +242,7 @@ export function kafkaTransport(options: KafkaTransportOptions): KafkaTransport {
 			sasl: options.sasl as KafkaConfig["sasl"],
 			retry: options.retry as KafkaConfig["retry"],
 			logLevel: logLevel.ERROR
-		}) as KafkaClientLike
+		}) as unknown as KafkaClientLike
 	}
 
 	return {

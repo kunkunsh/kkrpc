@@ -228,17 +228,26 @@ function getParent(root: unknown, path: string[]): { parent: object; key: string
  * Owns one RPC transport, exposes an optional local API, and creates a typed remote proxy.
  */
 export class RPCChannel<LocalAPI extends object = object, RemoteAPI extends object = object> {
+	/** Callback functions retained for remote callback invocations. */
 	private callbacks = new Map<string, (...args: unknown[]) => unknown>()
+	/** Whether this channel has been destroyed. */
 	private destroyed = false
 	private localStreams = new Map<string, LocalStreamState>()
+	/** Pending outbound requests awaiting responses. */
 	private pending = new Map<string, PendingRequest>()
 	private pendingStreams = new Map<string, PendingRequest>()
 	private remoteStreams = new Map<string, RemoteStreamState>()
+	/** Whether this channel may forward transferable objects. */
 	private supportsTransfer: boolean
+	/** Transport subscription cleanup function. */
 	private unsubscribe: () => void
+	/** Request timeout in milliseconds. */
 	private timeout: number
+	/** Optional local API exposed to the remote endpoint. */
 	private expose?: LocalAPI
+	/** Plugin hooks used while processing requests and responses. */
 	private plugins: readonly RPCPlugin[]
+	/** Optional metadata provider for outbound requests. */
 	private getMetadata?: () => RPCMessageMetadata | undefined
 
 	/**

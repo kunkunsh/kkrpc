@@ -7,6 +7,9 @@
  */
 export {
 	natsTransport,
+	type NatsConnectionLike,
+	type NatsMessageLike,
+	type NatsSubscriptionLike,
 	type NatsTransport,
 	type NatsTransportOptions
 } from "../transports/nats.ts"

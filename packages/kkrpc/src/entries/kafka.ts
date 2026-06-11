@@ -6,6 +6,11 @@
  * @module
  */
 export {
+	type KafkaAdminLike,
+	type KafkaClientLike,
+	type KafkaConsumerLike,
+	type KafkaMessageLike,
+	type KafkaProducerLike,
 	kafkaTransport,
 	type KafkaTransport,
 	type KafkaTransportOptions

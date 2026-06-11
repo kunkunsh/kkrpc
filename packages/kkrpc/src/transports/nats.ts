@@ -10,17 +10,28 @@ import type { RPCMessage } from "../core/protocol.ts"
 import type { Transport } from "../core/transport.ts"
 import { createBusEnvelope, parseBusEnvelope, shouldDeliverBusEnvelope } from "./bus-envelope.ts"
 
-interface NatsMessageLike {
+
+/** Minimal NATS message shape consumed by the transport. */
+export interface NatsMessageLike {
+	/** Decode the message payload as a string. */
 	string(): string
 }
 
-interface NatsSubscriptionLike extends AsyncIterable<NatsMessageLike> {
+
+/** Minimal NATS subscription shape used by the transport. */
+export interface NatsSubscriptionLike extends AsyncIterable<NatsMessageLike> {
+	/** Stop receiving messages for this subscription. */
 	unsubscribe(): void
 }
 
-interface NatsConnectionLike {
+
+/** Minimal NATS connection shape accepted by the transport. */
+export interface NatsConnectionLike {
+	/** Publish a payload on a subject. */
 	publish(subject: string, payload: string): void
+	/** Subscribe to a subject, optionally using a queue group. */
 	subscribe(subject: string, options?: { queue?: string }): NatsSubscriptionLike
+	/** Close the NATS connection. */
 	close(): Promise<void>
 }
 
@@ -38,7 +49,7 @@ export interface NatsTransportOptions {
 	localPeerId: string
 	/** Optional target endpoint id for point-to-point delivery. */
 	remotePeerId?: string
-	/** @internal Test seam for close/connect race coverage. */
+	/** Optional NATS connection factory override used by tests and custom integrations. */
 	__connect?: () => Promise<NatsConnectionLike>
 }
 
