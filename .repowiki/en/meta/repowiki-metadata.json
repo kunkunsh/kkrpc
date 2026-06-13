@@ -1,6 +1,6 @@
 {
-	"version": "2026-06-04",
-	"last_commit": "26bb2e6b03d387b755c2211ef843aa9594ce5914",
+	"version": "2026-06-13",
+	"last_commit": "a88b5244f35d0cdd0cae1e642830263cc44294b6",
 	"wiki_items": [
 		{
 			"id": "2f1c5f89-6c1a-49c2-a0fb-78d997f838f0",
@@ -31,6 +31,26 @@
 			"id": "192211be-cbd5-4e97-920d-9a9b98fc1938",
 			"title": "Cross Language Interop",
 			"path": "content/Interop/Cross Language Interop.md"
+		},
+		{
+			"id": "f4a7b2c1-8d3e-4f5a-9b6c-7d1e2f3a4b5c",
+			"title": "Getting Started Guide",
+			"path": "content/Getting Started Guide.md"
+		},
+		{
+			"id": "0a1b2c3d-4e5f-6a7b-8c9d-0e1f2a3b4c5d",
+			"title": "Development Guidelines",
+			"path": "content/Development Guidelines.md"
+		},
+		{
+			"id": "1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d",
+			"title": "Remote References",
+			"path": "content/Features/Remote References.md"
+		},
+		{
+			"id": "2a3b4c5d-6e7f-8a9b-0c1d-2e3f4a5b6c7d",
+			"title": "Streaming",
+			"path": "content/Features/Streaming.md"
 		}
 	],
 	"knowledge_relations": [
@@ -81,6 +101,42 @@
 		},
 		{
 			"id": 6,
+			"source_id": "2f1c5f89-6c1a-49c2-a0fb-78d997f838f0",
+			"target_id": "f4a7b2c1-8d3e-4f5a-9b6c-7d1e2f3a4b5c",
+			"source_type": "WIKI_ITEM",
+			"target_type": "WIKI_ITEM",
+			"relationship_type": "PARENT_CHILD",
+			"extra": "Wiki parent-child relationship: System Overview -> Getting Started Guide"
+		},
+		{
+			"id": 7,
+			"source_id": "2f1c5f89-6c1a-49c2-a0fb-78d997f838f0",
+			"target_id": "0a1b2c3d-4e5f-6a7b-8c9d-0e1f2a3b4c5d",
+			"source_type": "WIKI_ITEM",
+			"target_type": "WIKI_ITEM",
+			"relationship_type": "PARENT_CHILD",
+			"extra": "Wiki parent-child relationship: System Overview -> Development Guidelines"
+		},
+		{
+			"id": 8,
+			"source_id": "5d2cebd0-7b90-4d47-8e77-2fdd65dd84a9",
+			"target_id": "1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d",
+			"source_type": "WIKI_ITEM",
+			"target_type": "WIKI_ITEM",
+			"relationship_type": "PARENT_CHILD",
+			"extra": "Wiki parent-child relationship: Architecture -> Remote References"
+		},
+		{
+			"id": 9,
+			"source_id": "5d2cebd0-7b90-4d47-8e77-2fdd65dd84a9",
+			"target_id": "2a3b4c5d-6e7f-8a9b-0c1d-2e3f4a5b6c7d",
+			"source_type": "WIKI_ITEM",
+			"target_type": "WIKI_ITEM",
+			"relationship_type": "PARENT_CHILD",
+			"extra": "Wiki parent-child relationship: Architecture -> Streaming"
+		},
+		{
+			"id": 10,
 			"source_id": "5d2cebd0-7b90-4d47-8e77-2fdd65dd84a9",
 			"target_id": "4e89fd26-7d5a-4e7e-935d-f1711c9b7d70",
 			"source_type": "WIKI_ITEM",
@@ -89,7 +145,7 @@
 			"extra": "Architecture references core feature implementation details"
 		},
 		{
-			"id": 7,
+			"id": 11,
 			"source_id": "b1b5b435-191b-42dd-af62-679080e4a1a3",
 			"target_id": "192211be-cbd5-4e97-920d-9a9b98fc1938",
 			"source_type": "WIKI_ITEM",
