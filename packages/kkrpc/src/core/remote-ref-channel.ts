@@ -242,7 +242,7 @@ export class RemoteReferenceRPCChannel<
 	protected override encodeArgs(
 		args: unknown[],
 		transfers: Transferable[],
-		state = this.createRewriteState()
+		state: RewriteState = this.createRewriteState()
 	): unknown[] {
 		try {
 			const encoded = args.map((arg) => this.encodeValue(arg, transfers, state))
@@ -274,7 +274,7 @@ export class RemoteReferenceRPCChannel<
 	protected encodeRoot(
 		value: unknown,
 		transfers: Transferable[],
-		state = this.createRewriteState()
+		state: RewriteState = this.createRewriteState()
 	): unknown {
 		try {
 			const encoded = this.encodeValue(value, transfers, state)
@@ -304,7 +304,7 @@ export class RemoteReferenceRPCChannel<
 	protected override encodeValue(
 		value: unknown,
 		transfers: Transferable[],
-		state = this.createRewriteState(),
+		state: RewriteState = this.createRewriteState(),
 		receiver?: unknown
 	): unknown {
 		const encodedByBase = super.encodeValue(value, transfers)
@@ -370,7 +370,7 @@ export class RemoteReferenceRPCChannel<
 	}
 
 	/** Decode remote-reference envelopes recursively inside plain arrays/objects. */
-	protected override decodeValue(value: unknown, state = this.createRewriteState()): unknown {
+	protected override decodeValue(value: unknown, state: RewriteState = this.createRewriteState()): unknown {
 		if (isRemoteRefEnvelope(value)) {
 			state.changed = true
 			const localRef = this.localRefs.get(value.id)

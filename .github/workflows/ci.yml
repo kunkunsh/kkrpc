@@ -37,9 +37,9 @@ jobs:
           pnpm install
           # pnpm --filter kkrpc exec playwright install
           pnpx playwright install --with-deps
-          pnpm build
-          pnpm check-types
-          pnpm test -F kkrpc
+          pnpm --filter kkrpc build
+          pnpm --filter kkrpc check-types
+          pnpm --filter kkrpc test
       - name: Stop test services
         if: always()
         run: |

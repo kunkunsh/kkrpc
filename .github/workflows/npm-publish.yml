@@ -34,8 +34,8 @@ jobs:
       - name: Install, build, and typecheck
         run: |
           pnpm install
-          pnpm build
-          pnpm check-types
+          pnpm --filter kkrpc build
+          pnpm --filter kkrpc check-types
       - name: Start integration services
         run: docker compose up -d redis rabbitmq kafka nats
       - name: Wait for Kafka

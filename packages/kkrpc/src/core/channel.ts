@@ -178,7 +178,7 @@ export function getParent(root: unknown, path: string[]): { parent: object; key:
 export class RPCChannel<LocalAPI extends object = object, RemoteAPI extends object = object> {
 	private callbacks = new Map<string, (...args: unknown[]) => unknown>()
 	protected destroyed = false
-	protected pending = new Map<string, PendingRequest>()
+	protected pending: Map<string, PendingRequest> = new Map<string, PendingRequest>()
 	protected supportsTransfer: boolean
 	private unsubscribe: () => void
 	protected timeout: number
