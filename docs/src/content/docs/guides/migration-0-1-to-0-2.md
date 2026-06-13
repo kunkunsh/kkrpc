@@ -18,7 +18,7 @@ This guide is for code written against v0.1.0 behavior where streaming or remote
 | Top-level progress callbacks | `kkrpc` | `kkrpc`, fire-and-forget only |
 | Callback return values / thrown callback errors | default remote refs | `kkrpc/remote-refs` with `proxy(callback)` |
 | Explicit object handles | `proxy(value)` from default entry | `proxy(value)` from `kkrpc/remote-refs` |
-| Nested function leaves | automatic in remote-ref core | explicit `proxy(fn)` only in `kkrpc/remote-refs` |
+| Nested function leaves | automatic in remote-ref core | explicit `proxy(fn)` only in `kkrpc/remote-refs`; unmarked functions are rejected |
 | Async iterable arguments/results | default core | `kkrpc/streaming` |
 | HTTP with callbacks/streams/refs | unsupported | clearly rejected before unsupported traffic starts |
 
@@ -29,7 +29,7 @@ This guide is for code written against v0.1.0 behavior where streaming or remote
 3. Move callback-return or object-handle APIs to `kkrpc/remote-refs` on both endpoints.
 4. Wrap by-reference callbacks, returned functions, and object handles with `proxy()`.
 5. Replace assumptions about automatic nested function refs with explicit `proxy(fn)` markers.
-6. Keep HTTP value-only. Move callback, streaming, or remote-handle boundaries to WebSocket, Worker, stdio, iframe, Electron, Tauri, Socket.IO, or a supported message bus.
+6. Keep HTTP value-only. Move callback, streaming, or remote-handle boundaries to WebSocket, Worker, stdio, iframe, Electron, Tauri, Socket.IO, or a point-to-point message-bus transport.
 7. Update tests to import the feature entry that matches the behavior under test.
 
 ## Entry Point Changes
@@ -133,7 +133,7 @@ await releaseProxy(counter)
 
 ## Nested Function Leaves Are Explicit
 
-v0.2.0's remote-reference entry does not automatically proxy every unmarked nested function. Mark the specific function leaf that should remain callable remotely.
+v0.2.0's remote-reference entry does not automatically proxy every unmarked nested function. Mark the specific function leaf that should remain callable remotely. Unmarked function values are rejected instead of being passed by raw identity across same-process object transports.
 
 ```ts title="v0.1.0 style"
 return {
@@ -160,12 +160,13 @@ Unsupported over `kkrpc/http`:
 - callback arguments
 - async iterable streaming
 - `kkrpc/remote-refs` handles
+- raw function values
 - server-initiated calls
 
 If v0.1.0 code tried to use those patterns over HTTP, split the API:
 
 - keep value-only calls on HTTP
-- move progress, subscriptions, streams, or remote handles to WebSocket, Worker, stdio, iframe, Electron, Tauri, Socket.IO, or a message-bus transport
+- move progress, subscriptions, streams, or remote handles to WebSocket, Worker, stdio, iframe, Electron, Tauri, Socket.IO, or a point-to-point message-bus transport
 
 ## Test Migration
 
@@ -189,6 +190,7 @@ Keep default-core tests focused on ordinary calls, property access, transfer des
 | Callback result is `undefined` | Default callback arguments are fire-and-forget | Use `kkrpc/remote-refs` and pass `proxy(callback)` |
 | Nested returned function is not callable remotely | Function was not explicitly marked | Wrap the function leaf with `proxy(fn)` |
 | `RPC channel does not support remote references` | Remote refs entry used with a transport or channel that does not advertise support | Use a bidirectional object-mode transport and `kkrpc/remote-refs` on both endpoints |
+| `Remote proxy belongs to a different RPC channel` | A remote proxy decoded from one channel was passed through another channel | Do not treat remote proxies as portable; expose an explicit bridge method instead |
 | HTTP rejects callbacks, streams, or refs | HTTP is unary | Move that boundary to a bidirectional transport |
 
 ## Why This Change Exists

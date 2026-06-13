@@ -72,6 +72,14 @@ function isRPCMessage(value: unknown): value is RPCMessage {
 	}
 	if (value.t === "r") return typeof value.id === "string"
 	if (value.t === "cb") return typeof value.id === "string" && Array.isArray(value.a)
+	if (value.t === "sq") {
+		return (
+			typeof value.id === "string" &&
+			typeof value.sid === "string" &&
+			(value.op === "pull" || value.op === "return" || value.op === "throw")
+		)
+	}
+	if (value.t === "sr") return typeof value.id === "string" && typeof value.sid === "string"
 	return false
 }
 

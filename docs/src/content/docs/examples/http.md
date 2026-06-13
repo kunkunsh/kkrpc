@@ -85,9 +85,10 @@ This means
 - When you call a method on server from client, you can't add a callback function for async response.
 - You can't stream async iterables over the HTTP transport.
 - You can't use `kkrpc/remote-refs` handles over the HTTP transport.
+- You can't send or return raw function values; HTTP APIs must stay JSON/value oriented.
 
 This is because the others `stdio`, `websocket`, `iframe` `MessageChannel`, `WebWorker` `postMessage`
 are all based on event-driven communication, while `http` is request-response based.
 
-They are in nature bidirectional (both sides can actively push message to each other), but `http` is not. Keep HTTP APIs value-only, or move callbacks, streams, and remote handles to a bidirectional transport.
+They are in nature bidirectional (both sides can actively push message to each other), but `http` is not. Keep HTTP APIs value-only, or move callbacks, streams, and remote handles to a bidirectional transport. Structurally valid RPC requests that contain unsupported callback, stream, or remote-reference envelopes receive a normal RPC error response explaining the unsupported feature.
 :::

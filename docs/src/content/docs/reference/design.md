@@ -20,10 +20,10 @@ Actually, the overall design of `kkRPC` is very similar to GraphQL (i.e. sending
 
 The message structure is different from JSON-RPC 2.0, but similar in concept.
 
-Stable kkrpc uses compact request and response records. The default core also supports top-level fire-and-forget callback records. Async iterable stream records and remote-reference records are available through opt-in entries so the main `kkrpc` bundle stays small. Requests locate the exposed API with a path array.
+Stable kkrpc uses compact request and response records. The default core also supports top-level fire-and-forget callback records. Async iterable stream records and remote-reference operations are available through opt-in entries so the main `kkrpc` bundle stays small. Requests locate the exposed API with a path array.
 
 ```ts
-type Operation = "call" | "get" | "set" | "new"
+type Operation = "call" | "get" | "set" | "new" // + "ref" inside kkrpc/remote-refs only
 
 interface RPCRequest {
 	t: "q"
@@ -69,6 +69,8 @@ interface RPCStreamResponse {
 Since it is not possible to transfer a callback function over any protocol, the default channel can keep track of top-level callbacks, send callback marker objects to the remote, and later route `t: "cb"` records back to the stored local function. This default callback path is fire-and-forget; use `kkrpc/remote-refs` when callback return values or thrown callback errors must propagate.
 
 With `kkrpc/streaming`, async iterables use stream reference markers in normal request or response values. The consumer sends `t: "sq"` records to grant `pull` credit or close the iterator with `return()` / `throw()`, and the owner sends `t: "sr"` records for yielded values, completion, or errors.
+
+With `kkrpc/remote-refs`, explicit `proxy(value)` handles use internal request records with `op: "ref"` for apply/get/set/call/release operations. The default `kkrpc` channel does not execute those operations; it returns a clear opt-in error so mixed endpoints do not silently time out.
 
 ## Transport
 

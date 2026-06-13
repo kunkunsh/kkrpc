@@ -370,6 +370,14 @@ export class StreamingRPCChannel<
 		for (const waiter of stream.waiters.splice(0)) waiter.reject(error)
 	}
 
+	/** Release a producer-side iterator when its stream response cannot be delivered. */
+	private closeLocalStreamAfterWriteFailure(streamId: string, stream: LocalStreamState): void {
+		if (stream.closed) return
+		stream.closed = true
+		this.localStreams.delete(streamId)
+		void stream.iterator.return?.()
+	}
+
 	/** Deliver stream responses to pending control calls or buffered async iterators. */
 	private handleStreamResponse(message: RPCStreamResponse): void {
 		const pending = this.pendingStreams.get(message.id)
@@ -502,10 +510,17 @@ export class StreamingRPCChannel<
 					return
 				}
 
-				this.post(
+				let writeFailed = false
+				await this.post(
 					{ t: "sr", id: generateId(), sid: streamId, d: false, v: this.encodeValue(result.value, transfers) },
-					transfers
+					transfers,
+					undefined,
+					() => {
+						writeFailed = true
+						this.closeLocalStreamAfterWriteFailure(streamId, stream)
+					}
 				)
+				if (writeFailed) return
 			}
 		} catch (error) {
 			stream.closed = true

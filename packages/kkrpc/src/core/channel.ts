@@ -97,6 +97,19 @@ function isRPCRequestMessage(value: unknown): value is RPCRequest {
 	)
 }
 
+function isUnsupportedRPCRefRequestMessage(value: unknown): value is RPCRequest {
+	if (typeof value !== "object" || value === null) return false
+	const message = value as Partial<RPCRequest>
+	return (
+		message.t === "q" &&
+		typeof message.id === "string" &&
+		message.op === "ref" &&
+		Array.isArray(message.p) &&
+		message.p.every((segment) => typeof segment === "string") &&
+		(message.a === undefined || Array.isArray(message.a))
+	)
+}
+
 // Transports may share non-kkrpc frames; malformed frames are ignored by these guards.
 function isRPCResponseMessage(value: unknown): value is RPCResponse {
 	if (typeof value !== "object" || value === null) return false
@@ -274,11 +287,11 @@ export class RPCChannel<LocalAPI extends object = object, RemoteAPI extends obje
 		transfers: Transferable[] = [],
 		pendingId?: string,
 		onWriteError?: (error: Error) => void
-	): void {
+	): void | Promise<void> {
 		try {
 			const result = this.transport.send(message, transfers)
 			if (result instanceof Promise) {
-				void result.catch((error) => this.handleWriteFailure(pendingId, error, onWriteError))
+				return result.catch((error) => this.handleWriteFailure(pendingId, error, onWriteError))
 			}
 		} catch (error) {
 			this.handleWriteFailure(pendingId, error, onWriteError)
@@ -316,6 +329,14 @@ export class RPCChannel<LocalAPI extends object = object, RemoteAPI extends obje
 		if (isRPCCallbackMessage(message)) {
 			const callback = this.callbacks.get(message.id)
 			if (callback) void callback(...this.decodeArgs(message.a))
+			return
+		}
+		if (isUnsupportedRPCRefRequestMessage(message)) {
+			this.post({
+				t: "r",
+				id: message.id,
+				e: { n: "Error", m: "Remote reference operations require kkrpc/remote-refs" }
+			})
 			return
 		}
 		if (isRPCRequestMessage(message)) await this.handleRequest(message)
@@ -401,6 +422,9 @@ export class RPCChannel<LocalAPI extends object = object, RemoteAPI extends obje
 		value?: unknown
 	}): Promise<unknown> {
 		if (!this.expose) throw new Error("No API exposed")
+		if (ctx.operation === "ref") {
+			throw new Error("Remote reference operations require kkrpc/remote-refs")
+		}
 		if (ctx.operation === "get") return getPath(this.expose, ctx.path)
 		if (ctx.operation === "set") {
 			const { parent, key } = getParent(this.expose, ctx.path)

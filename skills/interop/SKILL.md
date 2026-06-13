@@ -221,3 +221,4 @@ def handle(message):
 - Do not forget to unwrap `{ "__kkrpc_next_arg__": "value", "v": ... }` callback arguments.
 - Do not rely on JS-specific transfer slots or structured clone in language interop.
 - Do not assume async iterables or remote references are part of the default core protocol.
+- Do not send `op: "ref"` to a default-core endpoint; only `kkrpc/remote-refs` endpoints implement those requests.

@@ -59,6 +59,19 @@ type LocalRefRecord = {
 }
 
 const MAX_RELEASED_LOCAL_REF_IDS = 1024
+const ARG_ENVELOPE_TAG = "__kkrpc_next_arg__"
+
+type ValueArgEnvelope = {
+	[ARG_ENVELOPE_TAG]: "value"
+	v: unknown
+}
+
+type CallbackArgEnvelope = {
+	[ARG_ENVELOPE_TAG]: "callback"
+	id: string
+}
+
+type ArgEnvelope = ValueArgEnvelope | CallbackArgEnvelope
 
 function generateId(): string {
 	return globalThis.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2)
@@ -85,6 +98,17 @@ function isRPCRefRequestMessage(value: RPCMessage): value is RPCRequest {
 	)
 }
 
+/** Type guard for the default channel's top-level callback/value argument envelope. */
+function isArgEnvelope(value: unknown): value is ArgEnvelope {
+	return (
+		typeof value === "object" &&
+		value !== null &&
+		ARG_ENVELOPE_TAG in value &&
+		((value as { [ARG_ENVELOPE_TAG]: unknown })[ARG_ENVELOPE_TAG] === "value" ||
+			(value as { [ARG_ENVELOPE_TAG]: unknown })[ARG_ENVELOPE_TAG] === "callback")
+	)
+}
+
 /**
  * RPC channel variant with explicit Comlink-style remote references enabled.
  *
@@ -102,6 +126,7 @@ export class RemoteReferenceRPCChannel<
 	private releasedLocalRefIdOrder: string[] = []
 	private releasedLocalRefIds = new Set<string>()
 	private remoteProxyRecords = new Set<RemoteProxyRecord>()
+	private readonly remoteProxyOwner = Symbol("kkrpc.remote-ref-channel")
 	private supportsRemoteRefs: boolean
 
 	constructor(
@@ -157,11 +182,15 @@ export class RemoteReferenceRPCChannel<
 		if (!pending) return
 		this.pending.delete(id)
 		if (pending.timer) clearTimeout(pending.timer)
-		if (error) {
-			pending.reject(this.decodeRPCError(error))
-			return
+		try {
+			if (error) {
+				pending.reject(this.decodeRPCError(error))
+				return
+			}
+			pending.resolve(this.decodeRoot(value))
+		} catch (decodeError) {
+			pending.reject(decodeError instanceof Error ? decodeError : new Error(String(decodeError)))
 		}
-		pending.resolve(this.decodeRoot(value))
 	}
 
 	/** Encode outbound requests and roll back newly retained refs if the send fails. */
@@ -228,7 +257,15 @@ export class RemoteReferenceRPCChannel<
 	/** Decode arguments, replacing remote-reference envelopes with local proxy facades. */
 	protected override decodeArgs(args: unknown[]): unknown[] {
 		const state = this.createRewriteState()
-		const decoded = args.map((arg) => this.decodeValue(arg, state))
+		const decoded = args.map((arg) => {
+			if (!isArgEnvelope(arg)) return this.decodeValue(arg, state)
+			if (arg[ARG_ENVELOPE_TAG] === "value") return this.decodeValue(arg.v, state)
+			const id = arg.id
+			return (...callbackArgs: unknown[]) => {
+				const transfers: Transferable[] = []
+				this.post({ t: "cb", id, a: this.encodeArgs(callbackArgs, transfers) }, transfers)
+			}
+		})
 		this.assertNoCyclicRewrite(state)
 		return decoded
 	}
@@ -261,8 +298,8 @@ export class RemoteReferenceRPCChannel<
 	 * Encode transfer descriptors, pass-back proxies, and explicit `proxy()` markers.
 	 *
 	 * Plain arrays/objects are shallow-copied only when a nested explicit marker or
-	 * remote proxy is rewritten. Unmarked nested functions are intentionally left
-	 * alone by this slim explicit entry.
+	 * remote proxy is rewritten. Unmarked function values are rejected so object-mode
+	 * transports cannot accidentally leak raw same-process references.
 	 */
 	protected override encodeValue(
 		value: unknown,
@@ -277,12 +314,18 @@ export class RemoteReferenceRPCChannel<
 		}
 		const record = getRemoteProxyRecord(value)
 		if (record) {
+			if (record.owner !== this.remoteProxyOwner) {
+				throw new RPCEncodeError("Remote proxy belongs to a different RPC channel")
+			}
 			state.changed = true
 			return this.retainLocalRef(record.kind, value, state)
 		}
 		if (isExplicitProxyTarget(value)) {
 			state.changed = true
 			return this.retainLocalRef(typeof value === "function" ? "function" : "object", value, state, receiver)
+		}
+		if (typeof value === "function") {
+			throw new RPCEncodeError("Unmarked function values require proxy() with kkrpc/remote-refs")
 		}
 		if (Array.isArray(value)) {
 			if (state.seen.has(value)) {
@@ -354,6 +397,9 @@ export class RemoteReferenceRPCChannel<
 			}
 			if (value.kind === "function") return this.createRemoteFunction(value)
 			return this.createRemoteObject(value)
+		}
+		if (typeof value === "function") {
+			throw new RPCEncodeError("Unmarked function values require proxy() with kkrpc/remote-refs")
 		}
 		if (Array.isArray(value)) {
 			if (state.seen.has(value)) {
@@ -505,6 +551,9 @@ export class RemoteReferenceRPCChannel<
 		}
 		const record = getRemoteProxyRecord(value)
 		if (record) {
+			if (record.owner !== this.remoteProxyOwner) {
+				throw new RPCEncodeError("Remote proxy belongs to a different RPC channel")
+			}
 			if (record.kind === "object" && record.path && record.path.length > 0) {
 				return { [REMOTE_REF_TAG]: true, id: record.id, kind: record.kind, p: record.path }
 			}
@@ -566,6 +615,7 @@ export class RemoteReferenceRPCChannel<
 		const record: RemoteProxyRecord = {
 			id: ref.id,
 			kind: ref.kind,
+			owner: this.remoteProxyOwner,
 			get released() {
 				return released
 			},
@@ -616,6 +666,7 @@ export class RemoteReferenceRPCChannel<
 			const record: RemoteProxyRecord = {
 				id: ref.id,
 				kind: ref.kind,
+				owner: this.remoteProxyOwner,
 				path,
 				get released() {
 					return releaseState.released

@@ -71,7 +71,10 @@ export interface Codec<TMessage, TWire> {
  * Compose a wire-level platform and codec into a message-level transport.
  *
  * Transfer support is enabled only when both the platform and codec explicitly
- * advertise `transfer: true`.
+ * advertise `transfer: true`; overrides can only downgrade transfer to `false`,
+ * not upgrade an unsafe platform/codec pair. Other message-level capability
+ * overrides can advertise behavior that is not owned by the platform/codec pair,
+ * such as point-to-point remote-reference support.
  *
  * ```ts
  * import { jsonLineCodec } from "kkrpc/codecs"
@@ -86,22 +89,27 @@ export interface Codec<TMessage, TWire> {
  */
 export function createTransport<TMessage, TWire>({
 	platform,
-	codec
+	codec,
+	capabilities
 }: {
 	platform: Platform<TWire>
 	codec: Codec<TMessage, TWire>
+	capabilities?: TransportCapabilities
 }): Transport<TMessage> {
 	const supportsTransfer =
 		platform.capabilities?.transfer === true && codec.capabilities?.transfer === true
+	const forwardsTransfer = supportsTransfer && capabilities?.transfer !== false
 
 	return {
 		capabilities: {
-			objectMode: platform.capabilities?.objectMode,
-			transfer: supportsTransfer
+			objectMode: capabilities?.objectMode ?? platform.capabilities?.objectMode,
+			transfer: forwardsTransfer,
+			broadcast: capabilities?.broadcast,
+			remoteRefs: capabilities?.remoteRefs
 		},
 		send(message: TMessage, transfers: Transferable[] = []) {
 			const wire = codec.encode(message)
-			return platform.send(wire, supportsTransfer ? transfers : [])
+			return platform.send(wire, forwardsTransfer ? transfers : [])
 		},
 		subscribe(listener: (message: TMessage) => void) {
 			return platform.subscribe((wire) => listener(codec.decode(wire)))

@@ -72,7 +72,7 @@ const remote = channel.getAPI()
 | Remote refs | `kkrpc/remote-refs` | Explicit `proxy(value)` references, callback return values, object handles, `releaseProxy()` |
 | Relay | `kkrpc/relay` | Transport-to-transport relay helper |
 | Inspector | `kkrpc/inspector` | Native plugin/event traffic logging |
-| Queues | `kkrpc/rabbitmq`, `kkrpc/kafka`, `kkrpc/redis-streams`, `kkrpc/nats` | Optional peer dependencies |
+| Queues | `kkrpc/rabbitmq`, `kkrpc/kafka`, `kkrpc/redis-streams`, `kkrpc/nats` | Optional peer dependencies; set `remotePeerId` for point-to-point streaming or remote refs |
 
 ## Core API Pattern
 
@@ -118,6 +118,10 @@ await api.process("input", (progress) => {
 ```
 
 Default callbacks do not propagate return values or thrown errors. Use `kkrpc/remote-refs` and `proxy(callback)` when the remote side must await the callback result.
+
+`kkrpc/remote-refs` is explicit: unmarked function values are rejected rather than passed by raw object identity. Wrap each callback, returned function leaf, or object handle that should remain remote with `proxy(value)`.
+
+Remote proxies are channel-scoped. Do not pass a remote proxy decoded from one `RPCChannel` through a different channel; expose an explicit bridge method if that is truly required.
 
 ## Streaming Example
 
@@ -260,7 +264,9 @@ relay.dispose()
 | Pulling SuperJSON into every browser bundle | Import codecs from `kkrpc/superjson` only where needed |
 | Expecting async iterables from `kkrpc` | Import `wrap`/`expose`/`RPCChannel` from `kkrpc/streaming` on both sides |
 | Expecting callback return values from default callbacks | Import from `kkrpc/remote-refs` and pass `proxy(callback)` |
-| Returning unmarked nested functions as remote handles | Wrap the function leaf with `proxy(fn)` in `kkrpc/remote-refs` |
+| Returning unmarked nested functions as remote handles | Wrap the function leaf with `proxy(fn)` in `kkrpc/remote-refs`; unmarked functions are rejected |
+| Using remote refs over broadcast message buses | Configure a point-to-point bus transport with `remotePeerId` |
+| Passing a remote proxy through another channel | Keep remote proxies on the channel that decoded them, or build an explicit bridge |
 | Forgetting to dispose channels | Keep the controller/channel and call `dispose()` or `destroy()` |
 | Using old blocking IO adapter names | Use native transport factories that return `Transport<RPCMessage>` |
 | Treating validation as core behavior | Add `validationPlugin()` explicitly through channel options |

@@ -84,7 +84,7 @@ describe("HTTP RPC", () => {
 		})
 	})
 
-	test("async iterable arguments are rejected as invalid unary HTTP requests", async () => {
+	test("async iterable arguments are rejected as unsupported unary HTTP requests", async () => {
 		const response = await fetch(`${baseUrl}/rpc`, {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
@@ -98,7 +98,32 @@ describe("HTTP RPC", () => {
 				]
 			})
 		})
-		expect(response.status).toBe(400)
+		expect(response.status).toBe(200)
+		expect(await response.json()).toMatchObject({
+			t: "r",
+			id: "stream-id",
+			e: { m: "HTTP transport does not support async iterable streams" }
+		})
+	})
+
+	test("legacy callback envelopes are rejected as unsupported unary HTTP requests", async () => {
+		const response = await fetch(`${baseUrl}/rpc`, {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({
+				t: "q",
+				id: "callback-envelope-id",
+				op: "call",
+				p: ["echo"],
+				a: [{ __kkrpc_next_arg__: "callback", id: "callback-arg" }]
+			})
+		})
+		expect(response.status).toBe(200)
+		expect(await response.json()).toMatchObject({
+			t: "r",
+			id: "callback-envelope-id",
+			e: { m: "HTTP transport does not support callback arguments" }
+		})
 	})
 
 	test("client transport rejects remote reference arguments before fetch", async () => {
@@ -275,7 +300,28 @@ describe("HTTP RPC", () => {
 		expect(await response.json()).toMatchObject({
 			t: "r",
 			id: "ref-result-id",
-			e: { m: "HTTP transport does not support remote references" }
+				e: { m: "HTTP transport does not support remote references" }
+		})
+	})
+
+	test("handler rejects function response values because HTTP cannot serialize references", async () => {
+		const handler = createHttpHandler({
+			createCallback: () => () => "not-serializable"
+		})
+
+		const response = await handler(
+			new Request("http://127.0.0.1/rpc", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ t: "q", id: "function-result-id", op: "call", p: ["createCallback"], a: [] })
+			})
+		)
+
+		expect(response.status).toBe(200)
+		expect(await response.json()).toMatchObject({
+			t: "r",
+			id: "function-result-id",
+			e: { m: "HTTP transport does not support function values" }
 		})
 	})
 

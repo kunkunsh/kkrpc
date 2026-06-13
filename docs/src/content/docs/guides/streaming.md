@@ -49,7 +49,7 @@ await iterator.return?.(undefined)
 
 Errors thrown by the source iterator reject the remote `next()` call after any already-buffered values have been drained.
 
-HTTP is still unary request/response and cannot continue a remote async iterator after the initial response. Use WebSocket, stdio, workers, iframes, desktop IPC, Socket.IO, or message-bus transports for async iterable streams.
+HTTP is still unary request/response and cannot continue a remote async iterator after the initial response. Use WebSocket, stdio, workers, iframes, desktop IPC, Socket.IO, or point-to-point message-bus transports for async iterable streams.
 
 ## Async Iterable Arguments
 
@@ -115,4 +115,4 @@ do {
 
 ## Evented Transports
 
-When you need long-lived bidirectional updates, use WebSocket, Socket.IO, worker, iframe, or message-bus transports and expose explicit subscribe/unsubscribe methods in your API.
+When you need long-lived bidirectional updates, use WebSocket, Socket.IO, worker, iframe, or point-to-point message-bus transports and expose explicit subscribe/unsubscribe methods in your API. For RabbitMQ, Kafka, Redis Streams, and NATS, set `remotePeerId` so stream control (`t: "sq"`) and stream data (`t: "sr"`) envelopes are routed to one peer instead of broadcast to every consumer.

@@ -144,7 +144,11 @@ The generic order is local API first, remote API second.
 
 ## HTTP Guardrail
 
-HTTP is unary request/response in 1.0. Do not migrate callback-heavy, subscription, streaming-progress, remote-reference, or server-push code to `kkrpc/http`. Use WebSocket or another evented transport for those boundaries.
+HTTP is unary request/response in 1.0. Do not migrate callback-heavy, subscription, streaming-progress, remote-reference, raw-function, or server-push code to `kkrpc/http`. Use WebSocket or another evented transport for those boundaries.
+
+When migrating remote references to RabbitMQ, Kafka, Redis Streams, or NATS, configure `remotePeerId`. Broadcast bus mode is for fan-out messages and does not advertise remote-reference support.
+
+Remote proxies decoded from one channel are not portable across another channel. Replace implicit proxy forwarding with an explicit bridge method if an old design depended on that behavior.
 
 ## Validation Migration
 
@@ -217,6 +221,7 @@ Do not assume transfer support for HTTP, stdio, or message-bus transports.
 - Do not claim HTTP supports callbacks or bidirectional calls.
 - Do not leave async iterable APIs on the default `kkrpc` entry; use `kkrpc/streaming`.
 - Do not leave callback-return or object-handle APIs on the default `kkrpc` entry; use `kkrpc/remote-refs` and explicit `proxy(value)` markers.
+- Do not rely on unmarked nested functions crossing by raw identity; `kkrpc/remote-refs` rejects them.
 - Do not edit generated `dist` or Typedoc output while migrating this repository.
 
 ## Verification

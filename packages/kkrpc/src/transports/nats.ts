@@ -129,7 +129,7 @@ export function natsTransport(options: NatsTransportOptions): NatsTransport {
 		capabilities: {
 			objectMode: true,
 			transfer: false,
-			remoteRefs: true,
+			remoteRefs: options.remotePeerId !== undefined,
 			broadcast: options.remotePeerId === undefined
 		},
 		async send(message) {

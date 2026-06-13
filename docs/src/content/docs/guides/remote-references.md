@@ -46,7 +46,7 @@ console.log(toast.message) // "hello" was copied by value
 console.log(await toast.hide()) // hide() calls back to the original endpoint
 ```
 
-This keeps object-shaped return values convenient without turning every object into a live remote proxy. Unmarked nested functions are not automatically proxied by the slim explicit entry.
+This keeps object-shaped return values convenient without turning every object into a live remote proxy. Unmarked function values are rejected by the remote-reference entry instead of being passed by raw same-process identity; mark each by-reference function with `proxy(fn)`.
 
 ## Callback Return Values
 
@@ -120,6 +120,8 @@ await counter.setValue(10)
 
 Treat explicit object proxies as an API design decision, not as a serialization shortcut. Do not proxy DOM events, DOM nodes, request objects, host internals, or other sensitive capability-bearing objects unless the trust boundary is explicitly designed for that exposure.
 
+Remote proxies belong to the channel that decoded them. Do not pass a remote proxy obtained from one channel through a different channel as if it were a portable capability; kkrpc rejects that cross-channel pass-through with a clear error. If you need to bridge capabilities between endpoints, expose an explicit method that owns the forwarding policy.
+
 ## Cleanup
 
 Call `releaseProxy()` when you are done with long-lived remote handles. Releasing tells the owner endpoint that the remote reference can be discarded.
@@ -153,7 +155,9 @@ Prefer explicit `releaseProxy()` for application-level lifetimes and `channel.de
 
 Remote references require bidirectional transports because later function and method calls must travel back to the endpoint that owns the original value.
 
-Supported bidirectional transports include workers, iframes, WebSocket, stdio, Electron IPC, Tauri IPC, Chrome extension ports, Socket.IO, and supported message-bus transports.
+Supported bidirectional transports include workers, iframes, WebSocket, stdio, Electron IPC, Tauri IPC, Chrome extension ports, Socket.IO, and point-to-point message-bus transports.
+
+For RabbitMQ, Kafka, Redis Streams, and NATS, configure both `localPeerId` and `remotePeerId` when using remote references. Broadcast-style bus transports intentionally do not advertise remote-reference support because a retained handle must have exactly one remote owner for later `op: "ref"` calls and cleanup.
 
 Unary HTTP rejects remote references with a clear error. A single HTTP request/response cannot carry follow-up callback calls after the response value has crossed the boundary.
 

@@ -25,6 +25,7 @@ export interface RemoteRefEnvelope {
 export interface RemoteProxyRecord {
 	id: string
 	kind: RemoteRefKind
+	owner?: symbol
 	path?: string[]
 	released: boolean
 	release(): Promise<void>

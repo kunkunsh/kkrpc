@@ -33,17 +33,24 @@ class MemoryTransport implements Transport<RPCMessage> {
 	closed = false
 	peer?: MemoryTransport
 	postError?: Error
+	asyncPostError?: Error
+	asyncPostErrorDelay = 0
 	messages: RPCMessage[] = []
 	transfers: Transferable[][] = []
 	private listeners = new Set<(message: RPCMessage) => void>()
 
-	send(message: RPCMessage, transfers: Transferable[] = []): void {
+	send(message: RPCMessage, transfers: Transferable[] = []): void | Promise<void> {
 		if (this.postError) throw this.postError
 		this.messages.push(message)
 		this.transfers.push(transfers)
 		queueMicrotask(() => {
 			for (const listener of this.peer?.listeners ?? []) listener(message)
 		})
+		if (this.asyncPostError) {
+			return new Promise((_, reject) => {
+				setTimeout(() => reject(this.asyncPostError), this.asyncPostErrorDelay)
+			})
+		}
 	}
 
 	subscribe(listener: (message: RPCMessage) => void): () => void {
@@ -186,6 +193,45 @@ describe("stable core RPC", () => {
 		expect(serverTransport.transfers).toHaveLength(0)
 
 		server.destroy()
+	})
+
+	test("rejects remote-reference operation requests with a clear opt-in error", async () => {
+		const [clientTransport, serverTransport] = createPair()
+		const server = new RPCChannel<LocalAPI, object>(serverTransport, { expose: createAPI() })
+
+		clientTransport.send({
+			t: "q",
+			id: "ref-request",
+			op: "ref",
+			p: ["callback-ref", "apply"],
+			a: []
+		})
+		await new Promise((resolve) => setTimeout(resolve, 0))
+
+		expect(serverTransport.messages).toHaveLength(1)
+		expect(serverTransport.messages[0]).toMatchObject({
+			t: "r",
+			id: "ref-request",
+			e: { m: "Remote reference operations require kkrpc/remote-refs" }
+		})
+
+		server.destroy()
+	})
+
+	test("invokeRequest rejects remote-reference operations defensively", async () => {
+		class TestChannel extends RPCChannel<LocalAPI, object> {
+			invokeForTest() {
+				return this.invokeRequest({ operation: "ref", path: ["call"], args: [] })
+			}
+		}
+		const [transport] = createPair()
+		const channel = new TestChannel(transport, { expose: createAPI() })
+
+		await expect(channel.invokeForTest()).rejects.toThrow(
+			"Remote reference operations require kkrpc/remote-refs"
+		)
+
+		channel.destroy()
 	})
 
 	test("transfers top-level marked values when transport supports transfer", async () => {
@@ -548,6 +594,73 @@ describe("stable core RPC", () => {
 		])
 		expect(result).toBeInstanceOf(Error)
 		expect(result.message).toBe("pull write failed")
+
+		client.destroy()
+		server.destroy()
+	})
+
+	test("cleans up local stream state when producer writes fail", async () => {
+		const [a, b] = createPair()
+		let finalized = false
+		const client = new StreamingRPCChannel<object, { numbers(): AsyncIterable<number> }>(a)
+		const server = new StreamingRPCChannel<{ numbers(): AsyncIterable<number> }, object>(b, {
+			expose: {
+				async *numbers() {
+					try {
+						let index = 0
+						while (true) yield index++
+					} finally {
+						finalized = true
+					}
+				}
+			}
+		})
+		const localStreams = server as unknown as { localStreams: Map<string, unknown> }
+
+		const stream = await client.getAPI().numbers()
+		const iterator = stream[Symbol.asyncIterator]()
+		b.postError = new Error("producer write failed")
+		void iterator.next().catch(() => {})
+		await new Promise((resolve) => setTimeout(resolve, 10))
+
+		expect(localStreams.localStreams.size).toBe(0)
+		expect(finalized).toBe(true)
+
+		client.destroy()
+		server.destroy()
+	})
+
+	test("stops pumping local streams when producer writes fail asynchronously", async () => {
+		const [a, b] = createPair()
+		let finalized = false
+		const client = new StreamingRPCChannel<object, { numbers(): AsyncIterable<number> }>(a)
+		const server = new StreamingRPCChannel<{ numbers(): AsyncIterable<number> }, object>(b, {
+			expose: {
+				async *numbers() {
+					try {
+						let index = 0
+						while (true) yield index++
+					} finally {
+						finalized = true
+					}
+				}
+			}
+		})
+		const localStreams = server as unknown as { localStreams: Map<string, unknown> }
+
+		const stream = await client.getAPI().numbers()
+		const iterator = stream[Symbol.asyncIterator]()
+		b.asyncPostError = new Error("async producer write failed")
+		b.asyncPostErrorDelay = 5
+		void iterator.next().catch(() => {})
+		await new Promise((resolve) => setTimeout(resolve, 20))
+
+		const dataChunks = b.messages.filter(
+			(message): message is Extract<RPCMessage, { t: "sr" }> => message.t === "sr" && message.d === false
+		)
+		expect(dataChunks).toHaveLength(1)
+		expect(localStreams.localStreams.size).toBe(0)
+		expect(finalized).toBe(true)
 
 		client.destroy()
 		server.destroy()

@@ -206,7 +206,7 @@ Stdio transports use newline-delimited JSON. Do not reuse old blocking `read()`/
 
 ### HTTP
 
-HTTP in 1.0 is unary request/response only. It is appropriate for normal client-initiated value calls, but not server-initiated calls, callback arguments, async iterable streams, or remote-reference handles.
+HTTP in 1.0 is unary request/response only. It is appropriate for normal client-initiated value calls, but not server-initiated calls, callback arguments, async iterable streams, remote-reference handles, or raw function values.
 
 ```ts title="server.ts"
 import { createHttpHandler } from "kkrpc/http"
@@ -283,7 +283,7 @@ Use the native message-bus transports from their dedicated subpaths:
 | Redis Streams | `redisStreamsTransport()` from `kkrpc/redis-streams` |
 | NATS | `natsTransport()` from `kkrpc/nats` |
 
-Message-bus transports use envelope metadata for peer identity and routing. They may provide at-least-once delivery depending on the broker. Do not assume exactly-once execution unless your application protocol handles idempotency.
+Message-bus transports use envelope metadata for peer identity and routing. They may provide at-least-once delivery depending on the broker. Do not assume exactly-once execution unless your application protocol handles idempotency. Configure `remotePeerId` for point-to-point streaming or remote-reference APIs; broadcast mode is for fan-out messages and does not advertise remote-reference support.
 
 ## Validation Migration
 
@@ -382,7 +382,7 @@ The stable wire protocol uses compact JSON-compatible records:
 { "t": "q", "id": "request-id", "op": "call", "p": ["math", "add"], "a": [1, 2] }
 ```
 
-Responses use `t: "r"`; callback invocations use `t: "cb"`. Async iterable streams use `t: "sq"` credit/control requests and `t: "sr"` data/completion/error responses. Non-TypeScript implementations should use the language interop references and the `skills/interop` guide.
+Responses use `t: "r"`; callback invocations use `t: "cb"`. Async iterable streams use `t: "sq"` credit/control requests and `t: "sr"` data/completion/error responses. Explicit remote references use `op: "ref"` requests inside `kkrpc/remote-refs`; default-core endpoints reject those operations with an opt-in error. Non-TypeScript implementations should use the language interop references and the `skills/interop` guide.
 
 ## Common Pitfalls
 

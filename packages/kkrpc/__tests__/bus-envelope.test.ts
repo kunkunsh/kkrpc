@@ -73,4 +73,24 @@ describe("bus envelope", () => {
 		expect(parseBusEnvelope(JSON.stringify(envelope))?.message).toEqual(message)
 		expect(shouldDeliverBusEnvelope(envelope, { localPeerId: "server" })).toBe(true)
 	})
+
+	test("accepts streaming control and data envelopes for bus transports", () => {
+		const control: RPCMessage = { t: "sq", id: "pull-1", sid: "stream-1", op: "pull", n: 32 }
+		const data: RPCMessage = { t: "sr", id: "chunk-1", sid: "stream-1", d: false, v: 1 }
+		const controlEnvelope = createBusEnvelope(control, {
+			transportId: "bus",
+			from: "client",
+			to: "server"
+		})
+		const dataEnvelope = createBusEnvelope(data, {
+			transportId: "bus",
+			from: "server",
+			to: "client"
+		})
+
+		expect(isBusEnvelope(controlEnvelope)).toBe(true)
+		expect(isBusEnvelope(dataEnvelope)).toBe(true)
+		expect(parseBusEnvelope(JSON.stringify(controlEnvelope))?.message).toEqual(control)
+		expect(parseBusEnvelope(JSON.stringify(dataEnvelope))?.message).toEqual(data)
+	})
 })

@@ -182,6 +182,38 @@ describe("stable transport codecs", () => {
 		expect(platform.transfers).toEqual([[buffer]])
 	})
 
+	test("createTransport applies explicit capability overrides", () => {
+		const platform = new TransferObjectPlatform()
+		const transport = createTransport<RPCMessage, RPCMessage>({
+			platform,
+			codec: objectCodec<RPCMessage>(),
+			capabilities: { remoteRefs: true, broadcast: true }
+		})
+
+		expect(transport.capabilities).toMatchObject({
+			objectMode: true,
+			transfer: true,
+			remoteRefs: true,
+			broadcast: true
+		})
+	})
+
+	test("createTransport transfer capability override disables transfer forwarding", () => {
+		const platform = new TransferObjectPlatform()
+		const transport = createTransport<RPCMessage, RPCMessage>({
+			platform,
+			codec: objectCodec<RPCMessage>(),
+			capabilities: { transfer: false }
+		})
+		const message: RPCMessage = { t: "r", id: "1", v: "ok" }
+		const buffer = new ArrayBuffer(1)
+
+		transport.send(message, [buffer])
+
+		expect(transport.capabilities?.transfer).toBe(false)
+		expect(platform.transfers).toEqual([[]])
+	})
+
 	test("concrete bidirectional transports advertise remote reference support", () => {
 		const readable = {
 			on: (_event: "data", _listener: (chunk: Uint8Array | string) => void) => {},
@@ -261,6 +293,50 @@ describe("stable transport codecs", () => {
 
 		for (const transport of transports) {
 			expect(transport.capabilities?.remoteRefs).toBe(true)
+			transport.close?.()
+		}
+	})
+
+	test("broadcast message-bus transports do not advertise remote reference support", () => {
+		const kafkaClient = {
+			producer: () => ({
+				connect: async () => {},
+				disconnect: async () => {},
+				send: async () => {}
+			}),
+			consumer: () => ({
+				connect: async () => {},
+				disconnect: async () => {},
+				subscribe: async () => {},
+				run: async () => {}
+			}),
+			admin: () => ({
+				connect: async () => {},
+				disconnect: async () => {},
+				listTopics: async () => ["kkrpc-topic"],
+				createTopics: async () => {}
+			})
+		}
+		const transports = [
+			rabbitMqTransport({ localPeerId: "local" }),
+			natsTransport({
+				localPeerId: "local",
+				__connect: async () => ({
+					publish: () => {},
+					subscribe: () => ({
+						async *[Symbol.asyncIterator]() {},
+						unsubscribe: () => {}
+					}),
+					close: async () => {}
+				})
+			}),
+			redisStreamsTransport({ localPeerId: "local" }),
+			kafkaTransport({ localPeerId: "local", __client: kafkaClient })
+		]
+
+		for (const transport of transports) {
+			expect(transport.capabilities?.broadcast).toBe(true)
+			expect(transport.capabilities?.remoteRefs).toBe(false)
 			transport.close?.()
 		}
 	})

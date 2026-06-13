@@ -133,8 +133,16 @@ export function createHttpHandler<LocalAPI extends object>(
 					{ status: 200, headers: { "Content-Type": "application/json" } }
 				)
 			}
-			if (findUnsupportedHttpEnvelope(body.a) ?? findUnsupportedHttpEnvelope(body.v)) {
-				throw new Error("invalid RPC request")
+			const unsupportedHttp = findUnsupportedHttpEnvelope(body.a) ?? findUnsupportedHttpEnvelope(body.v)
+			if (unsupportedHttp) {
+				return new Response(
+					JSON.stringify({
+						t: "r",
+						id: body.id,
+						e: { n: "Error", m: unsupportedHttp }
+					} satisfies RPCResponse),
+					{ status: 200, headers: { "Content-Type": "application/json" } }
+				)
 			}
 			message = body
 		} catch {
@@ -234,6 +242,7 @@ function findUnsupportedHttpEnvelope(
 	value: unknown,
 	seen = new WeakSet<object>()
 ): string | undefined {
+	if (typeof value === "function") return "HTTP transport does not support function values"
 	if (typeof value !== "object" || value === null) return undefined
 	if (seen.has(value)) return undefined
 	seen.add(value)
@@ -299,7 +308,7 @@ function createRequestScopedTransport(request: RPCMessage): Transport<RPCMessage
 
 	return {
 		response,
-		capabilities: { objectMode: true, transfer: false, remoteRefs: true },
+		capabilities: { objectMode: true, transfer: false, remoteRefs: false },
 		send(message) {
 			if (message.t !== "r") {
 				throw new Error("HTTP handler transport only supports response messages")

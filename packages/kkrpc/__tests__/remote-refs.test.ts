@@ -7,6 +7,7 @@
  */
 
 import { describe, expect, test } from "bun:test"
+import { RPCChannel as CoreRPCChannel } from "../src/entries/mod.ts"
 import { registerRemoteProxy } from "../src/core/remote-ref.ts"
 import {
 	isRemoteProxy,
@@ -135,20 +136,75 @@ describe("remote references", () => {
 		server.destroy()
 	})
 
-	test("unmarked nested functions are not auto-proxied", async () => {
+	test("rejects unmarked nested functions instead of passing same-process references", async () => {
 		const [clientTransport, serverTransport] = createPair()
+		let called = false
 		const client = new RPCChannel<object, { receive(input: { cb(): string }): Promise<string> }>(
 			clientTransport
 		)
 		const server = new RPCChannel<{ receive(input: { cb(): string }): string }, object>(serverTransport, {
-			expose: { receive: (input) => input.cb() }
+			expose: {
+				receive: (input) => {
+					called = true
+					return input.cb()
+				}
+			}
 		})
 
-		await client.getAPI().receive({ cb: () => "plain" })
+		await expect(client.getAPI().receive({ cb: () => "plain" })).rejects.toThrow("proxy()")
+		expect(clientTransport.messages).toHaveLength(0)
+		expect(called).toBe(false)
 
-		const request = clientTransport.messages[0] as Extract<RPCMessage, { t: "q" }>
-		const encoded = (request.a?.[0] as { cb?: unknown }).cb
-		expect(isRemoteRefEnvelope(encoded)).toBe(false)
+		client.destroy()
+		server.destroy()
+	})
+
+	test("decodes legacy top-level callback envelopes from default channels", async () => {
+		const [clientTransport, serverTransport] = createPair()
+		let callbackValue = ""
+		const client = new CoreRPCChannel<object, { use(callback: (value: string) => void): Promise<string> }>(
+			clientTransport
+		)
+		const server = new RPCChannel<
+			{ use(callback: (value: string) => void): string },
+			object
+		>(serverTransport, {
+			expose: {
+				use(callback) {
+					callback("from-remote-ref-server")
+					return "done"
+				}
+			}
+		})
+
+		expect(
+			await client.getAPI().use((value) => {
+				callbackValue = value
+			})
+		).toBe("done")
+		expect(callbackValue).toBe("from-remote-ref-server")
+
+		client.destroy()
+		server.destroy()
+	})
+
+	test("rejects raw nested functions received from default object-mode channels", async () => {
+		const [clientTransport, serverTransport] = createPair()
+		let called = false
+		const client = new CoreRPCChannel<object, { receive(input: { cb(): string }): Promise<string> }>(
+			clientTransport
+		)
+		const server = new RPCChannel<{ receive(input: { cb(): string }): string }, object>(serverTransport, {
+			expose: {
+				receive(input) {
+					called = true
+					return input.cb()
+				}
+			}
+		})
+
+		await expect(client.getAPI().receive({ cb: () => "plain" })).rejects.toThrow("proxy()")
+		expect(called).toBe(false)
 
 		client.destroy()
 		server.destroy()
@@ -180,6 +236,33 @@ describe("remote references", () => {
 
 		client.destroy()
 		server.destroy()
+	})
+
+	test("rejects remote proxies decoded by a different channel", async () => {
+		const [ownerTransport, firstClientTransport] = createPair()
+		const handle = { ping: () => "pong" }
+		const owner = new RPCChannel<{ getHandle(): typeof handle }, object>(ownerTransport, {
+			expose: { getHandle: () => proxy(handle) }
+		})
+		const firstClient = new RPCChannel<object, { getHandle(): Promise<typeof handle> }>(
+			firstClientTransport
+		)
+		const remoteHandle = await firstClient.getAPI().getHandle()
+		const [secondClientTransport, receiverTransport] = createPair()
+		const secondClient = new RPCChannel<object, { use(handle: typeof remoteHandle): Promise<void> }>(
+			secondClientTransport
+		)
+		const receiver = new RPCChannel<{ use(handle: unknown): void }, object>(receiverTransport, {
+			expose: { use: () => {} }
+		})
+
+		await expect(secondClient.getAPI().use(remoteHandle)).rejects.toThrow("different RPC channel")
+		expect(secondClientTransport.messages).toHaveLength(0)
+
+		owner.destroy()
+		firstClient.destroy()
+		secondClient.destroy()
+		receiver.destroy()
 	})
 
 	test("remote release of callback refs clears owner local ref records", async () => {
@@ -234,5 +317,44 @@ describe("remote references", () => {
 		await expect(client.getAPI().use(proxy(() => {}))).rejects.toThrow(
 			"RPC channel does not support remote references"
 		)
+	})
+
+	test("rolls back retained local refs when writing a remote-ref request fails", async () => {
+		const [clientTransport] = createPair()
+		const client = new RPCChannel<object, { use(cb: () => void): Promise<void> }>(clientTransport)
+		const localRefs = client as unknown as { localRefs: Map<string, unknown> }
+		clientTransport.postError = new Error("request write failed")
+
+		await expect(client.getAPI().use(proxy(() => {}))).rejects.toThrow("request write failed")
+
+		expect(localRefs.localRefs.size).toBe(0)
+
+		client.destroy()
+	})
+
+	test("rejects pending responses when remote-ref response decoding fails", async () => {
+		const [clientTransport, serverTransport] = createPair()
+		const client = new RPCChannel<object, { getBad(): Promise<unknown> }>(clientTransport, {
+			timeout: 100
+		})
+
+		const promise = client.getAPI().getBad()
+		await new Promise((resolve) => setTimeout(resolve, 0))
+		const request = clientTransport.messages[0] as Extract<RPCMessage, { t: "q" }>
+		serverTransport.send({ t: "r", id: request.id, v: { cb: () => "raw" } })
+
+		const result = await Promise.race([
+			promise.then(
+				() => new Error("response resolved unexpectedly"),
+				(error) => error
+			),
+			new Promise<Error>((resolve) => {
+				setTimeout(() => resolve(new Error("response timed out")), 50)
+			})
+		])
+		expect(result).toBeInstanceOf(Error)
+		expect(result.message).toContain("proxy()")
+
+		client.destroy()
 	})
 })
