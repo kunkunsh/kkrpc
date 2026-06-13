@@ -165,7 +165,12 @@ describeKafka("kafkaTransport", () => {
 			retry: KAFKA_TEST_RETRY
 		})
 
-		expect(transport.capabilities).toEqual({ objectMode: true, transfer: false, broadcast: true })
+		expect(transport.capabilities).toEqual({
+			objectMode: true,
+			transfer: false,
+			remoteRefs: false,
+			broadcast: true
+		})
 		transport.close?.()
 	})
 
