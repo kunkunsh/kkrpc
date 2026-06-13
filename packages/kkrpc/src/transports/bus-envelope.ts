@@ -61,7 +61,11 @@ function isRPCMessage(value: unknown): value is RPCMessage {
 	if (value.t === "q") {
 		return (
 			typeof value.id === "string" &&
-			(value.op === "call" || value.op === "get" || value.op === "set" || value.op === "new") &&
+			(value.op === "call" ||
+				value.op === "get" ||
+				value.op === "set" ||
+				value.op === "new" ||
+				value.op === "ref") &&
 			Array.isArray(value.p) &&
 			value.p.every((part) => typeof part === "string")
 		)

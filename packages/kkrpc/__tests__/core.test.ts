@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test"
-
 import { dispose, expose, RPCChannel, transfer, wrap } from "../src/entries/mod.ts"
+import { RPCChannel as StreamingRPCChannel } from "../src/entries/streaming.ts"
 import type { RPCMessage, RPCStreamRequest, Transport } from "../src/entries/mod.ts"
 
 interface RemoteWidget {
@@ -29,7 +29,7 @@ interface RemoteAPI {
 }
 
 class MemoryTransport implements Transport<RPCMessage> {
-	capabilities = { objectMode: true, transfer: true }
+	capabilities = { objectMode: true, transfer: true, remoteRefs: true }
 	closed = false
 	peer?: MemoryTransport
 	postError?: Error
@@ -127,9 +127,11 @@ describe("stable core RPC", () => {
 		const widget = await new api.Widget("demo")
 		expect(widget.name).toBe("demo")
 		let callbackValue = ""
-		expect(await api.callCallback((value) => {
-			callbackValue = value
-		})).toBe("done")
+		expect(
+			await api.callCallback((value) => {
+				callbackValue = value
+			})
+		).toBe("done")
 		expect(callbackValue).toBe("from-server")
 
 		client.destroy()
@@ -161,7 +163,10 @@ describe("stable core RPC", () => {
 			}
 		})
 
-		void client.getAPI().slow().catch(() => {})
+		void client
+			.getAPI()
+			.slow()
+			.catch(() => {})
 		await new Promise((resolve) => setTimeout(resolve, 0))
 		server.destroy()
 		resolveSlow("late")
@@ -185,8 +190,8 @@ describe("stable core RPC", () => {
 
 	test("transfers top-level marked values when transport supports transfer", async () => {
 		const [a, b] = createPair()
-		const client = new RPCChannel<object, RemoteAPI>(a)
-		const server = new RPCChannel<LocalAPI, object>(b, { expose: createAPI() })
+		const client = new StreamingRPCChannel<object, RemoteAPI>(a)
+		const server = new StreamingRPCChannel<LocalAPI, object>(b, { expose: createAPI() })
 		const buffer = new ArrayBuffer(8)
 
 		expect(await client.getAPI().takeBuffer(transfer(buffer, [buffer]))).toBe(8)
@@ -198,8 +203,8 @@ describe("stable core RPC", () => {
 
 	test("does not decode user string values with callback prefix as callbacks", async () => {
 		const [a, b] = createPair()
-		const client = new RPCChannel<object, RemoteAPI>(a)
-		const server = new RPCChannel<LocalAPI, object>(b, { expose: createAPI() })
+		const client = new StreamingRPCChannel<object, RemoteAPI>(a)
+		const server = new StreamingRPCChannel<LocalAPI, object>(b, { expose: createAPI() })
 
 		expect(await client.getAPI().echo("__kkrpc_next_callback__literal")).toBe(
 			"__kkrpc_next_callback__literal"
@@ -211,8 +216,8 @@ describe("stable core RPC", () => {
 
 	test("allows remote API paths named call", async () => {
 		const [a, b] = createPair()
-		const client = new RPCChannel<object, RemoteAPI>(a)
-		const server = new RPCChannel<LocalAPI, object>(b, { expose: createAPI() })
+		const client = new StreamingRPCChannel<object, RemoteAPI>(a)
+		const server = new StreamingRPCChannel<LocalAPI, object>(b, { expose: createAPI() })
 
 		expect(await client.getAPI().call()).toBe("remote-call")
 
@@ -236,8 +241,8 @@ describe("stable core RPC", () => {
 
 	test("streams async iterable results with backpressure", async () => {
 		const [a, b] = createPair()
-		const client = new RPCChannel<object, RemoteAPI>(a)
-		const server = new RPCChannel<LocalAPI, object>(b, { expose: createAPI() })
+		const client = new StreamingRPCChannel<object, RemoteAPI>(a)
+		const server = new StreamingRPCChannel<LocalAPI, object>(b, { expose: createAPI() })
 		const values: number[] = []
 
 		for await (const value of client.getAPI().numbers(3)) {
@@ -252,8 +257,8 @@ describe("stable core RPC", () => {
 
 	test("streams async iterable results with windowed credit instead of per-chunk round trips", async () => {
 		const [a, b] = createPair()
-		const client = new RPCChannel<object, RemoteAPI>(a)
-		const server = new RPCChannel<LocalAPI, object>(b, { expose: createAPI() })
+		const client = new StreamingRPCChannel<object, RemoteAPI>(a)
+		const server = new StreamingRPCChannel<LocalAPI, object>(b, { expose: createAPI() })
 		const values: number[] = []
 
 		for await (const value of client.getAPI().numbers(40)) {
@@ -273,8 +278,8 @@ describe("stable core RPC", () => {
 
 	test("propagates async iterable errors to the remote consumer", async () => {
 		const [a, b] = createPair()
-		const client = new RPCChannel<object, { fail(): AsyncIterable<number> }>(a)
-		const server = new RPCChannel<{ fail(): AsyncIterable<number> }, object>(b, {
+		const client = new StreamingRPCChannel<object, { fail(): AsyncIterable<number> }>(a)
+		const server = new StreamingRPCChannel<{ fail(): AsyncIterable<number> }, object>(b, {
 			expose: {
 				async *fail() {
 					yield 1
@@ -293,8 +298,8 @@ describe("stable core RPC", () => {
 
 	test("drains buffered async iterable values before surfacing producer errors", async () => {
 		const [a, b] = createPair()
-		const client = new RPCChannel<object, { failAfterValues(): AsyncIterable<number> }>(a)
-		const server = new RPCChannel<{ failAfterValues(): AsyncIterable<number> }, object>(b, {
+		const client = new StreamingRPCChannel<object, { failAfterValues(): AsyncIterable<number> }>(a)
+		const server = new StreamingRPCChannel<{ failAfterValues(): AsyncIterable<number> }, object>(b, {
 			expose: {
 				async *failAfterValues() {
 					yield 1
@@ -320,11 +325,11 @@ describe("stable core RPC", () => {
 	test("returns remote async iterators when consumers stop early", async () => {
 		const [a, b] = createPair()
 		let finalized = false
-		const client = new RPCChannel<
+		const client = new StreamingRPCChannel<
 			object,
 			{ values(): AsyncIterable<number>; echo(value: string): Promise<string> }
 		>(a)
-		const server = new RPCChannel<
+		const server = new StreamingRPCChannel<
 			{ values(): AsyncIterable<number>; echo(value: string): Promise<string> },
 			object
 		>(b, {
@@ -357,8 +362,8 @@ describe("stable core RPC", () => {
 
 	test("streams empty async iterable results", async () => {
 		const [a, b] = createPair()
-		const client = new RPCChannel<object, { empty(): AsyncIterable<number> }>(a)
-		const server = new RPCChannel<{ empty(): AsyncIterable<number> }, object>(b, {
+		const client = new StreamingRPCChannel<object, { empty(): AsyncIterable<number> }>(a)
+		const server = new StreamingRPCChannel<{ empty(): AsyncIterable<number> }, object>(b, {
 			expose: {
 				async *empty() {}
 			}
@@ -377,8 +382,8 @@ describe("stable core RPC", () => {
 
 	test("streams concurrent async iterable results independently", async () => {
 		const [a, b] = createPair()
-		const client = new RPCChannel<object, RemoteAPI>(a)
-		const server = new RPCChannel<LocalAPI, object>(b, { expose: createAPI() })
+		const client = new StreamingRPCChannel<object, RemoteAPI>(a)
+		const server = new StreamingRPCChannel<LocalAPI, object>(b, { expose: createAPI() })
 		const api = client.getAPI()
 		const left: number[] = []
 		const right: number[] = []
@@ -402,8 +407,8 @@ describe("stable core RPC", () => {
 	test("streams nested async iterable method results", async () => {
 		const [a, b] = createPair()
 		type NestedAPI = { nested: { stream(count: number): AsyncIterable<string> } }
-		const client = new RPCChannel<object, NestedAPI>(a)
-		const server = new RPCChannel<NestedAPI, object>(b, {
+		const client = new StreamingRPCChannel<object, NestedAPI>(a)
+		const server = new StreamingRPCChannel<NestedAPI, object>(b, {
 			expose: {
 				nested: {
 					async *stream(count) {
@@ -427,8 +432,8 @@ describe("stable core RPC", () => {
 	test("stream chunks support transferred values", async () => {
 		const [a, b] = createPair()
 		type StreamAPI = { buffers(): AsyncIterable<ArrayBuffer> }
-		const client = new RPCChannel<object, StreamAPI>(a)
-		const server = new RPCChannel<StreamAPI, object>(b, {
+		const client = new StreamingRPCChannel<object, StreamAPI>(a)
+		const server = new StreamingRPCChannel<StreamAPI, object>(b, {
 			expose: {
 				async *buffers() {
 					const buffer = new ArrayBuffer(32)
@@ -453,19 +458,21 @@ describe("stable core RPC", () => {
 
 	test("streams async iterable arguments to the remote handler", async () => {
 		const [a, b] = createPair()
-		const client = new RPCChannel<object, { sum(values: AsyncIterable<number>): Promise<number> }>(a)
-		const server = new RPCChannel<
-			{ sum(values: AsyncIterable<number>): Promise<number> },
-			object
-		>(b, {
-			expose: {
-				async sum(values) {
-					let total = 0
-					for await (const value of values) total += value
-					return total
+		const client = new StreamingRPCChannel<object, { sum(values: AsyncIterable<number>): Promise<number> }>(
+			a
+		)
+		const server = new StreamingRPCChannel<{ sum(values: AsyncIterable<number>): Promise<number> }, object>(
+			b,
+			{
+				expose: {
+					async sum(values) {
+						let total = 0
+						for await (const value of values) total += value
+						return total
+					}
 				}
 			}
-		})
+		)
 
 		async function* values() {
 			yield 2
@@ -481,17 +488,17 @@ describe("stable core RPC", () => {
 
 	test("closes async iterable arguments when the remote call fails before consuming them", async () => {
 		const [a, b] = createPair()
-		const client = new RPCChannel<object, { fail(values: AsyncIterable<number>): Promise<void> }>(a)
-		const server = new RPCChannel<
-			{ fail(values: AsyncIterable<number>): Promise<void> },
-			object
-		>(b, {
-			expose: {
-				async fail() {
-					throw new Error("boom")
+		const client = new StreamingRPCChannel<object, { fail(values: AsyncIterable<number>): Promise<void> }>(a)
+		const server = new StreamingRPCChannel<{ fail(values: AsyncIterable<number>): Promise<void> }, object>(
+			b,
+			{
+				expose: {
+					async fail() {
+						throw new Error("boom")
+					}
 				}
 			}
-		})
+		)
 		let finalized = false
 
 		const values: AsyncIterable<number> = {
@@ -517,8 +524,8 @@ describe("stable core RPC", () => {
 
 	test("rejects remote async iterable reads when the pull message cannot be sent", async () => {
 		const [a, b] = createPair()
-		const client = new RPCChannel<object, { numbers(): AsyncIterable<number> }>(a)
-		const server = new RPCChannel<{ numbers(): AsyncIterable<number> }, object>(b, {
+		const client = new StreamingRPCChannel<object, { numbers(): AsyncIterable<number> }>(a)
+		const server = new StreamingRPCChannel<{ numbers(): AsyncIterable<number> }, object>(b, {
 			expose: {
 				async *numbers() {
 					yield 1
@@ -559,7 +566,9 @@ describe("stable core RPC", () => {
 
 		const [writeClientTransport, writeServerTransport] = createPair()
 		const writeClient = new RPCChannel<object, RemoteAPI>(writeClientTransport)
-		const writeServer = new RPCChannel<LocalAPI, object>(writeServerTransport, { expose: createAPI() })
+		const writeServer = new RPCChannel<LocalAPI, object>(writeServerTransport, {
+			expose: createAPI()
+		})
 		writeClientTransport.postError = new Error("write failed")
 
 		await expect(writeClient.getAPI().math.add(1, 2)).rejects.toThrow("write failed")

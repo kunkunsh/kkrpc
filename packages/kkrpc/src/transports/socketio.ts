@@ -32,7 +32,7 @@ export interface SocketLike {
  */
 export function socketIoTransport(socket: SocketLike): Transport<RPCMessage> {
 	return {
-		capabilities: { objectMode: true, transfer: false },
+		capabilities: { objectMode: true, transfer: false, remoteRefs: true },
 		send(message) {
 			socket.emit(SOCKET_IO_EVENT, message)
 		},

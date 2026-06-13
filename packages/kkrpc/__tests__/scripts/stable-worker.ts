@@ -7,7 +7,8 @@ const api = {
 	createBuffer: async (size: number) => {
 		const buffer = new ArrayBuffer(size)
 		return transfer(buffer, [buffer])
-	}
+	},
+	getGreeter: async () => (name: string) => `hello ${name}`
 }
 
 expose(api, workerSelfTransport())

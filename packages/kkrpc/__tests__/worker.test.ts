@@ -1,12 +1,13 @@
 import { describe, expect, test } from "bun:test"
-
 import { dispose, expose, transfer, wrap } from "../src/entries/mod.ts"
+import { dispose as disposeRemoteRef, wrap as wrapRemoteRef } from "../src/entries/remote-refs.ts"
 import { workerSelfTransport, workerTransport } from "../src/entries/worker.ts"
 
 interface WorkerAPI {
 	add(a: number, b: number): Promise<number>
 	takeBuffer(buffer: ArrayBuffer): Promise<number>
 	createBuffer(size: number): Promise<ArrayBuffer>
+	getGreeter(): Promise<(name: string) => Promise<string> | string>
 }
 
 describe("worker transport", () => {
@@ -43,6 +44,22 @@ describe("worker transport", () => {
 			expect(created.byteLength).toBe(32)
 		} finally {
 			dispose(api)
+		}
+	})
+
+	test("supports remote references over worker object transport", async () => {
+		const worker = new Worker(new URL("./scripts/remote-ref-worker.ts", import.meta.url).href, {
+			type: "module"
+		})
+		const transport = workerTransport(worker)
+		const api = wrapRemoteRef<WorkerAPI>(transport)
+
+		try {
+			expect(transport.capabilities?.remoteRefs).toBe(true)
+			const greet = await api.getGreeter()
+			expect(await greet("Ada")).toBe("hello Ada")
+		} finally {
+			disposeRemoteRef(api)
 		}
 	})
 })

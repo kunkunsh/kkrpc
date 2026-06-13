@@ -86,7 +86,7 @@ export function webSocketTransport(socket: WebSocketLike): Transport<RPCMessage>
 	attachNativeListeners()
 
 	return {
-		capabilities: { objectMode: true, transfer: false },
+		capabilities: { objectMode: true, transfer: false, remoteRefs: true },
 		send(message) {
 			const raw = JSON.stringify(message)
 			if (socket.readyState === undefined || socket.readyState === OPEN_READY_STATE) {

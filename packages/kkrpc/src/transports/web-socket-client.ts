@@ -50,7 +50,7 @@ export function webSocketClientTransport(
 	socket.addEventListener("message", messageListener)
 
 	return {
-		capabilities: { objectMode: true, transfer: false },
+		capabilities: { objectMode: true, transfer: false, remoteRefs: true },
 		send(message) {
 			const raw = JSON.stringify(message)
 			if (socket.readyState === WebSocket.OPEN) {

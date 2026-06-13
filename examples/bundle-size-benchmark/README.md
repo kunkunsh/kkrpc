@@ -18,15 +18,19 @@ Measured with `pnpm --filter bundle-size-benchmark benchmark` on the current wor
 
 | Bundle               | Raw minified |    Gzip |  Brotli | Modules |
 | -------------------- | -----------: | ------: | ------: | ------: |
-| `kkrpc core`         |      5.96 KB | 2.29 KB | 2.06 KB |       5 |
-| `kkrpc/browser core` |      5.96 KB | 2.31 KB | 2.06 KB |       8 |
-| `kkrpc + json codec` |      6.40 KB | 2.44 KB | 2.18 KB |       9 |
-| `kkrpc + superjson`  |     17.23 KB | 6.12 KB | 5.51 KB |      21 |
-| `kkrpc/worker`       |      6.27 KB | 2.41 KB | 2.15 KB |       7 |
+| `kkrpc core`         |      6.37 KB | 2.41 KB | 2.17 KB |       5 |
+| `kkrpc/browser core` |      6.37 KB | 2.43 KB | 2.17 KB |       8 |
+| `kkrpc + json codec` |      6.81 KB | 2.56 KB | 2.29 KB |       8 |
+| `kkrpc + superjson`  |     17.64 KB | 6.23 KB | 5.60 KB |      20 |
+| `kkrpc/worker`       |      6.70 KB | 2.53 KB | 2.28 KB |       7 |
+| `kkrpc/streaming`    |     14.78 KB | 4.28 KB | 3.81 KB |       4 |
+| `kkrpc/remote-refs`  |     16.85 KB | 4.79 KB | 4.24 KB |       5 |
 | `comctx`             |      6.86 KB | 2.45 KB | 2.20 KB |       2 |
 | `comlink`            |      4.10 KB | 1.87 KB | 1.64 KB |       2 |
 
-Conclusion: for the equal add-proxy scenario, `comlink` is the smallest because it is focused on browser `postMessage`-style endpoints. `kkrpc core` is larger than `comlink`, but smaller than `comctx` in raw, gzip, and brotli output while also being the base for a broader transport/plugin architecture. The explicit browser entry is effectively the same size as core, adding JSON codec support is small, worker support adds about 0.31 KB raw over core, and SuperJSON is the large optional feature because it bundles the `superjson` dependency.
+Conclusion: for the equal add-proxy scenario, `comlink` is the smallest because it is focused on browser `postMessage`-style endpoints. `kkrpc core` is now in the same range as `comctx` while still including the generic bidirectional channel, plugin hooks, top-level callback arguments, and transferable handling. Async iterator streaming and explicit Comlink-style remote references are measured separately as opt-in entries. The explicit browser entry is effectively the same size as core, adding JSON codec support remains small, worker support adds about 0.33 KB raw over core, and SuperJSON is the large optional feature because it bundles the `superjson` dependency.
+
+For context, the earlier all-in core measured `kkrpc core` at 22.01 KB raw / 6.09 KB gzip / 5.44 KB brotli with the same benchmark command. Keeping streaming and remote references behind subpath entries reduces the default core row by roughly 15.64 KB raw / 3.68 KB gzip / 3.27 KB brotli.
 
 ## Scope Notes
 
@@ -34,10 +38,12 @@ The rows above compare equivalent `add` API exposure plus remote proxy creation,
 
 | Library              | Included in measured row                                                                                                    | Not included in measured row                                                                                                |
 | -------------------- | --------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| `kkrpc core`         | Generic `Transport<RPCMessage>` channel, proxy creation, API exposure, callback marker support, plugin-capable channel core | Runtime transports, JSON codec composition, SuperJSON, validation, middleware, inspector, relay                             |
+| `kkrpc core`         | Generic `Transport<RPCMessage>` channel, proxy creation, API exposure, top-level callback arguments, transfer descriptors, plugin-capable channel core | Runtime transports, JSON codec composition, SuperJSON, validation, middleware, inspector, relay, async iterator streaming, remote references |
 | `kkrpc + json codec` | Core plus `createTransport()` and plain JSON serialization                                                                  | SuperJSON, runtime transports, validation, middleware, inspector, relay                                                     |
 | `kkrpc + superjson`  | Core plus `createTransport()` and SuperJSON serialization for richer JS values                                              | Runtime transports, validation, middleware, inspector, relay                                                                |
 | `kkrpc/worker`       | Core plus Web Worker transport helper                                                                                       | SuperJSON, validation, middleware, inspector, relay, non-worker runtime transports                                          |
+| `kkrpc/streaming`    | Core plus opt-in async iterable argument/result streaming with pull-based backpressure                                      | Remote references, SuperJSON, validation, middleware, inspector, relay, runtime transports                                  |
+| `kkrpc/remote-refs`  | Core plus explicit `proxy(value)` remote references, nested marked refs, release, and pass-back identity behavior           | Async iterator streaming, SuperJSON, validation, middleware, inspector, relay, runtime transports                           |
 | `comctx`             | `defineProxy()` API exposure/injection for the same `add` API                                                               | kkrpc-style runtime transport family, codec composition, SuperJSON row equivalent, validation, middleware, inspector, relay |
 | `comlink`            | `expose()`/`wrap()` for the same `add` API on a Comlink endpoint                                                            | kkrpc-style runtime transport family, codec composition, SuperJSON row equivalent, validation, middleware, inspector, relay |
 
@@ -64,6 +70,8 @@ pnpm --filter bundle-size-benchmark benchmark
 | `kkrpc + json codec` | Core proxy plus `createTransport()` and `jsonCodec()`       |
 | `kkrpc + superjson`  | Core proxy plus `createTransport()` and `superJsonCodec()`  |
 | `kkrpc/worker`       | Core proxy plus `workerTransport()`                         |
+| `kkrpc/streaming`    | Opt-in core proxy plus async iterable streaming             |
+| `kkrpc/remote-refs`  | Opt-in core proxy plus explicit `proxy()` remote references |
 | `comctx`             | Equivalent proxy injection using `defineProxy()`            |
 | `comlink`            | Equivalent browser endpoint proxy using `expose()`/`wrap()` |
 

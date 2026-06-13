@@ -10,20 +10,17 @@ import type { RPCMessage } from "../core/protocol.ts"
 import type { Transport } from "../core/transport.ts"
 import { createBusEnvelope, parseBusEnvelope, shouldDeliverBusEnvelope } from "./bus-envelope.ts"
 
-
 /** Minimal NATS message shape consumed by the transport. */
 export interface NatsMessageLike {
 	/** Decode the message payload as a string. */
 	string(): string
 }
 
-
 /** Minimal NATS subscription shape used by the transport. */
 export interface NatsSubscriptionLike extends AsyncIterable<NatsMessageLike> {
 	/** Stop receiving messages for this subscription. */
 	unsubscribe(): void
 }
-
 
 /** Minimal NATS connection shape accepted by the transport. */
 export interface NatsConnectionLike {
@@ -132,6 +129,7 @@ export function natsTransport(options: NatsTransportOptions): NatsTransport {
 		capabilities: {
 			objectMode: true,
 			transfer: false,
+			remoteRefs: true,
 			broadcast: options.remotePeerId === undefined
 		},
 		async send(message) {

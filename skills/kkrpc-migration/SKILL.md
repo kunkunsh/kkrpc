@@ -1,6 +1,6 @@
 ---
 name: kkrpc-migration
-description: Migrate projects from kkrpc 0.7.x or temporary kkrpc/next APIs to kkrpc 1.0. Use this skill when replacing classic IoInterface/*IO adapters, next entries, validation/interceptor options, or transport imports with the stable Transport<RPCMessage> architecture.
+description: Use when migrating kkrpc projects across breaking stable API changes, replacing classic IoInterface/*IO adapters, next entries, validation/interceptor options, transport imports, or opt-in streaming/remote-reference entries.
 version: 1.0.0
 license: MIT
 metadata:
@@ -22,6 +22,7 @@ Use this skill to migrate applications from kkrpc 0.7.x or temporary `kkrpc/next
 The 1.0 public API is native `Transport<RPCMessage>` based. Do not preserve the classic `IoInterface` adapter model, public `*IO` classes, `classic-compat`, `next/io`, `browser-lite`, `browser-mini`, or `electron-ipc` imports.
 
 Canonical user documentation: `docs/src/content/docs/guides/migration-1-0.md`.
+For the slim-core feature split, also check `docs/src/content/docs/guides/migration-0-1-to-0-2.md`.
 
 ## Migration Workflow
 
@@ -57,6 +58,8 @@ The `*IO` search may find application names. Review matches manually and only mi
 | `kkrpc/next/validation` | `kkrpc/validation` |
 | `kkrpc/next/middleware` | `kkrpc/middleware` |
 | `kkrpc/next/superjson` | `kkrpc/superjson` |
+| async iterable APIs from `kkrpc` | `kkrpc/streaming` |
+| callback-return/object-handle APIs from `kkrpc` | `kkrpc/remote-refs` |
 | `kkrpc/next/worker` | `kkrpc/worker` |
 | `kkrpc/next/stdio` | `kkrpc/stdio` |
 | `kkrpc/browser-lite` | `kkrpc` or `kkrpc/browser` |
@@ -64,6 +67,8 @@ The `*IO` search may find application names. Review matches manually and only mi
 | `kkrpc/electron-ipc` | `kkrpc/electron` |
 
 Runtime transports must not be imported from the main `kkrpc` entry. Use explicit subpaths.
+
+Async iterable streaming and request/response remote references must also use explicit subpaths. The default `kkrpc` entry is the slim request/response core.
 
 ## Core API Patterns
 
@@ -139,7 +144,7 @@ The generic order is local API first, remote API second.
 
 ## HTTP Guardrail
 
-HTTP is unary request/response in 1.0. Do not migrate callback-heavy, subscription, streaming-progress, or server-push code to `kkrpc/http`. Use WebSocket or another evented transport for those boundaries.
+HTTP is unary request/response in 1.0. Do not migrate callback-heavy, subscription, streaming-progress, remote-reference, or server-push code to `kkrpc/http`. Use WebSocket or another evented transport for those boundaries.
 
 ## Validation Migration
 
@@ -210,6 +215,8 @@ Do not assume transfer support for HTTP, stdio, or message-bus transports.
 - Do not import runtime-specific transports from `kkrpc`.
 - Do not pull optional peers into browser-safe entries.
 - Do not claim HTTP supports callbacks or bidirectional calls.
+- Do not leave async iterable APIs on the default `kkrpc` entry; use `kkrpc/streaming`.
+- Do not leave callback-return or object-handle APIs on the default `kkrpc` entry; use `kkrpc/remote-refs` and explicit `proxy(value)` markers.
 - Do not edit generated `dist` or Typedoc output while migrating this repository.
 
 ## Verification

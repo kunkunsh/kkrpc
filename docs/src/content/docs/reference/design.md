@@ -20,7 +20,7 @@ Actually, the overall design of `kkRPC` is very similar to GraphQL (i.e. sending
 
 The message structure is different from JSON-RPC 2.0, but similar in concept.
 
-Stable kkrpc uses compact request, response, callback, and stream records. Requests locate the exposed API with a path array.
+Stable kkrpc uses compact request and response records. The default core also supports top-level fire-and-forget callback records. Async iterable stream records and remote-reference records are available through opt-in entries so the main `kkrpc` bundle stays small. Requests locate the exposed API with a path array.
 
 ```ts
 type Operation = "call" | "get" | "set" | "new"
@@ -66,10 +66,9 @@ interface RPCStreamResponse {
 }
 ```
 
-Since it's not possible to transfer a callback function over any protocol, the channel keeps track of callbacks,
-sends callback marker objects to the remote, and later routes `t: "cb"` records back to the stored local function.
+Since it is not possible to transfer a callback function over any protocol, the default channel can keep track of top-level callbacks, send callback marker objects to the remote, and later route `t: "cb"` records back to the stored local function. This default callback path is fire-and-forget; use `kkrpc/remote-refs` when callback return values or thrown callback errors must propagate.
 
-Async iterables use stream reference markers in normal request or response values. The consumer sends `t: "sq"` records to grant `pull` credit or close the iterator with `return()` / `throw()`, and the owner sends `t: "sr"` records for yielded values, completion, or errors.
+With `kkrpc/streaming`, async iterables use stream reference markers in normal request or response values. The consumer sends `t: "sq"` records to grant `pull` credit or close the iterator with `return()` / `throw()`, and the owner sends `t: "sr"` records for yielded values, completion, or errors.
 
 ## Transport
 
@@ -91,7 +90,7 @@ So as long as the environment can read and write, it can be used as a communicat
 
 To adapt to a new environment, implement `Transport<RPCMessage>` and pass it to `RPCChannel`, `wrap()`, or `expose()`.
 
-`RPCChannel` handles request-response matching, callback routing, proxy generation, error preservation, plugin hooks, and cleanup.
+`RPCChannel` handles request-response matching, default callback routing, proxy generation, error preservation, plugin hooks, and cleanup. `StreamingRPCChannel` and `RemoteReferenceRPCChannel` extend the base channel for their opt-in protocol features.
 
 The stable package no longer uses the old `IoInterface` adapter model. Public transports are native `Transport<RPCMessage>` factories exposed through subpath exports such as `kkrpc/stdio`, `kkrpc/ws`, `kkrpc/worker`, and `kkrpc/electron`.
 
@@ -126,6 +125,8 @@ The main `kkrpc` entry is browser-safe and intentionally small. Runtime integrat
 | `kkrpc/transport` | Transport composition primitives |
 | `kkrpc/worker`, `kkrpc/stdio`, `kkrpc/http`, `kkrpc/ws` | Common runtime transports |
 | `kkrpc/ws/hono`, `kkrpc/ws/elysia` | Framework-specific WebSocket helpers |
+| `kkrpc/streaming` | Opt-in async iterable streaming channel |
+| `kkrpc/remote-refs` | Opt-in explicit `proxy()` remote references |
 | `kkrpc/validation`, `kkrpc/middleware`, `kkrpc/superjson` | Optional feature plugins and codecs |
 | `kkrpc/relay`, `kkrpc/inspector` | Relay and observability helpers |
 

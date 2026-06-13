@@ -41,6 +41,8 @@
 		"./validation": "./src/entries/validation.ts",
 		"./middleware": "./src/entries/middleware.ts",
 		"./superjson": "./src/entries/superjson.ts",
+		"./remote-refs": "./src/entries/remote-refs.ts",
+		"./streaming": "./src/entries/streaming.ts",
 		"./worker": "./src/entries/worker.ts",
 		"./stdio": "./src/entries/stdio.ts",
 		"./http": "./src/entries/http.ts",

@@ -120,7 +120,7 @@ export function stdioJsonTransport(options: StdioJsonTransportOptions): Transpor
 	const codec = jsonLineCodec<RPCMessage>()
 
 	return {
-		capabilities: { objectMode: false, transfer: false },
+		capabilities: { objectMode: false, transfer: false, remoteRefs: true },
 		send(message: RPCMessage) {
 			return platform.send(codec.encode(message), [])
 		},

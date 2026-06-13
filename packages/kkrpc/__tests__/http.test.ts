@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test"
-
 import { createHttpHandler, httpClientTransport } from "../src/entries/http.ts"
-import { wrap } from "../src/entries/mod.ts"
+import { RPCChannel, wrap } from "../src/entries/mod.ts"
+import { RPCChannel as RemoteRefRPCChannel, proxy } from "../src/entries/remote-refs.ts"
 import { apiMethods, type API } from "./scripts/api.ts"
 
 describe("HTTP RPC", () => {
@@ -64,7 +64,7 @@ describe("HTTP RPC", () => {
 		expect(response.status).toBe(400)
 	})
 
-	test("callback arguments are rejected as invalid unary HTTP requests", async () => {
+	test("remote reference arguments are rejected as unsupported unary HTTP requests", async () => {
 		const response = await fetch(`${baseUrl}/rpc`, {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
@@ -73,10 +73,15 @@ describe("HTTP RPC", () => {
 				id: "callback-id",
 				op: "call",
 				p: ["echo"],
-				a: [{ __kkrpc_next_arg__: "callback", id: "callback-arg" }]
+				a: [{ __kkrpc_ref__: true, id: "callback-arg", kind: "function" }]
 			})
 		})
-		expect(response.status).toBe(400)
+		expect(response.status).toBe(200)
+		expect(await response.json()).toMatchObject({
+			t: "r",
+			id: "callback-id",
+			e: { m: "HTTP transport does not support remote references" }
+		})
 	})
 
 	test("async iterable arguments are rejected as invalid unary HTTP requests", async () => {
@@ -88,13 +93,15 @@ describe("HTTP RPC", () => {
 				id: "stream-id",
 				op: "call",
 				p: ["echo"],
-				a: [{ __kkrpc_next_arg__: "value", v: { __kkrpc_next_stream__: "async-iterable", id: "s1" } }]
+				a: [
+					{ __kkrpc_next_arg__: "value", v: { __kkrpc_next_stream__: "async-iterable", id: "s1" } }
+				]
 			})
 		})
 		expect(response.status).toBe(400)
 	})
 
-	test("client transport rejects callback arguments before fetch", async () => {
+	test("client transport rejects remote reference arguments before fetch", async () => {
 		let called = false
 		const fetchStub: typeof fetch = Object.assign(
 			async (..._args: Parameters<typeof fetch>) => {
@@ -114,9 +121,86 @@ describe("HTTP RPC", () => {
 				id: "callback-id",
 				op: "call",
 				p: ["echo"],
-				a: [{ __kkrpc_next_arg__: "callback", id: "callback-arg" }]
+				a: [{ __kkrpc_ref__: true, id: "callback-arg", kind: "function" }]
 			})
-		).rejects.toThrow("HTTP transport does not support callback arguments")
+		).rejects.toThrow("HTTP transport does not support remote references")
+		expect(called).toBe(false)
+	})
+
+	test("HTTP channel rejects callback arguments before fetch", async () => {
+		let called = false
+		const fetchStub: typeof fetch = Object.assign(
+			async (..._args: Parameters<typeof fetch>) => {
+				called = true
+				throw new Error("fetch should not be called")
+			},
+			{ preconnect: fetch.preconnect }
+		)
+		const channel = new RPCChannel<object, { accept(callback: () => string): Promise<void> }>(
+			httpClientTransport({
+				url: `${baseUrl}/rpc`,
+				fetch: fetchStub
+			})
+		)
+		try {
+			await expect(channel.getAPI().accept(() => "nope")).rejects.toThrow(
+				"HTTP transport does not support callback arguments"
+			)
+			expect(called).toBe(false)
+		} finally {
+			channel.destroy()
+		}
+	})
+
+	test("HTTP remote-ref entry rejects explicit proxy refs before fetch", async () => {
+		let called = false
+		const fetchStub: typeof fetch = Object.assign(
+			async (..._args: Parameters<typeof fetch>) => {
+				called = true
+				throw new Error("fetch should not be called")
+			},
+			{ preconnect: fetch.preconnect }
+		)
+		const channel = new RemoteRefRPCChannel<object, { accept(callback: () => string): Promise<void> }>(
+			httpClientTransport({
+				url: `${baseUrl}/rpc`,
+				fetch: fetchStub
+			})
+		)
+
+		try {
+			await expect(channel.getAPI().accept(proxy(() => "nope"))).rejects.toThrow(
+				"RPC channel does not support remote references"
+			)
+			expect(called).toBe(false)
+		} finally {
+			channel.destroy()
+		}
+	})
+
+	test("client transport rejects remote reference values before fetch", async () => {
+		let called = false
+		const fetchStub: typeof fetch = Object.assign(
+			async (..._args: Parameters<typeof fetch>) => {
+				called = true
+				throw new Error("fetch should not be called")
+			},
+			{ preconnect: fetch.preconnect }
+		)
+		const transport = httpClientTransport({
+			url: `${baseUrl}/rpc`,
+			fetch: fetchStub
+		})
+
+		await expect(
+			transport.send({
+				t: "q",
+				id: "callback-value-id",
+				op: "set",
+				p: ["callback"],
+				v: { __kkrpc_ref__: true, id: "callback-value", kind: "function" }
+			})
+		).rejects.toThrow("HTTP transport does not support remote references")
 		expect(called).toBe(false)
 	})
 
@@ -170,8 +254,82 @@ describe("HTTP RPC", () => {
 		expect(await response.json()).toMatchObject({
 			t: "r",
 			id: "stream-result-id",
-			e: { m: "HTTP transport does not support async iterable results" }
+			e: { m: "HTTP transport does not support async iterable streams" }
 		})
+	})
+
+	test("handler rejects remote reference response values because HTTP cannot keep refs alive", async () => {
+		const handler = createHttpHandler({
+			createToast: () => ({ __kkrpc_ref__: true, id: "returned-ref", kind: "function" })
+		})
+
+		const response = await handler(
+			new Request("http://127.0.0.1/rpc", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ t: "q", id: "ref-result-id", op: "call", p: ["createToast"], a: [] })
+			})
+		)
+
+		expect(response.status).toBe(200)
+		expect(await response.json()).toMatchObject({
+			t: "r",
+			id: "ref-result-id",
+			e: { m: "HTTP transport does not support remote references" }
+		})
+	})
+
+	test("handler rejects remote reference envelopes in error custom fields", async () => {
+		const handler = createHttpHandler({
+			fail: () => {
+				const error = new Error("recoverable") as Error & {
+					recover: { __kkrpc_ref__: true; id: string; kind: "function" }
+				}
+				error.recover = { __kkrpc_ref__: true, id: "recover-ref", kind: "function" }
+				throw error
+			}
+		})
+
+		const response = await handler(
+			new Request("http://127.0.0.1/rpc", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ t: "q", id: "error-ref-id", op: "call", p: ["fail"], a: [] })
+			})
+		)
+
+		expect(response.status).toBe(200)
+		expect(await response.json()).toMatchObject({
+			t: "r",
+			id: "error-ref-id",
+			e: { m: "HTTP transport does not support remote references" }
+		})
+	})
+
+	test("client transport rejects legacy callback envelopes before fetch", async () => {
+		let called = false
+		const fetchStub: typeof fetch = Object.assign(
+			async (..._args: Parameters<typeof fetch>) => {
+				called = true
+				throw new Error("fetch should not be called")
+			},
+			{ preconnect: fetch.preconnect }
+		)
+		const transport = httpClientTransport({
+			url: `${baseUrl}/rpc`,
+			fetch: fetchStub
+		})
+
+		await expect(
+			transport.send({
+				t: "q",
+				id: "legacy-callback-id",
+				op: "call",
+				p: ["echo"],
+				a: [{ nested: { __kkrpc_next_arg__: "callback", id: "legacy-callback" } }]
+			})
+		).rejects.toThrow("HTTP transport does not support callback arguments")
+		expect(called).toBe(false)
 	})
 
 	test("handler timeout returns 504 with RPC error response", async () => {

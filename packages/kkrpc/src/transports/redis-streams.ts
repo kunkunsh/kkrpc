@@ -228,6 +228,7 @@ export function redisStreamsTransport(
 		capabilities: {
 			objectMode: true,
 			transfer: false,
+			remoteRefs: true,
 			broadcast: options.remotePeerId === undefined
 		},
 		async send(message) {

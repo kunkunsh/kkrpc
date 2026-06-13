@@ -60,4 +60,17 @@ describe("bus envelope", () => {
 		).toBeNull()
 		expect(isBusEnvelope({ ...envelope, message: { t: "unknown", id: "request-1" } })).toBe(false)
 	})
+
+	test("accepts remote reference request envelopes for bus transports", () => {
+		const message: RPCMessage = { t: "q", id: "ref-1", op: "ref", p: ["callback", "apply"], a: [] }
+		const envelope = createBusEnvelope(message, {
+			transportId: "bus",
+			from: "client",
+			to: "server"
+		})
+
+		expect(isBusEnvelope(envelope)).toBe(true)
+		expect(parseBusEnvelope(JSON.stringify(envelope))?.message).toEqual(message)
+		expect(shouldDeliverBusEnvelope(envelope, { localPeerId: "server" })).toBe(true)
+	})
 })

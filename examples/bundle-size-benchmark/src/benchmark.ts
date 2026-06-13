@@ -61,6 +61,16 @@ export function createBenchmarkCases(workDir: string): BenchmarkCase[] {
 			source: createKkrpcWorkerSample()
 		},
 		{
+			name: "kkrpc/streaming",
+			fileName: "kkrpc-streaming.ts",
+			source: createKkrpcStreamingSample()
+		},
+		{
+			name: "kkrpc/remote-refs",
+			fileName: "kkrpc-remote-refs.ts",
+			source: createKkrpcRemoteRefsSample()
+		},
+		{
 			name: "comctx",
 			fileName: "comctx.ts",
 			source: createComctxSample()
@@ -217,6 +227,58 @@ export function createAddProxy(worker: Worker) {
 }
 
 Object.assign(globalThis, { createAddProxy })
+`
+}
+
+function createKkrpcStreamingSample(): string {
+	return `import { expose, wrap, type RPCMessage, type Transport } from "kkrpc/streaming"
+
+interface RemoteAPI {
+	numbers(count: number): AsyncIterable<number>
+}
+
+const localAPI: RemoteAPI = {
+	async *numbers(count) {
+		for (let index = 0; index < count; index++) yield index
+	}
+}
+
+export function createNumbersProxy(transport: Transport<RPCMessage>) {
+	expose(localAPI, transport)
+	const api = wrap<RemoteAPI>(transport)
+	return async () => {
+		let total = 0
+		for await (const value of api.numbers(3)) total += value
+		return total
+	}
+}
+
+Object.assign(globalThis, { createNumbersProxy })
+`
+}
+
+function createKkrpcRemoteRefsSample(): string {
+	return `import { expose, proxy, wrap, type RPCMessage, type Transport } from "kkrpc/remote-refs"
+
+interface RemoteAPI {
+	run(callback: (value: number) => void): Promise<void>
+}
+
+const localAPI: RemoteAPI = {
+	async run(callback) {
+		callback(1)
+	}
+}
+
+export function createCallbackProxy(transport: Transport<RPCMessage>) {
+	expose(localAPI, transport)
+	const api = wrap<RemoteAPI>(transport)
+	return () => api.run(proxy((value) => {
+		Object.assign(globalThis, { lastCallbackValue: value })
+	}))
+}
+
+Object.assign(globalThis, { createCallbackProxy })
 `
 }
 

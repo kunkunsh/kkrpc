@@ -1,6 +1,5 @@
 import { describe, expect, test } from "bun:test"
 import { z } from "zod"
-
 import { expose, wrap } from "../src/entries/mod.ts"
 import type { RPCMessage, Transport } from "../src/entries/mod.ts"
 import {
@@ -8,7 +7,8 @@ import {
 	defineMethod,
 	extractValidators,
 	isRPCValidationError,
-	validationPlugin
+	validationPlugin,
+	type StandardSchemaV1
 } from "../src/entries/validation.ts"
 
 interface API {
@@ -26,10 +26,12 @@ interface ValidationErrorShape extends Error {
 }
 
 class MemoryTransport implements Transport<RPCMessage> {
-	capabilities = { objectMode: true, transfer: true }
+	capabilities = { objectMode: true, transfer: true, remoteRefs: true }
 	peer?: MemoryTransport
+	messages: RPCMessage[] = []
 	private listener?: (message: RPCMessage) => void
 	send(message: RPCMessage): void {
+		this.messages.push(message)
 		queueMicrotask(() => this.peer?.listener?.(message))
 	}
 	subscribe(listener: (message: RPCMessage) => void): () => void {
@@ -121,11 +123,57 @@ describe("kkrpc validation plugin", () => {
 		}
 	})
 
+	test("validation keeps callback arguments filtered", async () => {
+		const { a, b } = createPair()
+		const seenInputs: unknown[] = []
+		const input: StandardSchemaV1 = {
+			"~standard": {
+				version: 1,
+				vendor: "test",
+				validate(value) {
+					seenInputs.push(value)
+					return { value }
+				}
+			}
+		}
+		const controller = expose(
+			{
+				use: async (value: string, callback: () => Promise<string> | string) => {
+					expect(value).toBe("ok")
+					callback()
+					return "done"
+				}
+			},
+			b,
+			{
+				plugins: [validationPlugin({ use: { input } })]
+			}
+		)
+		const api = wrap<{
+			use(value: string, callback: () => Promise<string> | string): Promise<string>
+		}>(a)
+		let callbackValue = ""
+
+		try {
+			expect(
+				await api.use("ok", () => {
+					callbackValue = "callback-ok"
+					return callbackValue
+				})
+			).toBe("done")
+			expect(callbackValue).toBe("callback-ok")
+			const request = a.messages[0]
+			expect(request?.t).toBe("q")
+			expect(seenInputs).toEqual([["ok"]])
+		} finally {
+			controller.dispose()
+		}
+	})
+
 	test("schema-first helpers produce validators", async () => {
 		const apiImpl = defineAPI({
-			echo: defineMethod(
-				{ input: z.tuple([z.string()]), output: z.string() },
-				async (value) => value.toUpperCase()
+			echo: defineMethod({ input: z.tuple([z.string()]), output: z.string() }, async (value) =>
+				value.toUpperCase()
 			)
 		})
 		const { a, b } = createPair()

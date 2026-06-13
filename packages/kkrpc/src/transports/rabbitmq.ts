@@ -153,6 +153,7 @@ export function rabbitMqTransport(options: RabbitMQTransportOptions): RabbitMQTr
 		capabilities: {
 			objectMode: true,
 			transfer: false,
+			remoteRefs: true,
 			broadcast: options.remotePeerId === undefined
 		},
 		async send(message) {

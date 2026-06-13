@@ -78,12 +78,16 @@ export interface SecureIpcBridge {
 	off(channel: string, listener: (_event: unknown, message: RPCMessage) => void): void
 }
 
-function isChannelAllowed(channel: string, allowedChannels?: string[], channelPrefix?: string): boolean {
+function isChannelAllowed(
+	channel: string,
+	allowedChannels?: string[],
+	channelPrefix?: string
+): boolean {
 	return allowedChannels?.includes(channel) === true || channel.startsWith(channelPrefix ?? "\0")
 }
 
 function objectModeCapabilities() {
-	return { objectMode: true, transfer: false }
+	return { objectMode: true, transfer: false, remoteRefs: true }
 }
 
 function getParentPort(): ElectronUtilityProcessChildEndpoint {
@@ -176,13 +180,16 @@ export function createSecureIpcBridge(options: SecureIpcBridgeOptions): SecureIp
 
 	return {
 		send(channel, message) {
-			if (isChannelAllowed(channel, allowedChannels, channelPrefix)) ipcRenderer.send(channel, message)
+			if (isChannelAllowed(channel, allowedChannels, channelPrefix))
+				ipcRenderer.send(channel, message)
 		},
 		on(channel, listener) {
-			if (isChannelAllowed(channel, allowedChannels, channelPrefix)) ipcRenderer.on(channel, listener)
+			if (isChannelAllowed(channel, allowedChannels, channelPrefix))
+				ipcRenderer.on(channel, listener)
 		},
 		off(channel, listener) {
-			if (isChannelAllowed(channel, allowedChannels, channelPrefix)) ipcRenderer.off(channel, listener)
+			if (isChannelAllowed(channel, allowedChannels, channelPrefix))
+				ipcRenderer.off(channel, listener)
 		}
 	}
 }

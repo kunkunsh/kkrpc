@@ -58,7 +58,7 @@ function isAllowedOrigin(event: MessageEvent, targetOrigin: string): boolean {
 
 function createPortTransport(port: MessagePort): Transport<RPCMessage> {
 	return {
-		capabilities: { objectMode: true, transfer: true },
+		capabilities: { objectMode: true, transfer: true, remoteRefs: true },
 		send(message: RPCMessage, transfers: Transferable[] = []) {
 			if (transfers.length > 0) {
 				port.postMessage(message, transfers)
@@ -88,7 +88,7 @@ function createWindowTransport({
 	targetOrigin: string
 }): Transport<RPCMessage> {
 	return {
-		capabilities: { objectMode: true, transfer: false },
+		capabilities: { objectMode: true, transfer: false, remoteRefs: true },
 		send(message: RPCMessage) {
 			targetWindow.postMessage(message, targetOrigin)
 		},
@@ -123,7 +123,7 @@ export function iframeParentTransport(
 	}
 
 	let portTransport: Transport<RPCMessage> | undefined
-	const capabilities = { objectMode: true, transfer: true }
+	const capabilities = { objectMode: true, transfer: true, remoteRefs: true }
 	const queuedMessages: Array<{ message: RPCMessage; transfers: Transferable[] }> = []
 	const listeners = new Set<(message: RPCMessage) => void>()
 	let unsubscribePort: (() => void) | undefined
@@ -210,7 +210,7 @@ export function iframeChildTransport(options: IframeTransportOptions = {}): Tran
 	}
 
 	const targetOrigin = options.targetOrigin ?? "*"
-	const capabilities = { objectMode: true, transfer: true }
+	const capabilities = { objectMode: true, transfer: true, remoteRefs: true }
 	const listeners = new Set<(message: RPCMessage) => void>()
 	const queuedMessages: Array<{ message: RPCMessage; transfers: Transferable[] }> = []
 	let readyTransport: Transport<RPCMessage> | undefined

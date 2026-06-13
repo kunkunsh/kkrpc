@@ -2,6 +2,7 @@ import type { AddressInfo } from "node:net"
 import { afterAll, beforeAll, expect, test } from "bun:test"
 import { WebSocketServer } from "ws"
 import { RPCChannel } from "../src/entries/mod.ts"
+import { RPCChannel as StreamingRPCChannel } from "../src/entries/streaming.ts"
 import { webSocketClientTransport, webSocketTransport } from "../src/entries/ws.ts"
 import { apiMethods, type API } from "./scripts/api.ts"
 
@@ -87,7 +88,7 @@ test("WebSocket streams async iterable results", async () => {
 	const address = server.address() as AddressInfo
 	const streamUrl = `ws://localhost:${address.port}`
 	server.on("connection", (socket) => {
-		new RPCChannel<StreamAPI, object>(webSocketTransport(socket), {
+		new StreamingRPCChannel<StreamAPI, object>(webSocketTransport(socket), {
 			expose: {
 				async *numbers(count) {
 					for (let index = 0; index < count; index++) yield index
@@ -98,7 +99,7 @@ test("WebSocket streams async iterable results", async () => {
 			}
 		})
 	})
-	const client = new RPCChannel<object, StreamAPI>(webSocketClientTransport({ url: streamUrl }))
+	const client = new StreamingRPCChannel<object, StreamAPI>(webSocketClientTransport({ url: streamUrl }))
 	const values: number[] = []
 
 	try {

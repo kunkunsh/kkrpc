@@ -1,8 +1,18 @@
 import { describe, expect, test } from "bun:test"
-
 import { jsonCodec, jsonLineCodec, objectCodec } from "../src/entries/codecs.ts"
-import { createTransport, type Platform } from "../src/entries/transport.ts"
 import type { RPCMessage } from "../src/entries/mod.ts"
+import { createTransport, type Platform } from "../src/entries/transport.ts"
+import { chromePortTransport, type ChromePortLike } from "../src/transports/chrome-extension.ts"
+import { iframeParentTransport } from "../src/transports/iframe.ts"
+import { kafkaTransport } from "../src/transports/kafka.ts"
+import { natsTransport } from "../src/transports/nats.ts"
+import { rabbitMqTransport } from "../src/transports/rabbitmq.ts"
+import { redisStreamsTransport } from "../src/transports/redis-streams.ts"
+import { socketIoTransport } from "../src/transports/socketio.ts"
+import { stdioJsonTransport } from "../src/transports/stdio.ts"
+import { elysiaWebSocketTransport } from "../src/transports/ws-elysia.ts"
+import { honoWebSocketTransport } from "../src/transports/ws-hono.ts"
+import { webSocketTransport } from "../src/transports/ws.ts"
 
 class StringPlatform implements Platform<string> {
 	capabilities = { objectMode: false, transfer: true }
@@ -40,6 +50,18 @@ class TransferObjectPlatform extends ObjectPlatform {
 	capabilities = { objectMode: true, transfer: true }
 }
 
+class ListenerRegistry<TListener> {
+	listeners = new Set<TListener>()
+
+	addListener(listener: TListener): void {
+		this.listeners.add(listener)
+	}
+
+	removeListener(listener: TListener): void {
+		this.listeners.delete(listener)
+	}
+}
+
 describe("stable transport codecs", () => {
 	test("objectCodec passes messages through and supports transfer", () => {
 		const codec = objectCodec<RPCMessage>()
@@ -70,7 +92,13 @@ describe("stable transport codecs", () => {
 
 	test("jsonLineCodec adds newline framing and decodes newline-framed JSON", () => {
 		const codec = jsonLineCodec<RPCMessage>()
-		const message: RPCMessage = { t: "cb", id: "callback", a: ["value"] }
+		const message: RPCMessage = {
+			t: "q",
+			id: "ref",
+			op: "ref",
+			p: ["callback", "apply"],
+			a: ["value"]
+		}
 
 		const wire = codec.encode(message)
 
@@ -81,7 +109,10 @@ describe("stable transport codecs", () => {
 
 	test("createTransport composes platform and codec", () => {
 		const platform = new StringPlatform()
-		const transport = createTransport<RPCMessage, string>({ platform, codec: jsonCodec<RPCMessage>() })
+		const transport = createTransport<RPCMessage, string>({
+			platform,
+			codec: jsonCodec<RPCMessage>()
+		})
 		const received: RPCMessage[] = []
 		const message: RPCMessage = { t: "q", id: "1", op: "call", p: ["add"], a: [1, 2] }
 		const unsubscribe = transport.subscribe((decoded) => received.push(decoded))
@@ -149,5 +180,88 @@ describe("stable transport codecs", () => {
 		expect(transport.capabilities?.transfer).toBe(true)
 		expect(platform.messages).toEqual([message])
 		expect(platform.transfers).toEqual([[buffer]])
+	})
+
+	test("concrete bidirectional transports advertise remote reference support", () => {
+		const readable = {
+			on: (_event: "data", _listener: (chunk: Uint8Array | string) => void) => {},
+			off(_event: "data", _listener: (chunk: Uint8Array | string) => void) {
+				return this
+			}
+		}
+		const writable = {
+			write: (_chunk: string, callback?: (error?: Error | null) => void) => callback?.()
+		}
+		const socket = {
+			send: (_message: string) => {},
+			close: () => {}
+		}
+		const honoSocket = {
+			send: (_message: string) => {},
+			close: () => {}
+		}
+		const socketIoSocket = {
+			emit: (_event: "kkrpc:message", _message: RPCMessage) => {},
+			on: (_event: "kkrpc:message", _listener: (message: RPCMessage) => void) => {},
+			off: (_event: "kkrpc:message", _listener: (message: RPCMessage) => void) => {}
+		}
+		const chromePort: ChromePortLike = {
+			postMessage: (_message) => {},
+			onMessage: new ListenerRegistry<(message: RPCMessage) => void>(),
+			onDisconnect: new ListenerRegistry<() => void>()
+		}
+		const sourceWindow = new EventTarget() as Window & typeof globalThis
+
+		const transports = [
+			stdioJsonTransport({ readable, writable }),
+			webSocketTransport(socket),
+			honoWebSocketTransport(honoSocket),
+			elysiaWebSocketTransport(honoSocket),
+			socketIoTransport(socketIoSocket),
+			rabbitMqTransport({ localPeerId: "local", remotePeerId: "remote" }),
+			natsTransport({
+				localPeerId: "local",
+				remotePeerId: "remote",
+				__connect: async () => ({
+					publish: () => {},
+					subscribe: () => ({
+						async *[Symbol.asyncIterator]() {},
+						unsubscribe: () => {}
+					}),
+					close: async () => {}
+				})
+			}),
+			redisStreamsTransport({ localPeerId: "local", remotePeerId: "remote" }),
+			kafkaTransport({
+				localPeerId: "local",
+				remotePeerId: "remote",
+				__client: {
+					producer: () => ({
+						connect: async () => {},
+						disconnect: async () => {},
+						send: async () => {}
+					}),
+					consumer: () => ({
+						connect: async () => {},
+						disconnect: async () => {},
+						subscribe: async () => {},
+						run: async () => {}
+					}),
+					admin: () => ({
+						connect: async () => {},
+						disconnect: async () => {},
+						listTopics: async () => ["kkrpc-topic"],
+						createTopics: async () => {}
+					})
+				}
+			}),
+			iframeParentTransport(sourceWindow, { sourceWindow }),
+			chromePortTransport(chromePort)
+		]
+
+		for (const transport of transports) {
+			expect(transport.capabilities?.remoteRefs).toBe(true)
+			transport.close?.()
+		}
 	})
 })

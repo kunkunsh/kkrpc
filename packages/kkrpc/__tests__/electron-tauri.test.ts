@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test"
-import type { RPCMessage } from "../src/entries/mod.ts"
 import { electronIpcTransport } from "../src/entries/electron.ts"
+import type { RPCMessage } from "../src/entries/mod.ts"
 import { tauriShellStdioTransport } from "../src/entries/tauri.ts"
 
 class FakeElectronEndpoint {
@@ -69,7 +69,7 @@ describe("native Electron and Tauri transports", () => {
 
 		expect(endpoint.sent).toEqual([{ channel: "rpc", message }])
 		expect(received).toEqual([message])
-		expect(transport.capabilities).toEqual({ objectMode: true, transfer: false })
+		expect(transport.capabilities).toEqual({ objectMode: true, transfer: false, remoteRefs: true })
 	})
 
 	test("tauriShellStdioTransport adapts Tauri shell stdout and child stdin as JSON lines", async () => {
@@ -86,6 +86,6 @@ describe("native Electron and Tauri transports", () => {
 
 		expect(child.writes).toEqual([`${JSON.stringify(message)}\n`])
 		expect(received).toEqual([message])
-		expect(transport.capabilities).toEqual({ objectMode: false, transfer: false })
+		expect(transport.capabilities).toEqual({ objectMode: false, transfer: false, remoteRefs: true })
 	})
 })

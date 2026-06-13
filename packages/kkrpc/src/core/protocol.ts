@@ -1,7 +1,7 @@
 /**
  * Compact protocol record types used by stable RPC channels.
  *
- * Requests, responses, and callback invocations use small JSON-compatible
+ * Requests and responses use small JSON-compatible
  * records so transports can move messages across object-mode, string, and
  * stream-based platforms without depending on class instances.
  */
@@ -19,7 +19,7 @@ export interface RPCError {
 }
 
 /** Operation kind represented by an RPC request. */
-export type RPCOperation = "call" | "get" | "set" | "new"
+export type RPCOperation = "call" | "get" | "set" | "new" | "ref"
 
 /** Operation kind represented by a remote async iterator control message. */
 export type RPCStreamOperation = "pull" | "return" | "throw"
@@ -72,11 +72,11 @@ export interface RPCResponse {
 	e?: RPCError
 }
 
-/** Callback invocation record for function arguments sent across the channel. */
+/** Callback invocation record for legacy top-level callback arguments. */
 export interface RPCCallback {
 	/** Message tag for callback invocations. */
 	t: "cb"
-	/** Callback id allocated by the side that encoded the function argument. */
+	/** Callback id allocated by the side that owns the callback function. */
 	id: string
 	/** Encoded callback arguments. */
 	a: unknown[]

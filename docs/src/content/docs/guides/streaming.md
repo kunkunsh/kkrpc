@@ -5,13 +5,17 @@ sidebar:
   order: 6
 ---
 
-Stable kkrpc supports request/response calls, callback arguments, and first-class remote async iterables over bidirectional transports.
+Stable kkrpc's default entry supports request/response calls and simple top-level callback arguments. First-class remote async iterables are opt-in via `kkrpc/streaming` so the default bundle stays small.
+
+```ts
+import { expose, wrap } from "kkrpc/streaming"
+```
 
 Use async iterables for windowed pull streams with backpressure. Use callbacks for simple progress notifications. Use chunked request methods for paginated data, especially over HTTP.
 
 ## Async Iterable Results
 
-Return an `AsyncIterable` or async generator from an exposed method. The remote caller can consume it directly with `for await`.
+With the `kkrpc/streaming` entry, return an `AsyncIterable` or async generator from an exposed method. The remote caller can consume it directly with `for await`.
 
 ```ts
 type API = {
@@ -49,7 +53,7 @@ HTTP is still unary request/response and cannot continue a remote async iterator
 
 ## Async Iterable Arguments
 
-Async iterables can also be passed as top-level method arguments over bidirectional transports.
+With the `kkrpc/streaming` entry, async iterables can also be passed as top-level method arguments over bidirectional transports.
 
 ```ts
 type API = {
@@ -65,7 +69,7 @@ const total = await remote.sum((async function* () {
 
 ## Progress Callbacks
 
-Callbacks are the simplest way for a long-running RPC method to report progress to its caller.
+Callbacks are the simplest way for a long-running RPC method to report progress to its caller. The default core callback path is fire-and-forget: callback return values are not propagated. If the remote side must await a callback return value or catch callback errors, use `kkrpc/remote-refs` and pass `proxy(callback)` instead.
 
 ```ts
 type API = {

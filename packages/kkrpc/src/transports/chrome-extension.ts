@@ -53,7 +53,7 @@ export function chromePortTransport(port: ChromePortLike): Transport<RPCMessage>
 	port.onDisconnect?.addListener(cleanup)
 
 	return {
-		capabilities: { objectMode: true, transfer: false },
+		capabilities: { objectMode: true, transfer: false, remoteRefs: true },
 		send(message: RPCMessage) {
 			if (closed) return
 			port.postMessage(message)

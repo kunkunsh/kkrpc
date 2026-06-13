@@ -25,9 +25,12 @@ export interface WorkerScopeLike extends MessageTargetLike {
 	close?(): void
 }
 
-function createWorkerTransport(target: MessageTargetLike, close?: () => void): Transport<RPCMessage> {
+function createWorkerTransport(
+	target: MessageTargetLike,
+	close?: () => void
+): Transport<RPCMessage> {
 	return {
-		capabilities: { objectMode: true, transfer: true },
+		capabilities: { objectMode: true, transfer: true, remoteRefs: true },
 		send(message: RPCMessage, transfers: Transferable[] = []) {
 			if (transfers.length > 0) {
 				target.postMessage(message, transfers)

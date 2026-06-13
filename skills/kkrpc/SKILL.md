@@ -1,6 +1,6 @@
 ---
 name: kkrpc
-description: Build bidirectional RPC systems in TypeScript with kkrpc. Use this skill when wiring stable wrap/expose/RPCChannel APIs, choosing native Transport<RPCMessage> adapters, integrating validation, middleware, transferables, relay, or inspector tooling.
+description: Use when building TypeScript RPC with kkrpc stable APIs, choosing native Transport<RPCMessage> adapters, or integrating validation, middleware, transferables, streaming, remote references, relay, or inspector tooling.
 version: 2.0.0
 license: MIT
 metadata:
@@ -22,7 +22,7 @@ compatibility: Works in Node.js, Deno, Bun, browsers, Electron, Tauri, Chrome ex
 
 # kkrpc - TypeScript RPC Library
 
-Use kkrpc to expose a local TypeScript object and call the remote side as a typed proxy. The stable API is native `Transport<RPCMessage>` based.
+Use kkrpc to expose a local TypeScript object and call the remote side as a typed proxy. The stable API is native `Transport<RPCMessage>` based. Start with the small default `kkrpc` entry, then opt into `kkrpc/streaming` or `kkrpc/remote-refs` only when the API needs those features.
 
 ```typescript
 import { expose, wrap } from "kkrpc"
@@ -68,6 +68,8 @@ const remote = channel.getAPI()
 | Validation | `kkrpc/validation` | Standard Schema validation plugin |
 | Middleware | `kkrpc/middleware` | Interceptor middleware plugin |
 | SuperJSON | `kkrpc/superjson` | SuperJSON codecs |
+| Streaming | `kkrpc/streaming` | Async iterable arguments/results with pull-based backpressure |
+| Remote refs | `kkrpc/remote-refs` | Explicit `proxy(value)` references, callback return values, object handles, `releaseProxy()` |
 | Relay | `kkrpc/relay` | Transport-to-transport relay helper |
 | Inspector | `kkrpc/inspector` | Native plugin/event traffic logging |
 | Queues | `kkrpc/rabbitmq`, `kkrpc/kafka`, `kkrpc/redis-streams`, `kkrpc/nats` | Optional peer dependencies |
@@ -107,12 +109,41 @@ const counter = await api.counter
 const nested = await api.nested.deepObj.prop
 ```
 
-Callbacks can be passed as arguments:
+Top-level callbacks can be passed as arguments for fire-and-forget progress notifications:
 
 ```typescript
 await api.process("input", (progress) => {
 	console.log("progress", progress)
 })
+```
+
+Default callbacks do not propagate return values or thrown errors. Use `kkrpc/remote-refs` and `proxy(callback)` when the remote side must await the callback result.
+
+## Streaming Example
+
+```typescript
+import { expose, wrap } from "kkrpc/streaming"
+
+type LogAPI = {
+	tail(service: string): AsyncIterable<string>
+}
+
+for await (const line of wrap<LogAPI>(transport).tail("api")) {
+	console.log(line)
+}
+```
+
+## Remote References Example
+
+```typescript
+import { proxy, releaseProxy, wrap } from "kkrpc/remote-refs"
+
+const result = await wrap<RemoteAPI>(transport).useCallback(
+	proxy(async (value) => `callback:${value}`)
+)
+
+const counter = await wrap<RemoteAPI>(transport).createCounter()
+await releaseProxy(counter)
 ```
 
 ## Worker Example
@@ -227,6 +258,9 @@ relay.dispose()
 | --- | --- |
 | Importing optional transport peers from `kkrpc` | Import from the specific subpath, such as `kkrpc/ws` or `kkrpc/electron` |
 | Pulling SuperJSON into every browser bundle | Import codecs from `kkrpc/superjson` only where needed |
+| Expecting async iterables from `kkrpc` | Import `wrap`/`expose`/`RPCChannel` from `kkrpc/streaming` on both sides |
+| Expecting callback return values from default callbacks | Import from `kkrpc/remote-refs` and pass `proxy(callback)` |
+| Returning unmarked nested functions as remote handles | Wrap the function leaf with `proxy(fn)` in `kkrpc/remote-refs` |
 | Forgetting to dispose channels | Keep the controller/channel and call `dispose()` or `destroy()` |
 | Using old blocking IO adapter names | Use native transport factories that return `Transport<RPCMessage>` |
 | Treating validation as core behavior | Add `validationPlugin()` explicitly through channel options |

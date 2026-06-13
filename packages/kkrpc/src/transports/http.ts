@@ -2,7 +2,7 @@
  * Unary HTTP transport and handler for stable kkrpc.
  *
  * HTTP maps each RPC request to one POST request and one JSON response. It is
- * useful for simple web APIs, but it cannot support callback arguments or
+ * useful for simple web APIs, but it cannot support remote references or
  * server-initiated calls because the server has no persistent channel back to
  * the client.
  *
@@ -16,6 +16,7 @@
 
 import { RPCChannel } from "../core/channel.ts"
 import type { RPCMessage, RPCOperation, RPCRequest, RPCResponse } from "../core/protocol.ts"
+import { isRemoteRefEnvelope } from "../core/remote-ref.ts"
 import type { Transport } from "../core/transport.ts"
 
 /** Options for the client-side unary HTTP transport. */
@@ -38,6 +39,14 @@ const RPC_OPERATIONS = new Set<RPCOperation>(["call", "get", "set", "new"])
 const ARG_ENVELOPE_TAG = "__kkrpc_next_arg__"
 const STREAM_REF_TAG = "__kkrpc_next_stream__"
 
+function isAsyncIterable(value: unknown): value is AsyncIterable<unknown> {
+	return (
+		(typeof value === "object" || typeof value === "function") &&
+		value !== null &&
+		typeof (value as { [Symbol.asyncIterator]?: unknown })[Symbol.asyncIterator] === "function"
+	)
+}
+
 /**
  * Create a client transport backed by `fetch()` POST requests.
  *
@@ -50,17 +59,13 @@ export function httpClientTransport(options: HttpClientTransportOptions): Transp
 	const listeners = new Set<(message: RPCMessage) => void>()
 
 	return {
-		capabilities: { objectMode: true, transfer: false },
+		capabilities: { objectMode: true, transfer: false, remoteRefs: false },
 		async send(message) {
 			if (message.t !== "q") {
 				throw new Error("HTTP transport only supports client request messages")
 			}
-			if (containsCallbackEnvelope(message.a) || containsCallbackEnvelope(message.v)) {
-				throw new Error("HTTP transport does not support callback arguments")
-			}
-			if (containsStreamRefEnvelope(message.a) || containsStreamRefEnvelope(message.v)) {
-				throw new Error("HTTP transport does not support async iterable streams")
-			}
+			assertHttpEnvelopeSupported(message.a)
+			assertHttpEnvelopeSupported(message.v)
 			const response = await fetchImpl(options.url, {
 				method: "POST",
 				headers: { "Content-Type": "application/json", ...options.headers },
@@ -102,8 +107,8 @@ function isRPCResponseMessage(value: unknown): value is RPCResponse {
  * Create a Fetch API handler that exposes a local API over unary HTTP.
  *
  * The handler validates that the request body is a compact RPC request and
- * rejects callback envelopes because HTTP has no reverse channel for invoking
- * callback arguments. A request-scoped channel is destroyed after each response.
+ * rejects remote reference envelopes because HTTP has no reverse channel for
+ * invoking retained values. A request-scoped channel is destroyed after each response.
  */
 export function createHttpHandler<LocalAPI extends object>(
 	api: LocalAPI,
@@ -114,6 +119,21 @@ export function createHttpHandler<LocalAPI extends object>(
 		try {
 			const body = await request.json()
 			if (!isRPCRequestMessage(body)) {
+				throw new Error("invalid RPC request")
+			}
+			const unsupportedRemoteRefs =
+				findUnsupportedRemoteRefEnvelope(body.a) ?? findUnsupportedRemoteRefEnvelope(body.v)
+			if (unsupportedRemoteRefs) {
+				return new Response(
+					JSON.stringify({
+						t: "r",
+						id: body.id,
+						e: { n: "Error", m: unsupportedRemoteRefs }
+					} satisfies RPCResponse),
+					{ status: 200, headers: { "Content-Type": "application/json" } }
+				)
+			}
+			if (findUnsupportedHttpEnvelope(body.a) ?? findUnsupportedHttpEnvelope(body.v)) {
 				throw new Error("invalid RPC request")
 			}
 			message = body
@@ -169,52 +189,87 @@ function isRPCRequestMessage(value: unknown): value is RPCRequest {
 		RPC_OPERATIONS.has(message.op as RPCOperation) &&
 		Array.isArray(message.p) &&
 		message.p.every((segment) => typeof segment === "string") &&
-		(message.a === undefined || Array.isArray(message.a)) &&
-		!containsCallbackEnvelope(message.a) &&
-		!containsCallbackEnvelope(message.v) &&
-		!containsStreamRefEnvelope(message.a) &&
-		!containsStreamRefEnvelope(message.v)
+		(message.a === undefined || Array.isArray(message.a))
 	)
 }
 
-// HTTP only accepts one-shot requests; callback envelopes require a bidirectional transport.
-function containsCallbackEnvelope(value: unknown, seen = new WeakSet<object>()): boolean {
-	if (typeof value !== "object" || value === null) return false
-	if (seen.has(value)) return false
+function assertHttpEnvelopeSupported(value: unknown): void {
+	const unsupported = findUnsupportedHttpEnvelope(value)
+	if (!unsupported) return
+	throw new Error(unsupported)
+}
+
+function findUnsupportedRemoteRefEnvelope(
+	value: unknown,
+	seen = new WeakSet<object>()
+): string | undefined {
+	if (typeof value !== "object" || value === null) return undefined
+	if (seen.has(value)) return undefined
 	seen.add(value)
 
-	if (
-		ARG_ENVELOPE_TAG in value &&
-		(value as { [ARG_ENVELOPE_TAG]?: unknown })[ARG_ENVELOPE_TAG] === "callback"
-	) {
-		return true
+	if (isRemoteRefEnvelope(value)) {
+		return "HTTP transport does not support remote references"
+	}
+	if (isAsyncIterable(value)) {
+		return "HTTP transport does not support async iterable streams"
 	}
 
 	if (Array.isArray(value)) {
-		return value.some((item) => containsCallbackEnvelope(item, seen))
+		for (const item of value) {
+			const unsupported = findUnsupportedRemoteRefEnvelope(item, seen)
+			if (unsupported) return unsupported
+		}
+		return undefined
 	}
 
-	return Object.values(value).some((item) => containsCallbackEnvelope(item, seen))
+	for (const item of Object.values(value)) {
+		const unsupported = findUnsupportedRemoteRefEnvelope(item, seen)
+		if (unsupported) return unsupported
+	}
+	return undefined
 }
 
-// HTTP only accepts one-shot requests; stream refs require follow-up iterator messages.
-function containsStreamRefEnvelope(value: unknown, seen = new WeakSet<object>()): boolean {
-	if (typeof value !== "object" || value === null) return false
-	if (seen.has(value)) return false
+// HTTP only accepts one-shot exchanges; these envelopes require follow-up bidirectional traffic.
+function findUnsupportedHttpEnvelope(
+	value: unknown,
+	seen = new WeakSet<object>()
+): string | undefined {
+	if (typeof value !== "object" || value === null) return undefined
+	if (seen.has(value)) return undefined
 	seen.add(value)
 
+	if (isRemoteRefEnvelope(value)) {
+		return "HTTP transport does not support remote references"
+	}
+	if (isAsyncIterable(value)) {
+		return "HTTP transport does not support async iterable streams"
+	}
 	if (
 		STREAM_REF_TAG in value &&
 		(value as { [STREAM_REF_TAG]?: unknown })[STREAM_REF_TAG] === "async-iterable"
 	) {
-		return true
+		return "HTTP transport does not support async iterable streams"
+	}
+	if (
+		ARG_ENVELOPE_TAG in value &&
+		(value as { [ARG_ENVELOPE_TAG]?: unknown })[ARG_ENVELOPE_TAG] === "callback"
+	) {
+		return "HTTP transport does not support callback arguments"
 	}
 
 	if (Array.isArray(value)) {
-		return value.some((item) => containsStreamRefEnvelope(item, seen))
+		for (const item of value) {
+			const unsupported = findUnsupportedHttpEnvelope(item, seen)
+			if (unsupported) return unsupported
+		}
+		return undefined
 	}
 
-	return Object.values(value).some((item) => containsStreamRefEnvelope(item, seen))
+	for (const item of Object.values(value)) {
+		const unsupported = findUnsupportedHttpEnvelope(item, seen)
+		if (unsupported) return unsupported
+	}
+	return undefined
 }
 
 function createRequestScopedTransport(request: RPCMessage): Transport<RPCMessage> & {
@@ -244,18 +299,20 @@ function createRequestScopedTransport(request: RPCMessage): Transport<RPCMessage
 
 	return {
 		response,
-		capabilities: { objectMode: true, transfer: false },
+		capabilities: { objectMode: true, transfer: false, remoteRefs: true },
 		send(message) {
 			if (message.t !== "r") {
 				throw new Error("HTTP handler transport only supports response messages")
 			}
-			if (containsStreamRefEnvelope(message.v)) {
+			const unsupported =
+				findUnsupportedHttpEnvelope(message.v) ?? findUnsupportedHttpEnvelope(message.e)
+			if (unsupported) {
 				resolveOnce({
 					t: "r",
 					id: message.id,
 					e: {
 						n: "Error",
-						m: "HTTP transport does not support async iterable results"
+						m: unsupported
 					}
 				})
 				return

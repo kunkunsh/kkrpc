@@ -95,7 +95,12 @@ describe("rabbitMqTransport", () => {
 			remotePeerId: "server"
 		})
 
-		expect(transport.capabilities).toEqual({ objectMode: true, transfer: false, broadcast: false })
+		expect(transport.capabilities).toEqual({
+			objectMode: true,
+			transfer: false,
+			broadcast: false,
+			remoteRefs: true
+		})
 		transport.close?.()
 	})
 

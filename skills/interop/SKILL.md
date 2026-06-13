@@ -1,6 +1,6 @@
 ---
 name: kkrpc-interop
-description: Implement kkrpc client/server in any programming language to communicate with TypeScript kkrpc endpoints. Covers the stable compact protocol, transports, and reference implementations in Go, Python, Rust, and Swift.
+description: Use when implementing kkrpc clients or servers in non-TypeScript languages, speaking the stable compact protocol, transports, and reference implementations in Go, Python, Rust, or Swift.
 version: 1.0.0
 license: MIT
 metadata:
@@ -19,7 +19,7 @@ compatibility: Works with any language that can parse JSON and implement stdio/W
 
 # kkrpc Language Interop
 
-Implement kkrpc clients and servers in non-JS languages by speaking the stable compact JSON protocol used by TypeScript kkrpc endpoints.
+Implement kkrpc clients and servers in non-JS languages by speaking the stable compact JSON protocol used by TypeScript kkrpc endpoints. Start with the default value-oriented protocol. Async iterable streaming and remote references are opt-in advanced protocols; implement them only when the interop boundary explicitly needs them.
 
 ## Reference Implementations
 
@@ -111,6 +111,17 @@ When receiving callback arguments from JS, unwrap value envelopes before invokin
 }
 ```
 
+Default callback invocation is fire-and-forget. If a non-JS implementation needs callback return values, object handles, or `releaseProxy()` behavior, it must also implement the `kkrpc/remote-refs` envelope and internal `op: "ref"` request flow.
+
+## Opt-in Advanced Protocols
+
+`kkrpc/streaming` adds async iterable stream records:
+
+- `t: "sq"` for stream pull/return/throw control requests
+- `t: "sr"` for stream value/completion/error responses
+
+`kkrpc/remote-refs` adds explicit `proxy(value)` envelopes with `"__kkrpc_ref__": true` plus internal `op: "ref"` requests for apply/get/set/call/release. Do not assume these features are present when connecting to a default `kkrpc` endpoint.
+
 ## UUID Generation
 
 Use any ID generator with low collision risk. IDs only need to match requests and responses within one connection.
@@ -197,6 +208,8 @@ def handle(message):
 - Verify nested method paths.
 - Verify property get and set if implemented.
 - Verify callback marker encoding and `t: "cb"` dispatch.
+- If implemented, verify streaming `t: "sq"`/`t: "sr"` flow control.
+- If implemented, verify remote-reference `op: "ref"` apply/get/set/call/release behavior.
 - Verify error responses preserve name and message.
 - Verify stdio newline framing and WebSocket text framing.
 
@@ -207,3 +220,4 @@ def handle(message):
 - Do not use binary WebSocket frames for the JSON interop protocol.
 - Do not forget to unwrap `{ "__kkrpc_next_arg__": "value", "v": ... }` callback arguments.
 - Do not rely on JS-specific transfer slots or structured clone in language interop.
+- Do not assume async iterables or remote references are part of the default core protocol.

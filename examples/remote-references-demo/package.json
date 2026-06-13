@@ -1,0 +1,16 @@
+{
+	"name": "remote-references-demo",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"demo": "bun run main.ts",
+		"check-types": "tsc --noEmit"
+	},
+	"dependencies": {
+		"kkrpc": "workspace:*"
+	},
+	"devDependencies": {
+		"@types/bun": "latest",
+		"typescript": "^5.0.0"
+	}
+}

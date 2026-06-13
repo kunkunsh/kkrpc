@@ -49,7 +49,6 @@ export interface KafkaTransportOptions {
 /** Message-level Kafka transport type. */
 export type KafkaTransport = Transport<RPCMessage>
 
-
 /** Minimal producer shape used by the Kafka transport. */
 export interface KafkaProducerLike {
 	/** Connect the producer before publishing records. */
@@ -60,13 +59,11 @@ export interface KafkaProducerLike {
 	send(record: { topic: string; messages: Array<{ value: string }> }): Promise<unknown>
 }
 
-
 /** Minimal Kafka message shape consumed by the transport. */
 export interface KafkaMessageLike {
 	/** Encoded message payload. */
 	value?: { toString(encoding?: BufferEncoding): string } | null
 }
-
 
 /** Minimal consumer shape used by the Kafka transport. */
 export interface KafkaConsumerLike {
@@ -82,7 +79,6 @@ export interface KafkaConsumerLike {
 	}): Promise<void>
 }
 
-
 /** Minimal admin shape used to ensure the Kafka topic exists. */
 export interface KafkaAdminLike {
 	/** Connect the admin client before topic operations. */
@@ -97,7 +93,6 @@ export interface KafkaAdminLike {
 		waitForLeaders: boolean
 	}): Promise<unknown>
 }
-
 
 /** Minimal Kafka client factory shape accepted by the transport. */
 export interface KafkaClientLike {
@@ -249,6 +244,7 @@ export function kafkaTransport(options: KafkaTransportOptions): KafkaTransport {
 		capabilities: {
 			objectMode: true,
 			transfer: false,
+			remoteRefs: true,
 			broadcast: options.remotePeerId === undefined
 		},
 		async send(message) {

@@ -24,7 +24,6 @@ export type {
 	RPCResponseContext
 } from "./plugins.ts"
 export type {
-	RPCCallback,
 	RPCError,
 	RPCMessage,
 	RPCMessageMetadata,
@@ -45,10 +44,13 @@ export type {
 } from "./transport.ts"
 
 /** Controller returned by `expose()` for managing a locally exposed API. */
-export interface ExposedController<LocalAPI extends object = object, RemoteAPI extends object = object> {
+export interface ExposedController<
+	LocalAPI extends object = object,
+	RemoteAPI extends object = object
+> {
 	/** The underlying channel, useful when both exposing and calling a remote API. */
 	channel: RPCChannel<LocalAPI, RemoteAPI>
-	/** Destroy the underlying channel and release pending requests/callbacks. */
+	/** Destroy the underlying channel and release pending requests/callback refs. */
 	dispose(): void
 }
 

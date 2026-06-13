@@ -75,7 +75,7 @@ Each interceptor receives a `ctx` object:
 | Property | Type                      | Description                                                                 |
 | -------- | ------------------------- | --------------------------------------------------------------------------- |
 | `method` | `string`                  | Dotted method path (e.g. `"math.divide"`)                                   |
-| `args`   | `unknown[]`               | Arguments after callback restoration and input validation                   |
+| `args`   | `unknown[]`               | Arguments after default callback restoration or remote-ref decoding and input validation |
 | `state`  | `Record<string, unknown>` | Shared state bag — interceptors can attach data for downstream interceptors |
 
 ### Sharing state between interceptors
@@ -115,7 +115,7 @@ const doubler: MiddlewareHandler = async (_ctx, next) => {
 ```
 handleRequest flow:
   1. Resolve method path
-  2. Restore callback arguments
+  2. Decode callback/value envelopes and opt-in remote-reference envelopes
   3. Input validation (if configured) — rejects early on bad input
   4. ▶ Interceptor chain wrapping handler invocation ◀
   5. Output validation (if configured) — rejects on bad return

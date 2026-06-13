@@ -130,6 +130,26 @@
 				"default": "./dist/superjson.cjs"
 			}
 		},
+		"./remote-refs": {
+			"import": {
+				"types": "./dist/remote-refs.d.ts",
+				"default": "./dist/remote-refs.js"
+			},
+			"require": {
+				"types": "./dist/remote-refs.d.cts",
+				"default": "./dist/remote-refs.cjs"
+			}
+		},
+		"./streaming": {
+			"import": {
+				"types": "./dist/streaming.d.ts",
+				"default": "./dist/streaming.js"
+			},
+			"require": {
+				"types": "./dist/streaming.d.cts",
+				"default": "./dist/streaming.cjs"
+			}
+		},
 		"./worker": {
 			"import": {
 				"types": "./dist/worker.d.ts",

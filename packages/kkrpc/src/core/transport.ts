@@ -15,6 +15,8 @@ export interface TransportCapabilities {
 	transfer?: boolean
 	/** The transport may deliver messages to more than one peer. */
 	broadcast?: boolean
+	/** The transport can carry bidirectional remote-reference request traffic. */
+	remoteRefs?: boolean
 }
 
 /** Capabilities provided by the underlying runtime platform. */
@@ -89,7 +91,8 @@ export function createTransport<TMessage, TWire>({
 	platform: Platform<TWire>
 	codec: Codec<TMessage, TWire>
 }): Transport<TMessage> {
-	const supportsTransfer = platform.capabilities?.transfer === true && codec.capabilities?.transfer === true
+	const supportsTransfer =
+		platform.capabilities?.transfer === true && codec.capabilities?.transfer === true
 
 	return {
 		capabilities: {

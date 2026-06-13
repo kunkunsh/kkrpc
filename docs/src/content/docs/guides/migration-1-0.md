@@ -21,6 +21,7 @@ Major changes:
 - Validation and middleware are plugins, not top-level classic channel options.
 - Request metadata for tracing and logging is configured with `getMetadata` and read from plugin or middleware `ctx.meta`.
 - SuperJSON is an opt-in codec feature, not a core dependency.
+- Async iterable streaming and request/response remote references are opt-in entries. See [Migrate from v0.1.0 to v0.2.0](/guides/migration-0-1-to-0-2/) for the feature split.
 - HTTP is explicitly unary request/response. Use WebSocket or another evented transport for bidirectional calls and callback arguments.
 - Temporary `kkrpc/next` entries were removed because the native API is now stable.
 
@@ -73,6 +74,8 @@ The main entry is intentionally small and browser-safe. Runtime-specific code an
 | `kkrpc/validation` | Standard Schema validation plugin and schema helpers |
 | `kkrpc/middleware` | Interceptor middleware plugin |
 | `kkrpc/superjson` | SuperJSON codec helpers |
+| `kkrpc/streaming` | Opt-in async iterable streaming channel |
+| `kkrpc/remote-refs` | Opt-in explicit `proxy()` remote references |
 | `kkrpc/worker` | Web Worker transports |
 | `kkrpc/stdio` | Node.js, Deno, and Bun stdio transports |
 | `kkrpc/http` | HTTP client transport and request handler |
@@ -203,7 +206,7 @@ Stdio transports use newline-delimited JSON. Do not reuse old blocking `read()`/
 
 ### HTTP
 
-HTTP in 1.0 is unary request/response only. It is appropriate for normal client-initiated calls, but not server-initiated calls or callback arguments.
+HTTP in 1.0 is unary request/response only. It is appropriate for normal client-initiated value calls, but not server-initiated calls, callback arguments, async iterable streams, or remote-reference handles.
 
 ```ts title="server.ts"
 import { createHttpHandler } from "kkrpc/http"
@@ -226,7 +229,7 @@ import { httpClientTransport } from "kkrpc/http"
 const api = wrap<API>(httpClientTransport({ url: "http://localhost:3000/rpc" }))
 ```
 
-If old HTTP code depended on callbacks, subscriptions, streaming progress, or server pushes, migrate that boundary to WebSocket or another evented transport instead.
+If old HTTP code depended on callbacks, subscriptions, streaming progress, remote references, or server pushes, migrate that boundary to WebSocket or another evented transport instead.
 
 ### WebSocket
 
