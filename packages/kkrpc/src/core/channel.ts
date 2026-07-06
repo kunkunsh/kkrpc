@@ -25,6 +25,7 @@ import {
 } from "./plugins.ts"
 import type {
 	RPCCallback,
+	RPCCallbackRelease,
 	RPCError,
 	RPCMessage,
 	RPCMessageMetadata,
@@ -125,6 +126,52 @@ function isRPCCallbackMessage(value: unknown): value is RPCCallback {
 	return message.t === "cb" && typeof message.id === "string" && Array.isArray(message.a)
 }
 
+// Transports may share non-kkrpc frames; malformed frames are ignored by these guards.
+function isRPCCallbackReleaseMessage(value: unknown): value is RPCCallbackRelease {
+	if (typeof value !== "object" || value === null) return false
+	const message = value as Partial<RPCCallbackRelease>
+	return (
+		message.t === "cbr" &&
+		Array.isArray(message.ids) &&
+		message.ids.every((id) => typeof id === "string")
+	)
+}
+
+// Callback GC needs both primitives; runtimes without them keep today's behavior
+// (callback registry entries live until the channel is destroyed).
+const supportsCallbackGC =
+	typeof FinalizationRegistry === "function" && typeof WeakRef === "function"
+
+// Metadata attached to every decoded callback facade so releaseCallback() can act
+// on it. Populated on all runtimes; independent of FinalizationRegistry support.
+type CallbackFacadeRecord = { id: string; released: boolean; release(): void }
+const callbackFacadeRecords = new WeakMap<object, CallbackFacadeRecord>()
+
+/** Raised when a callback facade is invoked after it has been released. */
+export class RPCCallbackReleasedError extends Error {
+	constructor(id: string) {
+		super(`RPC callback ${id} has been released`)
+		this.name = "RPCCallbackReleasedError"
+	}
+}
+
+/**
+ * Deterministically release a decoded callback facade.
+ *
+ * Mirrors `releaseProxy` from `kkrpc/remote-refs`: it tells the owning channel to
+ * drop the callback's registry entry and marks the local facade unusable. This is
+ * idempotent and safe on non-facade values (returns `false`). On runtimes without
+ * `FinalizationRegistry` it is the only way to free the owner-side entry, since
+ * automatic collection is unavailable there.
+ */
+export function releaseCallback(callback: unknown): boolean {
+	if (typeof callback !== "function") return false
+	const record = callbackFacadeRecords.get(callback)
+	if (!record) return false
+	record.release()
+	return true
+}
+
 export function toRPCError(error: unknown): RPCError {
 	if (error instanceof Error) {
 		const result: RPCError = { n: error.name, m: error.message, s: error.stack }
@@ -173,7 +220,16 @@ export function getParent(root: unknown, path: string[]): { parent: object; key:
  * Owns one RPC transport, exposes an optional local API, and creates a typed remote proxy.
  */
 export class RPCChannel<LocalAPI extends object = object, RemoteAPI extends object = object> {
+	// Owner side: callback id -> the local function invoked when a `cb` message arrives.
 	private callbacks = new Map<string, (...args: unknown[]) => unknown>()
+	// Owner side: dedup so the same function passed repeatedly reuses one id.
+	private callbackIds = new WeakMap<(...args: unknown[]) => unknown, string>()
+	// Receiver side: callback id -> the single live facade for that id (GC runtimes only).
+	private callbackFacades?: Map<string, WeakRef<(...args: unknown[]) => void>>
+	private facadeRegistry?: FinalizationRegistry<string>
+	// Ids whose facades were collected/released, batched into one `cbr` per microtask.
+	private pendingCallbackReleases = new Set<string>()
+	private callbackReleaseScheduled = false
 	protected destroyed = false
 	protected pending: Map<string, PendingRequest> = new Map<string, PendingRequest>()
 	protected supportsTransfer: boolean
@@ -199,6 +255,16 @@ export class RPCChannel<LocalAPI extends object = object, RemoteAPI extends obje
 		this.supportsTransfer =
 			options.enableTransfer !== false && transport.capabilities?.transfer === true
 		this.timeout = options.timeout ?? 30_000
+		if (supportsCallbackGC) {
+			this.callbackFacades = new Map()
+			this.facadeRegistry = new FinalizationRegistry((id: string) => {
+				// A newer facade may have been decoded for this id after the dead one was
+				// collected; only release when no live facade remains (WeakRef re-reg guard).
+				if (this.callbackFacades?.get(id)?.deref() !== undefined) return
+				this.callbackFacades?.delete(id)
+				this.queueCallbackRelease(id)
+			})
+		}
 		this.unsubscribe = transport.subscribe((message) => void this.handleMessage(message))
 	}
 
@@ -218,6 +284,8 @@ export class RPCChannel<LocalAPI extends object = object, RemoteAPI extends obje
 		}
 		this.pending.clear()
 		this.callbacks.clear()
+		this.callbackFacades?.clear()
+		this.pendingCallbackReleases.clear()
 		this.transport.close?.()
 	}
 
@@ -334,6 +402,14 @@ export class RPCChannel<LocalAPI extends object = object, RemoteAPI extends obje
 			if (callback) void callback(...this.decodeArgs(message.a))
 			return
 		}
+		if (isRPCCallbackReleaseMessage(message)) {
+			for (const id of message.ids) {
+				const fn = this.callbacks.get(id)
+				this.callbacks.delete(id)
+				if (fn) this.callbackIds.delete(fn)
+			}
+			return
+		}
 		if (isUnsupportedRPCRefRequestMessage(message)) {
 			this.post({
 				t: "r",
@@ -448,8 +524,16 @@ export class RPCChannel<LocalAPI extends object = object, RemoteAPI extends obje
 	protected encodeArgs(args: unknown[], transfers: Transferable[]): unknown[] {
 		return args.map((arg) => {
 			if (typeof arg === "function") {
-				const id = generateId()
-				this.callbacks.set(id, arg as (...args: unknown[]) => unknown)
+				const fn = arg as (...args: unknown[]) => unknown
+				// Dedup so the same function reuses one id across calls; re-register on
+				// every encode so a callback released while a re-send was in flight is
+				// resurrected (the release race is self-healing, see RPCCallbackRelease).
+				let id = this.callbackIds.get(fn)
+				if (id === undefined) {
+					id = generateId()
+					this.callbackIds.set(fn, id)
+				}
+				this.callbacks.set(id, fn)
 				return { [ARG_ENVELOPE_TAG]: "callback", id } satisfies CallbackArgEnvelope
 			}
 			return {
@@ -471,13 +555,54 @@ export class RPCChannel<LocalAPI extends object = object, RemoteAPI extends obje
 
 	// A decoded callback envelope becomes a facade that routes invocations back to
 	// the owner by callback id. Shared by every channel variant so callback routing
-	// (and, later, lifecycle) lives in one place.
+	// and lifecycle live in one place.
 	/** Build a local function that forwards calls to a remote callback by id. */
 	protected createCallbackFacade(id: string): (...args: unknown[]) => void {
-		return (...callbackArgs: unknown[]) => {
+		// Receiver-side dedup: at most one live facade per id, so decoding the same
+		// callback twice yields the identical function and no GC race can release an
+		// id whose facade is still alive.
+		const existing = this.callbackFacades?.get(id)?.deref()
+		if (existing) return existing
+
+		const record: CallbackFacadeRecord = {
+			id,
+			released: false,
+			release: () => {
+				if (record.released) return
+				record.released = true
+				this.facadeRegistry?.unregister(facade)
+				if (this.callbackFacades?.get(id)?.deref() === facade) this.callbackFacades.delete(id)
+				this.queueCallbackRelease(id)
+			}
+		}
+		const facade = (...callbackArgs: unknown[]) => {
+			if (record.released) throw new RPCCallbackReleasedError(id)
 			const transfers: Transferable[] = []
 			this.post({ t: "cb", id, a: this.encodeArgs(callbackArgs, transfers) }, transfers)
 		}
+		callbackFacadeRecords.set(facade, record)
+		if (this.callbackFacades && this.facadeRegistry) {
+			this.callbackFacades.set(id, new WeakRef(facade))
+			this.facadeRegistry.register(facade, id, facade)
+		}
+		return facade
+	}
+
+	// Batch collected/released callback ids into one `cbr` message per microtask.
+	// Finalizer callbacks from one GC cycle collapse into a single release message.
+	/** Queue a callback id for release notification to its owner. */
+	private queueCallbackRelease(id: string): void {
+		if (this.destroyed) return
+		this.pendingCallbackReleases.add(id)
+		if (this.callbackReleaseScheduled) return
+		this.callbackReleaseScheduled = true
+		queueMicrotask(() => {
+			this.callbackReleaseScheduled = false
+			if (this.destroyed || this.pendingCallbackReleases.size === 0) return
+			const ids = [...this.pendingCallbackReleases]
+			this.pendingCallbackReleases.clear()
+			this.post({ t: "cbr", ids })
+		})
 	}
 
 	// Transfer descriptors are consumed only when this channel and transport advertise transfer support.

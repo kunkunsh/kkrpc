@@ -82,6 +82,22 @@ export interface RPCCallback {
 	a: unknown[]
 }
 
+/**
+ * Callback release record.
+ *
+ * Sent by the side that decoded callback facades to tell the owner it no longer
+ * holds those facades, so the owner can drop the matching entries from its
+ * callback registry. Releases are best-effort and fire-and-forget: a peer that
+ * does not understand this message simply ignores it, and a late invocation of a
+ * released callback is dropped rather than delivered.
+ */
+export interface RPCCallbackRelease {
+	/** Message tag for callback releases. */
+	t: "cbr"
+	/** Callback ids the sender no longer holds facades for. */
+	ids: string[]
+}
+
 /** Control record for pulling or closing a remote async iterator. */
 export interface RPCStreamRequest {
 	/** Message tag for async iterator control messages. */
@@ -119,5 +135,6 @@ export type RPCMessage =
 	| RPCRequest
 	| RPCResponse
 	| RPCCallback
+	| RPCCallbackRelease
 	| RPCStreamRequest
 	| RPCStreamResponse

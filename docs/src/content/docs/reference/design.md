@@ -47,6 +47,11 @@ interface RPCCallback {
 	a: unknown[]
 }
 
+interface RPCCallbackRelease {
+	t: "cbr"
+	ids: string[]
+}
+
 interface RPCStreamRequest {
 	t: "sq"
 	id: string
@@ -67,6 +72,8 @@ interface RPCStreamResponse {
 ```
 
 Since it is not possible to transfer a callback function over any protocol, the default channel can keep track of top-level callbacks, send callback marker objects to the remote, and later route `t: "cb"` records back to the stored local function. This default callback path is fire-and-forget; use `kkrpc/remote-refs` when callback return values or thrown callback errors must propagate.
+
+The owner keeps a callback in its registry until the receiver reports it is no longer needed. When the receiver's decoded callback facade is garbage collected — or is released explicitly with `releaseCallback()` — the receiver sends a `t: "cbr"` record so the owner can drop the entry. This prevents the callback registry from growing without bound on a long-lived channel. Releases are best-effort: a peer that predates this message ignores it, and a callback invoked in the brief window between release and re-use is dropped rather than delivered. See the [callbacks guide](/guides/callbacks/) for details.
 
 With `kkrpc/streaming`, async iterables use stream reference markers in normal request or response values. The consumer sends `t: "sq"` records to grant `pull` credit or close the iterator with `return()` / `throw()`, and the owner sends `t: "sr"` records for yielded values, completion, or errors.
 

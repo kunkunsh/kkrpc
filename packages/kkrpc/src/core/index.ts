@@ -14,6 +14,7 @@ import type { Transport } from "./transport.ts"
 
 export { RPCChannel }
 export type { RPCChannelOptions } from "./channel.ts"
+export { RPCCallbackReleasedError, releaseCallback } from "./channel.ts"
 export { transfer } from "./transfer.ts"
 export type { TransferDescriptor } from "./transfer.ts"
 export type {
@@ -24,6 +25,8 @@ export type {
 	RPCResponseContext
 } from "./plugins.ts"
 export type {
+	RPCCallback,
+	RPCCallbackRelease,
 	RPCError,
 	RPCMessage,
 	RPCMessageMetadata,
