@@ -7,13 +7,26 @@
  * flags describe object-mode, transfer, and broadcast behavior for negotiation.
  */
 
-/** Capabilities available on a message-level transport. */
+/**
+ * Capabilities available on a message-level transport.
+ *
+ * `transfer` and `remoteRefs` drive behavior: `RPCChannel` checks `transfer`
+ * before forwarding transferables, and `RemoteReferenceRPCChannel` checks
+ * `remoteRefs` before allowing by-reference traffic. `objectMode` and `broadcast`
+ * are currently informational — the core does not branch on them — but transports
+ * should still report them truthfully so applications can inspect them.
+ */
 export interface TransportCapabilities {
-	/** The transport can carry JavaScript objects without string serialization. */
+	/**
+	 * The transport carries JavaScript objects without string serialization
+	 * (structured-clone-grade), so non-JSON values such as `Date`, `Map`, and
+	 * `undefined` survive. Transports that JSON-serialize should report `false`.
+	 * Informational: the core does not branch on this flag.
+	 */
 	objectMode?: boolean
 	/** The transport can forward transferables with sent messages. */
 	transfer?: boolean
-	/** The transport may deliver messages to more than one peer. */
+	/** The transport may deliver messages to more than one peer. Informational. */
 	broadcast?: boolean
 	/** The transport can carry bidirectional remote-reference request traffic. */
 	remoteRefs?: boolean

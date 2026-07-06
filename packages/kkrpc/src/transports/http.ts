@@ -59,7 +59,7 @@ export function httpClientTransport(options: HttpClientTransportOptions): Transp
 	const listeners = new Set<(message: RPCMessage) => void>()
 
 	return {
-		capabilities: { objectMode: true, transfer: false, remoteRefs: false },
+		capabilities: { objectMode: false, transfer: false, remoteRefs: false },
 		async send(message) {
 			if (message.t !== "q") {
 				throw new Error("HTTP transport only supports client request messages")
@@ -309,7 +309,7 @@ function createRequestScopedTransport(request: RPCMessage): Transport<RPCMessage
 
 	return {
 		response,
-		capabilities: { objectMode: true, transfer: false, remoteRefs: false },
+		capabilities: { objectMode: false, transfer: false, remoteRefs: false },
 		send(message) {
 			if (message.t !== "r") {
 				throw new Error("HTTP handler transport only supports response messages")

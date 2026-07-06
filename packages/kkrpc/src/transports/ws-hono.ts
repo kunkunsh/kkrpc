@@ -59,7 +59,7 @@ export function honoWebSocketTransport(
 	let closed = false
 
 	return {
-		capabilities: { objectMode: true, transfer: false, remoteRefs: true },
+		capabilities: { objectMode: false, transfer: false, remoteRefs: true },
 		send(message) {
 			if (!closed) ws.send(JSON.stringify(message))
 		},
