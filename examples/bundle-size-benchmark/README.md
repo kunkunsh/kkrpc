@@ -18,19 +18,19 @@ Measured with `pnpm --filter bundle-size-benchmark benchmark` on the current wor
 
 | Bundle               | Raw minified |    Gzip |  Brotli | Modules |
 | -------------------- | -----------: | ------: | ------: | ------: |
-| `kkrpc core`         |      6.37 KB | 2.41 KB | 2.17 KB |       5 |
-| `kkrpc/browser core` |      6.37 KB | 2.43 KB | 2.17 KB |       8 |
-| `kkrpc + json codec` |      6.81 KB | 2.56 KB | 2.29 KB |       8 |
-| `kkrpc + superjson`  |     17.64 KB | 6.23 KB | 5.60 KB |      20 |
-| `kkrpc/worker`       |      6.70 KB | 2.53 KB | 2.28 KB |       7 |
-| `kkrpc/streaming`    |     14.78 KB | 4.28 KB | 3.81 KB |       4 |
-| `kkrpc/remote-refs`  |     16.85 KB | 4.79 KB | 4.24 KB |       5 |
+| `kkrpc core`         |     10.24 KB | 3.45 KB | 3.09 KB |       6 |
+| `kkrpc/browser core` |     10.24 KB | 3.48 KB | 3.09 KB |       6 |
+| `kkrpc + json codec` |     10.90 KB | 3.69 KB | 3.30 KB |       9 |
+| `kkrpc + superjson`  |     21.94 KB | 7.45 KB | 6.68 KB |      24 |
+| `kkrpc/worker`       |     10.56 KB | 3.56 KB | 3.19 KB |       8 |
+| `kkrpc/streaming`    |     19.26 KB | 5.44 KB | 4.83 KB |       5 |
+| `kkrpc/remote-refs`  |     21.72 KB | 5.98 KB | 5.28 KB |       6 |
 | `comctx`             |      6.86 KB | 2.45 KB | 2.20 KB |       2 |
 | `comlink`            |      4.10 KB | 1.87 KB | 1.64 KB |       2 |
 
-Conclusion: for the equal add-proxy scenario, `comlink` is the smallest because it is focused on browser `postMessage`-style endpoints. `kkrpc core` is now in the same range as `comctx` while still including the generic bidirectional channel, plugin hooks, top-level callback arguments, and transferable handling. Async iterator streaming and explicit Comlink-style remote references are measured separately as opt-in entries. The explicit browser entry is effectively the same size as core, adding JSON codec support remains small, worker support adds about 0.33 KB raw over core, and SuperJSON is the large optional feature because it bundles the `superjson` dependency.
+Conclusion: for the equal add-proxy scenario, `comlink` is the smallest because it is focused on browser `postMessage`-style endpoints. `kkrpc core` includes the generic bidirectional channel, plugin hooks, callback arguments with garbage-collected reclamation, transport connection-close handling, per-call timeout/abort options, and transferable handling. Async iterator streaming and explicit Comlink-style remote references are measured separately as opt-in entries. The explicit browser entry is effectively the same size as core, adding JSON codec support remains small, worker support adds about 0.3 KB raw over core, and SuperJSON is the large optional feature because it bundles the `superjson` dependency.
 
-For context, the earlier all-in core measured `kkrpc core` at 22.01 KB raw / 6.09 KB gzip / 5.44 KB brotli with the same benchmark command. Keeping streaming and remote references behind subpath entries reduces the default core row by roughly 15.64 KB raw / 3.68 KB gzip / 3.27 KB brotli.
+The 2.1 lifecycle-hardening work (callback GC, connection lifecycle, per-call options, error hook, recursion caps) added about 3.5 KB raw / under 1 KB gzip / under 1 KB brotli to the shared channel chunk that every entry includes. See `results/2026-07-07-baseline.md` and `results/2026-07-07-post-polish.md` for the before/after comparison; the `comctx`/`comlink` control rows are unchanged across that measurement.
 
 ## Scope Notes
 
