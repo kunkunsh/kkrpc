@@ -465,14 +465,19 @@ export class RPCChannel<LocalAPI extends object = object, RemoteAPI extends obje
 		return args.map((arg) => {
 			if (!isArgEnvelope(arg)) return arg
 			if (arg[ARG_ENVELOPE_TAG] === "value") return this.decodeValue(arg.v)
-			if (arg[ARG_ENVELOPE_TAG] === "callback") {
-				const id = arg.id
-				return (...callbackArgs: unknown[]) => {
-					const transfers: Transferable[] = []
-					this.post({ t: "cb", id, a: this.encodeArgs(callbackArgs, transfers) }, transfers)
-				}
-			}
+			if (arg[ARG_ENVELOPE_TAG] === "callback") return this.createCallbackFacade(arg.id)
 		})
+	}
+
+	// A decoded callback envelope becomes a facade that routes invocations back to
+	// the owner by callback id. Shared by every channel variant so callback routing
+	// (and, later, lifecycle) lives in one place.
+	/** Build a local function that forwards calls to a remote callback by id. */
+	protected createCallbackFacade(id: string): (...args: unknown[]) => void {
+		return (...callbackArgs: unknown[]) => {
+			const transfers: Transferable[] = []
+			this.post({ t: "cb", id, a: this.encodeArgs(callbackArgs, transfers) }, transfers)
+		}
 	}
 
 	// Transfer descriptors are consumed only when this channel and transport advertise transfer support.

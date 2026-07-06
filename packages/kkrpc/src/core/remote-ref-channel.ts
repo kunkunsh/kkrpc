@@ -257,11 +257,7 @@ export class RemoteReferenceRPCChannel<
 		const decoded = args.map((arg) => {
 			if (!isArgEnvelope(arg)) return this.decodeValue(arg, state)
 			if (arg[ARG_ENVELOPE_TAG] === "value") return this.decodeValue(arg.v, state)
-			const id = arg.id
-			return (...callbackArgs: unknown[]) => {
-				const transfers: Transferable[] = []
-				this.post({ t: "cb", id, a: this.encodeArgs(callbackArgs, transfers) }, transfers)
-			}
+			return this.createCallbackFacade(arg.id)
 		})
 		this.assertNoCyclicRewrite(state)
 		return decoded

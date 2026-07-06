@@ -270,11 +270,7 @@ export class StreamingRPCChannel<
 		return args.map((arg) => {
 			if (!isArgEnvelope(arg)) return this.decodeValue(arg, decodedStreams)
 			if (arg[ARG_ENVELOPE_TAG] === "value") return this.decodeValue(arg.v, decodedStreams)
-			const id = arg.id
-			return (...callbackArgs: unknown[]) => {
-				const transfers: Transferable[] = []
-				this.post({ t: "cb", id, a: this.encodeArgs(callbackArgs, transfers) }, transfers)
-			}
+			return this.createCallbackFacade(arg.id)
 		})
 	}
 
