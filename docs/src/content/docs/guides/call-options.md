@@ -2,7 +2,7 @@
 title: Per-Call Options
 description: Override timeout and cancel individual calls with withCallOptions
 sidebar:
-  order: 9
+  order: 10
 ---
 
 The channel-level `timeout` applies to every call. When a few calls need a different timeout — or

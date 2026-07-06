@@ -2,7 +2,7 @@
 title: Callback Lifecycle
 description: How kkrpc passes callbacks, reclaims them, and when to release them explicitly
 sidebar:
-  order: 7
+  order: 8
 ---
 
 The default `kkrpc` channel lets you pass functions as call arguments. This guide explains

@@ -2,7 +2,7 @@
 title: Connection Lifecycle
 description: Detecting dropped connections, failing fast, and reconnecting
 sidebar:
-  order: 8
+  order: 9
 ---
 
 Long-lived transports — WebSockets, child-process stdio — can lose their connection at any time.
