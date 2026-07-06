@@ -20,6 +20,7 @@
 | **nats-demo**            | Node/Deno | NATS            | Message queue integration                   | -                                           |
 | **tauri-demo**           | Tauri     | Shell stdio     | Tauri app calling external JS/TS            | [AGENTS.md](./tauri-demo/AGENTS.md)         |
 | **transferable-browser** | Browser   | Worker          | Zero-copy ArrayBuffer transfers             | -                                           |
+| **websocket-demo**       | Bun       | WebSocket       | Hono and Elysia WebSocket RPC servers       | -                                           |
 
 ## EXAMPLE STRUCTURE
 

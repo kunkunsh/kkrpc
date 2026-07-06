@@ -13,11 +13,13 @@
 ### Task 1: Add High-Level Architecture Document
 
 **Files:**
+
 - Create: `packages/kkrpc/NEXT_ARCHITECTURE.md`
 
 - [ ] **Step 1: Create architecture document**
 
 Add a Markdown document covering:
+
 - What `kkrpc/next` is and why it exists.
 - Core modules and optional feature modules.
 - Mermaid module graph and call flow diagrams.
@@ -34,6 +36,7 @@ Expected: no unresolved placeholders.
 ### Task 2: Add JSDoc to Internal vNext Source Files
 
 **Files:**
+
 - Modify: `packages/kkrpc/src/next/channel.ts`
 - Modify: `packages/kkrpc/src/next/protocol.ts`
 - Modify: `packages/kkrpc/src/next/transport.ts`
@@ -50,6 +53,7 @@ Expected: no unresolved placeholders.
 - [ ] **Step 1: Add file-level docstrings**
 
 Each source file should start with a JSDoc block describing:
+
 - File responsibility.
 - Design role in the vNext architecture.
 - What the file intentionally does not import to preserve tree-shaking.
@@ -57,6 +61,7 @@ Each source file should start with a JSDoc block describing:
 - [ ] **Step 2: Add exported API examples**
 
 Add `@example` blocks to exported functions/classes where useful:
+
 - `RPCChannel`, `wrap`, `expose`, `dispose`.
 - `createTransport`, `objectCodec`, `jsonCodec`, `jsonLineCodec`.
 - `validationPlugin`, `middlewarePlugin`, `superJsonCodec`.
@@ -66,6 +71,7 @@ Add `@example` blocks to exported functions/classes where useful:
 ### Task 3: Add JSDoc to Public vNext Entry Files
 
 **Files:**
+
 - Modify: `packages/kkrpc/next.ts`
 - Modify: `packages/kkrpc/next-transport.ts`
 - Modify: `packages/kkrpc/next-codecs.ts`
@@ -84,6 +90,7 @@ Each entry file should document its public package path, intended users, and wha
 ### Task 4: Verify Documentation Changes
 
 **Files:**
+
 - Read-only verification across modified docs and TypeScript files.
 
 - [ ] **Step 1: Run TypeScript checks**

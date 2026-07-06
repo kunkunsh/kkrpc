@@ -60,11 +60,13 @@ type API = {
 	sum(values: AsyncIterable<number>): Promise<number>
 }
 
-const total = await remote.sum((async function* () {
-	yield 2
-	yield 3
-	yield 5
-})())
+const total = await remote.sum(
+	(async function* () {
+		yield 2
+		yield 3
+		yield 5
+	})()
+)
 ```
 
 ## Progress Callbacks

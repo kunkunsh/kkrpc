@@ -33,10 +33,10 @@
 
 ```typescript
 const channel = new RPCChannel<LocalAPI, RemoteAPI>(transport, {
-  expose: localAPI,
-  timeout: 30000,
-  plugins: [validationPlugin(validators)],
-  getMetadata: () => ({ requestId: crypto.randomUUID() })
+	expose: localAPI,
+	timeout: 30000,
+	plugins: [validationPlugin(validators)],
+	getMetadata: () => ({ requestId: crypto.randomUUID() })
 })
 const remote = channel.getAPI()
 await remote.ping()
@@ -51,13 +51,13 @@ channel.destroy()
 
 ### Constructor Options
 
-| Option | Type | Default | Description |
-|---|---|---|---|
-| `expose` | `LocalAPI` | `undefined` | Local API object to expose |
-| `timeout` | `number` | `30000` | Request timeout in ms (0 = disable) |
-| `enableTransfer` | `boolean` | `true` | Enable transferable forwarding |
-| `plugins` | `RPCPlugin[]` | `[]` | Receive-side plugin hooks |
-| `getMetadata` | `() => RPCMessageMetadata` | `undefined` | Protocol-level metadata provider |
+| Option           | Type                       | Default     | Description                         |
+| ---------------- | -------------------------- | ----------- | ----------------------------------- |
+| `expose`         | `LocalAPI`                 | `undefined` | Local API object to expose          |
+| `timeout`        | `number`                   | `30000`     | Request timeout in ms (0 = disable) |
+| `enableTransfer` | `boolean`                  | `true`      | Enable transferable forwarding      |
+| `plugins`        | `RPCPlugin[]`              | `[]`        | Receive-side plugin hooks           |
+| `getMetadata`    | `() => RPCMessageMetadata` | `undefined` | Protocol-level metadata provider    |
 
 **Section sources**
 
@@ -118,11 +118,11 @@ Provide a `ValidatorMap<API>` that mirrors the API type at runtime:
 import { validationPlugin, type ValidatorMap } from "kkrpc/validation"
 
 interface MathAPI {
-  add(a: number, b: number): Promise<number>
+	add(a: number, b: number): Promise<number>
 }
 
 const validators: ValidatorMap<MathAPI> = {
-  add: { input: z.tuple([z.number(), z.number()]), output: z.number() }
+	add: { input: z.tuple([z.number(), z.number()]), output: z.number() }
 }
 expose(api, transport, { plugins: [validationPlugin(validators)] })
 ```
@@ -135,15 +135,16 @@ Define methods with `defineMethod()` and extract validators automatically:
 import { defineAPI, defineMethod, extractValidators, validationPlugin } from "kkrpc/validation"
 
 const api = defineAPI({
-  add: defineMethod(
-    { input: z.tuple([z.number(), z.number()]), output: z.number() },
-    async (a, b) => a + b
-  )
+	add: defineMethod(
+		{ input: z.tuple([z.number(), z.number()]), output: z.number() },
+		async (a, b) => a + b
+	)
 })
 expose(api, transport, { plugins: [validationPlugin(extractValidators(api))] })
 ```
 
 The validation plugin:
+
 - Runs input validation before handler invocation via `onRequest`
 - Runs output validation after handler returns via `onResponse`
 - Throws `RPCValidationError` on failure, preserving `phase`, `method`, and Standard Schema `issues`
@@ -164,9 +165,12 @@ Middleware is an optional feature implemented as an `RPCPlugin` using `wrapHandl
 import { middlewarePlugin, type MiddlewareHandler } from "kkrpc/middleware"
 
 const logger: MiddlewareHandler = async (ctx, next) => {
-  console.time(ctx.method)
-  try { return await next() }
-  finally { console.timeEnd(ctx.method) }
+	console.time(ctx.method)
+	try {
+		return await next()
+	} finally {
+		console.timeEnd(ctx.method)
+	}
 }
 
 expose(api, transport, { plugins: [middlewarePlugin([logger])] })
@@ -209,25 +213,25 @@ Transfer support is gated by transport capabilities. The channel only forwards t
 The `createTransport()` function composes a `Platform<TWire>` and `Codec<TMessage, TWire>` into a message-level `Transport<RPCMessage>`:
 
 ```typescript
-import { createTransport } from "kkrpc/transport"
 import { jsonLineCodec } from "kkrpc/codecs"
 import { stdioPlatform } from "kkrpc/stdio"
+import { createTransport } from "kkrpc/transport"
 
 const transport = createTransport({
-  platform: stdioPlatform({ readable, writable }),
-  codec: jsonLineCodec()
+	platform: stdioPlatform({ readable, writable }),
+	codec: jsonLineCodec()
 })
 ```
 
 Built-in codecs:
 
-| Codec | Input Type | Output Type | Transfer Support |
-|---|---|---|---|
-| `objectCodec()` | `TMessage` | `TMessage` | Yes (identity pass-through) |
-| `jsonCodec()` | `TMessage` | `string` | No (JSON serialization) |
-| `jsonLineCodec()` | `TMessage` | `string` | No (JSON + newline) |
-| `superJsonCodec()` | `TMessage` | `string` | No (SuperJSON) |
-| `superJsonLineCodec()` | `TMessage` | `string` | No (SuperJSON + newline) |
+| Codec                  | Input Type | Output Type | Transfer Support            |
+| ---------------------- | ---------- | ----------- | --------------------------- |
+| `objectCodec()`        | `TMessage` | `TMessage`  | Yes (identity pass-through) |
+| `jsonCodec()`          | `TMessage` | `string`    | No (JSON serialization)     |
+| `jsonLineCodec()`      | `TMessage` | `string`    | No (JSON + newline)         |
+| `superJsonCodec()`     | `TMessage` | `string`    | No (SuperJSON)              |
+| `superJsonLineCodec()` | `TMessage` | `string`    | No (SuperJSON + newline)    |
 
 **Section sources**
 
@@ -247,10 +251,10 @@ kkrpc v2.0.0 supports protocol-level metadata attached to outgoing requests. The
 
 ```typescript
 const channel = new RPCChannel(transport, {
-  getMetadata: () => ({
-    requestId: crypto.randomUUID(),
-    traceparent: `00-${traceId}-${spanId}-01`
-  })
+	getMetadata: () => ({
+		requestId: crypto.randomUUID(),
+		traceparent: `00-${traceId}-${spanId}-01`
+	})
 })
 ```
 

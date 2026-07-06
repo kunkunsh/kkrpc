@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test"
 import { dispose, expose, RPCChannel, transfer, wrap } from "../src/entries/mod.ts"
-import { RPCChannel as StreamingRPCChannel } from "../src/entries/streaming.ts"
 import type { RPCMessage, RPCStreamRequest, Transport } from "../src/entries/mod.ts"
+import { RPCChannel as StreamingRPCChannel } from "../src/entries/streaming.ts"
 
 interface RemoteWidget {
 	name: string
@@ -345,16 +345,19 @@ describe("stable core RPC", () => {
 	test("drains buffered async iterable values before surfacing producer errors", async () => {
 		const [a, b] = createPair()
 		const client = new StreamingRPCChannel<object, { failAfterValues(): AsyncIterable<number> }>(a)
-		const server = new StreamingRPCChannel<{ failAfterValues(): AsyncIterable<number> }, object>(b, {
-			expose: {
-				async *failAfterValues() {
-					yield 1
-					yield 2
-					yield 3
-					throw new Error("stream failed after values")
+		const server = new StreamingRPCChannel<{ failAfterValues(): AsyncIterable<number> }, object>(
+			b,
+			{
+				expose: {
+					async *failAfterValues() {
+						yield 1
+						yield 2
+						yield 3
+						throw new Error("stream failed after values")
+					}
 				}
 			}
-		})
+		)
 		const iterator = client.getAPI().failAfterValues()[Symbol.asyncIterator]()
 
 		await new Promise((resolve) => setTimeout(resolve, 0))
@@ -504,21 +507,22 @@ describe("stable core RPC", () => {
 
 	test("streams async iterable arguments to the remote handler", async () => {
 		const [a, b] = createPair()
-		const client = new StreamingRPCChannel<object, { sum(values: AsyncIterable<number>): Promise<number> }>(
-			a
-		)
-		const server = new StreamingRPCChannel<{ sum(values: AsyncIterable<number>): Promise<number> }, object>(
-			b,
-			{
-				expose: {
-					async sum(values) {
-						let total = 0
-						for await (const value of values) total += value
-						return total
-					}
+		const client = new StreamingRPCChannel<
+			object,
+			{ sum(values: AsyncIterable<number>): Promise<number> }
+		>(a)
+		const server = new StreamingRPCChannel<
+			{ sum(values: AsyncIterable<number>): Promise<number> },
+			object
+		>(b, {
+			expose: {
+				async sum(values) {
+					let total = 0
+					for await (const value of values) total += value
+					return total
 				}
 			}
-		)
+		})
 
 		async function* values() {
 			yield 2
@@ -534,17 +538,20 @@ describe("stable core RPC", () => {
 
 	test("closes async iterable arguments when the remote call fails before consuming them", async () => {
 		const [a, b] = createPair()
-		const client = new StreamingRPCChannel<object, { fail(values: AsyncIterable<number>): Promise<void> }>(a)
-		const server = new StreamingRPCChannel<{ fail(values: AsyncIterable<number>): Promise<void> }, object>(
-			b,
-			{
-				expose: {
-					async fail() {
-						throw new Error("boom")
-					}
+		const client = new StreamingRPCChannel<
+			object,
+			{ fail(values: AsyncIterable<number>): Promise<void> }
+		>(a)
+		const server = new StreamingRPCChannel<
+			{ fail(values: AsyncIterable<number>): Promise<void> },
+			object
+		>(b, {
+			expose: {
+				async fail() {
+					throw new Error("boom")
 				}
 			}
-		)
+		})
 		let finalized = false
 
 		const values: AsyncIterable<number> = {
@@ -656,7 +663,8 @@ describe("stable core RPC", () => {
 		await new Promise((resolve) => setTimeout(resolve, 20))
 
 		const dataChunks = b.messages.filter(
-			(message): message is Extract<RPCMessage, { t: "sr" }> => message.t === "sr" && message.d === false
+			(message): message is Extract<RPCMessage, { t: "sr" }> =>
+				message.t === "sr" && message.d === false
 		)
 		expect(dataChunks).toHaveLength(1)
 		expect(localStreams.localStreams.size).toBe(0)

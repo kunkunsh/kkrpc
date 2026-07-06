@@ -13,6 +13,7 @@
 ### Task 1: Update Workspace Example READMEs
 
 **Files:**
+
 - Modify: `examples/chrome-extension/README.md`
 - Modify: `examples/electron-demo/README.md`
 - Modify: `examples/http-demo/README.md`
@@ -33,6 +34,7 @@ Keep existing overview, architecture, and feature documentation. Do not remove u
 ### Task 2: Update Deno-Only Example READMEs
 
 **Files:**
+
 - Modify: `examples/deno-backend/README.md`
 - Modify: `examples/deno-webworker-demo/README.md`
 
@@ -47,6 +49,7 @@ Describe the terminal output that indicates the example is working.
 ### Task 3: Verify Docs Update
 
 **Files:**
+
 - Read: all updated README files
 
 - [ ] **Step 1: Inspect README headings**

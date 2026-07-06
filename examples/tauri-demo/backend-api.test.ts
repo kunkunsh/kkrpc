@@ -1,5 +1,4 @@
 import { describe, expect, test } from "bun:test"
-
 import { Api } from "./src/backend/api"
 
 describe("tauri-demo backend API", () => {

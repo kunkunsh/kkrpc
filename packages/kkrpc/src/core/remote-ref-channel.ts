@@ -9,10 +9,10 @@
  */
 
 import {
-	RPCChannel,
 	fromRPCError,
 	getParent,
 	getPath,
+	RPCChannel,
 	toRPCError,
 	type RPCChannelOptions
 } from "./channel.ts"
@@ -322,7 +322,12 @@ export class RemoteReferenceRPCChannel<
 		}
 		if (isExplicitProxyTarget(value)) {
 			state.changed = true
-			return this.retainLocalRef(typeof value === "function" ? "function" : "object", value, state, receiver)
+			return this.retainLocalRef(
+				typeof value === "function" ? "function" : "object",
+				value,
+				state,
+				receiver
+			)
 		}
 		if (typeof value === "function") {
 			throw new RPCEncodeError("Unmarked function values require proxy() with kkrpc/remote-refs")
@@ -370,7 +375,10 @@ export class RemoteReferenceRPCChannel<
 	}
 
 	/** Decode remote-reference envelopes recursively inside plain arrays/objects. */
-	protected override decodeValue(value: unknown, state: RewriteState = this.createRewriteState()): unknown {
+	protected override decodeValue(
+		value: unknown,
+		state: RewriteState = this.createRewriteState()
+	): unknown {
 		if (isRemoteRefEnvelope(value)) {
 			state.changed = true
 			const localRef = this.localRefs.get(value.id)
@@ -496,7 +504,10 @@ export class RemoteReferenceRPCChannel<
 			return result
 		} catch (encodeError) {
 			this.rollbackNewRefs(state)
-			return { n: "Error", m: `${String(error)} (error custom field encoding failed: ${String(encodeError)})` }
+			return {
+				n: "Error",
+				m: `${String(error)} (error custom field encoding failed: ${String(encodeError)})`
+			}
 		}
 	}
 
@@ -716,7 +727,8 @@ export class RemoteReferenceRPCChannel<
 			return true
 		}
 		const ref = this.localRefs.get(refId)
-		if (!ref && this.releasedLocalRefIds.has(refId)) throw new RPCRemoteReferenceReleasedError(refId)
+		if (!ref && this.releasedLocalRefIds.has(refId))
+			throw new RPCRemoteReferenceReleasedError(refId)
 		if (!ref) throw new Error(`Unknown remote reference ${refId}`)
 		if (ref.released) throw new RPCRemoteReferenceReleasedError(refId)
 		const value = ref.value

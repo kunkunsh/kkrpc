@@ -1,8 +1,7 @@
 import { describe, expect, test } from "bun:test"
-
+import { middlewarePlugin, type MiddlewareHandler } from "../src/entries/middleware.ts"
 import { dispose, RPCChannel, wrap } from "../src/entries/mod.ts"
 import type { RPCMessage, RPCMessageMetadata, RPCPlugin, Transport } from "../src/entries/mod.ts"
-import { middlewarePlugin, type MiddlewareHandler } from "../src/entries/middleware.ts"
 
 interface ServerAPI {
 	echo(message: string): Promise<string>
@@ -54,7 +53,10 @@ describe("stable RPC metadata", () => {
 				seenMeta = ctx.meta
 			}
 		}
-		const server = new RPCChannel<ServerAPI, object>(serverTransport, { expose: api, plugins: [plugin] })
+		const server = new RPCChannel<ServerAPI, object>(serverTransport, {
+			expose: api,
+			plugins: [plugin]
+		})
 		const client = new RPCChannel<object, ServerAPI>(clientTransport, {
 			getMetadata: () => ({
 				traceparent: "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01",

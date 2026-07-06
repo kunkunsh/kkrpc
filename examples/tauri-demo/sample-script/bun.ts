@@ -1,7 +1,7 @@
 import { RPCChannel } from "kkrpc"
 import { stdioJsonTransport } from "kkrpc/stdio"
-import { apiMethods } from "./api.js"
 import { promiseWritable, ReadableStreamLike } from "../src/backend/stream-stdio"
+import { apiMethods } from "./api.js"
 
 console.error("Starting Bun script")
 const stdio = stdioJsonTransport({

@@ -21,11 +21,11 @@ skills/
 
 ## KEY FILES
 
-| File               | Purpose                                                              |
-| ------------------ | -------------------------------------------------------------------- |
-| `kkrpc/SKILL.md`   | TypeScript usage: RPC channels, transports, callbacks, validation    |
-| `kkrpc-migration/SKILL.md` | Migration from 0.7.x/classic/next APIs to stable 1.0 native APIs |
-| `interop/SKILL.md` | Cross-language: Protocol, message formats, reference implementations |
+| File                       | Purpose                                                              |
+| -------------------------- | -------------------------------------------------------------------- |
+| `kkrpc/SKILL.md`           | TypeScript usage: RPC channels, transports, callbacks, validation    |
+| `kkrpc-migration/SKILL.md` | Migration from 0.7.x/classic/next APIs to stable 1.0 native APIs     |
+| `interop/SKILL.md`         | Cross-language: Protocol, message formats, reference implementations |
 
 ## CONVENTIONS
 

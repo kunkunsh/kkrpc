@@ -16,7 +16,13 @@
  * ```
  */
 
-import { takeTransferDescriptor } from "./transfer.ts"
+import {
+	runErrorHooks,
+	runHandlerHooks,
+	runRequestHooks,
+	runResponseHooks,
+	type RPCPlugin
+} from "./plugins.ts"
 import type {
 	RPCCallback,
 	RPCError,
@@ -26,13 +32,7 @@ import type {
 	RPCRequest,
 	RPCResponse
 } from "./protocol.ts"
-import {
-	runErrorHooks,
-	runHandlerHooks,
-	runRequestHooks,
-	runResponseHooks,
-	type RPCPlugin
-} from "./plugins.ts"
+import { takeTransferDescriptor } from "./transfer.ts"
 import type { Transport } from "./transport.ts"
 
 /** Options used to configure an `RPCChannel`. */
@@ -199,7 +199,8 @@ export class RPCChannel<LocalAPI extends object = object, RemoteAPI extends obje
 		this.expose = options.expose
 		this.plugins = options.plugins ?? []
 		this.getMetadata = options.getMetadata
-		this.supportsTransfer = options.enableTransfer !== false && transport.capabilities?.transfer === true
+		this.supportsTransfer =
+			options.enableTransfer !== false && transport.capabilities?.transfer === true
 		this.timeout = options.timeout ?? 30_000
 		this.unsubscribe = transport.subscribe((message) => void this.handleMessage(message))
 	}
@@ -248,7 +249,12 @@ export class RPCChannel<LocalAPI extends object = object, RemoteAPI extends obje
 
 	// Register the pending response before sending to avoid races with synchronous transports.
 	/** Send one RPC request and return the pending response promise. */
-	protected request(op: RPCOperation, path: string[], args?: unknown[], value?: unknown): Promise<unknown> {
+	protected request(
+		op: RPCOperation,
+		path: string[],
+		args?: unknown[],
+		value?: unknown
+	): Promise<unknown> {
 		if (this.destroyed) return Promise.reject(new Error("RPC channel destroyed"))
 		let meta: RPCMessageMetadata | undefined
 		try {

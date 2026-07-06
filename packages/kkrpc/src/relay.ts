@@ -18,8 +18,12 @@ export function relayTransport(
 	left: Transport<RPCMessage>,
 	right: Transport<RPCMessage>
 ): RelayController {
-	const unsubscribeLeft = left.subscribe((message) => forwardMessage("left-to-right", right, message))
-	const unsubscribeRight = right.subscribe((message) => forwardMessage("right-to-left", left, message))
+	const unsubscribeLeft = left.subscribe((message) =>
+		forwardMessage("left-to-right", right, message)
+	)
+	const unsubscribeRight = right.subscribe((message) =>
+		forwardMessage("right-to-left", left, message)
+	)
 
 	return {
 		dispose() {

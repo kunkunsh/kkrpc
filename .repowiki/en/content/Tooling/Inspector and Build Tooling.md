@@ -31,8 +31,8 @@ import { createInspector, MemoryBackend } from "kkrpc/inspector"
 
 const backend = new MemoryBackend()
 const inspector = createInspector({
-  backends: [backend],
-  options: { trackLatency: true }
+	backends: [backend],
+	options: { trackLatency: true }
 })
 
 expose(api, transport, { plugins: [inspector.plugin("server")] })
@@ -44,11 +44,11 @@ Every event carries a normalized shape:
 
 ```typescript
 interface InspectEvent {
-  timestamp: number       // Unix timestamp in milliseconds
-  direction: "sent" | "received"
-  sessionId: string       // Distinguishes endpoints
-  message: RPCMessage     // The compact protocol message
-  duration?: number       // Request latency when tracking enabled
+	timestamp: number // Unix timestamp in milliseconds
+	direction: "sent" | "received"
+	sessionId: string // Distinguishes endpoints
+	message: RPCMessage // The compact protocol message
+	duration?: number // Request latency when tracking enabled
 }
 ```
 
@@ -77,15 +77,18 @@ graph LR
 - [packages/kkrpc/src/entries/inspector.ts](file://packages/kkrpc/src/entries/inspector.ts#L39-L47)
 
 The `KKRPCInspector` class serves dual duty:
+
 1. As an **inspector backend factory** — Creates `RPCPlugin` instances via `plugin(sessionId)`
 2. As a **backend itself** — Implements `InspectorBackend` and can be chained
 
 Inspector options provide:
+
 - **`filter`** — Predicate to drop events (e.g., filter by method path)
 - **`sanitize`** — Transform or redact events before recording
 - **`trackLatency`** — Track request/response latency by correlating request ids
 
 Built-in backends:
+
 - `MemoryBackend` — Stores events in an array for test assertions. Supports `query()` filtering and `clear()`.
 - `consoleBackend(pretty?)` — Writes JSON events to `console.log`.
 
@@ -108,6 +111,7 @@ expect(events[0].message).toMatchObject({ t: "q", op: "call", p: ["ping"] })
 ```
 
 It provides:
+
 - `log(event)` — Store one event
 - `query({ sessionId?, direction? })` — Filtered event retrieval
 - `clear()` — Reset storage
@@ -127,12 +131,12 @@ pnpm --filter kkrpc dev      # tsdown --watch for development
 
 Key build scripts:
 
-| Script | Command | Purpose |
-|---|---|---|
-| `prepare` | `bun run scripts/prepare.ts` | Generate Deno-compatible type declarations |
-| `build` | `tsdown` | Bundle 28 entries to ESM + CJS |
-| `dev` | `tsdown --watch` | Watch mode for development |
-| `compare:browser-bundle-size` | `pnpm build && bun run scripts/compare-browser-bundle-size.ts` | Benchmark browser import size |
+| Script                        | Command                                                        | Purpose                                    |
+| ----------------------------- | -------------------------------------------------------------- | ------------------------------------------ |
+| `prepare`                     | `bun run scripts/prepare.ts`                                   | Generate Deno-compatible type declarations |
+| `build`                       | `tsdown`                                                       | Bundle 28 entries to ESM + CJS             |
+| `dev`                         | `tsdown --watch`                                               | Watch mode for development                 |
+| `compare:browser-bundle-size` | `pnpm build && bun run scripts/compare-browser-bundle-size.ts` | Benchmark browser import size              |
 
 **Section sources**
 
@@ -143,36 +147,36 @@ Key build scripts:
 
 The package exports 28+ subpaths from `package.json`. Each subpath maps to a source file in `src/entries/`. The entry structure is hierarchical:
 
-| Subpath | Entry File | Purpose |
-|---|---|---|
-| `.` | `src/entries/mod.ts` | Core RPCChannel, wrap, expose, types |
-| `./browser` | `src/entries/browser-mod.ts` | Browser-safe core subset |
-| `./deno` | `src/entries/deno-mod.ts` | Deno-friendly core |
-| `./transport` | `src/entries/transport.ts` | Transport primitives |
-| `./codecs` | `src/entries/codecs.ts` | Codec helpers |
-| `./plugins` | `src/entries/plugins.ts` | Plugin type helpers |
-| `./validation` | `src/entries/validation.ts` | Standard Schema validation |
-| `./middleware` | `src/entries/middleware.ts` | Middleware interceptors |
-| `./superjson` | `src/entries/superjson.ts` | SuperJSON codecs |
-| `./remote-refs` | `src/entries/remote-refs.ts` | Comlink-style references |
-| `./streaming` | `src/entries/streaming.ts` | Async iterable streaming |
-| `./inspector` | `src/entries/inspector.ts` | Observability |
-| `./relay` | `src/entries/relay.ts` | Transport relay |
-| `./worker` | `src/entries/worker.ts` | Web Worker transport |
-| `./stdio` | `src/entries/stdio.ts` | Stdio transports |
-| `./ws` | `src/entries/ws.ts` | WebSocket transport |
-| `./ws/hono` | `src/entries/ws-hono.ts` | Hono WebSocket adapter |
-| `./ws/elysia` | `src/entries/ws-elysia.ts` | Elysia WebSocket adapter |
-| `./http` | `src/entries/http.ts` | HTTP transport |
-| `./iframe` | `src/entries/iframe.ts` | iframe transport |
-| `./electron` | `src/entries/electron.ts` | Electron IPC transport |
-| `./tauri` | `src/entries/tauri.ts` | Tauri transport |
-| `./chrome-extension` | `src/entries/chrome-extension.ts` | Chrome Extension transport |
-| `./socketio` | `src/entries/socketio.ts` | Socket.IO transport |
-| `./kafka` | `src/entries/kafka.ts` | Kafka transport |
-| `./rabbitmq` | `src/entries/rabbitmq.ts` | RabbitMQ transport |
-| `./redis-streams` | `src/entries/redis-streams.ts` | Redis Streams transport |
-| `./nats` | `src/entries/nats.ts` | NATS transport |
+| Subpath              | Entry File                        | Purpose                              |
+| -------------------- | --------------------------------- | ------------------------------------ |
+| `.`                  | `src/entries/mod.ts`              | Core RPCChannel, wrap, expose, types |
+| `./browser`          | `src/entries/browser-mod.ts`      | Browser-safe core subset             |
+| `./deno`             | `src/entries/deno-mod.ts`         | Deno-friendly core                   |
+| `./transport`        | `src/entries/transport.ts`        | Transport primitives                 |
+| `./codecs`           | `src/entries/codecs.ts`           | Codec helpers                        |
+| `./plugins`          | `src/entries/plugins.ts`          | Plugin type helpers                  |
+| `./validation`       | `src/entries/validation.ts`       | Standard Schema validation           |
+| `./middleware`       | `src/entries/middleware.ts`       | Middleware interceptors              |
+| `./superjson`        | `src/entries/superjson.ts`        | SuperJSON codecs                     |
+| `./remote-refs`      | `src/entries/remote-refs.ts`      | Comlink-style references             |
+| `./streaming`        | `src/entries/streaming.ts`        | Async iterable streaming             |
+| `./inspector`        | `src/entries/inspector.ts`        | Observability                        |
+| `./relay`            | `src/entries/relay.ts`            | Transport relay                      |
+| `./worker`           | `src/entries/worker.ts`           | Web Worker transport                 |
+| `./stdio`            | `src/entries/stdio.ts`            | Stdio transports                     |
+| `./ws`               | `src/entries/ws.ts`               | WebSocket transport                  |
+| `./ws/hono`          | `src/entries/ws-hono.ts`          | Hono WebSocket adapter               |
+| `./ws/elysia`        | `src/entries/ws-elysia.ts`        | Elysia WebSocket adapter             |
+| `./http`             | `src/entries/http.ts`             | HTTP transport                       |
+| `./iframe`           | `src/entries/iframe.ts`           | iframe transport                     |
+| `./electron`         | `src/entries/electron.ts`         | Electron IPC transport               |
+| `./tauri`            | `src/entries/tauri.ts`            | Tauri transport                      |
+| `./chrome-extension` | `src/entries/chrome-extension.ts` | Chrome Extension transport           |
+| `./socketio`         | `src/entries/socketio.ts`         | Socket.IO transport                  |
+| `./kafka`            | `src/entries/kafka.ts`            | Kafka transport                      |
+| `./rabbitmq`         | `src/entries/rabbitmq.ts`         | RabbitMQ transport                   |
+| `./redis-streams`    | `src/entries/redis-streams.ts`    | Redis Streams transport              |
+| `./nats`             | `src/entries/nats.ts`             | NATS transport                       |
 
 **Section sources**
 
@@ -191,6 +195,7 @@ pnpm --filter kkrpc check-types    # TypeScript type checking
 ```
 
 Test suite coverage includes:
+
 - Core channel functionality (`__tests__/core.test.ts`)
 - Remote references (`__tests__/remote-refs.test.ts`)
 - Streaming, bus envelopes, stdio, worker, Electron/Tauri, SuperJSON, metadata

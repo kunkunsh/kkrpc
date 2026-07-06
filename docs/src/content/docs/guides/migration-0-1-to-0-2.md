@@ -11,16 +11,16 @@ This guide is for code written against v0.1.0 behavior where streaming or remote
 
 ## What Changed
 
-| Feature | v0.1.0 | v0.2.0 |
-| --- | --- | --- |
-| Ordinary RPC calls | `kkrpc` | `kkrpc` |
-| Property get/set, constructors | `kkrpc` | `kkrpc` |
-| Top-level progress callbacks | `kkrpc` | `kkrpc`, fire-and-forget only |
-| Callback return values / thrown callback errors | default remote refs | `kkrpc/remote-refs` with `proxy(callback)` |
-| Explicit object handles | `proxy(value)` from default entry | `proxy(value)` from `kkrpc/remote-refs` |
-| Nested function leaves | automatic in remote-ref core | explicit `proxy(fn)` only in `kkrpc/remote-refs`; unmarked functions are rejected |
-| Async iterable arguments/results | default core | `kkrpc/streaming` |
-| HTTP with callbacks/streams/refs | unsupported | clearly rejected before unsupported traffic starts |
+| Feature                                         | v0.1.0                            | v0.2.0                                                                            |
+| ----------------------------------------------- | --------------------------------- | --------------------------------------------------------------------------------- |
+| Ordinary RPC calls                              | `kkrpc`                           | `kkrpc`                                                                           |
+| Property get/set, constructors                  | `kkrpc`                           | `kkrpc`                                                                           |
+| Top-level progress callbacks                    | `kkrpc`                           | `kkrpc`, fire-and-forget only                                                     |
+| Callback return values / thrown callback errors | default remote refs               | `kkrpc/remote-refs` with `proxy(callback)`                                        |
+| Explicit object handles                         | `proxy(value)` from default entry | `proxy(value)` from `kkrpc/remote-refs`                                           |
+| Nested function leaves                          | automatic in remote-ref core      | explicit `proxy(fn)` only in `kkrpc/remote-refs`; unmarked functions are rejected |
+| Async iterable arguments/results                | default core                      | `kkrpc/streaming`                                                                 |
+| HTTP with callbacks/streams/refs                | unsupported                       | clearly rejected before unsupported traffic starts                                |
 
 ## Quick Checklist
 
@@ -177,21 +177,21 @@ import { RPCChannel } from "kkrpc/streaming"
 ```
 
 ```ts title="Remote-reference tests"
-import { RPCChannel, proxy, releaseProxy } from "kkrpc/remote-refs"
+import { proxy, releaseProxy, RPCChannel } from "kkrpc/remote-refs"
 ```
 
 Keep default-core tests focused on ordinary calls, property access, transfer descriptors, plugins, and fire-and-forget top-level callbacks.
 
 ## Troubleshooting
 
-| Symptom | Likely cause | Fix |
-| --- | --- | --- |
-| `RPC result is not async iterable` | Client used default `kkrpc` for a streaming method | Import from `kkrpc/streaming` on both sides |
-| Callback result is `undefined` | Default callback arguments are fire-and-forget | Use `kkrpc/remote-refs` and pass `proxy(callback)` |
-| Nested returned function is not callable remotely | Function was not explicitly marked | Wrap the function leaf with `proxy(fn)` |
-| `RPC channel does not support remote references` | Remote refs entry used with a transport or channel that does not advertise support | Use a bidirectional object-mode transport and `kkrpc/remote-refs` on both endpoints |
-| `Remote proxy belongs to a different RPC channel` | A remote proxy decoded from one channel was passed through another channel | Do not treat remote proxies as portable; expose an explicit bridge method instead |
-| HTTP rejects callbacks, streams, or refs | HTTP is unary | Move that boundary to a bidirectional transport |
+| Symptom                                           | Likely cause                                                                       | Fix                                                                                 |
+| ------------------------------------------------- | ---------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `RPC result is not async iterable`                | Client used default `kkrpc` for a streaming method                                 | Import from `kkrpc/streaming` on both sides                                         |
+| Callback result is `undefined`                    | Default callback arguments are fire-and-forget                                     | Use `kkrpc/remote-refs` and pass `proxy(callback)`                                  |
+| Nested returned function is not callable remotely | Function was not explicitly marked                                                 | Wrap the function leaf with `proxy(fn)`                                             |
+| `RPC channel does not support remote references`  | Remote refs entry used with a transport or channel that does not advertise support | Use a bidirectional object-mode transport and `kkrpc/remote-refs` on both endpoints |
+| `Remote proxy belongs to a different RPC channel` | A remote proxy decoded from one channel was passed through another channel         | Do not treat remote proxies as portable; expose an explicit bridge method instead   |
+| HTTP rejects callbacks, streams, or refs          | HTTP is unary                                                                      | Move that boundary to a bidirectional transport                                     |
 
 ## Why This Change Exists
 
@@ -199,10 +199,10 @@ The default bundle had grown as streaming and remote-reference state machines we
 
 Measured after the split:
 
-| Bundle | Raw minified | Gzip | Brotli |
-| --- | ---: | ---: | ---: |
-| `kkrpc core` | 6.37 KB | 2.41 KB | 2.17 KB |
-| `kkrpc/streaming` | 14.78 KB | 4.28 KB | 3.81 KB |
-| `kkrpc/remote-refs` | 16.85 KB | 4.79 KB | 4.24 KB |
+| Bundle              | Raw minified |    Gzip |  Brotli |
+| ------------------- | -----------: | ------: | ------: |
+| `kkrpc core`        |      6.37 KB | 2.41 KB | 2.17 KB |
+| `kkrpc/streaming`   |     14.78 KB | 4.28 KB | 3.81 KB |
+| `kkrpc/remote-refs` |     16.85 KB | 4.79 KB | 4.24 KB |
 
 Use the smallest entry that matches the behavior you need.

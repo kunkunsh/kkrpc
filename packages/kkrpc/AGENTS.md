@@ -29,22 +29,22 @@ packages/kkrpc/
 
 ## KEY FILES
 
-| File                                             | Purpose                         |
-| ------------------------------------------------ | ------------------------------- |
-| File                                                    | Purpose                         |
-| ------------------------------------------------------- | ------------------------------- |
-| `src/entries/mod.ts`                                    | Main stable entry for core APIs |
-| `src/entries/browser-mod.ts`                            | Browser-safe core entry         |
-| `src/entries/deno-mod.ts`                               | Deno-friendly core entry        |
-| `src/entries/transport.ts`                              | Transport primitives entry      |
-| `src/entries/codecs.ts`                                 | Codec helpers entry             |
-| `src/entries/plugins.ts`                                | Plugin helpers entry            |
-| `src/entries/worker.ts`, `src/entries/stdio.ts`         | Runtime transport entries       |
-| `src/entries/http.ts`, `src/entries/ws.ts`              | Runtime transport entries       |
+| File                                                     | Purpose                         |
+| -------------------------------------------------------- | ------------------------------- |
+| File                                                     | Purpose                         |
+| -------------------------------------------------------  | ------------------------------- |
+| `src/entries/mod.ts`                                     | Main stable entry for core APIs |
+| `src/entries/browser-mod.ts`                             | Browser-safe core entry         |
+| `src/entries/deno-mod.ts`                                | Deno-friendly core entry        |
+| `src/entries/transport.ts`                               | Transport primitives entry      |
+| `src/entries/codecs.ts`                                  | Codec helpers entry             |
+| `src/entries/plugins.ts`                                 | Plugin helpers entry            |
+| `src/entries/worker.ts`, `src/entries/stdio.ts`          | Runtime transport entries       |
+| `src/entries/http.ts`, `src/entries/ws.ts`               | Runtime transport entries       |
 | `src/entries/validation.ts`, `src/entries/middleware.ts` | Feature entries                 |
-| `src/entries/relay.ts`, `src/entries/inspector.ts`      | Relay and observability entries |
-| `scripts/test.ts`                                       | Package test runner             |
-| `scripts/prepare.ts`                                    | Deno type generation            |
+| `src/entries/relay.ts`, `src/entries/inspector.ts`       | Relay and observability entries |
+| `scripts/test.ts`                                        | Package test runner             |
+| `scripts/prepare.ts`                                     | Deno type generation            |
 
 ## EXPORT STRATEGY
 

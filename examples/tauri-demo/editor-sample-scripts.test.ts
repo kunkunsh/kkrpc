@@ -1,5 +1,4 @@
 import { describe, expect, test } from "bun:test"
-
 import { sampleScripts } from "./src/routes/examples/editor/sample-scripts"
 
 describe("editor sample scripts", () => {

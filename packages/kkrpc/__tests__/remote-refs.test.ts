@@ -7,8 +7,8 @@
  */
 
 import { describe, expect, test } from "bun:test"
-import { RPCChannel as CoreRPCChannel } from "../src/entries/mod.ts"
 import { registerRemoteProxy } from "../src/core/remote-ref.ts"
+import { RPCChannel as CoreRPCChannel } from "../src/entries/mod.ts"
 import {
 	isRemoteProxy,
 	isRemoteRefEnvelope,
@@ -142,14 +142,17 @@ describe("remote references", () => {
 		const client = new RPCChannel<object, { receive(input: { cb(): string }): Promise<string> }>(
 			clientTransport
 		)
-		const server = new RPCChannel<{ receive(input: { cb(): string }): string }, object>(serverTransport, {
-			expose: {
-				receive: (input) => {
-					called = true
-					return input.cb()
+		const server = new RPCChannel<{ receive(input: { cb(): string }): string }, object>(
+			serverTransport,
+			{
+				expose: {
+					receive: (input) => {
+						called = true
+						return input.cb()
+					}
 				}
 			}
-		})
+		)
 
 		await expect(client.getAPI().receive({ cb: () => "plain" })).rejects.toThrow("proxy()")
 		expect(clientTransport.messages).toHaveLength(0)
@@ -162,20 +165,21 @@ describe("remote references", () => {
 	test("decodes legacy top-level callback envelopes from default channels", async () => {
 		const [clientTransport, serverTransport] = createPair()
 		let callbackValue = ""
-		const client = new CoreRPCChannel<object, { use(callback: (value: string) => void): Promise<string> }>(
-			clientTransport
-		)
-		const server = new RPCChannel<
-			{ use(callback: (value: string) => void): string },
-			object
-		>(serverTransport, {
-			expose: {
-				use(callback) {
-					callback("from-remote-ref-server")
-					return "done"
+		const client = new CoreRPCChannel<
+			object,
+			{ use(callback: (value: string) => void): Promise<string> }
+		>(clientTransport)
+		const server = new RPCChannel<{ use(callback: (value: string) => void): string }, object>(
+			serverTransport,
+			{
+				expose: {
+					use(callback) {
+						callback("from-remote-ref-server")
+						return "done"
+					}
 				}
 			}
-		})
+		)
 
 		expect(
 			await client.getAPI().use((value) => {
@@ -191,17 +195,21 @@ describe("remote references", () => {
 	test("rejects raw nested functions received from default object-mode channels", async () => {
 		const [clientTransport, serverTransport] = createPair()
 		let called = false
-		const client = new CoreRPCChannel<object, { receive(input: { cb(): string }): Promise<string> }>(
-			clientTransport
-		)
-		const server = new RPCChannel<{ receive(input: { cb(): string }): string }, object>(serverTransport, {
-			expose: {
-				receive(input) {
-					called = true
-					return input.cb()
+		const client = new CoreRPCChannel<
+			object,
+			{ receive(input: { cb(): string }): Promise<string> }
+		>(clientTransport)
+		const server = new RPCChannel<{ receive(input: { cb(): string }): string }, object>(
+			serverTransport,
+			{
+				expose: {
+					receive(input) {
+						called = true
+						return input.cb()
+					}
 				}
 			}
-		})
+		)
 
 		await expect(client.getAPI().receive({ cb: () => "plain" })).rejects.toThrow("proxy()")
 		expect(called).toBe(false)
@@ -219,7 +227,9 @@ describe("remote references", () => {
 				return this.value
 			}
 		}
-		const client = new RPCChannel<object, { getCounter(): Promise<typeof counter> }>(clientTransport)
+		const client = new RPCChannel<object, { getCounter(): Promise<typeof counter> }>(
+			clientTransport
+		)
 		const server = new RPCChannel<{ getCounter(): typeof counter }, object>(serverTransport, {
 			expose: { getCounter: () => proxy(counter) }
 		})
@@ -249,9 +259,10 @@ describe("remote references", () => {
 		)
 		const remoteHandle = await firstClient.getAPI().getHandle()
 		const [secondClientTransport, receiverTransport] = createPair()
-		const secondClient = new RPCChannel<object, { use(handle: typeof remoteHandle): Promise<void> }>(
-			secondClientTransport
-		)
+		const secondClient = new RPCChannel<
+			object,
+			{ use(handle: typeof remoteHandle): Promise<void> }
+		>(secondClientTransport)
 		const receiver = new RPCChannel<{ use(handle: unknown): void }, object>(receiverTransport, {
 			expose: { use: () => {} }
 		})

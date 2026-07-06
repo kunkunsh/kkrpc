@@ -1,8 +1,7 @@
 import { describe, expect, test } from "bun:test"
-
+import { middlewarePlugin, type MiddlewareHandler } from "../src/entries/middleware.ts"
 import { expose, wrap } from "../src/entries/mod.ts"
 import type { RPCMessage, Transport } from "../src/entries/mod.ts"
-import { middlewarePlugin, type MiddlewareHandler } from "../src/entries/middleware.ts"
 
 interface API {
 	add(a: number, b: number): Promise<number>
@@ -60,12 +59,7 @@ describe("kkrpc middleware plugin", () => {
 
 		try {
 			expect(await api.add(1, 2)).toBe(3)
-			expect(events).toEqual([
-				"outer before add",
-				"inner before",
-				"inner after",
-				"outer after"
-			])
+			expect(events).toEqual(["outer before add", "inner before", "inner after", "outer after"])
 		} finally {
 			controller.dispose()
 		}

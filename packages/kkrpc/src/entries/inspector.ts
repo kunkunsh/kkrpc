@@ -197,7 +197,8 @@ export class KKRPCInspector implements InspectorBackend {
 		if (event.message.t === "q") {
 			const method = event.message.p.join(".")
 			this.stats.methodCounts.set(method, (this.stats.methodCounts.get(method) ?? 0) + 1)
-			if (this.config.options?.trackLatency) this.requestStarts.set(event.message.id, event.timestamp)
+			if (this.config.options?.trackLatency)
+				this.requestStarts.set(event.message.id, event.timestamp)
 			return
 		}
 

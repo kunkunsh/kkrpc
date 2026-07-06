@@ -133,7 +133,8 @@ export function createHttpHandler<LocalAPI extends object>(
 					{ status: 200, headers: { "Content-Type": "application/json" } }
 				)
 			}
-			const unsupportedHttp = findUnsupportedHttpEnvelope(body.a) ?? findUnsupportedHttpEnvelope(body.v)
+			const unsupportedHttp =
+				findUnsupportedHttpEnvelope(body.a) ?? findUnsupportedHttpEnvelope(body.v)
 			if (unsupportedHttp) {
 				return new Response(
 					JSON.stringify({

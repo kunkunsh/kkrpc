@@ -37,48 +37,48 @@ This branch must not preserve classic compatibility. If old behavior is needed, 
 
 The stable package API should replace the temporary `kkrpc/next` namespace.
 
-| Public import | Purpose |
-| --- | --- |
-| `kkrpc` | Core API: `RPCChannel`, `wrap`, `expose`, `dispose`, `transfer`, protocol/transport/plugin core types |
-| `kkrpc/transport` | `Transport`, `Platform`, `Codec`, `createTransport` |
-| `kkrpc/codecs` | Built-in object, JSON, and JSON-line codecs |
-| `kkrpc/plugins` | Core plugin hook types and helpers |
-| `kkrpc/validation` | Native validation plugin APIs |
-| `kkrpc/middleware` | Native middleware/interceptor plugin APIs |
-| `kkrpc/superjson` | SuperJSON codecs only |
-| `kkrpc/browser` | Browser-safe convenience entry for core plus browser transports |
-| `kkrpc/deno` | Deno-safe convenience entry for core plus Deno transports |
-| `kkrpc/worker` | Worker transports |
-| `kkrpc/stdio` | Node/Bun/Deno-style stdio transports |
-| `kkrpc/http` | Native HTTP client/server transports and handlers |
-| `kkrpc/ws` | Native WebSocket transports |
-| `kkrpc/ws/hono` | Native Hono WebSocket integration |
-| `kkrpc/ws/elysia` | Native Elysia WebSocket integration |
-| `kkrpc/iframe` | Native iframe `postMessage` transports |
-| `kkrpc/chrome-extension` | Native Chrome extension port transports |
-| `kkrpc/electron` | Native Electron utility process and IPC transports |
-| `kkrpc/tauri` | Native Tauri shell stdio transport |
-| `kkrpc/socketio` | Native Socket.IO transports |
-| `kkrpc/rabbitmq` | Native RabbitMQ transport |
-| `kkrpc/kafka` | Native Kafka transport |
-| `kkrpc/redis-streams` | Native Redis Streams transport |
-| `kkrpc/nats` | Native NATS transport |
-| `kkrpc/relay` | Native transport-to-transport relay helper |
-| `kkrpc/inspector` | Inspector tooling updated to native RPC events/plugins |
+| Public import            | Purpose                                                                                               |
+| ------------------------ | ----------------------------------------------------------------------------------------------------- |
+| `kkrpc`                  | Core API: `RPCChannel`, `wrap`, `expose`, `dispose`, `transfer`, protocol/transport/plugin core types |
+| `kkrpc/transport`        | `Transport`, `Platform`, `Codec`, `createTransport`                                                   |
+| `kkrpc/codecs`           | Built-in object, JSON, and JSON-line codecs                                                           |
+| `kkrpc/plugins`          | Core plugin hook types and helpers                                                                    |
+| `kkrpc/validation`       | Native validation plugin APIs                                                                         |
+| `kkrpc/middleware`       | Native middleware/interceptor plugin APIs                                                             |
+| `kkrpc/superjson`        | SuperJSON codecs only                                                                                 |
+| `kkrpc/browser`          | Browser-safe convenience entry for core plus browser transports                                       |
+| `kkrpc/deno`             | Deno-safe convenience entry for core plus Deno transports                                             |
+| `kkrpc/worker`           | Worker transports                                                                                     |
+| `kkrpc/stdio`            | Node/Bun/Deno-style stdio transports                                                                  |
+| `kkrpc/http`             | Native HTTP client/server transports and handlers                                                     |
+| `kkrpc/ws`               | Native WebSocket transports                                                                           |
+| `kkrpc/ws/hono`          | Native Hono WebSocket integration                                                                     |
+| `kkrpc/ws/elysia`        | Native Elysia WebSocket integration                                                                   |
+| `kkrpc/iframe`           | Native iframe `postMessage` transports                                                                |
+| `kkrpc/chrome-extension` | Native Chrome extension port transports                                                               |
+| `kkrpc/electron`         | Native Electron utility process and IPC transports                                                    |
+| `kkrpc/tauri`            | Native Tauri shell stdio transport                                                                    |
+| `kkrpc/socketio`         | Native Socket.IO transports                                                                           |
+| `kkrpc/rabbitmq`         | Native RabbitMQ transport                                                                             |
+| `kkrpc/kafka`            | Native Kafka transport                                                                                |
+| `kkrpc/redis-streams`    | Native Redis Streams transport                                                                        |
+| `kkrpc/nats`             | Native NATS transport                                                                                 |
+| `kkrpc/relay`            | Native transport-to-transport relay helper                                                            |
+| `kkrpc/inspector`        | Inspector tooling updated to native RPC events/plugins                                                |
 
 The stable `kkrpc` main entry should stay browser-safe and feature-light. Runtime-specific or optional-peer code must live in subpaths.
 
 Existing export decisions:
 
-| Existing export | Decision |
-| --- | --- |
-| `kkrpc/browser` | Keep and rewrite as a native browser-safe entry. It may re-export core, Worker, iframe, browser WebSocket client, Chrome extension, and transferable helpers, but must not import Node-only or optional peer code. |
-| `kkrpc/browser-lite` | Remove. The stable core replaces this size-optimization experiment. |
-| `kkrpc/browser-mini` | Remove. The stable core replaces this size-optimization experiment. |
-| `kkrpc/deno` | Keep and rewrite as a native Deno-safe entry. It may re-export core plus Deno stdio/worker helpers. |
-| `kkrpc/electron-ipc` | Remove as a public subpath. IPC and utility-process transports live under `kkrpc/electron`. |
-| Hono helpers | Keep under `kkrpc/ws/hono`, not in `kkrpc` or `kkrpc/http`. |
-| Elysia helpers | Keep under `kkrpc/ws/elysia`, not in `kkrpc` or `kkrpc/http`. |
+| Existing export      | Decision                                                                                                                                                                                                           |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `kkrpc/browser`      | Keep and rewrite as a native browser-safe entry. It may re-export core, Worker, iframe, browser WebSocket client, Chrome extension, and transferable helpers, but must not import Node-only or optional peer code. |
+| `kkrpc/browser-lite` | Remove. The stable core replaces this size-optimization experiment.                                                                                                                                                |
+| `kkrpc/browser-mini` | Remove. The stable core replaces this size-optimization experiment.                                                                                                                                                |
+| `kkrpc/deno`         | Keep and rewrite as a native Deno-safe entry. It may re-export core plus Deno stdio/worker helpers.                                                                                                                |
+| `kkrpc/electron-ipc` | Remove as a public subpath. IPC and utility-process transports live under `kkrpc/electron`.                                                                                                                        |
+| Hono helpers         | Keep under `kkrpc/ws/hono`, not in `kkrpc` or `kkrpc/http`.                                                                                                                                                        |
+| Elysia helpers       | Keep under `kkrpc/ws/elysia`, not in `kkrpc` or `kkrpc/http`.                                                                                                                                                      |
 
 ## Source Layout
 
@@ -86,33 +86,33 @@ The temporary vNext implementation should become the formal source layout.
 
 Recommended source layout:
 
-| Current file | Stable role |
-| --- | --- |
-| `src/next/channel.ts` | `src/core/channel.ts` |
-| `src/next/index.ts` | `src/core/index.ts` |
-| `src/next/protocol.ts` | `src/core/protocol.ts` |
-| `src/next/transport.ts` | `src/core/transport.ts` |
-| `src/next/codecs.ts` | `src/core/codecs.ts` |
-| `src/next/plugins.ts` | `src/core/plugins.ts` |
+| Current file             | Stable role                  |
+| ------------------------ | ---------------------------- |
+| `src/next/channel.ts`    | `src/core/channel.ts`        |
+| `src/next/index.ts`      | `src/core/index.ts`          |
+| `src/next/protocol.ts`   | `src/core/protocol.ts`       |
+| `src/next/transport.ts`  | `src/core/transport.ts`      |
+| `src/next/codecs.ts`     | `src/core/codecs.ts`         |
+| `src/next/plugins.ts`    | `src/core/plugins.ts`        |
 | `src/next/validation.ts` | `src/features/validation.ts` |
 | `src/next/middleware.ts` | `src/features/middleware.ts` |
-| `src/next/superjson.ts` | `src/features/superjson.ts` |
-| `src/next/worker.ts` | `src/transports/worker.ts` |
-| `src/next/stdio.ts` | `src/transports/stdio.ts` |
+| `src/next/superjson.ts`  | `src/features/superjson.ts`  |
+| `src/next/worker.ts`     | `src/transports/worker.ts`   |
+| `src/next/stdio.ts`      | `src/transports/stdio.ts`    |
 
 Entry wrappers should use stable names:
 
-| Temporary entry | Stable entry |
-| --- | --- |
-| `next.ts` | `mod.ts` |
-| `next-transport.ts` | `transport.ts` |
-| `next-codecs.ts` | `codecs.ts` |
-| `next-plugins.ts` | `plugins.ts` |
+| Temporary entry      | Stable entry    |
+| -------------------- | --------------- |
+| `next.ts`            | `mod.ts`        |
+| `next-transport.ts`  | `transport.ts`  |
+| `next-codecs.ts`     | `codecs.ts`     |
+| `next-plugins.ts`    | `plugins.ts`    |
 | `next-validation.ts` | `validation.ts` |
 | `next-middleware.ts` | `middleware.ts` |
-| `next-superjson.ts` | `superjson.ts` |
-| `next-worker.ts` | `worker.ts` |
-| `next-stdio.ts` | `stdio.ts` |
+| `next-superjson.ts`  | `superjson.ts`  |
+| `next-worker.ts`     | `worker.ts`     |
+| `next-stdio.ts`      | `stdio.ts`      |
 
 `mod.ts` should export from `src/core/index.ts`. That core index owns the stable `wrap()`, `expose()`, and `dispose()` helpers.
 
@@ -128,14 +128,14 @@ Files dedicated only to compatibility should be deleted:
 
 Shared classic-era files should be handled explicitly:
 
-| Existing file | Decision |
-| --- | --- |
-| `src/transfer.ts` | Keep the transferable marker, move it into `src/core/transfer.ts`, and export it from `kkrpc`. |
-| `src/utils.ts` | Move only still-used utilities, such as ID generation, into `src/core`. Delete unused classic helpers. |
-| `src/serialization.ts` | Delete or replace with native codecs. It must not remain as a classic wire serializer. |
-| `src/standard-schema.ts` | Keep only the parts required by native validation and place them under `src/features/validation.ts` or a feature-local helper. |
-| `src/relay.ts` | Rewrite as a native transport relay and export through `kkrpc/relay`. |
-| `src/transfer-handlers.ts` | Delete unless custom transfer handlers are redesigned as a native core feature with tests. |
+| Existing file              | Decision                                                                                                                       |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `src/transfer.ts`          | Keep the transferable marker, move it into `src/core/transfer.ts`, and export it from `kkrpc`.                                 |
+| `src/utils.ts`             | Move only still-used utilities, such as ID generation, into `src/core`. Delete unused classic helpers.                         |
+| `src/serialization.ts`     | Delete or replace with native codecs. It must not remain as a classic wire serializer.                                         |
+| `src/standard-schema.ts`   | Keep only the parts required by native validation and place them under `src/features/validation.ts` or a feature-local helper. |
+| `src/relay.ts`             | Rewrite as a native transport relay and export through `kkrpc/relay`.                                                          |
+| `src/transfer-handlers.ts` | Delete unless custom transfer handlers are redesigned as a native core feature with tests.                                     |
 
 ## Transport Design
 
@@ -159,13 +159,13 @@ The HTTP server API should be handler-oriented rather than a long-lived bidirect
 
 HTTP error behavior should be explicit:
 
-| Situation | Behavior |
-| --- | --- |
-| Exposed API throws | Return a valid RPC error response for the request id. |
-| Malformed request body or invalid RPC message | Return HTTP 400. |
-| Handler timeout after a valid request id is known | Return HTTP 504, preferably with an RPC error response body carrying that id. |
-| Network or non-2xx response on the client | Reject the client transport `send()` and let the channel reject the pending call. |
-| Handler closes | Reject new requests and dispose request-scoped listeners. |
+| Situation                                         | Behavior                                                                          |
+| ------------------------------------------------- | --------------------------------------------------------------------------------- |
+| Exposed API throws                                | Return a valid RPC error response for the request id.                             |
+| Malformed request body or invalid RPC message     | Return HTTP 400.                                                                  |
+| Handler timeout after a valid request id is known | Return HTTP 504, preferably with an RPC error response body carrying that id.     |
+| Network or non-2xx response on the client         | Reject the client transport `send()` and let the channel reject the pending call. |
+| Handler closes                                    | Reject new requests and dispose request-scoped listeners.                         |
 
 ### WebSocket, Hono, Elysia, and Socket.IO
 
@@ -205,12 +205,12 @@ Routing requirements:
 
 Ack and commit behavior should be platform-specific but consistent:
 
-| Transport | Ack/commit rule |
-| --- | --- |
-| RabbitMQ | Ack after the envelope is decoded, passes routing filters, and is delivered to local subscribers. Nack malformed envelopes without requeue by default to avoid poison loops. |
-| Redis Streams | XACK after successful local delivery. Pending-entry recovery is an operational concern and should be documented if supported. |
-| Kafka | Commit offsets after successful local delivery when manual commit is enabled; otherwise document reliance on the client auto-commit setting. |
-| NATS | Ack after successful local delivery for JetStream-style consumers; plain pub/sub has no ack. |
+| Transport     | Ack/commit rule                                                                                                                                                              |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| RabbitMQ      | Ack after the envelope is decoded, passes routing filters, and is delivered to local subscribers. Nack malformed envelopes without requeue by default to avoid poison loops. |
+| Redis Streams | XACK after successful local delivery. Pending-entry recovery is an operational concern and should be documented if supported.                                                |
+| Kafka         | Commit offsets after successful local delivery when manual commit is enabled; otherwise document reliance on the client auto-commit setting.                                 |
+| NATS          | Ack after successful local delivery for JetStream-style consumers; plain pub/sub has no ack.                                                                                 |
 
 ### SuperJSON
 
@@ -271,18 +271,18 @@ External service tests should remain gated by explicit environment variables or 
 
 Export-boundary tests should be added or updated so package verification catches stale classic paths. At minimum, tests should assert that removed exports are absent and stable exports resolve:
 
-| Export | Expected |
-| --- | --- |
-| `kkrpc` | resolves to native core only |
-| `kkrpc/browser` | resolves and does not import Node-only modules |
-| `kkrpc/deno` | resolves in Deno tests |
-| `kkrpc/browser-lite` | removed |
-| `kkrpc/browser-mini` | removed |
-| `kkrpc/next` | removed |
-| `kkrpc/next/*` | removed |
-| `kkrpc/electron-ipc` | removed |
-| `kkrpc/ws/hono` | resolves behind Hono peer dependency boundary |
-| `kkrpc/ws/elysia` | resolves behind Elysia peer dependency boundary |
+| Export               | Expected                                        |
+| -------------------- | ----------------------------------------------- |
+| `kkrpc`              | resolves to native core only                    |
+| `kkrpc/browser`      | resolves and does not import Node-only modules  |
+| `kkrpc/deno`         | resolves in Deno tests                          |
+| `kkrpc/browser-lite` | removed                                         |
+| `kkrpc/browser-mini` | removed                                         |
+| `kkrpc/next`         | removed                                         |
+| `kkrpc/next/*`       | removed                                         |
+| `kkrpc/electron-ipc` | removed                                         |
+| `kkrpc/ws/hono`      | resolves behind Hono peer dependency boundary   |
+| `kkrpc/ws/elysia`    | resolves behind Elysia peer dependency boundary |
 
 ## Docs And Skills
 

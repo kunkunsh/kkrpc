@@ -27,7 +27,9 @@ const product = await api.math.grade2.multiply(4, 6)
 console.log("4 * 6 =", product)
 
 console.log("\n=== Inspector Output ===")
-console.log("Native inspector events are emitted by the server on stderr while it handles requests.")
+console.log(
+	"Native inspector events are emitted by the server on stderr while it handles requests."
+)
 
 rpc.destroy()
 childProcess.kill()

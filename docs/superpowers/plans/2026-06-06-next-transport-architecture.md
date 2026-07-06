@@ -82,6 +82,7 @@
 ### Task 1: vNext Core API Tests And Implementation
 
 **Files:**
+
 - Create: `packages/kkrpc/__tests__/next-core.test.ts`
 - Create: `packages/kkrpc/src/next/protocol.ts`
 - Create: `packages/kkrpc/src/next/transport.ts`
@@ -95,7 +96,7 @@ Create `packages/kkrpc/__tests__/next-core.test.ts`:
 
 ```ts
 import { describe, expect, test } from "bun:test"
-import { expose, RPCChannel, transfer, wrap, dispose } from "../next.ts"
+import { dispose, expose, RPCChannel, transfer, wrap } from "../next.ts"
 import type { RPCMessage, Transport } from "../next.ts"
 
 interface RemoteWidget {
@@ -466,7 +467,8 @@ export class RPCChannel<LocalAPI extends object = object, RemoteAPI extends obje
 		options: RPCChannelOptions<LocalAPI> = {}
 	) {
 		this.expose = options.expose
-		this.supportsTransfer = options.enableTransfer !== false && transport.capabilities?.transfer === true
+		this.supportsTransfer =
+			options.enableTransfer !== false && transport.capabilities?.transfer === true
 		this.timeout = options.timeout ?? 30_000
 		this.unsubscribe = transport.subscribe((message) => this.handleMessage(message))
 	}
@@ -510,7 +512,12 @@ export class RPCChannel<LocalAPI extends object = object, RemoteAPI extends obje
 		})
 	}
 
-	private request(op: RPCOperation, path: string[], args?: unknown[], value?: unknown): Promise<unknown> {
+	private request(
+		op: RPCOperation,
+		path: string[],
+		args?: unknown[],
+		value?: unknown
+	): Promise<unknown> {
 		if (this.destroyed) return Promise.reject(new Error("RPC channel destroyed"))
 		const id = generateId()
 		const transfers: Transferable[] = []
@@ -538,7 +545,8 @@ export class RPCChannel<LocalAPI extends object = object, RemoteAPI extends obje
 	private post(message: RPCMessage, transfers: Transferable[] = [], pendingId?: string): void {
 		try {
 			const result = this.transport.send(message, transfers)
-			if (result instanceof Promise) void result.catch((error) => this.rejectPendingWrite(pendingId, error))
+			if (result instanceof Promise)
+				void result.catch((error) => this.rejectPendingWrite(pendingId, error))
 		} catch (error) {
 			this.rejectPendingWrite(pendingId, error)
 		}
@@ -592,7 +600,8 @@ export class RPCChannel<LocalAPI extends object = object, RemoteAPI extends obje
 		}
 		const target = getPath(this.expose, message.p)
 		const args = this.decodeArgs(message.a ?? [])
-		if (message.op === "new") return Reflect.construct(target as new (...args: unknown[]) => unknown, args)
+		if (message.op === "new")
+			return Reflect.construct(target as new (...args: unknown[]) => unknown, args)
 		if (typeof target !== "function") throw new Error(`${message.p.join(".")} is not a function`)
 		const receiver = message.p.length > 0 ? getPath(this.expose, message.p.slice(0, -1)) : undefined
 		return await Reflect.apply(target, receiver, args)
@@ -645,8 +654,22 @@ import type { Transport } from "./transport.ts"
 
 export { RPCChannel, type RPCChannelOptions }
 export { transfer, type TransferDescriptor }
-export type { RPCCallback, RPCError, RPCMessage, RPCOperation, RPCRequest, RPCResponse } from "./protocol.ts"
-export type { Codec, CodecCapabilities, Platform, PlatformCapabilities, Transport, TransportCapabilities } from "./transport.ts"
+export type {
+	RPCCallback,
+	RPCError,
+	RPCMessage,
+	RPCOperation,
+	RPCRequest,
+	RPCResponse
+} from "./protocol.ts"
+export type {
+	Codec,
+	CodecCapabilities,
+	Platform,
+	PlatformCapabilities,
+	Transport,
+	TransportCapabilities
+} from "./transport.ts"
 
 export interface ExposedController<LocalAPI extends object, RemoteAPI extends object = object> {
 	channel: RPCChannel<LocalAPI, RemoteAPI>
@@ -721,6 +744,7 @@ Expected: New vNext core tests and source only. New untracked files may not appe
 ### Task 2: Transport Composition And Codecs
 
 **Files:**
+
 - Create: `packages/kkrpc/__tests__/next-transport-codecs.test.ts`
 - Modify: `packages/kkrpc/src/next/transport.ts`
 - Create: `packages/kkrpc/src/next/codecs.ts`
@@ -733,8 +757,8 @@ Create `packages/kkrpc/__tests__/next-transport-codecs.test.ts`:
 
 ```ts
 import { describe, expect, test } from "bun:test"
-import { createTransport, type Platform } from "../next-transport.ts"
 import { jsonCodec, jsonLineCodec, objectCodec } from "../next-codecs.ts"
+import { createTransport, type Platform } from "../next-transport.ts"
 import type { RPCMessage } from "../next.ts"
 
 class StringPlatform implements Platform<string> {
@@ -790,7 +814,10 @@ describe("kkrpc/next transport and codecs", () => {
 
 	test("createTransport composes platform and codec", () => {
 		const platform = new StringPlatform()
-		const transport = createTransport<RPCMessage, string>({ platform, codec: jsonCodec<RPCMessage>() })
+		const transport = createTransport<RPCMessage, string>({
+			platform,
+			codec: jsonCodec<RPCMessage>()
+		})
 		const received: RPCMessage[] = []
 		const message: RPCMessage = { t: "q", id: "1", op: "call", p: ["add"], a: [1, 2] }
 
@@ -834,7 +861,12 @@ export function createTransport<TMessage, TWire>(options: {
 		},
 		send(message, transfers = []) {
 			const wire = codec.encode(message)
-			return platform.send(wire, platform.capabilities?.transfer === true && codec.capabilities?.transfer === true ? transfers : [])
+			return platform.send(
+				wire,
+				platform.capabilities?.transfer === true && codec.capabilities?.transfer === true
+					? transfers
+					: []
+			)
 		},
 		subscribe(listener) {
 			return platform.subscribe((wire) => listener(codec.decode(wire)))
@@ -926,6 +958,7 @@ Expected: PASS.
 ### Task 3: Worker Object Transport Presets
 
 **Files:**
+
 - Create: `packages/kkrpc/src/next/worker.ts`
 - Create: `packages/kkrpc/next-worker.ts`
 - Create: `packages/kkrpc/__tests__/next-worker.test.ts`
@@ -936,8 +969,8 @@ Expected: PASS.
 Create `packages/kkrpc/__tests__/scripts/next-worker.ts`:
 
 ```ts
-import { expose, transfer } from "../../next.ts"
 import { workerSelfTransport } from "../../next-worker.ts"
+import { expose, transfer } from "../../next.ts"
 
 const api = {
 	add: async (a: number, b: number) => a + b,
@@ -955,8 +988,8 @@ Create `packages/kkrpc/__tests__/next-worker.test.ts`:
 
 ```ts
 import { describe, expect, test } from "bun:test"
-import { dispose, transfer, wrap } from "../next.ts"
 import { workerTransport } from "../next-worker.ts"
+import { dispose, transfer, wrap } from "../next.ts"
 
 interface WorkerAPI {
 	add(a: number, b: number): Promise<number>
@@ -1103,6 +1136,7 @@ Expected: PASS.
 ### Task 4: Stdio JSON Transport With Explicit Stream Pairs
 
 **Files:**
+
 - Create: `packages/kkrpc/src/next/stdio.ts`
 - Create: `packages/kkrpc/next-stdio.ts`
 - Create: `packages/kkrpc/__tests__/next-stdio.test.ts`
@@ -1112,10 +1146,10 @@ Expected: PASS.
 Create `packages/kkrpc/__tests__/next-stdio.test.ts`:
 
 ```ts
-import { describe, expect, test } from "bun:test"
 import { PassThrough } from "node:stream"
-import { dispose, expose, wrap } from "../next.ts"
+import { describe, expect, test } from "bun:test"
 import { stdioJsonTransport } from "../next-stdio.ts"
+import { dispose, expose, wrap } from "../next.ts"
 
 interface API {
 	add(a: number, b: number): Promise<number>
@@ -1158,10 +1192,20 @@ describe("kkrpc/next stdio JSON transport", () => {
 	test("supports multiple independent stream pairs", async () => {
 		const first = createStreamPair()
 		const second = createStreamPair()
-		const controllerA = expose({ add: async (a: number, b: number) => a + b }, stdioJsonTransport(first.server))
-		const controllerB = expose({ add: async (a: number, b: number) => a * b }, stdioJsonTransport(second.server))
-		const apiA = wrap<{ add(a: number, b: number): Promise<number> }>(stdioJsonTransport(first.client))
-		const apiB = wrap<{ add(a: number, b: number): Promise<number> }>(stdioJsonTransport(second.client))
+		const controllerA = expose(
+			{ add: async (a: number, b: number) => a + b },
+			stdioJsonTransport(first.server)
+		)
+		const controllerB = expose(
+			{ add: async (a: number, b: number) => a * b },
+			stdioJsonTransport(second.server)
+		)
+		const apiA = wrap<{ add(a: number, b: number): Promise<number> }>(
+			stdioJsonTransport(first.client)
+		)
+		const apiB = wrap<{ add(a: number, b: number): Promise<number> }>(
+			stdioJsonTransport(second.client)
+		)
 
 		try {
 			expect(await apiA.add(2, 3)).toBe(5)
@@ -1297,6 +1341,7 @@ Expected: PASS.
 ### Task 5: Package Exports, Build Entries, And Benchmarks
 
 **Files:**
+
 - Modify: `packages/kkrpc/package.json`
 - Modify: `packages/kkrpc/tsdown.config.ts`
 - Modify: `packages/kkrpc/scripts/compare-browser-bundle-size.ts`
@@ -1307,20 +1352,20 @@ Expected: PASS.
 In `packages/kkrpc/__tests__/browser-bundle-benchmark-script.test.ts`, update the benchmark case test expected names to include vNext browser-relevant cases before `browser-mini`:
 
 ```ts
-		expect(cases.map((entry) => entry.name)).toEqual([
-			"kkrpc/browser",
-			"kkrpc/browser-lite",
-			"kkrpc/next",
-			"kkrpc/next/worker",
-			"kkrpc/browser-mini",
-			"kkrpc-lite direct",
-			"comctx"
-		])
-		expect(cases[2]?.source).toContain('from "kkrpc/next"')
-		expect(cases[3]?.source).toContain('from "kkrpc/next/worker"')
-		expect(cases[4]?.source).toContain('from "kkrpc/browser-mini"')
-		expect(cases[5]?.source).toContain("src/channel-lite.ts")
-		expect(cases[6]?.source).toContain("comctx-local/index.ts")
+expect(cases.map((entry) => entry.name)).toEqual([
+	"kkrpc/browser",
+	"kkrpc/browser-lite",
+	"kkrpc/next",
+	"kkrpc/next/worker",
+	"kkrpc/browser-mini",
+	"kkrpc-lite direct",
+	"comctx"
+])
+expect(cases[2]?.source).toContain('from "kkrpc/next"')
+expect(cases[3]?.source).toContain('from "kkrpc/next/worker"')
+expect(cases[4]?.source).toContain('from "kkrpc/browser-mini"')
+expect(cases[5]?.source).toContain("src/channel-lite.ts")
+expect(cases[6]?.source).toContain("comctx-local/index.ts")
 ```
 
 Add helper samples in the script implementation step below; the initial test run should fail.
@@ -1458,6 +1503,7 @@ Expected: PASS.
 ### Task 6: Final Verification And Bundle Comparison
 
 **Files:**
+
 - No source file edits unless verification exposes a bug.
 
 - [ ] **Step 1: Run focused vNext tests**

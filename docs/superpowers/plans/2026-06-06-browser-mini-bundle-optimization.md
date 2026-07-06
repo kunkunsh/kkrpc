@@ -49,6 +49,7 @@
 ### Task 1: Add Browser-Mini Benchmark Case Tests
 
 **Files:**
+
 - Modify: `packages/kkrpc/__tests__/browser-bundle-benchmark-script.test.ts:77-98`
 
 - [ ] **Step 1: Write the failing benchmark helper assertion**
@@ -56,30 +57,30 @@
 Replace the `creates benchmark cases with public, direct, and comctx entries` test with:
 
 ```ts
-	test("creates benchmark cases with public, mini, direct, and comctx entries", () => {
-		const cases = createBenchmarkCases({
-			packageRoot: "/repo/packages/kkrpc",
-			repoRoot: "/repo",
-			workDir: "/repo/packages/kkrpc/.browser-bundle-benchmark",
-			comctxEntrypoint: "/repo/packages/kkrpc/.browser-bundle-benchmark/comctx-local/index.ts"
-		})
-
-		expect(cases.map((entry) => entry.name)).toEqual([
-			"kkrpc/browser",
-			"kkrpc/browser-lite",
-			"kkrpc/browser-mini",
-			"kkrpc-lite direct",
-			"comctx"
-		])
-		expect(cases[0]?.source).toContain('from "kkrpc/browser"')
-		expect(cases[1]?.source).toContain('from "kkrpc/browser-lite"')
-		expect(cases[2]?.source).toContain('from "kkrpc/browser-mini"')
-		expect(cases[3]?.source).toContain("src/channel-lite.ts")
-		expect(cases[4]?.source).toContain("comctx-local/index.ts")
-		for (const entry of cases) {
-			expect(entry.source).toContain("Object.assign(globalThis")
-		}
+test("creates benchmark cases with public, mini, direct, and comctx entries", () => {
+	const cases = createBenchmarkCases({
+		packageRoot: "/repo/packages/kkrpc",
+		repoRoot: "/repo",
+		workDir: "/repo/packages/kkrpc/.browser-bundle-benchmark",
+		comctxEntrypoint: "/repo/packages/kkrpc/.browser-bundle-benchmark/comctx-local/index.ts"
 	})
+
+	expect(cases.map((entry) => entry.name)).toEqual([
+		"kkrpc/browser",
+		"kkrpc/browser-lite",
+		"kkrpc/browser-mini",
+		"kkrpc-lite direct",
+		"comctx"
+	])
+	expect(cases[0]?.source).toContain('from "kkrpc/browser"')
+	expect(cases[1]?.source).toContain('from "kkrpc/browser-lite"')
+	expect(cases[2]?.source).toContain('from "kkrpc/browser-mini"')
+	expect(cases[3]?.source).toContain("src/channel-lite.ts")
+	expect(cases[4]?.source).toContain("comctx-local/index.ts")
+	for (const entry of cases) {
+		expect(entry.source).toContain("Object.assign(globalThis")
+	}
+})
 ```
 
 - [ ] **Step 2: Run the helper test to verify it fails**
@@ -107,33 +108,33 @@ In `packages/kkrpc/scripts/compare-browser-bundle-size.ts`, insert the mini case
 The full `cases` array should be:
 
 ```ts
-	const cases: Array<{ name: string; fileName: string; source: string }> = [
-		{
-			name: "kkrpc/browser",
-			fileName: "kkrpc-browser.ts",
-			source: createKkrpcPublicSample("kkrpc/browser")
-		},
-		{
-			name: "kkrpc/browser-lite",
-			fileName: "kkrpc-browser-lite.ts",
-			source: createKkrpcPublicSample("kkrpc/browser-lite")
-		},
-		{
-			name: "kkrpc/browser-mini",
-			fileName: "kkrpc-browser-mini.ts",
-			source: createKkrpcPublicSample("kkrpc/browser-mini")
-		},
-		{
-			name: "kkrpc-lite direct",
-			fileName: "kkrpc-lite-direct.ts",
-			source: createKkrpcDirectSample(directChannelImport, directInterfaceImport)
-		},
-		{
-			name: "comctx",
-			fileName: "comctx.ts",
-			source: createComctxSample(comctxImport)
-		}
-	]
+const cases: Array<{ name: string; fileName: string; source: string }> = [
+	{
+		name: "kkrpc/browser",
+		fileName: "kkrpc-browser.ts",
+		source: createKkrpcPublicSample("kkrpc/browser")
+	},
+	{
+		name: "kkrpc/browser-lite",
+		fileName: "kkrpc-browser-lite.ts",
+		source: createKkrpcPublicSample("kkrpc/browser-lite")
+	},
+	{
+		name: "kkrpc/browser-mini",
+		fileName: "kkrpc-browser-mini.ts",
+		source: createKkrpcPublicSample("kkrpc/browser-mini")
+	},
+	{
+		name: "kkrpc-lite direct",
+		fileName: "kkrpc-lite-direct.ts",
+		source: createKkrpcDirectSample(directChannelImport, directInterfaceImport)
+	},
+	{
+		name: "comctx",
+		fileName: "comctx.ts",
+		source: createComctxSample(comctxImport)
+	}
+]
 ```
 
 - [ ] **Step 4: Run the helper test to verify it passes**
@@ -161,6 +162,7 @@ Expected: Diff only contains the new benchmark case and updated test expectation
 ### Task 2: Add Browser-Mini Integration Tests And Worker Fixture
 
 **Files:**
+
 - Create: `packages/kkrpc/__tests__/browser-mini.test.ts`
 - Create: `packages/kkrpc/__tests__/scripts/browser-mini-worker.ts`
 
@@ -355,6 +357,7 @@ Expected: Diff only contains the new test and worker fixture.
 ### Task 3: Implement Mini Types, Worker Transports, Channel, And Source Entry
 
 **Files:**
+
 - Create: `packages/kkrpc/src/browser-mini/types.ts`
 - Create: `packages/kkrpc/src/browser-mini/worker.ts`
 - Create: `packages/kkrpc/src/browser-mini/channel.ts`
@@ -677,7 +680,10 @@ export class RPCChannel<
 		return current
 	}
 
-	private resolveParent(root: unknown, path: string[]): { target: Record<string, unknown>; key: string } {
+	private resolveParent(
+		root: unknown,
+		path: string[]
+	): { target: Record<string, unknown>; key: string } {
 		const key = path.at(-1)
 		if (!key) throw new Error("Invalid empty path")
 
@@ -851,7 +857,12 @@ Create `packages/kkrpc/browser-mini-mod.ts`:
  * @description Compact browser-only RPC entrypoint for worker structured-clone transports.
  */
 
-export { RPCChannel, type MiniMessage, type MiniTransport, type RPCChannelOptions } from "./src/browser-mini/channel.ts"
+export {
+	RPCChannel,
+	type MiniMessage,
+	type MiniTransport,
+	type RPCChannelOptions
+} from "./src/browser-mini/channel.ts"
 export { WorkerChildIO, WorkerParentIO } from "./src/browser-mini/worker.ts"
 export { transfer, type TransferDescriptor } from "./src/transfer.ts"
 ```
@@ -891,6 +902,7 @@ Expected: Diff contains only mini source files, the public source entry, and min
 ### Task 4: Add Package Export And Build Entry
 
 **Files:**
+
 - Modify: `packages/kkrpc/package.json:71-80`
 - Modify: `packages/kkrpc/tsdown.config.ts:4-18`
 
@@ -1006,6 +1018,7 @@ Expected: Diff only adds the `./browser-mini` export and tsdown entry.
 ### Task 5: Verify Bundle Output And Guard Against Full-Core Imports
 
 **Files:**
+
 - No source file edits unless verification exposes a bug in earlier tasks.
 
 - [ ] **Step 1: Run the browser bundle comparison**

@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test"
 import { createHttpHandler, httpClientTransport } from "../src/entries/http.ts"
 import { RPCChannel, wrap } from "../src/entries/mod.ts"
-import { RPCChannel as RemoteRefRPCChannel, proxy } from "../src/entries/remote-refs.ts"
+import { proxy, RPCChannel as RemoteRefRPCChannel } from "../src/entries/remote-refs.ts"
 import { apiMethods, type API } from "./scripts/api.ts"
 
 describe("HTTP RPC", () => {
@@ -186,7 +186,10 @@ describe("HTTP RPC", () => {
 			},
 			{ preconnect: fetch.preconnect }
 		)
-		const channel = new RemoteRefRPCChannel<object, { accept(callback: () => string): Promise<void> }>(
+		const channel = new RemoteRefRPCChannel<
+			object,
+			{ accept(callback: () => string): Promise<void> }
+		>(
 			httpClientTransport({
 				url: `${baseUrl}/rpc`,
 				fetch: fetchStub
@@ -300,7 +303,7 @@ describe("HTTP RPC", () => {
 		expect(await response.json()).toMatchObject({
 			t: "r",
 			id: "ref-result-id",
-				e: { m: "HTTP transport does not support remote references" }
+			e: { m: "HTTP transport does not support remote references" }
 		})
 	})
 
@@ -313,7 +316,13 @@ describe("HTTP RPC", () => {
 			new Request("http://127.0.0.1/rpc", {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ t: "q", id: "function-result-id", op: "call", p: ["createCallback"], a: [] })
+				body: JSON.stringify({
+					t: "q",
+					id: "function-result-id",
+					op: "call",
+					p: ["createCallback"],
+					a: []
+				})
 			})
 		)
 

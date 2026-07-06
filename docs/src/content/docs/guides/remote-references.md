@@ -53,10 +53,12 @@ This keeps object-shaped return values convenient without turning every object i
 Callbacks marked with `proxy()` use request/response semantics. If the remote endpoint calls your callback, kkrpc waits for the callback result and propagates returned values or thrown errors.
 
 ```ts
-const result = await remote.useCallback(proxy(async (value) => {
-	if (value === "bad") throw new Error("callback rejected")
-	return `callback:${value}`
-}))
+const result = await remote.useCallback(
+	proxy(async (value) => {
+		if (value === "bad") throw new Error("callback rejected")
+		return `callback:${value}`
+	})
+)
 
 console.log(result)
 ```

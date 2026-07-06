@@ -8,17 +8,8 @@
  * @module
  */
 
-import {
-	RPCChannel,
-	fromRPCError,
-	type RPCChannelOptions
-} from "./channel.ts"
-import {
-	runErrorHooks,
-	runHandlerHooks,
-	runRequestHooks,
-	runResponseHooks
-} from "./plugins.ts"
+import { fromRPCError, RPCChannel, type RPCChannelOptions } from "./channel.ts"
+import { runErrorHooks, runHandlerHooks, runRequestHooks, runResponseHooks } from "./plugins.ts"
 import type {
 	RPCMessage,
 	RPCRequest,
@@ -308,7 +299,10 @@ export class StreamingRPCChannel<
 	}
 
 	/** Turn received stream reference envelopes into local async iterables. */
-	protected override decodeValue(value: unknown, decodedStreams?: AsyncIterable<unknown>[]): unknown {
+	protected override decodeValue(
+		value: unknown,
+		decodedStreams?: AsyncIterable<unknown>[]
+	): unknown {
 		if (isStreamRefEnvelope(value)) {
 			const iterable = this.createRemoteAsyncIterable(value.id)
 			decodedStreams?.push(iterable)
@@ -431,7 +425,13 @@ export class StreamingRPCChannel<
 		const stream = this.localStreams.get(message.sid)
 		if (!stream) {
 			if (message.op === "return") {
-				this.post({ t: "sr", id: message.id, sid: message.sid, d: true, v: this.decodeValue(message.v) })
+				this.post({
+					t: "sr",
+					id: message.id,
+					sid: message.sid,
+					d: true,
+					v: this.decodeValue(message.v)
+				})
 				return
 			}
 			this.post({
@@ -459,7 +459,13 @@ export class StreamingRPCChannel<
 					? await stream.iterator.return(value)
 					: { done: true, value }
 				this.post(
-					{ t: "sr", id: message.id, sid: message.sid, d: result.done === true, v: this.encodeValue(result.value, transfers) },
+					{
+						t: "sr",
+						id: message.id,
+						sid: message.sid,
+						d: result.done === true,
+						v: this.encodeValue(result.value, transfers)
+					},
 					transfers
 				)
 				return
@@ -473,7 +479,13 @@ export class StreamingRPCChannel<
 				this.localStreams.delete(message.sid)
 			}
 			this.post(
-				{ t: "sr", id: message.id, sid: message.sid, d: result.done === true, v: this.encodeValue(result.value, transfers) },
+				{
+					t: "sr",
+					id: message.id,
+					sid: message.sid,
+					d: result.done === true,
+					v: this.encodeValue(result.value, transfers)
+				},
 				transfers
 			)
 		} catch (error) {
@@ -504,7 +516,13 @@ export class StreamingRPCChannel<
 					stream.closed = true
 					this.localStreams.delete(streamId)
 					this.post(
-						{ t: "sr", id: generateId(), sid: streamId, d: true, v: this.encodeValue(result.value, transfers) },
+						{
+							t: "sr",
+							id: generateId(),
+							sid: streamId,
+							d: true,
+							v: this.encodeValue(result.value, transfers)
+						},
 						transfers
 					)
 					return
@@ -512,7 +530,13 @@ export class StreamingRPCChannel<
 
 				let writeFailed = false
 				await this.post(
-					{ t: "sr", id: generateId(), sid: streamId, d: false, v: this.encodeValue(result.value, transfers) },
+					{
+						t: "sr",
+						id: generateId(),
+						sid: streamId,
+						d: false,
+						v: this.encodeValue(result.value, transfers)
+					},
 					transfers,
 					undefined,
 					() => {

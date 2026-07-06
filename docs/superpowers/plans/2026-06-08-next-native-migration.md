@@ -13,6 +13,7 @@
 ### Task 1: Add The Migration Guide
 
 **Files:**
+
 - Create: `packages/kkrpc/NEXT_MIGRATION.md`
 - Reference: `docs/superpowers/specs/2026-06-08-next-native-migration-design.md`
 
@@ -20,21 +21,21 @@
 
 Create `packages/kkrpc/NEXT_MIGRATION.md` with this content:
 
-```markdown
+````markdown
 # kkrpc/next Migration Guide
 
 `kkrpc/next` is the preferred path for new vNext examples and tests. Use native vNext APIs when a native vNext transport exists. Use compatibility helpers only for existing user code that needs an incremental migration.
 
 ## Decision Table
 
-| Current code | Migration action |
-| --- | --- |
-| In-memory, Worker, or stdio transport | Migrate to native `kkrpc/next` now |
-| Validation or middleware options | Use native plugins from `kkrpc/next/validation` or `kkrpc/next/middleware` |
-| SuperJSON serialization | Use a native codec from `kkrpc/next/superjson` |
-| Existing classic `validators` or `interceptors` options | Use `kkrpc/next/classic-compat` temporarily |
-| Existing user-owned classic `IoInterface` adapter with no native next transport | Use `kkrpc/next/io` temporarily |
-| Repo test/example for a classic-only adapter | Keep it classic or add a native vNext transport first |
+| Current code                                                                    | Migration action                                                           |
+| ------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| In-memory, Worker, or stdio transport                                           | Migrate to native `kkrpc/next` now                                         |
+| Validation or middleware options                                                | Use native plugins from `kkrpc/next/validation` or `kkrpc/next/middleware` |
+| SuperJSON serialization                                                         | Use a native codec from `kkrpc/next/superjson`                             |
+| Existing classic `validators` or `interceptors` options                         | Use `kkrpc/next/classic-compat` temporarily                                |
+| Existing user-owned classic `IoInterface` adapter with no native next transport | Use `kkrpc/next/io` temporarily                                            |
+| Repo test/example for a classic-only adapter                                    | Keep it classic or add a native vNext transport first                      |
 
 ## Native vNext Patterns
 
@@ -46,6 +47,7 @@ import { wrap } from "kkrpc/next"
 const api = wrap<RemoteAPI>(transport)
 await api.ping()
 ```
+````
 
 Use `expose()` when the local side only exposes an API:
 
@@ -115,7 +117,8 @@ const channel = new RPCChannel<LocalAPI, RemoteAPI>(ioTransport(classicIo), {
 ```
 
 Do not use either helper as the default pattern in new repo examples. Prefer native transports or keep the example classic until native transport support exists.
-```
+
+````
 
 - [ ] **Step 2: Inspect the guide for migration-rule clarity**
 
@@ -272,7 +275,7 @@ describe("kkrpc/next io bridge", () => {
 		expect(io.destroyCount).toBe(1)
 	})
 })
-```
+````
 
 - [ ] **Step 2: Run test to verify it fails**
 
@@ -283,6 +286,7 @@ Expected: FAIL because `../next-io.ts` does not exist.
 ### Task 3: Implement The Bridge
 
 **Files:**
+
 - Create: `packages/kkrpc/src/next/io.ts`
 - Create: `packages/kkrpc/next-io.ts`
 - Test: `packages/kkrpc/__tests__/next-io.test.ts`
@@ -331,7 +335,10 @@ function extractString(raw: string | IoMessage): string {
 }
 
 /** Adapt a classic IoInterface into a JSON-string kkrpc/next transport. */
-export function ioTransport(io: IoInterface, options: IoTransportOptions = {}): Transport<RPCMessage> {
+export function ioTransport(
+	io: IoInterface,
+	options: IoTransportOptions = {}
+): Transport<RPCMessage> {
 	const codec = jsonCodec<RPCMessage>()
 	const listeners = new Set<(message: RPCMessage) => void>()
 	let closed = false
@@ -410,6 +417,7 @@ Expected: PASS, all `next-io` tests green.
 ### Task 4: Add Package Export And Build Entry
 
 **Files:**
+
 - Modify: `packages/kkrpc/package.json`
 - Modify: `packages/kkrpc/tsdown.config.ts`
 - Test: `packages/kkrpc/__tests__/next-io.test.ts`
@@ -448,6 +456,7 @@ Expected: PASS.
 ### Task 5: Update Architecture Documentation
 
 **Files:**
+
 - Modify: `packages/kkrpc/NEXT_ARCHITECTURE.md`
 - Reference: `packages/kkrpc/NEXT_MIGRATION.md`
 
@@ -473,6 +482,7 @@ In the `Remaining Migration Work` list, replace the migration-guide bullet with:
 ### Task 6: Update The kkrpc Skill With A Pressure Scenario First
 
 **Files:**
+
 - Modify: `skills/kkrpc/SKILL.md`
 - Reference: `skills/AGENTS.md`
 
@@ -498,7 +508,7 @@ description: Build bidirectional RPC systems in TypeScript with kkrpc. Use this 
 
 Replace lines 25-35 with:
 
-```markdown
+````markdown
 Use kkrpc to expose a local TypeScript object and call the remote side as a typed proxy.
 
 For new code and migrated repo examples, prefer the native vNext API:
@@ -509,6 +519,7 @@ import { expose, wrap } from "kkrpc/next"
 const controller = expose(localAPI, serverTransport)
 const remote = wrap<RemoteAPI>(clientTransport)
 ```
+````
 
 Use low-level `RPCChannel` when both sides expose APIs or when you need explicit channel ownership:
 
@@ -527,7 +538,8 @@ import { RPCChannel } from "kkrpc"
 const channel = new RPCChannel<LocalAPI, RemoteAPI>(io, { expose: localAPI })
 const remote = channel.getAPI()
 ```
-```
+
+````
 
 - [ ] **Step 4: Add a next-first decision section after `First Decisions`**
 
@@ -545,7 +557,7 @@ Insert this section after the `First Decisions` list:
 | Repo tests/examples for classic-only adapters | Keep classic or add a native vNext transport first |
 
 Do not use `classic-compat` or `next/io` as the default path for new repo examples. They are migration helpers, not native vNext transports.
-```
+````
 
 - [ ] **Step 5: Add next entries to the entry point table**
 
@@ -566,6 +578,7 @@ Re-run the pressure scenario with the updated skill instructions in the prompt. 
 ### Task 7: Final Verification
 
 **Files:**
+
 - All modified files in this plan
 
 - [ ] **Step 1: Run focused tests**

@@ -116,13 +116,13 @@ The protocol uses compact JSON-compatible records to remain portable across obje
 
 ```typescript
 interface RPCRequest {
-  t: "q"           // Message tag
-  id: string       // Request id for response matching
-  op: RPCOperation // "call" | "get" | "set" | "new" | "ref"
-  p: string[]      // Property path on the exposed API
-  a?: unknown[]    // Encoded arguments
-  v?: unknown      // Encoded value (for set operations)
-  meta?: RPCMessageMetadata  // Optional metadata (trace, correlation)
+	t: "q" // Message tag
+	id: string // Request id for response matching
+	op: RPCOperation // "call" | "get" | "set" | "new" | "ref"
+	p: string[] // Property path on the exposed API
+	a?: unknown[] // Encoded arguments
+	v?: unknown // Encoded value (for set operations)
+	meta?: RPCMessageMetadata // Optional metadata (trace, correlation)
 }
 ```
 
@@ -130,10 +130,10 @@ interface RPCRequest {
 
 ```typescript
 interface RPCResponse {
-  t: "r"           // Message tag
-  id: string       // Matched request id
-  v?: unknown      // Successful result value
-  e?: RPCError     // Error payload { n, m, s? }
+	t: "r" // Message tag
+	id: string // Matched request id
+	v?: unknown // Successful result value
+	e?: RPCError // Error payload { n, m, s? }
 }
 ```
 
@@ -162,17 +162,18 @@ Plugins implement receive-side hooks using an onion model. The plugin lifecycle 
 
 ```typescript
 interface RPCPlugin {
-  name?: string
-  onRequest?(ctx: RPCRequestContext): void | Promise<void>
-  wrapHandler?(ctx: RPCHandlerContext, next: () => Promise<unknown>): Promise<unknown>
-  onResponse?(ctx: RPCResponseContext): void | Promise<void>
-  onError?(ctx: RPCErrorContext): void | Promise<void>
+	name?: string
+	onRequest?(ctx: RPCRequestContext): void | Promise<void>
+	wrapHandler?(ctx: RPCHandlerContext, next: () => Promise<unknown>): Promise<unknown>
+	onResponse?(ctx: RPCResponseContext): void | Promise<void>
+	onError?(ctx: RPCErrorContext): void | Promise<void>
 }
 ```
 
 Each request carries a shared mutable `state` bag (`Record<string, unknown>`) that all plugins can read and write to coordinate cross-cutting concerns like authentication, logging metadata, or metrics spans.
 
 Built-in plugin implementations:
+
 - **`validationPlugin()`** — Standard Schema v1 input/output validation via `onRequest`/`onResponse`
 - **`middlewarePlugin()`** — Onion-style interceptor chain via `wrapHandler`
 - **`inspectorPlugin()`** — Observability event emission via `onRequest`/`onResponse`/`onError`
@@ -287,6 +288,7 @@ When the destination transport supports transferables, the relay collects transf
 Errors are serialized as enhanced objects preserving `name`, `message`, `stack`, `cause`, and custom enumerable properties. `RPCTimeoutError` is raised by a per-pending-request timer (default 30s, configurable or `0` to disable).
 
 Destroying a channel:
+
 1. Rejects all pending requests with `"RPC channel destroyed"`
 2. Clears timeout timers
 3. Clears callback records

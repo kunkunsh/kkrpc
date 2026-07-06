@@ -11,8 +11,8 @@ Use stable native imports for new code:
 
 ```ts
 import { expose, wrap } from "kkrpc"
-import { workerTransport } from "kkrpc/worker"
 import { validationPlugin } from "kkrpc/validation"
+import { workerTransport } from "kkrpc/worker"
 ```
 
 Runtime transports and optional peer dependencies live behind subpaths such as `kkrpc/worker`, `kkrpc/stdio`, `kkrpc/ws`, `kkrpc/http`, `kkrpc/electron`, `kkrpc/tauri`, `kkrpc/socketio`, `kkrpc/rabbitmq`, `kkrpc/kafka`, `kkrpc/redis-streams`, and `kkrpc/nats`.

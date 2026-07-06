@@ -76,10 +76,7 @@ export function getRequiredBundleFailures(rows: BundleMeasurement[]): BundleMeas
 	return rows.filter((row) => row.skipped)
 }
 
-export function getTopContributorsFromMetafile(
-	metafile: BuildMetafile,
-	limit = 8
-): Contributor[] {
+export function getTopContributorsFromMetafile(metafile: BuildMetafile, limit = 8): Contributor[] {
 	const [output] = Object.values(metafile.outputs)
 	if (!output?.inputs) return []
 

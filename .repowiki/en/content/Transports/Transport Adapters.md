@@ -35,14 +35,15 @@ Every transport implements the `Transport<TMessage>` interface:
 
 ```typescript
 interface Transport<TMessage> {
-  capabilities?: TransportCapabilities
-  send(message: TMessage, transfers?: Transferable[]): void | Promise<void>
-  subscribe(listener: (message: TMessage) => void): () => void
-  close?(): void
+	capabilities?: TransportCapabilities
+	send(message: TMessage, transfers?: Transferable[]): void | Promise<void>
+	subscribe(listener: (message: TMessage) => void): () => void
+	close?(): void
 }
 ```
 
 This replaces the legacy `IoInterface` from the v1.x adapter architecture. The transport is now a direct consumer of protocol messages, not an intermediary adapter. Transport implementations are responsible for:
+
 - Serializing/deserializing messages to/from wire format
 - Queuing messages when the underlying transport is not yet open
 - Managing listener subscriptions and cleanup
@@ -76,10 +77,10 @@ A `Platform<TWire>` wraps a runtime I/O primitive:
 
 ```typescript
 interface Platform<TWire> {
-  capabilities?: PlatformCapabilities
-  send(wire: TWire, transfers?: Transferable[]): void | Promise<void>
-  subscribe(listener: (wire: TWire) => void): () => void
-  close?(): void
+	capabilities?: PlatformCapabilities
+	send(wire: TWire, transfers?: Transferable[]): void | Promise<void>
+	subscribe(listener: (wire: TWire) => void): () => void
+	close?(): void
 }
 ```
 
@@ -91,9 +92,9 @@ A `Codec` translates between RPC messages and wire values:
 
 ```typescript
 interface Codec<TMessage, TWire> {
-  capabilities?: CodecCapabilities
-  encode(message: TMessage): TWire
-  decode(wire: TWire): TMessage
+	capabilities?: CodecCapabilities
+	encode(message: TMessage): TWire
+	decode(wire: TWire): TMessage
 }
 ```
 
@@ -103,13 +104,14 @@ Built-in codecs cover all common needs: `objectCodec` (identity, transfer-safe),
 
 ```typescript
 const transport = createTransport({
-  platform: stdioPlatform({ readable, writable }),
-  codec: jsonLineCodec(),
-  capabilities: { remoteRefs: true }
+	platform: stdioPlatform({ readable, writable }),
+	codec: jsonLineCodec(),
+	capabilities: { remoteRefs: true }
 })
 ```
 
 The function computes effective capabilities:
+
 - `objectMode` from platform (or capability override)
 - `transfer` = platform.transfer AND codec.transfer (both must opt in)
 - `broadcast` / `remoteRefs` from capability overrides
@@ -128,6 +130,7 @@ The function computes effective capabilities:
 Bidirectional JSON-line transports for process-to-process communication over stdin/stdout. Available for Node.js, Deno, and Bun with runtime-specific factory functions: `nodeStdioTransport()`, `denoStdioTransport()`, `bunStdioTransport()`.
 
 Key characteristics:
+
 - Newline-delimited JSON encoding
 - No transferable support
 - Bidirectional when paired processes wire stdin/stdout to each other
@@ -136,6 +139,7 @@ Key characteristics:
 ### WebSocket Transports (`kkrpc/ws`)
 
 Full-duplex persistent connections supporting calls, server-initiated calls, and callback arguments. Available as:
+
 - `webSocketTransport(socket)` — Wrap an existing WebSocket-like object
 - `webSocketClientTransport({ url, protocols? })` — Create a client WebSocket
 - `webSocketHonoTransport()` — Hono server adapter
@@ -146,6 +150,7 @@ WebSocket transports queue messages sent before `open` and flush them when the c
 ### Worker Transports (`kkrpc/worker`)
 
 Bidirectional message-port-based transports for Web Workers and `MessagePort` channels:
+
 - `workerTransport(port)` — Wrap a `MessagePort` or worker-like object
 - `workerSelfTransport()` — Use `globalThis` as the transport endpoint
 
@@ -154,6 +159,7 @@ Supports transferable objects and structured clone.
 ### HTTP Transport (`kkrpc/http`)
 
 Unary request-response transport. Supports client-initiated calls only — no callbacks, no server-initiated calls, no streaming. The HTTP transport is intentionally constrained:
+
 - `httpClientTransport()` — Client-side HTTP transport
 - `createHttpHandler()` — Server-side handler for framework integration
 
@@ -168,6 +174,7 @@ Bidirectional transport using `chrome.runtime.connect()` for messaging between e
 ### Electron Transport (`kkrpc/electron`)
 
 Three transport variants for Electron IPC:
+
 - `electronIpcTransport()` — Renderer ↔ main process via `ipcRenderer`/`ipcMain`
 - `electronUtilityProcessTransport()` — Main ↔ utility process
 - `electronUtilityProcessChildTransport()` — Utility process child side
@@ -185,12 +192,12 @@ Bidirectional transport wrapping Socket.IO client/server connections.
 
 These transports use a `BusEnvelope` for routing and filtering:
 
-| Transport | Import Path | Message Broker |
-|---|---|---|
-| Kafka | `kkrpc/kafka` | Apache Kafka |
-| RabbitMQ | `kkrpc/rabbitmq` | RabbitMQ |
-| Redis Streams | `kkrpc/redis-streams` | Redis Streams |
-| NATS | `kkrpc/nats` | NATS |
+| Transport     | Import Path           | Message Broker |
+| ------------- | --------------------- | -------------- |
+| Kafka         | `kkrpc/kafka`         | Apache Kafka   |
+| RabbitMQ      | `kkrpc/rabbitmq`      | RabbitMQ       |
+| Redis Streams | `kkrpc/redis-streams` | Redis Streams  |
+| NATS          | `kkrpc/nats`          | NATS           |
 
 **Section sources**
 
@@ -209,21 +216,21 @@ Capability declarations tell the channel what features the transport supports:
 
 ```typescript
 interface TransportCapabilities {
-  objectMode?: boolean    // Can carry JS objects without serialization
-  transfer?: boolean      // Can forward transferables with messages
-  broadcast?: boolean     // May deliver messages to more than one peer
-  remoteRefs?: boolean    // Can carry bidirectional remote-reference requests
+	objectMode?: boolean // Can carry JS objects without serialization
+	transfer?: boolean // Can forward transferables with messages
+	broadcast?: boolean // May deliver messages to more than one peer
+	remoteRefs?: boolean // Can carry bidirectional remote-reference requests
 }
 ```
 
 Capability usage in channel feature negotiation:
 
-| Capability | Enables |
-|---|---|
-| `transfer: true` | Transferable forwarding via `transfer()` |
+| Capability         | Enables                                           |
+| ------------------ | ------------------------------------------------- |
+| `transfer: true`   | Transferable forwarding via `transfer()`          |
 | `remoteRefs: true` | Remote reference operations (`kkrpc/remote-refs`) |
-| `objectMode: true` | Direct object messaging without string encoding |
-| `broadcast: true` | Multi-peer message delivery semantics |
+| `objectMode: true` | Direct object messaging without string encoding   |
+| `broadcast: true`  | Multi-peer message delivery semantics             |
 
 **Section sources**
 
@@ -237,12 +244,12 @@ Message bus transports (Kafka, RabbitMQ, Redis Streams, NATS) wrap RPC messages 
 
 ```typescript
 interface BusEnvelope {
-  messageType: string  // "request" | "response" | "callback"
-  messageId: string    // Unique message identifier
-  routingKey?: string  // Bus-specific routing key
-  timestamp: number    // Unix timestamp
-  payload: unknown     // The RPCMessage body
-  headers?: Record<string, string>  // Bus metadata headers
+	messageType: string // "request" | "response" | "callback"
+	messageId: string // Unique message identifier
+	routingKey?: string // Bus-specific routing key
+	timestamp: number // Unix timestamp
+	payload: unknown // The RPCMessage body
+	headers?: Record<string, string> // Bus metadata headers
 }
 ```
 

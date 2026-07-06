@@ -18,7 +18,10 @@ app.post("/rpc", async (req, res) => {
 			})
 		)
 
-		res.status(response.status).type("application/json").send(await response.text())
+		res
+			.status(response.status)
+			.type("application/json")
+			.send(await response.text())
 	} catch (error) {
 		console.error("RPC error:", error)
 		res.status(500).send("Internal Server Error")

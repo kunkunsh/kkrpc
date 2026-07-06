@@ -119,18 +119,18 @@ Each transport factory returns a consistent `Transport<RPCMessage>` while levera
 
 The main `kkrpc` entry is browser-safe and intentionally small. Runtime integrations and optional peer dependencies live behind subpath exports.
 
-| Entry | Purpose |
-| --- | --- |
-| `kkrpc` | Core `RPCChannel`, `wrap`, `expose`, plugin types, and transfer helpers |
-| `kkrpc/browser` | Explicit browser-safe core entry |
-| `kkrpc/deno` | Deno-friendly core entry |
-| `kkrpc/transport` | Transport composition primitives |
-| `kkrpc/worker`, `kkrpc/stdio`, `kkrpc/http`, `kkrpc/ws` | Common runtime transports |
-| `kkrpc/ws/hono`, `kkrpc/ws/elysia` | Framework-specific WebSocket helpers |
-| `kkrpc/streaming` | Opt-in async iterable streaming channel |
-| `kkrpc/remote-refs` | Opt-in explicit `proxy()` remote references |
-| `kkrpc/validation`, `kkrpc/middleware`, `kkrpc/superjson` | Optional feature plugins and codecs |
-| `kkrpc/relay`, `kkrpc/inspector` | Relay and observability helpers |
+| Entry                                                     | Purpose                                                                 |
+| --------------------------------------------------------- | ----------------------------------------------------------------------- |
+| `kkrpc`                                                   | Core `RPCChannel`, `wrap`, `expose`, plugin types, and transfer helpers |
+| `kkrpc/browser`                                           | Explicit browser-safe core entry                                        |
+| `kkrpc/deno`                                              | Deno-friendly core entry                                                |
+| `kkrpc/transport`                                         | Transport composition primitives                                        |
+| `kkrpc/worker`, `kkrpc/stdio`, `kkrpc/http`, `kkrpc/ws`   | Common runtime transports                                               |
+| `kkrpc/ws/hono`, `kkrpc/ws/elysia`                        | Framework-specific WebSocket helpers                                    |
+| `kkrpc/streaming`                                         | Opt-in async iterable streaming channel                                 |
+| `kkrpc/remote-refs`                                       | Opt-in explicit `proxy()` remote references                             |
+| `kkrpc/validation`, `kkrpc/middleware`, `kkrpc/superjson` | Optional feature plugins and codecs                                     |
+| `kkrpc/relay`, `kkrpc/inspector`                          | Relay and observability helpers                                         |
 
 Removed classic entries include `kkrpc/next*`, `kkrpc/browser-lite`, `kkrpc/browser-mini`, and `kkrpc/electron-ipc`.
 

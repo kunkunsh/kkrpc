@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test"
+import type { RPCMessage } from "../src/core/protocol.ts"
 import { chromePortTransport } from "../src/entries/chrome-extension.ts"
 import {
 	iframeChildTransport,
@@ -7,7 +8,6 @@ import {
 	iframeParentTransportReady
 } from "../src/entries/iframe.ts"
 import { RPCChannel, transfer } from "../src/entries/mod.ts"
-import type { RPCMessage } from "../src/core/protocol.ts"
 import { webSocketClientTransport as browserWebSocketClientTransport } from "../src/transports/web-socket-client.ts"
 
 const forbidden = [
@@ -222,7 +222,8 @@ describe("iframe transports", () => {
 			expect(received).toHaveLength(0)
 		} finally {
 			parentTransport.close?.()
-			if (originalMessageChannel) Object.defineProperty(globalThis, "MessageChannel", originalMessageChannel)
+			if (originalMessageChannel)
+				Object.defineProperty(globalThis, "MessageChannel", originalMessageChannel)
 			else Reflect.deleteProperty(globalThis, "MessageChannel")
 		}
 	})
@@ -237,7 +238,9 @@ describe("iframe transports", () => {
 
 		try {
 			const parentTransport = await Promise.race([
-				iframeParentTransportReady(childWindow as unknown as Window, { sourceWindow: parentWindow }),
+				iframeParentTransportReady(childWindow as unknown as Window, {
+					sourceWindow: parentWindow
+				}),
 				Bun.sleep(25).then(() => undefined)
 			])
 			const childTransport = await Promise.race([
@@ -250,7 +253,8 @@ describe("iframe transports", () => {
 			parentTransport?.close?.()
 			childTransport?.close?.()
 		} finally {
-			if (originalMessageChannel) Object.defineProperty(globalThis, "MessageChannel", originalMessageChannel)
+			if (originalMessageChannel)
+				Object.defineProperty(globalThis, "MessageChannel", originalMessageChannel)
 			else Reflect.deleteProperty(globalThis, "MessageChannel")
 		}
 	})

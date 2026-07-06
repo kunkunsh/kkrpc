@@ -1,6 +1,5 @@
-import { describe, expect, test } from "bun:test"
 import { PassThrough } from "node:stream"
-
+import { describe, expect, test } from "bun:test"
 import { dispose, expose, wrap, type RPCMessage } from "../src/entries/mod.ts"
 import { nodeStdioTransport, stdioJsonTransport, stdioPlatform } from "../src/entries/stdio.ts"
 import type { ReadableLike } from "../src/entries/stdio.ts"
@@ -112,12 +111,14 @@ describe("stdio transport", () => {
 		const readableB = new PassThrough()
 		const linesA: string[] = []
 		const linesB: string[] = []
-		const unsubscribeA = stdioPlatform({ readable: readableA, writable: new PassThrough() }).subscribe(
-			(line) => linesA.push(line)
-		)
-		const unsubscribeB = stdioPlatform({ readable: readableB, writable: new PassThrough() }).subscribe(
-			(line) => linesB.push(line)
-		)
+		const unsubscribeA = stdioPlatform({
+			readable: readableA,
+			writable: new PassThrough()
+		}).subscribe((line) => linesA.push(line))
+		const unsubscribeB = stdioPlatform({
+			readable: readableB,
+			writable: new PassThrough()
+		}).subscribe((line) => linesB.push(line))
 		const encoder = new TextEncoder()
 		const lineA = '{"v":"你"}\n'
 		const lineB = '{"v":"好"}\n'

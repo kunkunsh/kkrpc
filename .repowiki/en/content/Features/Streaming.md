@@ -38,7 +38,7 @@ const remote = channel.getAPI()
 
 // Consumer
 for await (const chunk of remote.streamValues()) {
-  console.log(chunk)
+	console.log(chunk)
 }
 ```
 
@@ -56,12 +56,12 @@ Streaming uses two additional message types beyond the base request/response/cal
 
 ```typescript
 interface RPCStreamRequest {
-  t: "sq"            // Stream control tag
-  id: string         // Control request id
-  sid: string        // Stream id
-  op: RPCStreamOperation  // "pull" | "return" | "throw"
-  n?: number         // Credit amount (for pull)
-  v?: unknown        // Value (for return/throw)
+	t: "sq" // Stream control tag
+	id: string // Control request id
+	sid: string // Stream id
+	op: RPCStreamOperation // "pull" | "return" | "throw"
+	n?: number // Credit amount (for pull)
+	v?: unknown // Value (for return/throw)
 }
 ```
 
@@ -69,12 +69,12 @@ interface RPCStreamRequest {
 
 ```typescript
 interface RPCStreamResponse {
-  t: "sr"            // Stream data tag
-  id: string         // Message id
-  sid: string        // Stream id
-  d?: boolean        // Whether the iterator is done
-  v?: unknown        // Yielded or returned value
-  e?: RPCError       // Error when the iterator failed
+	t: "sr" // Stream data tag
+	id: string // Message id
+	sid: string // Stream id
+	d?: boolean // Whether the iterator is done
+	v?: unknown // Yielded or returned value
+	e?: RPCError // Error when the iterator failed
 }
 ```
 
@@ -115,6 +115,7 @@ sequenceDiagram
 - [packages/kkrpc/src/core/streaming-channel.ts](file://packages/kkrpc/src/core/streaming-channel.ts#L573-L579)
 
 When the consumer:
+
 1. **Starts iteration** — Sends initial `pull(n=32)` to the producer
 2. **Consumes values** — After every 16 consumed values, sends `pull(n=16)` to replenish credit
 3. **Calls `return()` or `throw()`** — Sends a control message and waits for acknowledgement
@@ -148,6 +149,7 @@ private async pumpLocalStream(streamId: string, stream: LocalStreamState): Promi
 ```
 
 Key behaviors:
+
 - `pumping` flag prevents concurrent pump loops for the same stream
 - Credit is decremented before each `iterator.next()` call
 - Write failures close the stream and stop pumping
@@ -165,25 +167,25 @@ When the consumer receives a `RemoteStreamState`, it creates a local async itera
 
 ```typescript
 const iterator: AsyncIterator<unknown> = {
-  next: async () => {
-    // Check buffer first, then wait for more data or done
-    const buffered = readBuffered()
-    if (buffered) return buffered
-    if (stream.error) throw stream.error
-    if (stream.done) return { done: true, value: undefined }
-    return await new Promise((resolve, reject) => {
-      stream.waiters.push({ resolve, reject })
-      start() // Send initial pull if not started
-    })
-  },
-  return: async (value?) => {
-    // Send return control, clean up waiters
-    return await this.requestStreamControl(streamId, "return", value)
-  },
-  throw: async (error?) => {
-    // Send throw control, reject waiters
-    return await this.requestStreamControl(streamId, "throw", error)
-  }
+	next: async () => {
+		// Check buffer first, then wait for more data or done
+		const buffered = readBuffered()
+		if (buffered) return buffered
+		if (stream.error) throw stream.error
+		if (stream.done) return { done: true, value: undefined }
+		return await new Promise((resolve, reject) => {
+			stream.waiters.push({ resolve, reject })
+			start() // Send initial pull if not started
+		})
+	},
+	return: async (value?) => {
+		// Send return control, clean up waiters
+		return await this.requestStreamControl(streamId, "return", value)
+	},
+	throw: async (error?) => {
+		// Send throw control, reject waiters
+		return await this.requestStreamControl(streamId, "throw", error)
+	}
 }
 ```
 
@@ -202,11 +204,11 @@ StreamingRPCChannel supports a pattern where remote method calls that return pro
 // Both work:
 const result = await remote.streamMethod()
 for await (const chunk of remote.streamMethod()) {
-  console.log(chunk)
+	console.log(chunk)
 }
 // Combined:
 for await (const chunk of await remote.streamMethod()) {
-  console.log(chunk)
+	console.log(chunk)
 }
 ```
 
@@ -249,6 +251,7 @@ When a producer encounters an error, it sends an `sr` with an error payload, whi
 ### Channel Destroy
 
 On `destroy()`:
+
 1. All pending stream control requests are rejected
 2. Local iterators are closed via `iterator.return()`
 3. Remote stream waiters are rejected

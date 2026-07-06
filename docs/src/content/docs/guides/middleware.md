@@ -72,11 +72,11 @@ This means an outer interceptor (like a timer) can measure the total time includ
 
 Each interceptor receives a `ctx` object:
 
-| Property | Type                      | Description                                                                 |
-| -------- | ------------------------- | --------------------------------------------------------------------------- |
-| `method` | `string`                  | Dotted method path (e.g. `"math.divide"`)                                   |
+| Property | Type                      | Description                                                                              |
+| -------- | ------------------------- | ---------------------------------------------------------------------------------------- |
+| `method` | `string`                  | Dotted method path (e.g. `"math.divide"`)                                                |
 | `args`   | `unknown[]`               | Arguments after default callback restoration or remote-ref decoding and input validation |
-| `state`  | `Record<string, unknown>` | Shared state bag — interceptors can attach data for downstream interceptors |
+| `state`  | `Record<string, unknown>` | Shared state bag — interceptors can attach data for downstream interceptors              |
 
 ### Sharing state between interceptors
 

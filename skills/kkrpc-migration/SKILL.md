@@ -49,22 +49,22 @@ The `*IO` search may find application names. Review matches manually and only mi
 
 ## Entry Mapping
 
-| Old import | New import |
-| --- | --- |
-| `kkrpc/next` | `kkrpc` |
-| `kkrpc/next/transport` | `kkrpc/transport` |
-| `kkrpc/next/codecs` | `kkrpc/codecs` |
-| `kkrpc/next/plugins` | `kkrpc/plugins` |
-| `kkrpc/next/validation` | `kkrpc/validation` |
-| `kkrpc/next/middleware` | `kkrpc/middleware` |
-| `kkrpc/next/superjson` | `kkrpc/superjson` |
-| async iterable APIs from `kkrpc` | `kkrpc/streaming` |
-| callback-return/object-handle APIs from `kkrpc` | `kkrpc/remote-refs` |
-| `kkrpc/next/worker` | `kkrpc/worker` |
-| `kkrpc/next/stdio` | `kkrpc/stdio` |
-| `kkrpc/browser-lite` | `kkrpc` or `kkrpc/browser` |
-| `kkrpc/browser-mini` | `kkrpc` or `kkrpc/browser` |
-| `kkrpc/electron-ipc` | `kkrpc/electron` |
+| Old import                                      | New import                 |
+| ----------------------------------------------- | -------------------------- |
+| `kkrpc/next`                                    | `kkrpc`                    |
+| `kkrpc/next/transport`                          | `kkrpc/transport`          |
+| `kkrpc/next/codecs`                             | `kkrpc/codecs`             |
+| `kkrpc/next/plugins`                            | `kkrpc/plugins`            |
+| `kkrpc/next/validation`                         | `kkrpc/validation`         |
+| `kkrpc/next/middleware`                         | `kkrpc/middleware`         |
+| `kkrpc/next/superjson`                          | `kkrpc/superjson`          |
+| async iterable APIs from `kkrpc`                | `kkrpc/streaming`          |
+| callback-return/object-handle APIs from `kkrpc` | `kkrpc/remote-refs`        |
+| `kkrpc/next/worker`                             | `kkrpc/worker`             |
+| `kkrpc/next/stdio`                              | `kkrpc/stdio`              |
+| `kkrpc/browser-lite`                            | `kkrpc` or `kkrpc/browser` |
+| `kkrpc/browser-mini`                            | `kkrpc` or `kkrpc/browser` |
+| `kkrpc/electron-ipc`                            | `kkrpc/electron`           |
 
 Runtime transports must not be imported from the main `kkrpc` entry. Use explicit subpaths.
 
@@ -118,29 +118,29 @@ The generic order is local API first, remote API second.
 
 ## Transport Mapping
 
-| Boundary | Native 1.0 helper |
-| --- | --- |
-| Web Worker parent | `workerTransport()` from `kkrpc/worker` |
-| Web Worker global | `workerSelfTransport()` from `kkrpc/worker` |
-| Node stdio | `nodeStdioTransport()` from `kkrpc/stdio` |
-| Generic stdio JSON | `stdioJsonTransport()` from `kkrpc/stdio` |
-| HTTP client | `httpClientTransport()` from `kkrpc/http` |
-| HTTP server | `createHttpHandler()` from `kkrpc/http` |
-| WebSocket socket | `webSocketTransport()` from `kkrpc/ws` |
-| WebSocket client | `webSocketClientTransport()` from `kkrpc/ws` |
-| Hono WebSocket | `createHonoWebSocketHandler()` or `honoWebSocketTransport()` from `kkrpc/ws/hono` |
-| Elysia WebSocket | `createElysiaWebSocketHandler()` or `elysiaWebSocketTransport()` from `kkrpc/ws/elysia` |
-| iframe parent | `iframeParentTransport()` from `kkrpc/iframe` |
-| iframe child | `iframeChildTransport()` from `kkrpc/iframe` |
-| Chrome extension port | `chromePortTransport()` from `kkrpc/chrome-extension` |
-| Electron IPC | `electronIpcTransport()` from `kkrpc/electron` |
-| Electron utility process | `electronUtilityProcessTransport()` or `electronUtilityProcessChildTransport()` from `kkrpc/electron` |
-| Tauri shell child process | `tauriShellStdioTransport()` from `kkrpc/tauri` |
-| Socket.IO | `socketIoTransport()` from `kkrpc/socketio` |
-| RabbitMQ | `rabbitMqTransport()` from `kkrpc/rabbitmq` |
-| Kafka | `kafkaTransport()` from `kkrpc/kafka` |
-| Redis Streams | `redisStreamsTransport()` from `kkrpc/redis-streams` |
-| NATS | `natsTransport()` from `kkrpc/nats` |
+| Boundary                  | Native 1.0 helper                                                                                     |
+| ------------------------- | ----------------------------------------------------------------------------------------------------- |
+| Web Worker parent         | `workerTransport()` from `kkrpc/worker`                                                               |
+| Web Worker global         | `workerSelfTransport()` from `kkrpc/worker`                                                           |
+| Node stdio                | `nodeStdioTransport()` from `kkrpc/stdio`                                                             |
+| Generic stdio JSON        | `stdioJsonTransport()` from `kkrpc/stdio`                                                             |
+| HTTP client               | `httpClientTransport()` from `kkrpc/http`                                                             |
+| HTTP server               | `createHttpHandler()` from `kkrpc/http`                                                               |
+| WebSocket socket          | `webSocketTransport()` from `kkrpc/ws`                                                                |
+| WebSocket client          | `webSocketClientTransport()` from `kkrpc/ws`                                                          |
+| Hono WebSocket            | `createHonoWebSocketHandler()` or `honoWebSocketTransport()` from `kkrpc/ws/hono`                     |
+| Elysia WebSocket          | `createElysiaWebSocketHandler()` or `elysiaWebSocketTransport()` from `kkrpc/ws/elysia`               |
+| iframe parent             | `iframeParentTransport()` from `kkrpc/iframe`                                                         |
+| iframe child              | `iframeChildTransport()` from `kkrpc/iframe`                                                          |
+| Chrome extension port     | `chromePortTransport()` from `kkrpc/chrome-extension`                                                 |
+| Electron IPC              | `electronIpcTransport()` from `kkrpc/electron`                                                        |
+| Electron utility process  | `electronUtilityProcessTransport()` or `electronUtilityProcessChildTransport()` from `kkrpc/electron` |
+| Tauri shell child process | `tauriShellStdioTransport()` from `kkrpc/tauri`                                                       |
+| Socket.IO                 | `socketIoTransport()` from `kkrpc/socketio`                                                           |
+| RabbitMQ                  | `rabbitMqTransport()` from `kkrpc/rabbitmq`                                                           |
+| Kafka                     | `kafkaTransport()` from `kkrpc/kafka`                                                                 |
+| Redis Streams             | `redisStreamsTransport()` from `kkrpc/redis-streams`                                                  |
+| NATS                      | `natsTransport()` from `kkrpc/nats`                                                                   |
 
 ## HTTP Guardrail
 
@@ -194,8 +194,8 @@ Install the plugin through `wrap()`, `expose()`, or `RPCChannel` options.
 SuperJSON is not a core import. Use `kkrpc/superjson` only where a transport needs richer value encoding.
 
 ```typescript
-import { createTransport } from "kkrpc/transport"
 import { superJsonCodec } from "kkrpc/superjson"
+import { createTransport } from "kkrpc/transport"
 
 const transport = createTransport({ platform, codec: superJsonCodec() })
 ```

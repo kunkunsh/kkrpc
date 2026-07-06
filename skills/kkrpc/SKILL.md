@@ -51,28 +51,28 @@ const remote = channel.getAPI()
 
 ## Entry Points
 
-| Runtime or feature | Import path | Notes |
-| --- | --- | --- |
-| Core | `kkrpc` | Browser-safe `wrap`, `expose`, `RPCChannel`, protocol and transport types |
-| Browser core | `kkrpc/browser` | Explicit browser entry when package conditions are not enough |
-| Worker | `kkrpc/worker` | `workerTransport`, `workerSelfTransport` |
-| stdio | `kkrpc/stdio` | Native JSON-line stdio transports |
-| HTTP | `kkrpc/http` | HTTP client and handler helpers |
-| WebSocket | `kkrpc/ws` | WebSocket client/server transports |
-| Hono WebSocket | `kkrpc/ws/hono` | Optional `hono` peer |
-| Elysia WebSocket | `kkrpc/ws/elysia` | Optional `elysia` peer |
-| iframe | `kkrpc/iframe` | iframe postMessage transports |
-| Chrome extension | `kkrpc/chrome-extension` | Chrome runtime port transports |
-| Electron | `kkrpc/electron` | Electron IPC and utility process transports |
-| Tauri | `kkrpc/tauri` | Tauri shell plugin transport |
-| Validation | `kkrpc/validation` | Standard Schema validation plugin |
-| Middleware | `kkrpc/middleware` | Interceptor middleware plugin |
-| SuperJSON | `kkrpc/superjson` | SuperJSON codecs |
-| Streaming | `kkrpc/streaming` | Async iterable arguments/results with pull-based backpressure |
-| Remote refs | `kkrpc/remote-refs` | Explicit `proxy(value)` references, callback return values, object handles, `releaseProxy()` |
-| Relay | `kkrpc/relay` | Transport-to-transport relay helper |
-| Inspector | `kkrpc/inspector` | Native plugin/event traffic logging |
-| Queues | `kkrpc/rabbitmq`, `kkrpc/kafka`, `kkrpc/redis-streams`, `kkrpc/nats` | Optional peer dependencies; set `remotePeerId` for point-to-point streaming or remote refs |
+| Runtime or feature | Import path                                                          | Notes                                                                                        |
+| ------------------ | -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| Core               | `kkrpc`                                                              | Browser-safe `wrap`, `expose`, `RPCChannel`, protocol and transport types                    |
+| Browser core       | `kkrpc/browser`                                                      | Explicit browser entry when package conditions are not enough                                |
+| Worker             | `kkrpc/worker`                                                       | `workerTransport`, `workerSelfTransport`                                                     |
+| stdio              | `kkrpc/stdio`                                                        | Native JSON-line stdio transports                                                            |
+| HTTP               | `kkrpc/http`                                                         | HTTP client and handler helpers                                                              |
+| WebSocket          | `kkrpc/ws`                                                           | WebSocket client/server transports                                                           |
+| Hono WebSocket     | `kkrpc/ws/hono`                                                      | Optional `hono` peer                                                                         |
+| Elysia WebSocket   | `kkrpc/ws/elysia`                                                    | Optional `elysia` peer                                                                       |
+| iframe             | `kkrpc/iframe`                                                       | iframe postMessage transports                                                                |
+| Chrome extension   | `kkrpc/chrome-extension`                                             | Chrome runtime port transports                                                               |
+| Electron           | `kkrpc/electron`                                                     | Electron IPC and utility process transports                                                  |
+| Tauri              | `kkrpc/tauri`                                                        | Tauri shell plugin transport                                                                 |
+| Validation         | `kkrpc/validation`                                                   | Standard Schema validation plugin                                                            |
+| Middleware         | `kkrpc/middleware`                                                   | Interceptor middleware plugin                                                                |
+| SuperJSON          | `kkrpc/superjson`                                                    | SuperJSON codecs                                                                             |
+| Streaming          | `kkrpc/streaming`                                                    | Async iterable arguments/results with pull-based backpressure                                |
+| Remote refs        | `kkrpc/remote-refs`                                                  | Explicit `proxy(value)` references, callback return values, object handles, `releaseProxy()` |
+| Relay              | `kkrpc/relay`                                                        | Transport-to-transport relay helper                                                          |
+| Inspector          | `kkrpc/inspector`                                                    | Native plugin/event traffic logging                                                          |
+| Queues             | `kkrpc/rabbitmq`, `kkrpc/kafka`, `kkrpc/redis-streams`, `kkrpc/nats` | Optional peer dependencies; set `remotePeerId` for point-to-point streaming or remote refs   |
 
 ## Core API Pattern
 
@@ -220,8 +220,8 @@ const plugins = [
 Use `kkrpc/superjson` only when the application needs SuperJSON value support. Do not import it from the main `kkrpc` entry.
 
 ```typescript
-import { createTransport } from "kkrpc/transport"
 import { superJsonCodec } from "kkrpc/superjson"
+import { createTransport } from "kkrpc/transport"
 
 const transport = createTransport({ platform, codec: superJsonCodec() })
 ```
@@ -258,15 +258,15 @@ relay.dispose()
 
 ## Common Pitfalls
 
-| Pitfall | Fix |
-| --- | --- |
-| Importing optional transport peers from `kkrpc` | Import from the specific subpath, such as `kkrpc/ws` or `kkrpc/electron` |
-| Pulling SuperJSON into every browser bundle | Import codecs from `kkrpc/superjson` only where needed |
-| Expecting async iterables from `kkrpc` | Import `wrap`/`expose`/`RPCChannel` from `kkrpc/streaming` on both sides |
-| Expecting callback return values from default callbacks | Import from `kkrpc/remote-refs` and pass `proxy(callback)` |
-| Returning unmarked nested functions as remote handles | Wrap the function leaf with `proxy(fn)` in `kkrpc/remote-refs`; unmarked functions are rejected |
-| Using remote refs over broadcast message buses | Configure a point-to-point bus transport with `remotePeerId` |
-| Passing a remote proxy through another channel | Keep remote proxies on the channel that decoded them, or build an explicit bridge |
-| Forgetting to dispose channels | Keep the controller/channel and call `dispose()` or `destroy()` |
-| Using old blocking IO adapter names | Use native transport factories that return `Transport<RPCMessage>` |
-| Treating validation as core behavior | Add `validationPlugin()` explicitly through channel options |
+| Pitfall                                                 | Fix                                                                                             |
+| ------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| Importing optional transport peers from `kkrpc`         | Import from the specific subpath, such as `kkrpc/ws` or `kkrpc/electron`                        |
+| Pulling SuperJSON into every browser bundle             | Import codecs from `kkrpc/superjson` only where needed                                          |
+| Expecting async iterables from `kkrpc`                  | Import `wrap`/`expose`/`RPCChannel` from `kkrpc/streaming` on both sides                        |
+| Expecting callback return values from default callbacks | Import from `kkrpc/remote-refs` and pass `proxy(callback)`                                      |
+| Returning unmarked nested functions as remote handles   | Wrap the function leaf with `proxy(fn)` in `kkrpc/remote-refs`; unmarked functions are rejected |
+| Using remote refs over broadcast message buses          | Configure a point-to-point bus transport with `remotePeerId`                                    |
+| Passing a remote proxy through another channel          | Keep remote proxies on the channel that decoded them, or build an explicit bridge               |
+| Forgetting to dispose channels                          | Keep the controller/channel and call `dispose()` or `destroy()`                                 |
+| Using old blocking IO adapter names                     | Use native transport factories that return `Transport<RPCMessage>`                              |
+| Treating validation as core behavior                    | Add `validationPlugin()` explicitly through channel options                                     |

@@ -42,20 +42,20 @@ Major changes:
 
 These names and entries should not remain in 1.0 applications.
 
-| Removed | Use instead |
-| --- | --- |
-| `IoInterface`, `IoMessage` | `Transport<RPCMessage>` |
-| Public `*IO` adapter classes | Native transport factories, such as `workerTransport()` or `webSocketTransport()` |
-| Classic `validators` option | `validationPlugin()` from `kkrpc/validation` |
-| Classic `interceptors` option | `middlewarePlugin()` from `kkrpc/middleware` |
-| `RPCValidators`, classic validation helpers | `defineMethod()`, `defineAPI()`, `extractValidators()`, `validationPlugin()` |
-| `RPCInterceptor` from the old API | `MiddlewareHandler` from `kkrpc/middleware` |
-| `kkrpc/next` and `kkrpc/next/*` | Stable `kkrpc` and stable subpaths |
-| `kkrpc/next/classic-compat` | Native plugins and options |
-| `kkrpc/next/io` | Native transport implementations |
-| `kkrpc/browser-lite` | `kkrpc` or `kkrpc/browser` |
-| `kkrpc/browser-mini` | `kkrpc` or `kkrpc/browser` |
-| `kkrpc/electron-ipc` | `kkrpc/electron` |
+| Removed                                     | Use instead                                                                       |
+| ------------------------------------------- | --------------------------------------------------------------------------------- |
+| `IoInterface`, `IoMessage`                  | `Transport<RPCMessage>`                                                           |
+| Public `*IO` adapter classes                | Native transport factories, such as `workerTransport()` or `webSocketTransport()` |
+| Classic `validators` option                 | `validationPlugin()` from `kkrpc/validation`                                      |
+| Classic `interceptors` option               | `middlewarePlugin()` from `kkrpc/middleware`                                      |
+| `RPCValidators`, classic validation helpers | `defineMethod()`, `defineAPI()`, `extractValidators()`, `validationPlugin()`      |
+| `RPCInterceptor` from the old API           | `MiddlewareHandler` from `kkrpc/middleware`                                       |
+| `kkrpc/next` and `kkrpc/next/*`             | Stable `kkrpc` and stable subpaths                                                |
+| `kkrpc/next/classic-compat`                 | Native plugins and options                                                        |
+| `kkrpc/next/io`                             | Native transport implementations                                                  |
+| `kkrpc/browser-lite`                        | `kkrpc` or `kkrpc/browser`                                                        |
+| `kkrpc/browser-mini`                        | `kkrpc` or `kkrpc/browser`                                                        |
+| `kkrpc/electron-ipc`                        | `kkrpc/electron`                                                                  |
 
 Do not add compatibility bridges in new 1.0 code. If an old custom adapter still exists, migrate the adapter itself to `Transport<RPCMessage>`.
 
@@ -63,36 +63,36 @@ Do not add compatibility bridges in new 1.0 code. If an old custom adapter still
 
 The main entry is intentionally small and browser-safe. Runtime-specific code and optional peers live behind subpaths.
 
-| Entry | Purpose |
-| --- | --- |
-| `kkrpc` | Stable core: `RPCChannel`, `wrap`, `expose`, `dispose`, `transfer`, core types |
-| `kkrpc/browser` | Explicit browser-safe core entry |
-| `kkrpc/deno` | Deno-friendly core entry |
-| `kkrpc/transport` | `Transport`, `Platform`, `Codec`, `createTransport()` |
-| `kkrpc/codecs` | Built-in object, JSON, and JSON-line codecs |
-| `kkrpc/plugins` | Core plugin types and helpers |
-| `kkrpc/validation` | Standard Schema validation plugin and schema helpers |
-| `kkrpc/middleware` | Interceptor middleware plugin |
-| `kkrpc/superjson` | SuperJSON codec helpers |
-| `kkrpc/streaming` | Opt-in async iterable streaming channel |
-| `kkrpc/remote-refs` | Opt-in explicit `proxy()` remote references |
-| `kkrpc/worker` | Web Worker transports |
-| `kkrpc/stdio` | Node.js, Deno, and Bun stdio transports |
-| `kkrpc/http` | HTTP client transport and request handler |
-| `kkrpc/ws` | Plain WebSocket transports |
-| `kkrpc/ws/hono` | Hono WebSocket integration |
-| `kkrpc/ws/elysia` | Elysia WebSocket integration |
-| `kkrpc/iframe` | iframe `postMessage` transports |
-| `kkrpc/chrome-extension` | Chrome extension port transport |
-| `kkrpc/electron` | Electron IPC and utility process transports |
-| `kkrpc/tauri` | Tauri shell stdio transport |
-| `kkrpc/socketio` | Socket.IO transport |
-| `kkrpc/rabbitmq` | RabbitMQ transport |
-| `kkrpc/kafka` | Kafka transport |
-| `kkrpc/redis-streams` | Redis Streams transport |
-| `kkrpc/nats` | NATS transport |
-| `kkrpc/relay` | Transport relay helper |
-| `kkrpc/inspector` | Native inspector helpers |
+| Entry                    | Purpose                                                                        |
+| ------------------------ | ------------------------------------------------------------------------------ |
+| `kkrpc`                  | Stable core: `RPCChannel`, `wrap`, `expose`, `dispose`, `transfer`, core types |
+| `kkrpc/browser`          | Explicit browser-safe core entry                                               |
+| `kkrpc/deno`             | Deno-friendly core entry                                                       |
+| `kkrpc/transport`        | `Transport`, `Platform`, `Codec`, `createTransport()`                          |
+| `kkrpc/codecs`           | Built-in object, JSON, and JSON-line codecs                                    |
+| `kkrpc/plugins`          | Core plugin types and helpers                                                  |
+| `kkrpc/validation`       | Standard Schema validation plugin and schema helpers                           |
+| `kkrpc/middleware`       | Interceptor middleware plugin                                                  |
+| `kkrpc/superjson`        | SuperJSON codec helpers                                                        |
+| `kkrpc/streaming`        | Opt-in async iterable streaming channel                                        |
+| `kkrpc/remote-refs`      | Opt-in explicit `proxy()` remote references                                    |
+| `kkrpc/worker`           | Web Worker transports                                                          |
+| `kkrpc/stdio`            | Node.js, Deno, and Bun stdio transports                                        |
+| `kkrpc/http`             | HTTP client transport and request handler                                      |
+| `kkrpc/ws`               | Plain WebSocket transports                                                     |
+| `kkrpc/ws/hono`          | Hono WebSocket integration                                                     |
+| `kkrpc/ws/elysia`        | Elysia WebSocket integration                                                   |
+| `kkrpc/iframe`           | iframe `postMessage` transports                                                |
+| `kkrpc/chrome-extension` | Chrome extension port transport                                                |
+| `kkrpc/electron`         | Electron IPC and utility process transports                                    |
+| `kkrpc/tauri`            | Tauri shell stdio transport                                                    |
+| `kkrpc/socketio`         | Socket.IO transport                                                            |
+| `kkrpc/rabbitmq`         | RabbitMQ transport                                                             |
+| `kkrpc/kafka`            | Kafka transport                                                                |
+| `kkrpc/redis-streams`    | Redis Streams transport                                                        |
+| `kkrpc/nats`             | NATS transport                                                                 |
+| `kkrpc/relay`            | Transport relay helper                                                         |
+| `kkrpc/inspector`        | Native inspector helpers                                                       |
 
 ## Core API Migration
 
@@ -276,12 +276,12 @@ Use `socketIoTransport(socket)` from `kkrpc/socketio`. Socket.IO remains separat
 
 Use the native message-bus transports from their dedicated subpaths:
 
-| System | 1.0 helper |
-| --- | --- |
-| RabbitMQ | `rabbitMqTransport()` from `kkrpc/rabbitmq` |
-| Kafka | `kafkaTransport()` from `kkrpc/kafka` |
+| System        | 1.0 helper                                           |
+| ------------- | ---------------------------------------------------- |
+| RabbitMQ      | `rabbitMqTransport()` from `kkrpc/rabbitmq`          |
+| Kafka         | `kafkaTransport()` from `kkrpc/kafka`                |
 | Redis Streams | `redisStreamsTransport()` from `kkrpc/redis-streams` |
-| NATS | `natsTransport()` from `kkrpc/nats` |
+| NATS          | `natsTransport()` from `kkrpc/nats`                  |
 
 Message-bus transports use envelope metadata for peer identity and routing. They may provide at-least-once delivery depending on the broker. Do not assume exactly-once execution unless your application protocol handles idempotency. Configure `remotePeerId` for point-to-point streaming or remote-reference APIs; broadcast mode is for fan-out messages and does not advertise remote-reference support.
 
@@ -366,8 +366,8 @@ See [Request Metadata](/guides/metadata/) for tracing, logging, and kunkun migra
 SuperJSON is opt-in through `kkrpc/superjson` and transport composition.
 
 ```ts
-import { createTransport } from "kkrpc/transport"
 import { superJsonCodec } from "kkrpc/superjson"
+import { createTransport } from "kkrpc/transport"
 
 const transport = createTransport({ platform, codec: superJsonCodec() })
 ```
@@ -386,15 +386,15 @@ Responses use `t: "r"`; callback invocations use `t: "cb"`. Async iterable strea
 
 ## Common Pitfalls
 
-| Problem | Fix |
-| --- | --- |
-| Importing runtime transports from `kkrpc` | Import from runtime subpaths such as `kkrpc/ws` or `kkrpc/electron` |
-| Leaving `kkrpc/next` imports in code | Replace them with `kkrpc` and stable subpaths |
-| Migrating HTTP code that used callbacks | Use WebSocket or another evented transport |
-| Assuming `wrap()` disposes automatically | Keep the proxy and call `dispose(proxy)` when the lifetime ends |
-| Pulling SuperJSON into every bundle | Use `kkrpc/superjson` only at boundaries that need richer values |
-| Preserving old `*IO` class names in wrappers | Rename wrappers around native `Transport<RPCMessage>` factories |
-| Treating transferables as universal | Check transport capabilities and use `transfer()` only where supported |
+| Problem                                      | Fix                                                                    |
+| -------------------------------------------- | ---------------------------------------------------------------------- |
+| Importing runtime transports from `kkrpc`    | Import from runtime subpaths such as `kkrpc/ws` or `kkrpc/electron`    |
+| Leaving `kkrpc/next` imports in code         | Replace them with `kkrpc` and stable subpaths                          |
+| Migrating HTTP code that used callbacks      | Use WebSocket or another evented transport                             |
+| Assuming `wrap()` disposes automatically     | Keep the proxy and call `dispose(proxy)` when the lifetime ends        |
+| Pulling SuperJSON into every bundle          | Use `kkrpc/superjson` only at boundaries that need richer values       |
+| Preserving old `*IO` class names in wrappers | Rename wrappers around native `Transport<RPCMessage>` factories        |
+| Treating transferables as universal          | Check transport capabilities and use `transfer()` only where supported |
 
 ## Verification
 

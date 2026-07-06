@@ -115,4 +115,9 @@ export interface RPCStreamResponse {
 }
 
 /** Any compact message accepted by an `RPCChannel` transport. */
-export type RPCMessage = RPCRequest | RPCResponse | RPCCallback | RPCStreamRequest | RPCStreamResponse
+export type RPCMessage =
+	| RPCRequest
+	| RPCResponse
+	| RPCCallback
+	| RPCStreamRequest
+	| RPCStreamResponse

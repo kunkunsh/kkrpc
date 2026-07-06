@@ -54,7 +54,10 @@ electron-demo/
 
 ```typescript
 // Renderer
-const ipcTransport = electronIpcTransport({ endpoint: window.electron.ipcRenderer, channel: "kkrpc-ipc" })
+const ipcTransport = electronIpcTransport({
+	endpoint: window.electron.ipcRenderer,
+	channel: "kkrpc-ipc"
+})
 const rpc = new RPCChannel<RendererAPI, MainAPI>(ipcTransport, { expose: rendererAPI })
 const mainAPI = rpc.getAPI()
 await mainAPI.showNotification("Hello!")

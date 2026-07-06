@@ -47,6 +47,7 @@ Boundary decisions:
 ### Task 1: Extract Protocol Types And JSON Serializer
 
 **Files:**
+
 - Create: `packages/kkrpc/src/serialization-types.ts`
 - Create: `packages/kkrpc/src/serialization-json.ts`
 - Modify: `packages/kkrpc/__tests__/serialization.test.ts`
@@ -324,6 +325,7 @@ git commit -m "refactor(kkrpc): extract json serialization runtime"
 ### Task 2: Add Full Serializer And Preserve `serialization.ts`
 
 **Files:**
+
 - Create: `packages/kkrpc/src/serialization-full.ts`
 - Modify: `packages/kkrpc/src/serialization.ts`
 - Modify: `packages/kkrpc/__tests__/serialization.test.ts`
@@ -410,12 +412,7 @@ export type {
 	WireFormat,
 	WireV1
 } from "./serialization-types.ts"
-export {
-	deserializeError,
-	processValueForTransfer,
-	reconstructValueFromTransfer,
-	serializeError
-}
+export { deserializeError, processValueForTransfer, reconstructValueFromTransfer, serializeError }
 
 export function serializeMessage<T>(
 	message: Message<T>,
@@ -423,7 +420,9 @@ export function serializeMessage<T>(
 ): string {
 	const version = options.version || "superjson"
 	const msgWithVersion = { ...message, version }
-	return version === "json" ? encodeJsonMessage(message) : superjson.stringify(msgWithVersion) + "\n"
+	return version === "json"
+		? encodeJsonMessage(message)
+		: superjson.stringify(msgWithVersion) + "\n"
 }
 
 export function deserializeMessage<T>(message: string): Promise<Message<T>> {
@@ -524,6 +523,7 @@ git commit -m "refactor(kkrpc): keep full serialization compatibility"
 ### Task 3: Extract Channel Core And Add Full/Lite Wrappers
 
 **Files:**
+
 - Create: `packages/kkrpc/src/channel-core.ts`
 - Modify: `packages/kkrpc/src/channel.ts`
 - Create: `packages/kkrpc/src/channel-lite.ts`
@@ -632,8 +632,8 @@ Replace the serialization import with type imports from `serialization-types.ts`
 import type {
 	EnhancedError,
 	Message,
-	RPCSerializationRuntime,
 	Response,
+	RPCSerializationRuntime,
 	SerializationOptions,
 	TransferSlot
 } from "./serialization-types.ts"
@@ -752,20 +752,17 @@ Do not change request/response/callback logic in this task.
 Replace `packages/kkrpc/src/channel.ts` with:
 
 ```ts
+import { RPCChannelCore, type RPCChannelOptions } from "./channel-core.ts"
+import type { IoInterface } from "./interface.ts"
+import { fullSerializationRuntime } from "./serialization-full.ts"
+
 /**
  * Full kkrpc RPCChannel facade.
  * This entry keeps existing behavior by using the SuperJSON-enabled
  * serialization runtime.
  */
 
-export {
-	isRPCTimeoutError,
-	RPCTimeoutError,
-	type RPCChannelOptions
-} from "./channel-core.ts"
-import { RPCChannelCore, type RPCChannelOptions } from "./channel-core.ts"
-import type { IoInterface } from "./interface.ts"
-import { fullSerializationRuntime } from "./serialization-full.ts"
+export { isRPCTimeoutError, RPCTimeoutError, type RPCChannelOptions } from "./channel-core.ts"
 
 export class RPCChannel<
 	LocalAPI extends Record<string, any>,
@@ -783,20 +780,17 @@ export class RPCChannel<
 Create `packages/kkrpc/src/channel-lite.ts`:
 
 ```ts
+import { RPCChannelCore, type RPCChannelOptions } from "./channel-core.ts"
+import type { IoInterface } from "./interface.ts"
+import { jsonSerializationRuntime } from "./serialization-json.ts"
+
 /**
  * Browser-lite RPCChannel facade.
  * This wrapper preserves the public `new RPCChannel(...)` API while using the
  * JSON-only serialization runtime so SuperJSON stays out of lite bundles.
  */
 
-export {
-	isRPCTimeoutError,
-	RPCTimeoutError,
-	type RPCChannelOptions
-} from "./channel-core.ts"
-import { RPCChannelCore, type RPCChannelOptions } from "./channel-core.ts"
-import type { IoInterface } from "./interface.ts"
-import { jsonSerializationRuntime } from "./serialization-json.ts"
+export { isRPCTimeoutError, RPCTimeoutError, type RPCChannelOptions } from "./channel-core.ts"
 
 export class RPCChannel<
 	LocalAPI extends Record<string, any>,
@@ -836,6 +830,7 @@ git commit -m "refactor(kkrpc): split channel core from serializer facade"
 ### Task 4: Add Browser Lite Entrypoint And Package Exports
 
 **Files:**
+
 - Create: `packages/kkrpc/browser-lite-mod.ts`
 - Modify: `packages/kkrpc/tsdown.config.ts`
 - Modify: `packages/kkrpc/package.json`
@@ -946,6 +941,7 @@ git commit -m "feat(kkrpc): add browser-lite entrypoint"
 ### Task 5: Add Bundle Verification Script Using tsdown Output
 
 **Files:**
+
 - Create: `packages/kkrpc/scripts/check-browser-lite-bundle.ts`
 - Modify: `packages/kkrpc/package.json`
 
@@ -1027,13 +1023,14 @@ git commit -m "test(kkrpc): verify browser-lite bundle excludes superjson"
 ### Task 6: Document Browser Lite Usage
 
 **Files:**
+
 - Modify: `README.md`
 
 - [ ] **Step 1: Add README section**
 
 In `README.md`, add this section near the browser import guidance:
 
-```md
+````md
 ### Browser Lite Entry
 
 For browser-only apps that do not need SuperJSON, use the lite entrypoint:
@@ -1041,6 +1038,7 @@ For browser-only apps that do not need SuperJSON, use the lite entrypoint:
 ```ts
 import { RPCChannel, WorkerParentIO } from "kkrpc/browser-lite"
 ```
+````
 
 `kkrpc/browser-lite` keeps the same `RPCChannel` facade as `kkrpc/browser`, but uses JSON-only string serialization and structured-clone envelopes for transports that support object messages. It does not statically import SuperJSON, which keeps browser bundles smaller.
 
@@ -1050,12 +1048,13 @@ When mixing full and lite endpoints over string transports, configure the full e
 
 ```ts
 new RPCChannel(io, {
-  serialization: { version: "json" }
+	serialization: { version: "json" }
 })
 ```
 
 Lite endpoints reject `serialization: { version: "superjson" }` with a clear runtime error.
-```
+
+````
 
 Ensure nested code fences are valid Markdown. If this section is placed inside an existing fenced block, close that block first.
 
@@ -1065,7 +1064,7 @@ Run:
 
 ```bash
 pnpm format -- README.md
-```
+````
 
 Expected: README formatting completes without errors.
 
@@ -1081,6 +1080,7 @@ git commit -m "docs(kkrpc): document browser-lite entrypoint"
 ### Task 7: Full Verification
 
 **Files:**
+
 - Verify entire `packages/kkrpc` package
 
 - [ ] **Step 1: Run focused tests**

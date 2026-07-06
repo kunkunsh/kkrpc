@@ -232,13 +232,13 @@ Important constraints:
 
 kunkun's 0.7 branch added `getMetadata` on the classic channel and exposed `ctx.meta` to interceptors. In kkrpc 1.0, the same concept maps to the native transport architecture.
 
-| 0.7-era concept | 1.0 replacement |
-| --- | --- |
-| `new RPCChannel(io, { getMetadata })` | `new RPCChannel(transport, { getMetadata })` |
-| `wrap` or client channel using a classic `IoInterface` | `wrap(remoteTransport, { getMetadata })` |
-| Classic `interceptors` reading `ctx.meta` | `middlewarePlugin()` handlers reading `ctx.meta` |
-| Classic middleware `ctx.id` | 1.0 middleware and plugin `ctx.id` |
-| `RPCMessageMetadata` from serialization types | `RPCMessageMetadata` from `kkrpc` |
+| 0.7-era concept                                        | 1.0 replacement                                  |
+| ------------------------------------------------------ | ------------------------------------------------ |
+| `new RPCChannel(io, { getMetadata })`                  | `new RPCChannel(transport, { getMetadata })`     |
+| `wrap` or client channel using a classic `IoInterface` | `wrap(remoteTransport, { getMetadata })`         |
+| Classic `interceptors` reading `ctx.meta`              | `middlewarePlugin()` handlers reading `ctx.meta` |
+| Classic middleware `ctx.id`                            | 1.0 middleware and plugin `ctx.id`               |
+| `RPCMessageMetadata` from serialization types          | `RPCMessageMetadata` from `kkrpc`                |
 
 Minimal migration example:
 

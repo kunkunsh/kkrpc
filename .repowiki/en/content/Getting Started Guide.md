@@ -38,18 +38,18 @@ yarn add kkrpc
 
 No additional dependencies are needed for the core `RPCChannel` and basic transports. Optional transports require their corresponding peer dependencies:
 
-| Transport | Peer Dependency |
-|---|---|
-| `kkrpc/ws/hono` | `hono` |
-| `kkrpc/ws/elysia` | `elysia` |
-| `kkrpc/socketio` | `socket.io` or `socket.io-client` |
-| `kkrpc/kafka` | `kafkajs` |
-| `kkrpc/rabbitmq` | `amqplib` |
-| `kkrpc/redis-streams` | `ioredis` |
-| `kkrpc/nats` | `nats` |
-| `kkrpc/electron` | `electron` |
-| `kkrpc/tauri` | `@tauri-apps/api` |
-| `kkrpc/superjson` | `superjson` |
+| Transport             | Peer Dependency                   |
+| --------------------- | --------------------------------- |
+| `kkrpc/ws/hono`       | `hono`                            |
+| `kkrpc/ws/elysia`     | `elysia`                          |
+| `kkrpc/socketio`      | `socket.io` or `socket.io-client` |
+| `kkrpc/kafka`         | `kafkajs`                         |
+| `kkrpc/rabbitmq`      | `amqplib`                         |
+| `kkrpc/redis-streams` | `ioredis`                         |
+| `kkrpc/nats`          | `nats`                            |
+| `kkrpc/electron`      | `electron`                        |
+| `kkrpc/tauri`         | `@tauri-apps/api`                 |
+| `kkrpc/superjson`     | `superjson`                       |
 
 **Section sources**
 
@@ -67,8 +67,8 @@ import { expose } from "kkrpc"
 import { nodeStdioTransport } from "kkrpc/stdio"
 
 const api = {
-  add: async (a: number, b: number) => a + b,
-  ping: async () => "pong"
+	add: async (a: number, b: number) => a + b,
+	ping: async () => "pong"
 }
 
 expose(api, nodeStdioTransport())
@@ -80,9 +80,7 @@ expose(api, nodeStdioTransport())
 import { wrap } from "kkrpc"
 import { nodeStdioTransport } from "kkrpc/stdio"
 
-const api = wrap<{ add(a: number, b: number): Promise<number> }>(
-  nodeStdioTransport()
-)
+const api = wrap<{ add(a: number, b: number): Promise<number> }>(nodeStdioTransport())
 
 console.log(await api.add(1, 2)) // 3
 ```
@@ -101,19 +99,19 @@ import { expose } from "kkrpc"
 import { webSocketTransport } from "kkrpc/ws"
 
 Bun.serve({
-  port: 3000,
-  fetch(req, server) {
-    server.upgrade(req)
-  },
-  websocket: {
-    open(ws) {
-      const api = {
-        echo: async (msg: string) => msg,
-        add: async (a: number, b: number) => a + b
-      }
-      expose(api, webSocketTransport(ws))
-    }
-  }
+	port: 3000,
+	fetch(req, server) {
+		server.upgrade(req)
+	},
+	websocket: {
+		open(ws) {
+			const api = {
+				echo: async (msg: string) => msg,
+				add: async (a: number, b: number) => a + b
+			}
+			expose(api, webSocketTransport(ws))
+		}
+	}
 })
 ```
 
@@ -124,12 +122,12 @@ import { wrap } from "kkrpc"
 import { webSocketClientTransport } from "kkrpc/ws"
 
 const api = wrap<{
-  echo(msg: string): Promise<string>
-  add(a: number, b: number): Promise<number>
+	echo(msg: string): Promise<string>
+	add(a: number, b: number): Promise<number>
 }>(webSocketClientTransport({ url: "ws://localhost:3000" }))
 
-console.log(await api.echo("hello"))      // "hello"
-console.log(await api.add(3, 4))          // 7
+console.log(await api.echo("hello")) // "hello"
+console.log(await api.add(3, 4)) // 7
 ```
 
 **Section sources**
@@ -146,10 +144,10 @@ import { expose } from "kkrpc"
 import { workerSelfTransport } from "kkrpc/worker"
 
 const api = {
-  fibonacci: async (n: number): Promise<number> => {
-    if (n <= 1) return n
-    return await api.fibonacci(n - 1) + await api.fibonacci(n - 2)
-  }
+	fibonacci: async (n: number): Promise<number> => {
+		if (n <= 1) return n
+		return (await api.fibonacci(n - 1)) + (await api.fibonacci(n - 2))
+	}
 }
 
 expose(api, workerSelfTransport())
@@ -180,7 +178,7 @@ import { wrap } from "kkrpc/browser"
 import { webSocketClientTransport } from "kkrpc/ws"
 
 const api = wrap<{ ping(): Promise<string> }>(
-  webSocketClientTransport({ url: "ws://localhost:3000" })
+	webSocketClientTransport({ url: "ws://localhost:3000" })
 )
 
 await api.ping()
@@ -204,11 +202,11 @@ const api = { greet: async (name: string) => `Hello, ${name}!` }
 const handler = createHttpHandler(api)
 
 Bun.serve({
-  port: 3000,
-  async fetch(req) {
-    const response = await handler(req)
-    return response ?? new Response("Not Found", { status: 404 })
-  }
+	port: 3000,
+	async fetch(req) {
+		const response = await handler(req)
+		return response ?? new Response("Not Found", { status: 404 })
+	}
 })
 ```
 
@@ -219,7 +217,7 @@ import { wrap } from "kkrpc"
 import { httpClientTransport } from "kkrpc/http"
 
 const api = wrap<{ greet(name: string): Promise<string> }>(
-  httpClientTransport({ url: "http://localhost:3000" })
+	httpClientTransport({ url: "http://localhost:3000" })
 )
 
 console.log(await api.greet("World")) // "Hello, World!"

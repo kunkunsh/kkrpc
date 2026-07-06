@@ -82,6 +82,7 @@
 ### Task 1: Core Plugin Surface
 
 **Files:**
+
 - Create: `packages/kkrpc/src/next/plugins.ts`
 - Create: `packages/kkrpc/next-plugins.ts`
 - Modify: `packages/kkrpc/src/next/channel.ts`
@@ -94,7 +95,6 @@ Create `packages/kkrpc/__tests__/next-plugins.test.ts`:
 
 ```ts
 import { describe, expect, test } from "bun:test"
-
 import { expose, RPCChannel, wrap } from "../next.ts"
 import type { RPCMessage, RPCPlugin, Transport } from "../next.ts"
 
@@ -497,6 +497,7 @@ Expected: PASS.
 ### Task 2: Validation Plugin
 
 **Files:**
+
 - Create: `packages/kkrpc/src/next/validation.ts`
 - Create: `packages/kkrpc/next-validation.ts`
 - Create: `packages/kkrpc/__tests__/next-validation.test.ts`
@@ -508,9 +509,6 @@ Create `packages/kkrpc/__tests__/next-validation.test.ts`:
 ```ts
 import { describe, expect, test } from "bun:test"
 import { z } from "zod"
-
-import { expose, wrap } from "../next.ts"
-import type { RPCMessage, Transport } from "../next.ts"
 import {
 	defineAPI,
 	defineMethod,
@@ -518,6 +516,8 @@ import {
 	isRPCValidationError,
 	validationPlugin
 } from "../next-validation.ts"
+import { expose, wrap } from "../next.ts"
+import type { RPCMessage, Transport } from "../next.ts"
 
 interface API {
 	add(a: number, b: number): Promise<number>
@@ -612,9 +612,11 @@ describe("kkrpc/next validation plugin", () => {
 
 		try {
 			expect(await api.math.double(3)).toBe(6)
-			expect(await api.withCallback(4, (value) => {
-				callbackValue = value
-			})).toBe(4)
+			expect(
+				await api.withCallback(4, (value) => {
+					callbackValue = value
+				})
+			).toBe(4)
 			expect(callbackValue).toBe(5)
 		} finally {
 			controller.dispose()
@@ -623,9 +625,8 @@ describe("kkrpc/next validation plugin", () => {
 
 	test("schema-first helpers produce validators", async () => {
 		const apiImpl = defineAPI({
-			echo: defineMethod(
-				{ input: z.tuple([z.string()]), output: z.string() },
-				async (value) => value.toUpperCase()
+			echo: defineMethod({ input: z.tuple([z.string()]), output: z.string() }, async (value) =>
+				value.toUpperCase()
 			)
 		})
 		const { a, b } = createPair()
@@ -681,12 +682,12 @@ Create `packages/kkrpc/src/next/validation.ts`:
 
 ```ts
 import {
-	RPCValidationError,
 	defineAPI,
 	defineMethod,
 	extractValidators,
 	isRPCValidationError,
 	lookupValidator,
+	RPCValidationError,
 	runValidation,
 	type InferAPI,
 	type MethodValidators,
@@ -782,6 +783,7 @@ Expected: PASS.
 ### Task 3: Middleware Plugin
 
 **Files:**
+
 - Create: `packages/kkrpc/src/next/middleware.ts`
 - Create: `packages/kkrpc/next-middleware.ts`
 - Create: `packages/kkrpc/__tests__/next-middleware.test.ts`
@@ -792,10 +794,9 @@ Create `packages/kkrpc/__tests__/next-middleware.test.ts`:
 
 ```ts
 import { describe, expect, test } from "bun:test"
-
+import { middlewarePlugin, type RPCInterceptor } from "../next-middleware.ts"
 import { expose, wrap } from "../next.ts"
 import type { RPCMessage, Transport } from "../next.ts"
-import { middlewarePlugin, type RPCInterceptor } from "../next-middleware.ts"
 
 interface API {
 	add(a: number, b: number): Promise<number>
@@ -853,12 +854,7 @@ describe("kkrpc/next middleware plugin", () => {
 
 		try {
 			expect(await api.add(1, 2)).toBe(3)
-			expect(events).toEqual([
-				"outer before add",
-				"inner before",
-				"inner after",
-				"outer after"
-			])
+			expect(events).toEqual(["outer before add", "inner before", "inner after", "outer after"])
 		} finally {
 			controller.dispose()
 		}
@@ -1020,6 +1016,7 @@ Expected: PASS.
 ### Task 4: SuperJSON Codecs
 
 **Files:**
+
 - Create: `packages/kkrpc/src/next/superjson.ts`
 - Create: `packages/kkrpc/next-superjson.ts`
 - Create: `packages/kkrpc/__tests__/next-superjson.test.ts`
@@ -1030,9 +1027,8 @@ Create `packages/kkrpc/__tests__/next-superjson.test.ts`:
 
 ```ts
 import { describe, expect, test } from "bun:test"
-
-import { createTransport, type Platform } from "../next-transport.ts"
 import { superJsonCodec, superJsonLineCodec } from "../next-superjson.ts"
+import { createTransport, type Platform } from "../next-transport.ts"
 
 class StringPlatform implements Platform<string> {
 	capabilities = { objectMode: false, transfer: false }
@@ -1112,7 +1108,6 @@ Create `packages/kkrpc/src/next/superjson.ts`:
 
 ```ts
 import superjson from "superjson"
-
 import type { Codec } from "./transport.ts"
 
 export function superJsonCodec<TMessage>(): Codec<TMessage, string> {
@@ -1160,6 +1155,7 @@ Expected: PASS.
 ### Task 5: Classic Compatibility Facade
 
 **Files:**
+
 - Create: `packages/kkrpc/src/next/classic-compat.ts`
 - Create: `packages/kkrpc/next-classic-compat.ts`
 - Create: `packages/kkrpc/__tests__/next-classic-compat.test.ts`
@@ -1171,14 +1167,13 @@ Create `packages/kkrpc/__tests__/next-classic-compat.test.ts`:
 ```ts
 import { describe, expect, test } from "bun:test"
 import { z } from "zod"
-
-import type { RPCMessage, Transport } from "../next.ts"
 import {
 	classicPlugins,
 	createCompatChannel,
 	exposeCompat,
 	wrapCompat
 } from "../next-classic-compat.ts"
+import type { RPCMessage, Transport } from "../next.ts"
 
 interface API {
 	add(a: number, b: number): Promise<number>
@@ -1263,11 +1258,17 @@ Expected: FAIL because `../next-classic-compat.ts` does not exist.
 Create `packages/kkrpc/src/next/classic-compat.ts`:
 
 ```ts
-import { expose, RPCChannel, wrap, type ExposedController, type RPCChannelOptions } from "./index.ts"
-import type { RPCPlugin } from "./plugins.ts"
-import type { Transport } from "./transport.ts"
-import type { RPCMessage } from "./protocol.ts"
+import {
+	expose,
+	RPCChannel,
+	wrap,
+	type ExposedController,
+	type RPCChannelOptions
+} from "./index.ts"
 import { middlewarePlugin, type RPCInterceptor } from "./middleware.ts"
+import type { RPCPlugin } from "./plugins.ts"
+import type { RPCMessage } from "./protocol.ts"
+import type { Transport } from "./transport.ts"
 import { validationPlugin, type RPCValidators } from "./validation.ts"
 
 export interface ClassicCompatOptions<LocalAPI extends object = object>
@@ -1353,6 +1354,7 @@ Expected: PASS.
 ### Task 6: Package Exports, Build Entries, And Benchmarks
 
 **Files:**
+
 - Modify: `packages/kkrpc/package.json`
 - Modify: `packages/kkrpc/tsdown.config.ts`
 - Modify: `packages/kkrpc/scripts/compare-browser-bundle-size.ts`
@@ -1363,28 +1365,28 @@ Expected: PASS.
 Update the expected case list in `packages/kkrpc/__tests__/browser-bundle-benchmark-script.test.ts` to include feature entries after `kkrpc/next/worker`:
 
 ```ts
-		expect(cases.map((entry) => entry.name)).toEqual([
-			"kkrpc/browser",
-			"kkrpc/browser-lite",
-			"kkrpc/next",
-			"kkrpc/next/worker",
-			"kkrpc/next/validation",
-			"kkrpc/next/middleware",
-			"kkrpc/next/superjson",
-			"kkrpc/next/classic-compat",
-			"kkrpc/browser-mini",
-			"kkrpc-lite direct",
-			"comctx"
-		])
+expect(cases.map((entry) => entry.name)).toEqual([
+	"kkrpc/browser",
+	"kkrpc/browser-lite",
+	"kkrpc/next",
+	"kkrpc/next/worker",
+	"kkrpc/next/validation",
+	"kkrpc/next/middleware",
+	"kkrpc/next/superjson",
+	"kkrpc/next/classic-compat",
+	"kkrpc/browser-mini",
+	"kkrpc-lite direct",
+	"comctx"
+])
 ```
 
 Add source assertions for the new rows:
 
 ```ts
-		expect(cases[4]?.source).toContain('from "kkrpc/next/validation"')
-		expect(cases[5]?.source).toContain('from "kkrpc/next/middleware"')
-		expect(cases[6]?.source).toContain('from "kkrpc/next/superjson"')
-		expect(cases[7]?.source).toContain('from "kkrpc/next/classic-compat"')
+expect(cases[4]?.source).toContain('from "kkrpc/next/validation"')
+expect(cases[5]?.source).toContain('from "kkrpc/next/middleware"')
+expect(cases[6]?.source).toContain('from "kkrpc/next/superjson"')
+expect(cases[7]?.source).toContain('from "kkrpc/next/classic-compat"')
 ```
 
 - [ ] **Step 2: Run failing benchmark helper test**
@@ -1492,6 +1494,7 @@ Expected: PASS.
 ### Task 7: Final Verification And Bundle Modularity
 
 **Files:**
+
 - No source edits unless verification exposes a bug.
 
 - [ ] **Step 1: Run focused next feature tests**

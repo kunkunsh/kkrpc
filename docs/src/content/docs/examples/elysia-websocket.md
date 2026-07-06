@@ -14,9 +14,7 @@ const api = {
 	add: (a: number, b: number) => a + b
 }
 
-new Elysia()
-	.ws("/rpc", createElysiaWebSocketHandler({ expose: api }))
-	.listen(3000)
+new Elysia().ws("/rpc", createElysiaWebSocketHandler({ expose: api })).listen(3000)
 ```
 
 ```ts title="client.ts"

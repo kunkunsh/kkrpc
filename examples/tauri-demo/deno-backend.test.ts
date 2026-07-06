@@ -1,7 +1,6 @@
 import { describe, expect, test } from "bun:test"
 import { RPCChannel } from "kkrpc"
 import { stdioJsonTransport } from "kkrpc/stdio"
-
 import { promiseWritable, ReadableStreamLike } from "./src/backend/stream-stdio"
 
 type EvalAPI = {

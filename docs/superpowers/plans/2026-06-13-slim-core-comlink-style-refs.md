@@ -29,6 +29,7 @@
 ### Task 1: Freeze the Bundle Regression with Tests
 
 **Files:**
+
 - Modify: `examples/bundle-size-benchmark/src/benchmark.ts`
 - Modify: `examples/bundle-size-benchmark/README.md`
 
@@ -38,6 +39,7 @@
 ### Task 2: Restore Slim Default Channel
 
 **Files:**
+
 - Modify: `packages/kkrpc/src/core/channel.ts`
 - Modify: `packages/kkrpc/src/core/index.ts`
 - Modify tests importing streaming or remote refs from default entry.
@@ -50,6 +52,7 @@
 ### Task 3: Extract Async Streaming Entry
 
 **Files:**
+
 - Create: `packages/kkrpc/src/core/streaming-channel.ts`
 - Create: `packages/kkrpc/src/entries/streaming.ts`
 - Modify: `packages/kkrpc/package.json`
@@ -63,6 +66,7 @@
 ### Task 4: Extract Comlink-Style Explicit Remote References
 
 **Files:**
+
 - Create: `packages/kkrpc/src/core/remote-ref-channel.ts`
 - Modify: `packages/kkrpc/src/core/remote-ref.ts`
 - Create: `packages/kkrpc/src/entries/remote-refs.ts`
@@ -79,6 +83,7 @@
 ### Task 5: Update Public Docs, Examples, and Benchmark Expectations
 
 **Files:**
+
 - Modify: `docs/src/content/docs/guides/remote-references.md`
 - Modify: `docs/src/content/docs/guides/streaming.md`
 - Modify: `examples/remote-references-demo/`
@@ -87,7 +92,7 @@
 - [ ] Document the recommended API:
 
 ```ts
-import { wrap, expose, proxy, releaseProxy } from "kkrpc/remote-refs"
+import { expose, proxy, releaseProxy, wrap } from "kkrpc/remote-refs"
 
 await remote.run({ onProgress: proxy((value) => console.log(value)) })
 ```

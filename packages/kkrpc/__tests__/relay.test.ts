@@ -130,7 +130,12 @@ class MemoryTransport implements Transport<RPCMessage> {
 	readonly sentTransfers: Transferable[][] = []
 	private listeners = new Set<(message: RPCMessage) => void>()
 
-	constructor(private options: { send?: (message: RPCMessage) => void | Promise<void>; transfer?: boolean } = {}) {
+	constructor(
+		private options: {
+			send?: (message: RPCMessage) => void | Promise<void>
+			transfer?: boolean
+		} = {}
+	) {
 		this.capabilities = options.transfer ? { transfer: true } : undefined
 	}
 

@@ -45,7 +45,7 @@ When an object or function is marked with `proxy(value)` and passed as an argume
 The `proxy()` function uses a `WeakSet` to non-enumerably mark objects and functions:
 
 ```typescript
-import { proxy, isRemoteProxy } from "kkrpc/remote-refs"
+import { isRemoteProxy, proxy } from "kkrpc/remote-refs"
 
 const obj = { hello: "world" }
 const marked = proxy(obj)
@@ -57,6 +57,7 @@ const callback = proxy((result: string) => console.log(result))
 ```
 
 Key behaviors:
+
 - Marking is persistent for the object's lifetime
 - Marking is non-enumerable (stored in a `WeakSet`, not on the object itself)
 - `proxy()` returns the same object reference (identity-preserving)
@@ -80,10 +81,10 @@ Key behaviors:
 
 ```typescript
 interface RemoteRefEnvelope {
-  readonly __kkrpc_ref__: true
-  readonly id: string          // Unique reference id
-  readonly kind: "function" | "object"
-  readonly p?: string[]        // Optional sub-path for nested access
+	readonly __kkrpc_ref__: true
+	readonly id: string // Unique reference id
+	readonly kind: "function" | "object"
+	readonly p?: string[] // Optional sub-path for nested access
 }
 ```
 
@@ -91,10 +92,10 @@ interface RemoteRefEnvelope {
 
 ```typescript
 type LocalRefRecord = {
-  kind: RemoteRefKind
-  value?: unknown
-  receiver?: unknown  // Tracked for method receiver binding
-  released: boolean
+	kind: RemoteRefKind
+	value?: unknown
+	receiver?: unknown // Tracked for method receiver binding
+	released: boolean
 }
 ```
 
@@ -164,6 +165,7 @@ await releaseProxy(remoteProxy)
 ### Channel Destroy
 
 When the channel is destroyed:
+
 1. All remote proxy records are marked as released (`markReleased()`)
 2. Local ref WeakMaps are cleared
 3. A bounded tombstone list (1024 entries) keeps released IDs for clean error messages
@@ -215,7 +217,7 @@ import { proxy, releaseProxy } from "kkrpc/remote-refs"
 
 // Mark a callback forward to the remote side
 const onProgress = proxy((percent: number) => {
-  console.log(`Progress: ${percent}%`)
+	console.log(`Progress: ${percent}%`)
 })
 
 await remote.longOperation(onProgress)
@@ -240,7 +242,7 @@ await remote.increment(sharedState)
 // Always release proxies when done
 const ref = proxy(someExpensiveResource)
 await remote.useResource(ref)
-await releaseProxy(remoteRef)  // or use the returned proxy's release
+await releaseProxy(remoteRef) // or use the returned proxy's release
 
 // Forgetting to release keeps the value retained on the sender side
 ```
@@ -248,4 +250,4 @@ await releaseProxy(remoteRef)  // or use the returned proxy's release
 **Section sources**
 
 - [packages/kkrpc/src/core/remote-ref.ts](file://packages/kkrpc/src/core/remote-ref.ts#L61-L67)
-- [packages/kkrpc/__tests__/remote-refs.test.ts](file://packages/kkrpc/__tests__/remote-refs.test.ts)
+- [packages/kkrpc/**tests**/remote-refs.test.ts](file://packages/kkrpc/__tests__/remote-refs.test.ts)

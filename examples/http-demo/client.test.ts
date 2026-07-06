@@ -1,6 +1,5 @@
-import { afterAll, beforeAll, describe, expect, test } from "bun:test"
-
 import { apiImplementationNested } from "@kksh/demo-api"
+import { afterAll, beforeAll, describe, expect, test } from "bun:test"
 import { createHttpHandler } from "kkrpc/http"
 import { runHttpDemoClient } from "./client"
 

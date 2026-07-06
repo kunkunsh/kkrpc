@@ -101,7 +101,13 @@ For users who want types inferred from schemas (similar to tRPC), use `defineMet
 
 ```ts
 import { expose } from "kkrpc"
-import { defineAPI, defineMethod, extractValidators, validationPlugin, type InferAPI } from "kkrpc/validation"
+import {
+	defineAPI,
+	defineMethod,
+	extractValidators,
+	validationPlugin,
+	type InferAPI
+} from "kkrpc/validation"
 import { z } from "zod"
 
 // Define API with schemas — types are inferred automatically

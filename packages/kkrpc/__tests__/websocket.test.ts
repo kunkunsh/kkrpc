@@ -99,7 +99,9 @@ test("WebSocket streams async iterable results", async () => {
 			}
 		})
 	})
-	const client = new StreamingRPCChannel<object, StreamAPI>(webSocketClientTransport({ url: streamUrl }))
+	const client = new StreamingRPCChannel<object, StreamAPI>(
+		webSocketClientTransport({ url: streamUrl })
+	)
 	const values: number[] = []
 
 	try {

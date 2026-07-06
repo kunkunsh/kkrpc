@@ -31,6 +31,7 @@ Boundary decisions:
 ### Task 1: Add Formatting And Metafile Helper Tests
 
 **Files:**
+
 - Create: `packages/kkrpc/__tests__/browser-bundle-benchmark-script.test.ts`
 - Create: `packages/kkrpc/scripts/compare-browser-bundle-size.ts`
 
@@ -184,10 +185,7 @@ export function formatMeasurementTable(rows: BundleMeasurement[]): string {
 	return lines.join("\n")
 }
 
-export function getTopContributorsFromMetafile(
-	metafile: BuildMetafile,
-	limit = 8
-): Contributor[] {
+export function getTopContributorsFromMetafile(metafile: BuildMetafile, limit = 8): Contributor[] {
 	const [output] = Object.values(metafile.outputs)
 	if (!output?.inputs) return []
 
@@ -212,6 +210,7 @@ Expected: PASS for the three helper tests.
 ### Task 2: Add Sample Generation And Local comctx Staging
 
 **Files:**
+
 - Modify: `packages/kkrpc/__tests__/browser-bundle-benchmark-script.test.ts`
 - Modify: `packages/kkrpc/scripts/compare-browser-bundle-size.ts`
 
@@ -220,80 +219,87 @@ Expected: PASS for the three helper tests.
 Append these tests inside the existing `describe` block in `packages/kkrpc/__tests__/browser-bundle-benchmark-script.test.ts`:
 
 ```ts
-	test("creates benchmark cases with public, direct, and comctx entries", () => {
-		const cases = createBenchmarkCases({
-			packageRoot: "/repo/packages/kkrpc",
-			repoRoot: "/repo",
-			workDir: "/repo/packages/kkrpc/.browser-bundle-benchmark",
-			comctxEntrypoint: "/repo/packages/kkrpc/.browser-bundle-benchmark/comctx-local/index.ts"
-		})
-
-		expect(cases.map((entry) => entry.name)).toEqual([
-			"kkrpc/browser",
-			"kkrpc/browser-lite",
-			"kkrpc-lite direct",
-			"comctx"
-		])
-		expect(cases[0]?.source).toContain('from "kkrpc/browser"')
-		expect(cases[1]?.source).toContain('from "kkrpc/browser-lite"')
-		expect(cases[2]?.source).toContain("src/channel-lite.ts")
-		expect(cases[3]?.source).toContain("comctx-local/index.ts")
-		for (const entry of cases) {
-			expect(entry.source).toContain("Object.assign(globalThis")
-		}
+test("creates benchmark cases with public, direct, and comctx entries", () => {
+	const cases = createBenchmarkCases({
+		packageRoot: "/repo/packages/kkrpc",
+		repoRoot: "/repo",
+		workDir: "/repo/packages/kkrpc/.browser-bundle-benchmark",
+		comctxEntrypoint: "/repo/packages/kkrpc/.browser-bundle-benchmark/comctx-local/index.ts"
 	})
 
-	test("stages local comctx source with rewritten alias imports", async () => {
-		const sourceRoot = await mkdtemp(join(tmpdir(), "comctx-source-"))
-		const targetRoot = await mkdtemp(join(tmpdir(), "comctx-target-"))
+	expect(cases.map((entry) => entry.name)).toEqual([
+		"kkrpc/browser",
+		"kkrpc/browser-lite",
+		"kkrpc-lite direct",
+		"comctx"
+	])
+	expect(cases[0]?.source).toContain('from "kkrpc/browser"')
+	expect(cases[1]?.source).toContain('from "kkrpc/browser-lite"')
+	expect(cases[2]?.source).toContain("src/channel-lite.ts")
+	expect(cases[3]?.source).toContain("comctx-local/index.ts")
+	for (const entry of cases) {
+		expect(entry.source).toContain("Object.assign(globalThis")
+	}
+})
 
-		await mkdir(join(sourceRoot, "utils"), { recursive: true })
-		await writeFile(join(sourceRoot, "index.ts"), "export * from './comctx'\n", "utf8")
-		await writeFile(
-			join(sourceRoot, "comctx.ts"),
-			[
-				"import uuid from '@/utils/uuid'",
-				"import setIntervalImmediate from '@/utils/setIntervalImmediate'",
-				"import extractTransfer from '@/utils/extractTransfer'",
-				"export const value = [uuid, setIntervalImmediate, extractTransfer]"
-			].join("\n"),
-			"utf8"
-		)
-		await writeFile(join(sourceRoot, "protocol.ts"), "export const protocol = true\n", "utf8")
-		await writeFile(join(sourceRoot, "utils/uuid.ts"), "export default function uuid() { return 'id' }\n", "utf8")
-		await writeFile(
-			join(sourceRoot, "utils/setIntervalImmediate.ts"),
-			"export default function setIntervalImmediate() { return () => {} }\n",
-			"utf8"
-		)
-		await writeFile(
-			join(sourceRoot, "utils/extractTransfer.ts"),
-			"export default function extractTransfer() { return [] }\n",
-			"utf8"
-		)
-		await writeFile(
-			join(sourceRoot, "utils/safeInstanceOf.ts"),
-			"export default function safeInstanceOf() { return false }\n",
-			"utf8"
-		)
+test("stages local comctx source with rewritten alias imports", async () => {
+	const sourceRoot = await mkdtemp(join(tmpdir(), "comctx-source-"))
+	const targetRoot = await mkdtemp(join(tmpdir(), "comctx-target-"))
 
-		const entrypoint = await stageLocalComctxSource(sourceRoot, targetRoot)
-		const stagedComctx = await readFile(join(targetRoot, "comctx.ts"), "utf8")
+	await mkdir(join(sourceRoot, "utils"), { recursive: true })
+	await writeFile(join(sourceRoot, "index.ts"), "export * from './comctx'\n", "utf8")
+	await writeFile(
+		join(sourceRoot, "comctx.ts"),
+		[
+			"import uuid from '@/utils/uuid'",
+			"import setIntervalImmediate from '@/utils/setIntervalImmediate'",
+			"import extractTransfer from '@/utils/extractTransfer'",
+			"export const value = [uuid, setIntervalImmediate, extractTransfer]"
+		].join("\n"),
+		"utf8"
+	)
+	await writeFile(join(sourceRoot, "protocol.ts"), "export const protocol = true\n", "utf8")
+	await writeFile(
+		join(sourceRoot, "utils/uuid.ts"),
+		"export default function uuid() { return 'id' }\n",
+		"utf8"
+	)
+	await writeFile(
+		join(sourceRoot, "utils/setIntervalImmediate.ts"),
+		"export default function setIntervalImmediate() { return () => {} }\n",
+		"utf8"
+	)
+	await writeFile(
+		join(sourceRoot, "utils/extractTransfer.ts"),
+		"export default function extractTransfer() { return [] }\n",
+		"utf8"
+	)
+	await writeFile(
+		join(sourceRoot, "utils/safeInstanceOf.ts"),
+		"export default function safeInstanceOf() { return false }\n",
+		"utf8"
+	)
 
-		expect(entrypoint).toBe(join(targetRoot, "index.ts"))
-		expect(stagedComctx).toContain('from "./utils/uuid.ts"')
-		expect(stagedComctx).toContain('from "./utils/setIntervalImmediate.ts"')
-		expect(stagedComctx).toContain('from "./utils/extractTransfer.ts"')
-	})
+	const entrypoint = await stageLocalComctxSource(sourceRoot, targetRoot)
+	const stagedComctx = await readFile(join(targetRoot, "comctx.ts"), "utf8")
+
+	expect(entrypoint).toBe(join(targetRoot, "index.ts"))
+	expect(stagedComctx).toContain('from "./utils/uuid.ts"')
+	expect(stagedComctx).toContain('from "./utils/setIntervalImmediate.ts"')
+	expect(stagedComctx).toContain('from "./utils/extractTransfer.ts"')
+})
 ```
 
 Add these imports at the top of the test file:
 
 ```ts
 import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises"
-import { join } from "node:path"
 import { tmpdir } from "node:os"
-import { createBenchmarkCases, stageLocalComctxSource } from "../scripts/compare-browser-bundle-size.ts"
+import { join } from "node:path"
+import {
+	createBenchmarkCases,
+	stageLocalComctxSource
+} from "../scripts/compare-browser-bundle-size.ts"
 ```
 
 - [ ] **Step 2: Run the focused test and verify it fails**
@@ -458,7 +464,10 @@ Object.assign(globalThis, { createRPC })
 `
 }
 
-export async function stageLocalComctxSource(sourceRoot: string, targetRoot: string): Promise<string> {
+export async function stageLocalComctxSource(
+	sourceRoot: string,
+	targetRoot: string
+): Promise<string> {
 	await rm(targetRoot, { recursive: true, force: true })
 	await mkdir(join(targetRoot, "utils"), { recursive: true })
 
@@ -506,6 +515,7 @@ Expected: PASS for helper, case generation, and comctx staging tests.
 ### Task 3: Add Executable Benchmark Runner
 
 **Files:**
+
 - Modify: `packages/kkrpc/scripts/compare-browser-bundle-size.ts`
 - Modify: `packages/kkrpc/package.json`
 
@@ -533,8 +543,8 @@ Extend `packages/kkrpc/scripts/compare-browser-bundle-size.ts` with executable c
 Add these functions and main guard:
 
 ```ts
-import { brotliCompressSync, gzipSync } from "node:zlib"
 import { existsSync } from "node:fs"
+import { brotliCompressSync, gzipSync } from "node:zlib"
 
 async function runBuild(caseEntry: BenchmarkCase, packageRoot: string): Promise<void> {
 	const proc = Bun.spawn(
@@ -565,7 +575,10 @@ async function runBuild(caseEntry: BenchmarkCase, packageRoot: string): Promise<
 	}
 }
 
-async function measureCase(caseEntry: BenchmarkCase, packageRoot: string): Promise<BundleMeasurement> {
+async function measureCase(
+	caseEntry: BenchmarkCase,
+	packageRoot: string
+): Promise<BundleMeasurement> {
 	try {
 		await writeFile(caseEntry.entryFile, caseEntry.source, "utf8")
 		await runBuild(caseEntry, packageRoot)
@@ -653,6 +666,7 @@ Expected: both commands pass.
 ### Task 4: Verify Bundle Benchmark End-To-End
 
 **Files:**
+
 - No new files. Verify generated output only.
 
 - [ ] **Step 1: Run the new benchmark script**

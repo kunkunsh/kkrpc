@@ -55,7 +55,10 @@ let workerAPI!: WorkerAPI
 let ipcRPC: RPCChannel<MainAPI, RendererAPI> | null = null
 let rendererAPI!: RendererAPI
 let stdioProcess: ReturnType<typeof spawn> | null = null
-let stdioRPC: RPCChannel<{ showNotification(message: string): Promise<void> }, StdioWorkerAPI> | null = null
+let stdioRPC: RPCChannel<
+	{ showNotification(message: string): Promise<void> },
+	StdioWorkerAPI
+> | null = null
 let stdioAPI!: StdioWorkerAPI
 
 const mainAPI: MainAPI = {
@@ -170,7 +173,10 @@ function createWindow() {
 		ipcRPC.destroy()
 	}
 	ipcRPC = new RPCChannel<MainAPI, RendererAPI>(
-		electronIpcTransport({ endpoint: createIpcMainEndpoint(win.webContents), channel: "kkrpc-ipc" }),
+		electronIpcTransport({
+			endpoint: createIpcMainEndpoint(win.webContents),
+			channel: "kkrpc-ipc"
+		}),
 		{ expose: mainAPI }
 	)
 	rendererAPI = ipcRPC.getAPI()

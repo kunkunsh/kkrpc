@@ -40,6 +40,7 @@ Do not modify:
 ## Task 1: Core Module JSDoc
 
 **Files:**
+
 - Modify: `packages/kkrpc/src/core/channel.ts`
 - Modify: `packages/kkrpc/src/core/index.ts`
 - Modify: `packages/kkrpc/src/core/protocol.ts`
@@ -53,7 +54,7 @@ Do not modify:
 
 Use this pattern at the top of `channel.ts` before imports:
 
-```ts
+````ts
 /**
  * Core bidirectional RPC channel implementation.
  *
@@ -71,7 +72,7 @@ Use this pattern at the top of `channel.ts` before imports:
  * channel.destroy()
  * ```
  */
-```
+````
 
 Add equivalent top-of-file comments for the other core files using their responsibilities from the File Structure section.
 
@@ -120,7 +121,7 @@ generateUUID
 
 For `wrap()`, use this example:
 
-```ts
+````ts
 /**
  * Create a typed proxy for a remote API exposed on the other side of a transport.
  *
@@ -135,7 +136,7 @@ For `wrap()`, use this example:
  * console.log(await api.ping())
  * ```
  */
-```
+````
 
 For `createTransport()`, include an example using `jsonLineCodec()` and `stdioPlatform()` conceptually:
 
@@ -183,6 +184,7 @@ git commit -m "docs(kkrpc): document core rpc primitives"
 ## Task 2: Feature Plugin JSDoc
 
 **Files:**
+
 - Modify: `packages/kkrpc/src/features/middleware.ts`
 - Modify: `packages/kkrpc/src/features/superjson.ts`
 - Modify: `packages/kkrpc/src/features/validation.ts`
@@ -191,7 +193,7 @@ git commit -m "docs(kkrpc): document core rpc primitives"
 
 Use this pattern for `middleware.ts`:
 
-```ts
+````ts
 /**
  * Receive-side middleware plugin for stable RPC channels.
  *
@@ -205,7 +207,7 @@ Use this pattern for `middleware.ts`:
  * expose(api, transport, { plugins: [middlewarePlugin([logger])] })
  * ```
  */
-```
+````
 
 Use equivalent module docs for `superjson.ts` and `validation.ts`.
 
@@ -236,8 +238,8 @@ superjsonLineCodec
 Include a usage example:
 
 ```ts
-import { createTransport } from "kkrpc/transport"
 import { superJsonCodec } from "kkrpc/superjson"
+import { createTransport } from "kkrpc/transport"
 
 const transport = createTransport({ platform, codec: superJsonCodec() })
 ```
@@ -287,6 +289,7 @@ git commit -m "docs(kkrpc): document feature plugins"
 ## Task 3: Transport JSDoc
 
 **Files:**
+
 - Modify: `packages/kkrpc/src/transports/bus-envelope.ts`
 - Modify: `packages/kkrpc/src/transports/chrome-extension.ts`
 - Modify: `packages/kkrpc/src/transports/electron.ts`
@@ -309,7 +312,7 @@ git commit -m "docs(kkrpc): document feature plugins"
 
 Each transport file must start with a module comment explaining the runtime. Example for `http.ts`:
 
-```ts
+````ts
 /**
  * Unary HTTP transport and handler for stable kkrpc.
  *
@@ -325,7 +328,7 @@ Each transport file must start with a module comment explaining the runtime. Exa
  * const api = wrap<RemoteAPI>(httpClientTransport({ url: "http://localhost:3000/rpc" }))
  * ```
  */
-```
+````
 
 - [ ] **Step 2: Add JSDoc for exported transport options and factories**
 
@@ -394,13 +397,14 @@ git commit -m "docs(kkrpc): document native transports"
 ## Task 4: Entry Point JSDoc
 
 **Files:**
+
 - Modify all files in `packages/kkrpc/src/entries/`
 
 - [ ] **Step 1: Add module-level JSDoc to simple re-export entries**
 
 For one-line re-export files, add a comment before the export. Example for `ws.ts`:
 
-```ts
+````ts
 /**
  * Published `kkrpc/ws` entry for WebSocket transports.
  *
@@ -415,7 +419,7 @@ For one-line re-export files, add a comment before the export. Example for `ws.t
  * ```
  */
 export * from "../transports/ws.ts"
-```
+````
 
 Apply equivalent comments to:
 
@@ -482,6 +486,7 @@ git commit -m "docs(kkrpc): document public entrypoints"
 ## Task 5: Final Verification And PR Update
 
 **Files:**
+
 - Review all modified source files in targeted directories.
 - Do not modify generated output.
 

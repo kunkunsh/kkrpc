@@ -132,6 +132,7 @@ packages/kkrpc/src/
 ### Import Ordering
 
 Imports are sorted by `@ianvs/prettier-plugin-sort-imports` (integrated into `pnpm format`):
+
 1. Built-in modules
 2. External dependencies
 3. Internal modules (sorted by path depth)
@@ -188,22 +189,22 @@ pnpm --filter kkrpc dev
 
 The primary test suite runs with Bun and covers:
 
-| Test File | What It Tests |
-|---|---|
-| `core.test.ts` | RPCChannel basic operations, proxy, request/response, timeouts |
-| `remote-refs.test.ts` | proxy(), releaseProxy(), remote object/function proxies |
-| `streaming.test.ts` | Async iterable streaming, flow control, cleanup |
-| `worker.test.ts` | Web Worker and MessagePort transports |
-| `stdio.test.ts` | Stdio transport with JSON-line framing |
-| `metadata.test.ts` | Message metadata propagation |
-| `transport-codecs.test.ts` | Transport/Platform/Codec composition |
-| `bus-envelope.test.ts` | Message bus envelope protocol |
-| `electron-tauri.test.ts` | Electron and Tauri transport tests |
-| `superjson.test.ts` | SuperJSON codec tests |
-| `browser-boundary.test.ts` | Browser environment boundary tests |
-| `browser-bundle-benchmark-script.test.ts` | Bundle size benchmarks |
-| `package-exports.test.ts` | All subpath exports resolve correctly |
-| `test-script.test.ts` | Build/test script integrity |
+| Test File                                 | What It Tests                                                  |
+| ----------------------------------------- | -------------------------------------------------------------- |
+| `core.test.ts`                            | RPCChannel basic operations, proxy, request/response, timeouts |
+| `remote-refs.test.ts`                     | proxy(), releaseProxy(), remote object/function proxies        |
+| `streaming.test.ts`                       | Async iterable streaming, flow control, cleanup                |
+| `worker.test.ts`                          | Web Worker and MessagePort transports                          |
+| `stdio.test.ts`                           | Stdio transport with JSON-line framing                         |
+| `metadata.test.ts`                        | Message metadata propagation                                   |
+| `transport-codecs.test.ts`                | Transport/Platform/Codec composition                           |
+| `bus-envelope.test.ts`                    | Message bus envelope protocol                                  |
+| `electron-tauri.test.ts`                  | Electron and Tauri transport tests                             |
+| `superjson.test.ts`                       | SuperJSON codec tests                                          |
+| `browser-boundary.test.ts`                | Browser environment boundary tests                             |
+| `browser-bundle-benchmark-script.test.ts` | Bundle size benchmarks                                         |
+| `package-exports.test.ts`                 | All subpath exports resolve correctly                          |
+| `test-script.test.ts`                     | Build/test script integrity                                    |
 
 ### Deno Regression Suite (`__deno_tests__/`)
 
@@ -218,7 +219,7 @@ Deno-specific tests that verify compatibility across runtimes.
 
 **Section sources**
 
-- [packages/kkrpc/__tests__/](file://packages/kkrpc/__tests__/)
+- [packages/kkrpc/**tests**/](file://packages/kkrpc/__tests__/)
 - [packages/kkrpc/scripts/test.ts](file://packages/kkrpc/scripts/test.ts)
 
 ## Adding a New Transport
@@ -226,19 +227,23 @@ Deno-specific tests that verify compatibility across runtimes.
 To add a new transport factory:
 
 1. **Create the transport file** in `src/transports/<name>.ts`
+
    - Implement `Transport<RPCMessage>` or compose from `Platform` + `Codec`
    - Declare appropriate capabilities
    - Export factory function(s)
 
 2. **Create an entry file** in `src/entries/<name>.ts`
+
    - Re-export from the transport module
    - Add JSDoc with import examples
 
 3. **Register in `package.json`**
+
    - Add subpath export under `exports`
    - Add peer dependency if the transport requires an external package
 
 4. **Create tests** in `__tests__/<name>.test.ts`
+
    - Test basic RPC operations through the transport
    - Test edge cases (connection failures, reconnection, cleanup)
 
@@ -277,6 +282,7 @@ pnpm changeset version  # Apply changesets and bump versions
 ```
 
 Version history:
+
 - **v2.0.0** — Native transport architecture rewrite
 - **v1.0.0** — First stable release
 - **v0.x** — Experimental releases

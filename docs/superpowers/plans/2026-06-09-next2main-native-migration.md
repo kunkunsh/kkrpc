@@ -94,6 +94,7 @@ Examples and docs:
 ### Task 1: Stable Core Export And Removed Export Tests
 
 **Files:**
+
 - Create: `packages/kkrpc/__tests__/package-exports.test.ts`
 - Create: `packages/kkrpc/src/core/index.ts`
 - Create: `packages/kkrpc/src/core/channel.ts`
@@ -207,7 +208,14 @@ export type {
 	RPCRequestContext,
 	RPCResponseContext
 } from "./plugins.ts"
-export type { RPCCallback, RPCError, RPCMessage, RPCOperation, RPCRequest, RPCResponse } from "./protocol.ts"
+export type {
+	RPCCallback,
+	RPCError,
+	RPCMessage,
+	RPCOperation,
+	RPCRequest,
+	RPCResponse
+} from "./protocol.ts"
 export type {
 	Codec,
 	CodecCapabilities,
@@ -217,7 +225,10 @@ export type {
 	TransportCapabilities
 } from "./transport.ts"
 
-export interface ExposedController<LocalAPI extends object = object, RemoteAPI extends object = object> {
+export interface ExposedController<
+	LocalAPI extends object = object,
+	RemoteAPI extends object = object
+> {
 	channel: RPCChannel<LocalAPI, RemoteAPI>
 	dispose(): void
 }
@@ -346,6 +357,7 @@ git commit -m "feat(kkrpc): promote next core to stable entry"
 ### Task 2: Stable Core, Codec, Plugin, Validation, Middleware, And SuperJSON Tests
 
 **Files:**
+
 - Modify: `packages/kkrpc/__tests__/core.test.ts`
 - Modify: `packages/kkrpc/__tests__/transport-codecs.test.ts`
 - Modify: `packages/kkrpc/__tests__/validation.test.ts`
@@ -389,7 +401,13 @@ import { createTransport, type Platform } from "../transport.ts"
 ```
 
 ```ts
-import { defineAPI, defineMethod, extractValidators, isRPCValidationError, validationPlugin } from "../validation.ts"
+import {
+	defineAPI,
+	defineMethod,
+	extractValidators,
+	isRPCValidationError,
+	validationPlugin
+} from "../validation.ts"
 ```
 
 ```ts
@@ -457,6 +475,7 @@ git commit -m "test(kkrpc): migrate core feature tests to stable api"
 ### Task 3: Worker And stdio Native Transports
 
 **Files:**
+
 - Create: `packages/kkrpc/src/transports/worker.ts`
 - Create: `packages/kkrpc/src/transports/stdio.ts`
 - Create: `packages/kkrpc/worker.ts`
@@ -565,6 +584,7 @@ git commit -m "feat(kkrpc): add stable worker and stdio transports"
 ### Task 4: Unary HTTP Native Transport And Example
 
 **Files:**
+
 - Create: `packages/kkrpc/src/transports/http.ts`
 - Modify: `packages/kkrpc/http.ts`
 - Rewrite: `packages/kkrpc/__tests__/http.test.ts`
@@ -578,9 +598,8 @@ Replace `packages/kkrpc/__tests__/http.test.ts` with tests that use stable nativ
 
 ```ts
 import { afterAll, beforeAll, describe, expect, test } from "bun:test"
-
-import { wrap } from "../mod.ts"
 import { createHttpHandler, httpClientTransport } from "../http.ts"
+import { wrap } from "../mod.ts"
 import { apiMethods, type API } from "./scripts/api.ts"
 
 describe("HTTP RPC", () => {
@@ -697,7 +716,8 @@ export function createHttpHandler<LocalAPI extends object>(
 		let message: RPCMessage
 		try {
 			message = (await request.json()) as RPCMessage
-			if (message.t !== "q" || typeof message.id !== "string") throw new Error("invalid RPC request")
+			if (message.t !== "q" || typeof message.id !== "string")
+				throw new Error("invalid RPC request")
 		} catch {
 			return new Response("Bad request", { status: 400 })
 		}
@@ -717,7 +737,9 @@ export function createHttpHandler<LocalAPI extends object>(
 	}
 }
 
-function createRequestScopedTransport(request: RPCMessage): Transport<RPCMessage> & { response: Promise<RPCMessage> } {
+function createRequestScopedTransport(
+	request: RPCMessage
+): Transport<RPCMessage> & { response: Promise<RPCMessage> } {
 	let resolveResponse!: (message: RPCMessage) => void
 	const response = new Promise<RPCMessage>((resolve) => {
 		resolveResponse = resolve
@@ -792,6 +814,7 @@ git commit -m "feat(kkrpc): add native unary http transport"
 ### Task 5: WebSocket, Hono, Elysia, And Socket.IO Native Transports
 
 **Files:**
+
 - Create: `packages/kkrpc/src/transports/ws.ts`
 - Create: `packages/kkrpc/src/transports/ws-hono.ts`
 - Create: `packages/kkrpc/src/transports/ws-elysia.ts`
@@ -871,7 +894,9 @@ export function webSocketTransport(socket: WebSocketLike): Transport<RPCMessage>
 	}
 }
 
-export function webSocketClientTransport(options: WebSocketClientTransportOptions): Transport<RPCMessage> {
+export function webSocketClientTransport(
+	options: WebSocketClientTransportOptions
+): Transport<RPCMessage> {
 	return webSocketTransport(new WebSocket(options.url, options.protocols))
 }
 ```
@@ -959,6 +984,7 @@ git commit -m "feat(kkrpc): add native websocket transports"
 ### Task 6: Browser Context Transports And Browser Safety
 
 **Files:**
+
 - Create: `packages/kkrpc/src/transports/iframe.ts`
 - Create: `packages/kkrpc/src/transports/chrome-extension.ts`
 - Create: `packages/kkrpc/iframe.ts`
@@ -1058,9 +1084,9 @@ export { webSocketClientTransport } from "./src/transports/ws.ts"
 Replace old imports in examples:
 
 ```ts
-import { RPCChannel, expose, wrap, transfer } from "kkrpc/browser"
-import { iframeParentTransport, iframeChildTransport } from "kkrpc/iframe"
+import { expose, RPCChannel, transfer, wrap } from "kkrpc/browser"
 import { chromePortTransport } from "kkrpc/chrome-extension"
+import { iframeChildTransport, iframeParentTransport } from "kkrpc/iframe"
 ```
 
 Delete imports of `WorkerParentIO`, `WorkerChildIO`, `IframeParentIO`, `IframeChildIO`, and `ChromePortIO`.
@@ -1089,6 +1115,7 @@ git commit -m "feat(kkrpc): add native browser context transports"
 ### Task 7: Electron And Tauri Native Transports
 
 **Files:**
+
 - Create: `packages/kkrpc/src/transports/electron.ts`
 - Create: `packages/kkrpc/src/transports/tauri.ts`
 - Modify: `packages/kkrpc/electron.ts`
@@ -1153,7 +1180,7 @@ export * from "./src/transports/tauri.ts"
 Replace old imports:
 
 ```ts
-import { RPCChannel, wrap, expose } from "kkrpc"
+import { expose, RPCChannel, wrap } from "kkrpc"
 import { electronIpcTransport } from "kkrpc/electron"
 import { tauriShellStdioTransport } from "kkrpc/tauri"
 ```
@@ -1194,6 +1221,7 @@ git commit -m "feat(kkrpc): add native electron and tauri transports"
 ### Task 8: Native Message-Bus Transports
 
 **Files:**
+
 - Create: `packages/kkrpc/src/transports/bus-envelope.ts`
 - Create: `packages/kkrpc/src/transports/rabbitmq.ts`
 - Create: `packages/kkrpc/src/transports/kafka.ts`
@@ -1214,14 +1242,17 @@ Create `packages/kkrpc/__tests__/bus-envelope.test.ts`:
 
 ```ts
 import { describe, expect, test } from "bun:test"
-
-import { createBusEnvelope, shouldDeliverBusEnvelope } from "../src/transports/bus-envelope.ts"
 import type { RPCMessage } from "../mod.ts"
+import { createBusEnvelope, shouldDeliverBusEnvelope } from "../src/transports/bus-envelope.ts"
 
 describe("bus envelope", () => {
 	test("wraps RPC messages with routing metadata", () => {
 		const message: RPCMessage = { t: "q", id: "request-1", op: "call", p: ["echo"], a: ["ok"] }
-		const envelope = createBusEnvelope(message, { transportId: "bus", from: "client", to: "server" })
+		const envelope = createBusEnvelope(message, {
+			transportId: "bus",
+			from: "client",
+			to: "server"
+		})
 
 		expect(envelope.protocol).toBe("kkrpc.bus.v1")
 		expect(envelope.transportId).toBe("bus")
@@ -1239,14 +1270,20 @@ describe("bus envelope", () => {
 			})
 		).toBe(false)
 		expect(
-			shouldDeliverBusEnvelope(createBusEnvelope(message, { transportId: "bus", from: "client", to: "server" }), {
-				localPeerId: "other"
-			})
+			shouldDeliverBusEnvelope(
+				createBusEnvelope(message, { transportId: "bus", from: "client", to: "server" }),
+				{
+					localPeerId: "other"
+				}
+			)
 		).toBe(false)
 		expect(
-			shouldDeliverBusEnvelope(createBusEnvelope(message, { transportId: "bus", from: "client", to: "server" }), {
-				localPeerId: "server"
-			})
+			shouldDeliverBusEnvelope(
+				createBusEnvelope(message, { transportId: "bus", from: "client", to: "server" }),
+				{
+					localPeerId: "server"
+				}
+			)
 		).toBe(true)
 	})
 })
@@ -1292,7 +1329,10 @@ export interface BusEnvelopeDeliveryOptions {
 	allowSelfMessages?: boolean
 }
 
-export function createBusEnvelope(message: RPCMessage, options: CreateBusEnvelopeOptions): BusEnvelope {
+export function createBusEnvelope(
+	message: RPCMessage,
+	options: CreateBusEnvelopeOptions
+): BusEnvelope {
 	return {
 		protocol: "kkrpc.bus.v1",
 		transportId: options.transportId,
@@ -1376,6 +1416,7 @@ git commit -m "feat(kkrpc): add native message bus transports"
 ### Task 9: Relay, Inspector, Scripts, Docs, Skills, And Examples Cleanup
 
 **Files:**
+
 - Create: `packages/kkrpc/src/relay.ts` or `packages/kkrpc/src/features/relay.ts`
 - Modify: `packages/kkrpc/relay.ts`
 - Modify: `packages/kkrpc/inspector.ts`
@@ -1399,7 +1440,10 @@ export interface RelayController {
 	dispose(): void
 }
 
-export function relayTransport(left: Transport<RPCMessage>, right: Transport<RPCMessage>): RelayController {
+export function relayTransport(
+	left: Transport<RPCMessage>,
+	right: Transport<RPCMessage>
+): RelayController {
 	const unsubscribeLeft = left.subscribe((message) => void right.send(message))
 	const unsubscribeRight = right.subscribe((message) => void left.send(message))
 	return {
@@ -1422,7 +1466,7 @@ Remove imports of classic `RPCChannel` internals and old `IoInterface`. Expose i
 Modify `packages/kkrpc/scripts/compare-browser-bundle-size.ts` so measured entries include:
 
 ```ts
-[
+;[
 	"kkrpc",
 	"kkrpc/browser",
 	"kkrpc/worker",
@@ -1452,8 +1496,8 @@ Update `skills/kkrpc/SKILL.md` to use stable imports such as:
 
 ```ts
 import { expose, wrap } from "kkrpc"
-import { webSocketClientTransport } from "kkrpc/ws"
 import { validationPlugin } from "kkrpc/validation"
+import { webSocketClientTransport } from "kkrpc/ws"
 ```
 
 - [ ] **Step 5: Migrate remaining examples**
@@ -1490,6 +1534,7 @@ git commit -m "docs(kkrpc): finish stable native migration cleanup"
 ### Task 10: Delete Classic Source And Run Final Gates
 
 **Files:**
+
 - Delete: remaining `packages/kkrpc/src/next/**`
 - Delete: remaining `packages/kkrpc/src/adapters/**`
 - Delete: remaining old entry wrappers: `packages/kkrpc/next*.ts`, `packages/kkrpc/browser-lite-mod.ts`, `packages/kkrpc/browser-mini-mod.ts`, `packages/kkrpc/electron-ipc.ts`

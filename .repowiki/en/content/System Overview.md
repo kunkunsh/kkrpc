@@ -148,26 +148,26 @@ sequenceDiagram
 
 The library offers stable subpath exports for every runtime and transport type. Each entry point is tree-shakeable and only pulls in its direct dependencies:
 
-| Environment | Import Path | Transport Factory |
-|---|---|---|
-| Node.js | `kkrpc` | `nodeStdioTransport()` from `kkrpc/stdio` |
-| Deno | `kkrpc/deno` | `denoStdioTransport()` from `kkrpc/stdio` |
-| Bun | `kkrpc` | `bunStdioTransport()` from `kkrpc/stdio` |
-| Browser (core) | `kkrpc/browser` | `webSocketClientTransport()` from `kkrpc/ws` |
-| Web Worker | `kkrpc/worker` | `workerTransport()` / `workerSelfTransport()` |
-| HTTP client | `kkrpc/http` | `httpClientTransport()` |
-| WebSocket | `kkrpc/ws` | `webSocketTransport()` / `webSocketClientTransport()` |
-| Hono WS | `kkrpc/ws/hono` | `honoWebSocketTransport()` |
-| Elysia WS | `kkrpc/ws/elysia` | `elysiaWebSocketTransport()` |
-| Socket.IO | `kkrpc/socketio` | `socketIoTransport()` |
-| Electron | `kkrpc/electron` | `electronIpcTransport()` / `electronUtilityProcessTransport()` |
-| Tauri | `kkrpc/tauri` | `tauriTransport()` |
-| Chrome Ext | `kkrpc/chrome-extension` | `chromeExtensionTransport()` |
-| iframe | `kkrpc/iframe` | `iframeTransport()` |
-| Kafka | `kkrpc/kafka` | `kafkaTransport()` |
-| RabbitMQ | `kkrpc/rabbitmq` | `rabbitMqTransport()` |
-| Redis Streams | `kkrpc/redis-streams` | `redisStreamsTransport()` |
-| NATS | `kkrpc/nats` | `natsTransport()` |
+| Environment    | Import Path              | Transport Factory                                              |
+| -------------- | ------------------------ | -------------------------------------------------------------- |
+| Node.js        | `kkrpc`                  | `nodeStdioTransport()` from `kkrpc/stdio`                      |
+| Deno           | `kkrpc/deno`             | `denoStdioTransport()` from `kkrpc/stdio`                      |
+| Bun            | `kkrpc`                  | `bunStdioTransport()` from `kkrpc/stdio`                       |
+| Browser (core) | `kkrpc/browser`          | `webSocketClientTransport()` from `kkrpc/ws`                   |
+| Web Worker     | `kkrpc/worker`           | `workerTransport()` / `workerSelfTransport()`                  |
+| HTTP client    | `kkrpc/http`             | `httpClientTransport()`                                        |
+| WebSocket      | `kkrpc/ws`               | `webSocketTransport()` / `webSocketClientTransport()`          |
+| Hono WS        | `kkrpc/ws/hono`          | `honoWebSocketTransport()`                                     |
+| Elysia WS      | `kkrpc/ws/elysia`        | `elysiaWebSocketTransport()`                                   |
+| Socket.IO      | `kkrpc/socketio`         | `socketIoTransport()`                                          |
+| Electron       | `kkrpc/electron`         | `electronIpcTransport()` / `electronUtilityProcessTransport()` |
+| Tauri          | `kkrpc/tauri`            | `tauriTransport()`                                             |
+| Chrome Ext     | `kkrpc/chrome-extension` | `chromeExtensionTransport()`                                   |
+| iframe         | `kkrpc/iframe`           | `iframeTransport()`                                            |
+| Kafka          | `kkrpc/kafka`            | `kafkaTransport()`                                             |
+| RabbitMQ       | `kkrpc/rabbitmq`         | `rabbitMqTransport()`                                          |
+| Redis Streams  | `kkrpc/redis-streams`    | `redisStreamsTransport()`                                      |
+| NATS           | `kkrpc/nats`             | `natsTransport()`                                              |
 
 **Section sources**
 

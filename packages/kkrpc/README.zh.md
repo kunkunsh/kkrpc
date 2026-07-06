@@ -101,32 +101,32 @@ expose(api, transport, {
 
 ## 子路径入口
 
-| 入口 | 用途 |
-| --- | --- |
-| `kkrpc` | 稳定、浏览器安全的核心 API |
-| `kkrpc/browser` | 显式浏览器核心入口 |
-| `kkrpc/transport` | 传输组合基础设施 |
-| `kkrpc/codecs` | 内置 JSON/object codecs |
-| `kkrpc/worker` | Web Worker 传输 |
-| `kkrpc/stdio` | Node/Deno/Bun stdio 传输 |
-| `kkrpc/http` | HTTP client 与 handler |
-| `kkrpc/ws` | WebSocket 传输 |
-| `kkrpc/ws/hono` | Hono WebSocket 集成 |
-| `kkrpc/ws/elysia` | Elysia WebSocket 集成 |
-| `kkrpc/iframe` | iframe 传输 |
+| 入口                     | 用途                       |
+| ------------------------ | -------------------------- |
+| `kkrpc`                  | 稳定、浏览器安全的核心 API |
+| `kkrpc/browser`          | 显式浏览器核心入口         |
+| `kkrpc/transport`        | 传输组合基础设施           |
+| `kkrpc/codecs`           | 内置 JSON/object codecs    |
+| `kkrpc/worker`           | Web Worker 传输            |
+| `kkrpc/stdio`            | Node/Deno/Bun stdio 传输   |
+| `kkrpc/http`             | HTTP client 与 handler     |
+| `kkrpc/ws`               | WebSocket 传输             |
+| `kkrpc/ws/hono`          | Hono WebSocket 集成        |
+| `kkrpc/ws/elysia`        | Elysia WebSocket 集成      |
+| `kkrpc/iframe`           | iframe 传输                |
 | `kkrpc/chrome-extension` | Chrome extension port 传输 |
-| `kkrpc/electron` | Electron 传输 |
-| `kkrpc/tauri` | Tauri 传输 |
-| `kkrpc/socketio` | Socket.IO 传输 |
-| `kkrpc/rabbitmq` | RabbitMQ 传输 |
-| `kkrpc/kafka` | Kafka 传输 |
-| `kkrpc/redis-streams` | Redis Streams 传输 |
-| `kkrpc/nats` | NATS 传输 |
-| `kkrpc/validation` | Standard Schema 校验插件 |
-| `kkrpc/middleware` | 中间件插件 |
-| `kkrpc/superjson` | SuperJSON codecs |
-| `kkrpc/relay` | 传输中继 helper |
-| `kkrpc/inspector` | 原生 inspector helper |
+| `kkrpc/electron`         | Electron 传输              |
+| `kkrpc/tauri`            | Tauri 传输                 |
+| `kkrpc/socketio`         | Socket.IO 传输             |
+| `kkrpc/rabbitmq`         | RabbitMQ 传输              |
+| `kkrpc/kafka`            | Kafka 传输                 |
+| `kkrpc/redis-streams`    | Redis Streams 传输         |
+| `kkrpc/nats`             | NATS 传输                  |
+| `kkrpc/validation`       | Standard Schema 校验插件   |
+| `kkrpc/middleware`       | 中间件插件                 |
+| `kkrpc/superjson`        | SuperJSON codecs           |
+| `kkrpc/relay`            | 传输中继 helper            |
+| `kkrpc/inspector`        | 原生 inspector helper      |
 
 ## 迁移
 

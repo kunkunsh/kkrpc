@@ -40,43 +40,44 @@ pnpm changeset                     # versioning
 **Env vars for integration tests:** `REDIS_URL=redis://localhost:6379`, `RABBITMQ_URL=amqp://admin:admin@localhost:5672`.
 
 **Single-package focused:**
+
 - `pnpm --filter kkrpc test` — all tests
 - `pnpm --filter kkrpc check-types` — type check only
 - `pnpm --filter "./examples/*" check-types` — example type checks
 
 ## KEY EXPORTS (50+ subpaths from `packages/kkrpc/package.json`)
 
-| Subpath                  | Source entry                  | Purpose                              |
-| ------------------------ | ----------------------------- | ------------------------------------ |
-| `.`                      | `src/entries/mod.ts`          | Core: RPCChannel, wrap, expose, dispose, transfer, types |
-| `./browser`              | `src/entries/browser-mod.ts`  | Browser-safe core entry              |
-| `./deno`                 | `src/entries/deno-mod.ts`     | Deno-friendly core entry             |
-| `./transport`            | `src/entries/transport.ts`    | Platform, Codec, createTransport()   |
-| `./codecs`               | `src/entries/codecs.ts`       | objectCodec, jsonCodec, jsonLineCodec |
-| `./plugins`              | `src/entries/plugins.ts`      | Plugin helper types                  |
-| `./validation`           | `src/entries/validation.ts`   | defineMethod, defineAPI, validationPlugin, ValidatorMap, extractValidators, InferAPI |
-| `./middleware`            | `src/entries/middleware.ts`   | middlewarePlugin                     |
-| `./superjson`            | `src/entries/superjson.ts`    | superJsonCodec                       |
-| `./remote-refs`          | `src/entries/remote-refs.ts`  | RemoteReferenceRPCChannel (Comlink-style proxy refs) |
-| `./streaming`            | `src/entries/streaming.ts`    | StreamingRPCChannel (async iterable streaming) |
-| `./worker`               | `src/entries/worker.ts`       | workerTransport, workerSelfTransport |
-| `./stdio`                | `src/entries/stdio.ts`        | nodeStdioTransport, denoStdioTransport, bunStdioTransport, stdioPlatform |
-| `./ws`                   | `src/entries/ws.ts`           | webSocketTransport                   |
-| `./ws/hono`              | `src/entries/ws-hono.ts`      | webSocketHonoTransport               |
-| `./ws/elysia`            | `src/entries/ws-elysia.ts`    | webSocketElysiaTransport             |
-| `./http`                 | `src/entries/http.ts`         | httpClientTransport, createHttpHandler |
-| `./iframe`               | `src/entries/iframe.ts`       | iframe transport                     |
-| `./chrome-extension`     | `src/entries/chrome-extension.ts` | chromeExtensionTransport        |
-| `./electron`             | `src/entries/electron.ts`     | electronIpcTransport, electronUtilityProcessTransport, electronUtilityProcessChildTransport, createSecureIpcBridge |
-| `./tauri`                | `src/entries/tauri.ts`        | tauriTransport                       |
-| `./socketio`             | `src/entries/socketio.ts`     | socketIoTransport                    |
-| `./rabbitmq`             | `src/entries/rabbitmq.ts`     | rabbitMqTransport                    |
-| `./kafka`                | `src/entries/kafka.ts`        | kafkaTransport                       |
-| `./redis-streams`        | `src/entries/redis-streams.ts` | redisStreamsTransport              |
-| `./nats`                 | `src/entries/nats.ts`         | natsTransport                        |
-| `./relay`                | `src/entries/relay.ts`        | relayTransport                       |
-| `./inspector`            | `src/entries/inspector.ts`    | Inspector (observability/plugin dev) |
-| `./interop/*`            | `skills/`                     | Language interop agent skills        |
+| Subpath              | Source entry                      | Purpose                                                                                                            |
+| -------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `.`                  | `src/entries/mod.ts`              | Core: RPCChannel, wrap, expose, dispose, transfer, types                                                           |
+| `./browser`          | `src/entries/browser-mod.ts`      | Browser-safe core entry                                                                                            |
+| `./deno`             | `src/entries/deno-mod.ts`         | Deno-friendly core entry                                                                                           |
+| `./transport`        | `src/entries/transport.ts`        | Platform, Codec, createTransport()                                                                                 |
+| `./codecs`           | `src/entries/codecs.ts`           | objectCodec, jsonCodec, jsonLineCodec                                                                              |
+| `./plugins`          | `src/entries/plugins.ts`          | Plugin helper types                                                                                                |
+| `./validation`       | `src/entries/validation.ts`       | defineMethod, defineAPI, validationPlugin, ValidatorMap, extractValidators, InferAPI                               |
+| `./middleware`       | `src/entries/middleware.ts`       | middlewarePlugin                                                                                                   |
+| `./superjson`        | `src/entries/superjson.ts`        | superJsonCodec                                                                                                     |
+| `./remote-refs`      | `src/entries/remote-refs.ts`      | RemoteReferenceRPCChannel (Comlink-style proxy refs)                                                               |
+| `./streaming`        | `src/entries/streaming.ts`        | StreamingRPCChannel (async iterable streaming)                                                                     |
+| `./worker`           | `src/entries/worker.ts`           | workerTransport, workerSelfTransport                                                                               |
+| `./stdio`            | `src/entries/stdio.ts`            | nodeStdioTransport, denoStdioTransport, bunStdioTransport, stdioPlatform                                           |
+| `./ws`               | `src/entries/ws.ts`               | webSocketTransport                                                                                                 |
+| `./ws/hono`          | `src/entries/ws-hono.ts`          | webSocketHonoTransport                                                                                             |
+| `./ws/elysia`        | `src/entries/ws-elysia.ts`        | webSocketElysiaTransport                                                                                           |
+| `./http`             | `src/entries/http.ts`             | httpClientTransport, createHttpHandler                                                                             |
+| `./iframe`           | `src/entries/iframe.ts`           | iframe transport                                                                                                   |
+| `./chrome-extension` | `src/entries/chrome-extension.ts` | chromeExtensionTransport                                                                                           |
+| `./electron`         | `src/entries/electron.ts`         | electronIpcTransport, electronUtilityProcessTransport, electronUtilityProcessChildTransport, createSecureIpcBridge |
+| `./tauri`            | `src/entries/tauri.ts`            | tauriTransport                                                                                                     |
+| `./socketio`         | `src/entries/socketio.ts`         | socketIoTransport                                                                                                  |
+| `./rabbitmq`         | `src/entries/rabbitmq.ts`         | rabbitMqTransport                                                                                                  |
+| `./kafka`            | `src/entries/kafka.ts`            | kafkaTransport                                                                                                     |
+| `./redis-streams`    | `src/entries/redis-streams.ts`    | redisStreamsTransport                                                                                              |
+| `./nats`             | `src/entries/nats.ts`             | natsTransport                                                                                                      |
+| `./relay`            | `src/entries/relay.ts`            | relayTransport                                                                                                     |
+| `./inspector`        | `src/entries/inspector.ts`        | Inspector (observability/plugin dev)                                                                               |
+| `./interop/*`        | `skills/`                         | Language interop agent skills                                                                                      |
 
 ## KEY ARCHITECTURE
 
@@ -85,6 +86,7 @@ pnpm changeset                     # versioning
 **Transport capability flags:** `objectMode`, `transfer`, `broadcast`, `remoteRefs`.
 
 **Compact protocol:**
+
 - Request: `{ t: "q", id, op, p, a?, v?, meta? }`
 - Response: `{ t: "r", id, v?, e? }`
 - Callback: `{ t: "cb", id, a }`

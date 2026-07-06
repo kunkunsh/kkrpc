@@ -13,15 +13,18 @@
  * @module
  */
 
+import type { RPCMessage } from "../core/protocol.ts"
 import {
 	RemoteReferenceRPCChannel,
 	type RemoteReferenceRPCChannelOptions
 } from "../core/remote-ref-channel.ts"
-import type { RPCMessage } from "../core/protocol.ts"
 import type { Transport } from "../core/transport.ts"
 
 export { RemoteReferenceRPCChannel, RemoteReferenceRPCChannel as RPCChannel }
-export type { RemoteReferenceRPCChannelOptions, RemoteReferenceRPCChannelOptions as RPCChannelOptions }
+export type {
+	RemoteReferenceRPCChannelOptions,
+	RemoteReferenceRPCChannelOptions as RPCChannelOptions
+}
 export {
 	RPCEncodeError,
 	RPCRemoteReferenceReleasedError,

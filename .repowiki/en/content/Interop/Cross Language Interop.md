@@ -35,6 +35,7 @@
 The `interop/` directory documents and implements JSON-only compatibility layers so non-JavaScript runtimes can communicate with a TypeScript kkrpc endpoint over line-delimited stdio or WebSocket text frames. The interop layer targets the same compact protocol as the TypeScript core but uses a JSON-only v1 protocol rather than SuperJSON.
 
 Supported languages:
+
 - **Go** — Full server and client with stdio and WebSocket transports, test suite
 - **Python** — Server and client with stdio transport, test suite, type annotations
 - **Rust** — Server and client with stdio and WebSocket transports, test suite
@@ -50,15 +51,16 @@ Supported languages:
 
 The interop protocol implements the same compact RPC message types as the TypeScript core:
 
-| Message | Tag | Purpose |
-|---|---|---|
-| Request | `t: "q"` | Remote call, get, set, new operations |
-| Response | `t: "r"` | Result or error response |
-| Callback | `t: "cb"` | Callback invocation |
+| Message  | Tag       | Purpose                               |
+| -------- | --------- | ------------------------------------- |
+| Request  | `t: "q"`  | Remote call, get, set, new operations |
+| Response | `t: "r"`  | Result or error response              |
+| Callback | `t: "cb"` | Callback invocation                   |
 
 All implementations target `version: "json"` (plain JSON, not SuperJSON). Callback arguments are encoded as special markers and decoded to function calls that route back over the transport.
 
 Key protocol fields:
+
 - `id` — String UUID for request/response matching
 - `op` — Operation type (`"call"`, `"get"`, `"set"`, `"new"`)
 - `p` — String array property path on the exposed API
@@ -79,12 +81,14 @@ Key protocol fields:
 ### Go (`interop/go/`)
 
 The Go implementation provides:
+
 - `kkrpc/protocol.go` — Message type definitions and JSON serialization
 - `kkrpc/server.go` — RPC server with stdio transport, request routing, callback support, error handling
 - `kkrpc/client.go` — RPC client with stdio transport, response matching, callback encoding
 - `kkrpc/server_test.go` — Test suite with request/response tests
 
 Key features:
+
 - Stdio transport with newline-delimited JSON
 - Concurrent request handling with goroutines
 - Callback argument encoding/decoding
@@ -93,12 +97,14 @@ Key features:
 ### Python (`interop/python/`)
 
 The Python implementation provides:
+
 - `kkrpc/protocol.py` — Dataclass-based message types with JSON serialization
 - `kkrpc/server.py` — Async server with stdio transport and method routing
 - `kkrpc/client.py` — Async client with stdio and response matching
 - `tests/test_stdio.py` — Stdio transport tests
 
 Key features:
+
 - Async/await design matching the TypeScript core
 - Typed dataclasses for protocol messages
 - Callback support through argument envelope encoding
@@ -107,10 +113,12 @@ Key features:
 ### Rust (`interop/rust/`)
 
 The Rust implementation provides:
+
 - `src/lib.rs` — Comprehensive server and client with both stdio and WebSocket transports
 - Stdio and WebSocket integration tests
 
 Key features:
+
 - WebSocket transport support (in addition to stdio)
 - Serde-based JSON serialization for protocol messages
 - Concurrent request handling
@@ -119,6 +127,7 @@ Key features:
 ### Swift (`interop/swift/`)
 
 The Swift implementation provides:
+
 - `Sources/kkrpc/Protocol.swift` — Codable protocol message types
 - `Sources/kkrpc/Server.swift` — Server with stdio transport and method routing
 - `Sources/kkrpc/Client.swift` — Client with stdio transport and response matching
@@ -126,6 +135,7 @@ The Swift implementation provides:
 - `Tests/kkrpcTests/kkrpcTests.swift` — Comprehensive test suite
 
 Key features:
+
 - Swift Codable for JSON serialization
 - Async/await Swift concurrency
 - Callback support through argument encoding
@@ -134,6 +144,7 @@ Key features:
 ### Node.js Reference Server (`interop/node/`)
 
 The Node.js `interop/node/` directory provides:
+
 - `server.ts` — HTTP and stdio test server exposing a shared API for cross-language tests
 - `ws-server.ts` — WebSocket test server for WebSocket-based interop tests
 
@@ -170,6 +181,7 @@ graph TD
 - [interop/swift/Tests/kkrpcTests/kkrpcTests.swift](file://interop/swift/Tests/kkrpcTests/kkrpcTests.swift#L1-L159)
 
 Each language implementation independently implements the protocol and validates against the same shared API. Tests cover:
+
 - Basic function calls with string/number arguments
 - Multiple concurrent requests
 - Error handling (unknown methods, invalid arguments)
@@ -179,6 +191,7 @@ Each language implementation independently implements the protocol and validates
 ## Design Constraints
 
 The current interop layer intentionally omits:
+
 - **Transfer slots and structured clone** — Keeps cross-language baseline simple
 - **Streaming** — Async iterables are not yet supported in interop
 - **Remote references** — `proxy()` is a TypeScript-specific concept

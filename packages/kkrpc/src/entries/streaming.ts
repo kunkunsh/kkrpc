@@ -13,8 +13,8 @@
  */
 
 import type { RPCChannelOptions } from "../core/channel.ts"
-import { StreamingRPCChannel } from "../core/streaming-channel.ts"
 import type { RPCMessage } from "../core/protocol.ts"
+import { StreamingRPCChannel } from "../core/streaming-channel.ts"
 import type { Transport } from "../core/transport.ts"
 
 export { StreamingRPCChannel, StreamingRPCChannel as RPCChannel }
