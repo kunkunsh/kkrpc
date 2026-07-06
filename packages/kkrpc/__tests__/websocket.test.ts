@@ -159,3 +159,129 @@ function waitForOpen(socket: WebSocket): Promise<void> {
 		socket.addEventListener("open", () => resolve(), { once: true })
 	})
 }
+
+// --- onClose lifecycle across the three listener styles ---
+
+test("onClose reports a reason for abnormal close (addEventListener style)", () => {
+	const handlers = new Map<string, (event: unknown) => void>()
+	const socket = {
+		readyState: WebSocket.OPEN,
+		send() {},
+		close() {},
+		addEventListener: (event: string, listener: (event: unknown) => void) =>
+			handlers.set(event, listener),
+		removeEventListener: (event: string) => handlers.delete(event)
+	}
+	const transport = webSocketTransport(socket)
+	let reason: Error | undefined
+	transport.onClose?.((r) => (reason = r))
+
+	handlers.get("close")?.({ code: 1006, reason: "gone" })
+	expect(reason).toBeInstanceOf(Error)
+	expect((reason as Error).message).toContain("1006")
+})
+
+test("onClose reports undefined for a clean close code 1000", () => {
+	const handlers = new Map<string, (event: unknown) => void>()
+	const socket = {
+		readyState: WebSocket.OPEN,
+		send() {},
+		close() {},
+		addEventListener: (event: string, listener: (event: unknown) => void) =>
+			handlers.set(event, listener),
+		removeEventListener: () => {}
+	}
+	const transport = webSocketTransport(socket)
+	let called = false
+	let reason: Error | undefined = new Error("placeholder")
+	transport.onClose?.((r) => {
+		called = true
+		reason = r
+	})
+
+	handlers.get("close")?.({ code: 1000 })
+	expect(called).toBe(true)
+	expect(reason).toBeUndefined()
+})
+
+test("error before close notifies once with the error (Node on/off style)", () => {
+	const handlers = new Map<string, (...args: unknown[]) => void>()
+	const socket = {
+		readyState: WebSocket.CONNECTING,
+		send() {},
+		close() {},
+		on: (event: string, listener: (...args: unknown[]) => void) => handlers.set(event, listener),
+		off: (event: string) => handlers.delete(event)
+	}
+	const transport = webSocketTransport(socket)
+	let count = 0
+	let reason: Error | undefined
+	transport.onClose?.((r) => {
+		count++
+		reason = r
+	})
+
+	const failure = new Error("network down")
+	handlers.get("error")?.(failure)
+	handlers.get("close")?.(1006, Buffer.from("late"))
+	expect(count).toBe(1)
+	expect(reason).toBe(failure)
+})
+
+test("onClose works via onclose/onerror slots", () => {
+	const socket: {
+		readyState: number
+		send(): void
+		close(): void
+		onclose?: (event: unknown) => void
+		onerror?: (event: unknown) => void
+	} = {
+		readyState: WebSocket.OPEN,
+		send() {},
+		close() {}
+	}
+	const transport = webSocketTransport(socket)
+	let reason: Error | undefined
+	transport.onClose?.((r) => (reason = r))
+
+	socket.onclose?.({ code: 1011 })
+	expect(reason).toBeInstanceOf(Error)
+})
+
+test("local close() does not fire onClose", () => {
+	const handlers = new Map<string, (event: unknown) => void>()
+	const socket = {
+		readyState: WebSocket.OPEN,
+		send() {},
+		close() {},
+		addEventListener: (event: string, listener: (event: unknown) => void) =>
+			handlers.set(event, listener),
+		removeEventListener: (event: string) => handlers.delete(event)
+	}
+	const transport = webSocketTransport(socket)
+	let fired = false
+	transport.onClose?.(() => (fired = true))
+
+	transport.close?.()
+	// A native close event after a local close must stay suppressed.
+	handlers.get("close")?.({ code: 1006 })
+	expect(fired).toBe(false)
+})
+
+test("client channel onClose fires when the server drops the socket", async () => {
+	let resolveClosed: (reason?: Error) => void
+	const closed = new Promise<Error | undefined>((resolve) => {
+		resolveClosed = resolve
+	})
+	const client = new RPCChannel<object, API>(webSocketClientTransport({ url }), {
+		onClose: (reason) => resolveClosed(reason)
+	})
+	const api = client.getAPI()
+	expect(await api.add(1, 2)).toBe(3) // ensure the connection is established
+
+	for (const ws of wss.clients) ws.terminate()
+
+	await closed // resolves only if the channel observed the transport close
+	await expect(api.add(1, 2)).rejects.toBeInstanceOf(Error) // fail-fast after close
+	client.destroy()
+})

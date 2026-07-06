@@ -13,6 +13,7 @@ import {
 	getParent,
 	getPath,
 	RPCChannel,
+	RPCTransportClosedError,
 	toRPCError,
 	type RPCChannelOptions
 } from "./channel.ts"
@@ -198,6 +199,7 @@ export class RemoteReferenceRPCChannel<
 		value?: unknown
 	): Promise<unknown> {
 		if (this.destroyed) return Promise.reject(new Error("RPC channel destroyed"))
+		if (this.closed) return Promise.reject(new RPCTransportClosedError(this.closeReason))
 		let meta: RPCMessageMetadata | undefined
 		try {
 			meta = this.getMetadata?.()

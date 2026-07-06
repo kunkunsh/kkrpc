@@ -21,6 +21,10 @@ export interface WebSocketLike {
 	onmessage?: unknown
 	/** Browser-style open handler slot. */
 	onopen?: unknown
+	/** Browser-style close handler slot. */
+	onclose?: unknown
+	/** Browser-style error handler slot. */
+	onerror?: unknown
 	/** Browser-style event listener registration. */
 	addEventListener?: unknown
 	/** Browser-style event listener removal. */
@@ -59,6 +63,27 @@ export function webSocketTransport(socket: WebSocketLike): Transport<RPCMessage>
 	let detachOpenListener: (() => void) | undefined
 	let closed = false
 
+	// Connection-close notification, independent of message-listener churn so it can
+	// still fire after `subscribe` unsubscribes. One-shot; the first reason wins.
+	const closeListeners = new Set<(reason?: Error) => void>()
+	let closeNotified = false
+	let closeReason: Error | undefined
+	let detachCloseListener: (() => void) | undefined
+	let detachErrorListener: (() => void) | undefined
+
+	const notifyClose = (reason?: Error) => {
+		if (closeNotified) return
+		closeNotified = true
+		closeReason = reason
+		pending.length = 0
+		detachCloseListener?.()
+		detachErrorListener?.()
+		detachCloseListener = undefined
+		detachErrorListener = undefined
+		for (const listener of [...closeListeners]) listener(reason)
+		closeListeners.clear()
+	}
+
 	const flush = () => {
 		// Queueing lets callers create the channel before the socket has fully opened.
 		if (closed || (socket.readyState !== undefined && socket.readyState !== OPEN_READY_STATE))
@@ -84,6 +109,10 @@ export function webSocketTransport(socket: WebSocketLike): Transport<RPCMessage>
 	}
 
 	attachNativeListeners()
+	// A network error (which may precede a close) carries the reason; a clean close
+	// with code 1000 or no code reports `undefined`.
+	detachErrorListener = attachErrorListener(socket, (error) => notifyClose(error))
+	detachCloseListener = attachCloseListener(socket, (reason) => notifyClose(reason))
 
 	return {
 		capabilities: { objectMode: false, transfer: false, remoteRefs: true },
@@ -104,10 +133,27 @@ export function webSocketTransport(socket: WebSocketLike): Transport<RPCMessage>
 				if (listeners.size === 0) detachNativeListeners()
 			}
 		},
+		onClose(listener) {
+			if (closeNotified) {
+				const reason = closeReason
+				queueMicrotask(() => listener(reason))
+				return () => {}
+			}
+			closeListeners.add(listener)
+			return () => closeListeners.delete(listener)
+		},
 		close() {
+			// A local close is intentional teardown: suppress onClose so app reconnect
+			// logic does not treat it as a dropped connection.
 			closed = true
+			closeNotified = true
 			pending.length = 0
 			detachNativeListeners()
+			detachCloseListener?.()
+			detachErrorListener?.()
+			detachCloseListener = undefined
+			detachErrorListener = undefined
+			closeListeners.clear()
 			socket.close()
 		}
 	}
@@ -183,6 +229,88 @@ function attachOpenListener(socket: WebSocketLike, listener: () => void): () => 
 	}
 }
 
+// Normalize a close signal to a reason: clean closes (code 1000 or absent) report
+// undefined; abnormal codes report an Error. Handles both the browser CloseEvent
+// shape and Node `ws`'s (code, reason) argument style.
+function closeEventReason(codeOrEvent: unknown, maybeReason?: unknown): Error | undefined {
+	let code: number | undefined
+	let reason: string | undefined
+	if (typeof codeOrEvent === "number") {
+		code = codeOrEvent
+		reason = typeof maybeReason === "string" ? maybeReason : maybeReason?.toString?.()
+	} else if (typeof codeOrEvent === "object" && codeOrEvent !== null) {
+		const event = codeOrEvent as { code?: number; reason?: string }
+		code = event.code
+		reason = event.reason
+	}
+	if (code === undefined || code === 1000) return undefined
+	return new Error(`WebSocket closed (code ${code}${reason ? `: ${reason}` : ""})`)
+}
+
+function attachCloseListener(
+	socket: WebSocketLike,
+	listener: (reason?: Error) => void
+): () => void {
+	if (typeof socket.addEventListener === "function") {
+		const addEventListener = socket.addEventListener as (
+			event: "close",
+			listener: (event: unknown) => void
+		) => void
+		const handler = (event: unknown) => listener(closeEventReason(event))
+		addEventListener.call(socket, "close", handler)
+		return () => removeEventListener(socket, "close", handler)
+	}
+
+	if (typeof socket.on === "function") {
+		const on = socket.on as (event: "close", listener: (...args: unknown[]) => void) => void
+		const handler = (code: unknown, reason: unknown) => listener(closeEventReason(code, reason))
+		on.call(socket, "close", handler)
+		return () => removeNodeListener(socket, "close", handler as (event: unknown) => void)
+	}
+
+	const previous = socket.onclose
+	socket.onclose = (event: unknown) => {
+		listener(closeEventReason(event))
+		if (typeof previous === "function") previous(event)
+	}
+	return () => {
+		socket.onclose = previous
+	}
+}
+
+function attachErrorListener(
+	socket: WebSocketLike,
+	listener: (reason: Error) => void
+): () => void {
+	if (typeof socket.addEventListener === "function") {
+		const addEventListener = socket.addEventListener as (
+			event: "error",
+			listener: (event: unknown) => void
+		) => void
+		// Browser error events carry no Error object.
+		const handler = () => listener(new Error("WebSocket error"))
+		addEventListener.call(socket, "error", handler)
+		return () => removeEventListener(socket, "error", handler)
+	}
+
+	if (typeof socket.on === "function") {
+		const on = socket.on as (event: "error", listener: (...args: unknown[]) => void) => void
+		const handler = (error: unknown) =>
+			listener(error instanceof Error ? error : new Error(String(error ?? "WebSocket error")))
+		on.call(socket, "error", handler)
+		return () => removeNodeListener(socket, "error", handler as (event: unknown) => void)
+	}
+
+	const previous = socket.onerror
+	socket.onerror = (event: unknown) => {
+		listener(event instanceof Error ? event : new Error("WebSocket error"))
+		if (typeof previous === "function") previous(event)
+	}
+	return () => {
+		socket.onerror = previous
+	}
+}
+
 function parseMessage(data: unknown): RPCMessage | undefined {
 	try {
 		return JSON.parse(toText(data)) as RPCMessage
@@ -193,12 +321,12 @@ function parseMessage(data: unknown): RPCMessage | undefined {
 
 function removeEventListener(
 	socket: WebSocketLike,
-	event: "message" | "open",
+	event: "message" | "open" | "close" | "error",
 	listener: (event: unknown) => void
 ): void {
 	if (typeof socket.removeEventListener !== "function") return
 	const remove = socket.removeEventListener as (
-		event: "message" | "open",
+		event: "message" | "open" | "close" | "error",
 		listener: (event: unknown) => void
 	) => void
 	remove.call(socket, event, listener)
@@ -206,16 +334,17 @@ function removeEventListener(
 
 function removeNodeListener(
 	socket: WebSocketLike,
-	event: "message" | "open",
+	event: "message" | "open" | "close" | "error",
 	listener: (event: unknown) => void
 ): void {
 	const remove = typeof socket.off === "function" ? socket.off : socket.removeListener
 	if (typeof remove !== "function") return
-	;(remove as (event: "message" | "open", listener: (event: unknown) => void) => void).call(
-		socket,
-		event,
-		listener
-	)
+	;(
+		remove as (
+			event: "message" | "open" | "close" | "error",
+			listener: (event: unknown) => void
+		) => void
+	).call(socket, event, listener)
 }
 
 function getEventData(event: unknown): unknown {

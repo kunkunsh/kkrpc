@@ -7,17 +7,34 @@ export interface RelayController {
 	dispose(): void
 }
 
+/** Options for `relayTransport()`. */
+export interface RelayTransportOptions {
+	/**
+	 * Called once after the relay auto-disposes because one side's connection
+	 * closed. Requires the closing transport to implement `onClose`.
+	 */
+	onClose?: (side: "left" | "right", reason?: Error) => void
+	/** Also close the surviving side's transport when one side closes. Default `false`. */
+	closeOtherSide?: boolean
+}
+
 /**
  * Relay messages bidirectionally between two transports.
  *
  * The relay forwards raw compact RPC messages without exposing a local API. When
  * the destination transport supports transferables, transferable objects found in
  * the message payload are forwarded with the send call.
+ *
+ * When a transport implements `onClose`, the relay auto-disposes once either side
+ * closes, since a closed side can no longer forward. Transports without `onClose`
+ * behave exactly as before.
  */
 export function relayTransport(
 	left: Transport<RPCMessage>,
-	right: Transport<RPCMessage>
+	right: Transport<RPCMessage>,
+	options?: RelayTransportOptions
 ): RelayController {
+	let disposed = false
 	const unsubscribeLeft = left.subscribe((message) =>
 		forwardMessage("left-to-right", right, message)
 	)
@@ -25,12 +42,26 @@ export function relayTransport(
 		forwardMessage("right-to-left", left, message)
 	)
 
-	return {
-		dispose() {
-			unsubscribeLeft()
-			unsubscribeRight()
-		}
+	const dispose = () => {
+		if (disposed) return
+		disposed = true
+		unsubscribeLeft()
+		unsubscribeRight()
+		unsubscribeLeftClose?.()
+		unsubscribeRightClose?.()
 	}
+
+	const onSideClose = (side: "left" | "right", reason?: Error) => {
+		if (disposed) return
+		dispose()
+		if (options?.closeOtherSide) (side === "left" ? right : left).close?.()
+		options?.onClose?.(side, reason)
+	}
+
+	const unsubscribeLeftClose = left.onClose?.((reason) => onSideClose("left", reason))
+	const unsubscribeRightClose = right.onClose?.((reason) => onSideClose("right", reason))
+
+	return { dispose }
 }
 
 function forwardMessage(

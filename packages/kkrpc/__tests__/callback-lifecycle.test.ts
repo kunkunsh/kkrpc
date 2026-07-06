@@ -55,7 +55,7 @@ describe("callback lifecycle", () => {
 		const [clientT, serverT] = createPair()
 		const received: Array<(...args: unknown[]) => void> = []
 		const client = new RPCChannel<object, ServerAPI>(clientT, {})
-		new RPCChannel(serverT, { expose: { register: (cb) => received.push(cb) } })
+		new RPCChannel(serverT, { expose: { register: (cb: (...args: unknown[]) => void) => received.push(cb) } })
 		const api = client.getAPI()
 
 		const handler = () => {}
@@ -75,7 +75,7 @@ describe("callback lifecycle", () => {
 		const [clientT, serverT] = createPair()
 		const received: Array<(...args: unknown[]) => void> = []
 		const client = new RPCChannel<object, ServerAPI>(clientT, {})
-		new RPCChannel(serverT, { expose: { register: (cb) => void received.push(cb) } })
+		new RPCChannel(serverT, { expose: { register: (cb: (...args: unknown[]) => void) => void received.push(cb) } })
 		const api = client.getAPI()
 
 		const handler = () => {}
@@ -113,7 +113,7 @@ describe("callback lifecycle", () => {
 		let calls = 0
 		const received: Array<(...args: unknown[]) => void> = []
 		const client = new RPCChannel<object, ServerAPI>(clientT, {})
-		new RPCChannel(serverT, { expose: { register: (cb) => void received.push(cb) } })
+		new RPCChannel(serverT, { expose: { register: (cb: (...args: unknown[]) => void) => void received.push(cb) } })
 		const api = client.getAPI()
 
 		const handler = () => {
@@ -139,7 +139,7 @@ describe("callback lifecycle", () => {
 		const [clientT, serverT] = createPair()
 		const received: Array<(...args: unknown[]) => void> = []
 		const client = new RPCChannel<object, ServerAPI>(clientT, {})
-		new RPCChannel(serverT, { expose: { register: (cb) => void received.push(cb) } })
+		new RPCChannel(serverT, { expose: { register: (cb: (...args: unknown[]) => void) => void received.push(cb) } })
 		const api = client.getAPI()
 
 		await api.register(() => {})
@@ -162,7 +162,7 @@ describe("callback lifecycle", () => {
 		const [clientT, serverT] = createPair()
 		const received: Array<(...args: unknown[]) => void> = []
 		const client = new RPCChannel<object, ServerAPI>(clientT, {})
-		new RPCChannel(serverT, { expose: { register: (cb) => void received.push(cb) } })
+		new RPCChannel(serverT, { expose: { register: (cb: (...args: unknown[]) => void) => void received.push(cb) } })
 		const api = client.getAPI()
 
 		const a = () => {}
@@ -188,7 +188,7 @@ describe("callback lifecycle", () => {
 		const [clientT, serverT] = createPair()
 		const received: Array<(...args: unknown[]) => void> = []
 		const client = new StreamingRPCChannel<object, ServerAPI>(clientT, {})
-		new StreamingRPCChannel(serverT, { expose: { register: (cb) => void received.push(cb) } })
+		new StreamingRPCChannel(serverT, { expose: { register: (cb: (...args: unknown[]) => void) => void received.push(cb) } })
 		const api = client.getAPI()
 
 		const handler = () => {}
@@ -205,7 +205,7 @@ describe("callback lifecycle", () => {
 			const [clientT, serverT] = createPair()
 			const client = new RPCChannel<object, ServerAPI>(clientT, {})
 			// Server does NOT retain the facade, so it becomes collectable.
-			new RPCChannel(serverT, { expose: { callOnce: (cb) => cb("hi") } })
+			new RPCChannel(serverT, { expose: { callOnce: (cb: (value: string) => void) => cb("hi") } })
 			const api = client.getAPI()
 
 			await api.callOnce(() => {})

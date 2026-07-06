@@ -8,7 +8,12 @@
  * @module
  */
 
-import { fromRPCError, RPCChannel, type RPCChannelOptions } from "./channel.ts"
+import {
+	fromRPCError,
+	RPCChannel,
+	RPCTransportClosedError,
+	type RPCChannelOptions
+} from "./channel.ts"
 import { runErrorHooks, runHandlerHooks, runRequestHooks, runResponseHooks } from "./plugins.ts"
 import type {
 	RPCMessage,
@@ -155,6 +160,30 @@ export class StreamingRPCChannel<
 		}
 		this.remoteStreams.clear()
 		super.destroy()
+	}
+
+	/** Fail pending stream operations and stream iterators when the connection closes. */
+	protected override handleTransportClose(reason?: Error): void {
+		if (this.destroyed || this.closed) return
+		const error = new RPCTransportClosedError(reason)
+		for (const pending of this.pendingStreams.values()) {
+			if (pending.timer) clearTimeout(pending.timer)
+			pending.reject(error)
+		}
+		this.pendingStreams.clear()
+		for (const stream of this.remoteStreams.values()) {
+			stream.error = error
+			stream.done = true
+			for (const waiter of stream.waiters.splice(0)) waiter.reject(error)
+		}
+		this.remoteStreams.clear()
+		for (const stream of this.localStreams.values()) {
+			stream.closed = true
+			void stream.iterator.return?.()
+		}
+		this.localStreams.clear()
+		// super sets `closed`, rejects base pending requests, and fires onClose.
+		super.handleTransportClose(reason)
 	}
 
 	/** Add `[Symbol.asyncIterator]` support to remote proxies for stream results. */
@@ -322,6 +351,7 @@ export class StreamingRPCChannel<
 		value?: unknown
 	): Promise<IteratorResult<unknown>> {
 		if (this.destroyed) return Promise.reject(new Error("RPC channel destroyed"))
+		if (this.closed) return Promise.reject(new RPCTransportClosedError(this.closeReason))
 		const id = generateId()
 		const transfers: Transferable[] = []
 		const message: RPCStreamRequest = { t: "sq", id, sid: streamId, op }

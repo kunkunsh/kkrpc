@@ -88,10 +88,11 @@ interface Transport<TMessage> {
 	send(message: TMessage, transfers?: Transferable[]): void | Promise<void>
 	subscribe(listener: (message: TMessage) => void): () => void
 	close?(): void | Promise<void>
+	onClose?(listener: (reason?: Error) => void): () => void
 }
 ```
 
-`send()` writes outbound messages. `subscribe()` receives inbound messages and returns an unsubscribe function.
+`send()` writes outbound messages. `subscribe()` receives inbound messages and returns an unsubscribe function. The optional `onClose()` lets a transport report a dropped connection so the channel can reject pending requests immediately instead of waiting for timeouts — see the [connection lifecycle guide](/guides/connection-lifecycle/).
 
 Any environment that can establish a connection should be able to implement `send` and `subscribe` functions.
 

@@ -49,6 +49,15 @@ export interface RPCChannelOptions<LocalAPI extends object = object> {
 	plugins?: RPCPlugin[]
 	/** Optional provider for protocol-level metadata on outgoing request messages. */
 	getMetadata?: () => RPCMessageMetadata | undefined
+	/**
+	 * Called once when the underlying transport reports the connection closed
+	 * (remote close or network error), after pending requests have been rejected.
+	 * `reason` is an `Error` for abnormal termination, `undefined` for a clean
+	 * close. Requires a transport that implements `onClose`; otherwise never fires.
+	 * The channel is not destroyed — reconnect by creating a new transport and
+	 * channel.
+	 */
+	onClose?: (reason?: Error) => void
 }
 
 type PendingRequest = {
@@ -155,6 +164,15 @@ export class RPCCallbackReleasedError extends Error {
 	}
 }
 
+/** Rejection reason for pending requests when the transport connection closes. */
+export class RPCTransportClosedError extends Error {
+	constructor(reason?: Error) {
+		super(reason ? `RPC transport closed: ${reason.message}` : "RPC transport closed")
+		this.name = "RPCTransportClosedError"
+		if (reason) (this as Error & { cause?: unknown }).cause = reason
+	}
+}
+
 /**
  * Deterministically release a decoded callback facade.
  *
@@ -231,6 +249,11 @@ export class RPCChannel<LocalAPI extends object = object, RemoteAPI extends obje
 	private pendingCallbackReleases = new Set<string>()
 	private callbackReleaseScheduled = false
 	protected destroyed = false
+	// Set once the transport reports the connection closed; requests then fail fast.
+	protected closed = false
+	protected closeReason?: Error
+	private unsubscribeClose?: () => void
+	private onCloseHandler?: (reason?: Error) => void
 	protected pending: Map<string, PendingRequest> = new Map<string, PendingRequest>()
 	protected supportsTransfer: boolean
 	private unsubscribe: () => void
@@ -252,6 +275,7 @@ export class RPCChannel<LocalAPI extends object = object, RemoteAPI extends obje
 		this.expose = options.expose
 		this.plugins = options.plugins ?? []
 		this.getMetadata = options.getMetadata
+		this.onCloseHandler = options.onClose
 		this.supportsTransfer =
 			options.enableTransfer !== false && transport.capabilities?.transfer === true
 		this.timeout = options.timeout ?? 30_000
@@ -266,6 +290,32 @@ export class RPCChannel<LocalAPI extends object = object, RemoteAPI extends obje
 			})
 		}
 		this.unsubscribe = transport.subscribe((message) => void this.handleMessage(message))
+		this.unsubscribeClose = transport.onClose?.((reason) => this.handleTransportClose(reason))
+	}
+
+	/**
+	 * Reject all pending requests when the transport connection closes.
+	 *
+	 * Subsequent requests fail fast with `RPCTransportClosedError`. The channel is
+	 * not destroyed: the exposed API, plugins, and callback registry stay intact so
+	 * the instance can still be inspected. Reconnect by creating a new transport and
+	 * channel. Overridden by `StreamingRPCChannel` to also fail stream state.
+	 */
+	protected handleTransportClose(reason?: Error): void {
+		if (this.destroyed || this.closed) return
+		this.closed = true
+		this.closeReason = reason
+		const error = new RPCTransportClosedError(reason)
+		for (const pending of this.pending.values()) {
+			if (pending.timer) clearTimeout(pending.timer)
+			pending.reject(error)
+		}
+		this.pending.clear()
+		try {
+			this.onCloseHandler?.(reason)
+		} catch {
+			// An application close handler must not break channel teardown.
+		}
 	}
 
 	/** Return a typed proxy that sends operations to the remote API. */
@@ -278,6 +328,7 @@ export class RPCChannel<LocalAPI extends object = object, RemoteAPI extends obje
 		if (this.destroyed) return
 		this.destroyed = true
 		this.unsubscribe()
+		this.unsubscribeClose?.()
 		for (const pending of this.pending.values()) {
 			if (pending.timer) clearTimeout(pending.timer)
 			pending.reject(new Error("RPC channel destroyed"))
@@ -321,6 +372,7 @@ export class RPCChannel<LocalAPI extends object = object, RemoteAPI extends obje
 		value?: unknown
 	): Promise<unknown> {
 		if (this.destroyed) return Promise.reject(new Error("RPC channel destroyed"))
+		if (this.closed) return Promise.reject(new RPCTransportClosedError(this.closeReason))
 		let meta: RPCMessageMetadata | undefined
 		try {
 			meta = this.getMetadata?.()

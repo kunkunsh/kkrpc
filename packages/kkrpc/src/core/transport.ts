@@ -56,6 +56,19 @@ export interface Transport<TMessage> {
 	subscribe(listener: (message: TMessage) => void): () => void
 	/** Close the transport and release runtime resources. */
 	close?(): void
+	/**
+	 * Optionally register a listener invoked at most once when the transport
+	 * permanently stops delivering messages because the connection dropped (remote
+	 * close or network error). It is NOT invoked for a local `close()`. `reason` is
+	 * an `Error` for abnormal termination and `undefined` for a clean remote close.
+	 * Registering after the transport has already closed invokes the listener
+	 * asynchronously with the recorded reason. Returns an unsubscribe function.
+	 *
+	 * When present, `RPCChannel` uses it to reject pending requests immediately
+	 * instead of waiting for their timeouts. Transports that omit it behave as
+	 * before: pending requests resolve, time out, or wait for `destroy()`.
+	 */
+	onClose?(listener: (reason?: Error) => void): () => void
 }
 
 /** Wire-level runtime primitive used by `createTransport()`. */
@@ -68,6 +81,8 @@ export interface Platform<TWire> {
 	subscribe(listener: (wire: TWire) => void): () => void
 	/** Close the underlying runtime primitive. */
 	close?(): void
+	/** Optional connection-close notification; forwarded into the composed transport's `onClose`. Same contract as `Transport.onClose`. */
+	onClose?(listener: (reason?: Error) => void): () => void
 }
 
 /** Encoder/decoder between RPC messages and platform wire values. */
@@ -121,7 +136,7 @@ export function createTransport<TMessage, TWire>({
 		platform.capabilities?.transfer === true && codec.capabilities?.transfer === true
 	const forwardsTransfer = supportsTransfer && capabilities?.transfer !== false
 
-	return {
+	const transport: Transport<TMessage> = {
 		capabilities: {
 			objectMode: capabilities?.objectMode ?? platform.capabilities?.objectMode,
 			transfer: forwardsTransfer,
@@ -152,4 +167,10 @@ export function createTransport<TMessage, TWire>({
 			platform.close?.()
 		}
 	}
+	// Forward conditionally so `transport.onClose === undefined` stays a reliable
+	// signal that the platform cannot report connection loss.
+	if (platform.onClose) {
+		transport.onClose = (listener) => platform.onClose!(listener)
+	}
+	return transport
 }

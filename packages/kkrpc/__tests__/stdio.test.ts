@@ -161,4 +161,34 @@ describe("stdio transport", () => {
 			expect(readable.listenerCount("data")).toBe(0)
 		}
 	})
+
+	test("exposes onClose when a lifecycle source is provided", () => {
+		const readable = new PassThrough()
+		const writable = new PassThrough()
+		const transport = stdioJsonTransport({ readable, writable, lifecycle: readable })
+		expect(typeof transport.onClose).toBe("function")
+
+		let reason: Error | undefined | "unset" = "unset"
+		transport.onClose?.((r) => (reason = r))
+		readable.emit("end")
+		expect(reason).toBeUndefined()
+	})
+
+	test("reports the error reason on a stream error", () => {
+		const readable = new PassThrough()
+		const writable = new PassThrough()
+		const transport = stdioJsonTransport({ readable, writable, lifecycle: readable })
+
+		let reason: Error | undefined
+		transport.onClose?.((r) => (reason = r))
+		const failure = new Error("pipe broke")
+		readable.emit("error", failure)
+		expect(reason).toBe(failure)
+	})
+
+	test("omits onClose when no lifecycle source is given", () => {
+		const streams = createStreamPair()
+		const transport = stdioJsonTransport(streams.server)
+		expect(transport.onClose).toBeUndefined()
+	})
 })

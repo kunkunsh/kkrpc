@@ -31,6 +31,21 @@ export function webSocketClientTransport(
 	const pending: string[] = []
 	let closed = false
 
+	const closeListeners = new Set<(reason?: Error) => void>()
+	let closeNotified = false
+	let closeReason: Error | undefined
+
+	const notifyClose = (reason?: Error) => {
+		if (closeNotified) return
+		closeNotified = true
+		closeReason = reason
+		pending.length = 0
+		socket.removeEventListener("close", closeHandler)
+		socket.removeEventListener("error", errorHandler)
+		for (const listener of [...closeListeners]) listener(reason)
+		closeListeners.clear()
+	}
+
 	const flush = () => {
 		// Calls made before the socket opens are serialized and sent once open fires.
 		if (closed || socket.readyState !== WebSocket.OPEN) return
@@ -46,8 +61,17 @@ export function webSocketClientTransport(
 		}
 	}
 
+	const closeHandler = (event: CloseEvent) => {
+		// Clean close (code 1000 or absent) reports no reason; abnormal codes report one.
+		if (event.code === undefined || event.code === 1000) return notifyClose(undefined)
+		notifyClose(new Error(`WebSocket closed (code ${event.code}${event.reason ? `: ${event.reason}` : ""})`))
+	}
+	const errorHandler = () => notifyClose(new Error("WebSocket error"))
+
 	socket.addEventListener("open", flush)
 	socket.addEventListener("message", messageListener)
+	socket.addEventListener("close", closeHandler)
+	socket.addEventListener("error", errorHandler)
 
 	return {
 		capabilities: { objectMode: false, transfer: false, remoteRefs: true },
@@ -64,11 +88,25 @@ export function webSocketClientTransport(
 			listeners.add(listener)
 			return () => listeners.delete(listener)
 		},
+		onClose(listener) {
+			if (closeNotified) {
+				const reason = closeReason
+				queueMicrotask(() => listener(reason))
+				return () => {}
+			}
+			closeListeners.add(listener)
+			return () => closeListeners.delete(listener)
+		},
 		close() {
+			// Local close is intentional; do not fire onClose.
 			closed = true
+			closeNotified = true
 			pending.length = 0
 			socket.removeEventListener("open", flush)
 			socket.removeEventListener("message", messageListener)
+			socket.removeEventListener("close", closeHandler)
+			socket.removeEventListener("error", errorHandler)
+			closeListeners.clear()
 			socket.close()
 		}
 	}
