@@ -58,6 +58,13 @@ export interface RPCChannelOptions<LocalAPI extends object = object> {
 	 * channel.
 	 */
 	onClose?: (reason?: Error) => void
+	/**
+	 * Observe errors from fire-and-forget paths that would otherwise be swallowed:
+	 * a failed `set` on a remote proxy (`kind: "set"`) and a thrown/rejected local
+	 * callback invocation (`kind: "callback"`). Purely for diagnostics; without it
+	 * these paths stay silent as before.
+	 */
+	onUncaughtError?: (error: Error, context: { kind: "set" | "callback"; path?: string[] }) => void
 }
 
 type PendingRequest = {
@@ -307,6 +314,7 @@ export class RPCChannel<LocalAPI extends object = object, RemoteAPI extends obje
 	protected closeReason?: Error
 	private unsubscribeClose?: () => void
 	private onCloseHandler?: (reason?: Error) => void
+	private onUncaughtError?: RPCChannelOptions<LocalAPI>["onUncaughtError"]
 	protected pending: Map<string, PendingRequest> = new Map<string, PendingRequest>()
 	protected supportsTransfer: boolean
 	private unsubscribe: () => void
@@ -329,6 +337,7 @@ export class RPCChannel<LocalAPI extends object = object, RemoteAPI extends obje
 		this.plugins = options.plugins ?? []
 		this.getMetadata = options.getMetadata
 		this.onCloseHandler = options.onClose
+		this.onUncaughtError = options.onUncaughtError
 		this.supportsTransfer =
 			options.enableTransfer !== false && transport.capabilities?.transfer === true
 		this.timeout = options.timeout ?? 30_000
@@ -413,7 +422,10 @@ export class RPCChannel<LocalAPI extends object = object, RemoteAPI extends obje
 			},
 			set: (_target, property, value) => {
 				if (typeof property === "symbol") return false
-				void this.request("set", [...path, property], undefined, value, callOptions).catch(() => {})
+				const setPath = [...path, property]
+				void this.request("set", setPath, undefined, value, callOptions).catch((error) =>
+					this.reportUncaughtError(error, { kind: "set", path: setPath })
+				)
 				return true
 			},
 			apply: (_target, _thisArg, args) =>
@@ -454,6 +466,19 @@ export class RPCChannel<LocalAPI extends object = object, RemoteAPI extends obje
 
 		this.post(message, transfers, id)
 		return promise
+	}
+
+	/** Report an error from a fire-and-forget path to the optional diagnostics hook. */
+	protected reportUncaughtError(
+		error: unknown,
+		context: { kind: "set" | "callback"; path?: string[] }
+	): void {
+		if (!this.onUncaughtError) return
+		try {
+			this.onUncaughtError(error instanceof Error ? error : new Error(String(error)), context)
+		} catch {
+			// A diagnostics hook must not break the path that reported to it.
+		}
 	}
 
 	// Register a pending request with its timeout and optional abort wiring.
@@ -538,7 +563,16 @@ export class RPCChannel<LocalAPI extends object = object, RemoteAPI extends obje
 		}
 		if (isRPCCallbackMessage(message)) {
 			const callback = this.callbacks.get(message.id)
-			if (callback) void callback(...this.decodeArgs(message.a))
+			if (callback) {
+				try {
+					const result = callback(...this.decodeArgs(message.a))
+					if (result instanceof Promise) {
+						result.catch((error) => this.reportUncaughtError(error, { kind: "callback" }))
+					}
+				} catch (error) {
+					this.reportUncaughtError(error, { kind: "callback" })
+				}
+			}
 			return
 		}
 		if (isRPCCallbackReleaseMessage(message)) {

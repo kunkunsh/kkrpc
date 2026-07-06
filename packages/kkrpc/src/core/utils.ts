@@ -2,6 +2,13 @@
  * Small utility helpers used by stable core modules.
  */
 
+/**
+ * Maximum nesting depth for recursive value traversal (remote-ref encode/decode,
+ * HTTP envelope scanning, relay transferable collection). Guards against stack
+ * overflow and event-loop stalls on hostile or pathological inputs.
+ */
+export const MAX_RPC_DEPTH = 256
+
 let idCounter = 0
 
 /**

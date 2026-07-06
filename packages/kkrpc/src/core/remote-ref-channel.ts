@@ -34,7 +34,7 @@ import {
 	type RemoteRefKind
 } from "./remote-ref.ts"
 import type { Transport } from "./transport.ts"
-import { generateId } from "./utils.ts"
+import { generateId, MAX_RPC_DEPTH } from "./utils.ts"
 
 /** Options for `RemoteReferenceRPCChannel`. */
 export interface RemoteReferenceRPCChannelOptions<LocalAPI extends object = object>
@@ -47,7 +47,9 @@ type RewriteState = {
 	changed: boolean
 	cycleDetected: boolean
 	newRefs: Array<{ id: string; value?: object; receiver?: object }>
-	seen: WeakSet<object>
+	// A Set (not WeakSet) so `.size` reports the current path depth: entries are
+	// added on descent and removed on ascent, so size == active nesting depth.
+	seen: Set<object>
 }
 
 type LocalRefRecord = {
@@ -324,6 +326,9 @@ export class RemoteReferenceRPCChannel<
 				return value
 			}
 			state.seen.add(value)
+			if (state.seen.size > MAX_RPC_DEPTH) {
+				throw new RPCEncodeError(`Value nesting exceeds the maximum depth of ${MAX_RPC_DEPTH}`)
+			}
 			let copy: unknown[] | undefined
 			for (let index = 0; index < value.length; index++) {
 				const encoded = this.encodeValue(value[index], transfers, state)
@@ -343,6 +348,9 @@ export class RemoteReferenceRPCChannel<
 				return value
 			}
 			state.seen.add(value)
+			if (state.seen.size > MAX_RPC_DEPTH) {
+				throw new RPCEncodeError(`Value nesting exceeds the maximum depth of ${MAX_RPC_DEPTH}`)
+			}
 			let copy: Record<string, unknown> | undefined
 			for (const key of Object.keys(value)) {
 				const current = value[key]
@@ -401,6 +409,9 @@ export class RemoteReferenceRPCChannel<
 				return value
 			}
 			state.seen.add(value)
+			if (state.seen.size > MAX_RPC_DEPTH) {
+				throw new RPCEncodeError(`Value nesting exceeds the maximum depth of ${MAX_RPC_DEPTH}`)
+			}
 			let copy: unknown[] | undefined
 			for (let index = 0; index < value.length; index++) {
 				const decoded = this.decodeValue(value[index], state)
@@ -420,6 +431,9 @@ export class RemoteReferenceRPCChannel<
 				return value
 			}
 			state.seen.add(value)
+			if (state.seen.size > MAX_RPC_DEPTH) {
+				throw new RPCEncodeError(`Value nesting exceeds the maximum depth of ${MAX_RPC_DEPTH}`)
+			}
 			let copy: Record<string, unknown> | undefined
 			for (const key of Object.keys(value)) {
 				const current = value[key]
@@ -439,7 +453,7 @@ export class RemoteReferenceRPCChannel<
 
 	/** Track whether a recursive encode/decode pass actually rewrote by-reference values. */
 	private createRewriteState(): RewriteState {
-		return { changed: false, cycleDetected: false, newRefs: [], seen: new WeakSet() }
+		return { changed: false, cycleDetected: false, newRefs: [], seen: new Set() }
 	}
 
 	/** Reject cycles only when rewriting would have produced a partially cloned graph. */
@@ -655,7 +669,10 @@ export class RemoteReferenceRPCChannel<
 				},
 				set: (_target, property, value) => {
 					if (typeof property === "symbol") return false
-					void request("set", [...path, property], undefined, value).catch(() => {})
+					const setPath = [...path, property]
+					void request("set", setPath, undefined, value).catch((error) =>
+						this.reportUncaughtError(error, { kind: "set", path: setPath })
+					)
 					return true
 				},
 				apply: (_target, _thisArg, args) => request("call", path, Array.from(args))

@@ -13,6 +13,8 @@ import type { Transport } from "../core/transport.ts"
 const PORT_INIT_SIGNAL = "__KKRPC_PORT_INIT__"
 const PORT_ACK_SIGNAL = "__KKRPC_PORT_ACK__"
 const PORT_RETRY_DELAY_MS = 25
+const PORT_RETRY_MAX_DELAY_MS = 1000
+const DEFAULT_HANDSHAKE_TIMEOUT_MS = 30_000
 
 /** Minimal window-like object used by iframe transports and tests. */
 export interface WindowLike {
@@ -34,6 +36,12 @@ export interface IframeTransportOptions {
 	sourceWindow?: WindowLike
 	/** Callback invoked when the MessagePort handshake completes. */
 	onReady?: () => void
+	/**
+	 * Maximum time to keep retrying the child→parent `MessagePort` handshake before
+	 * giving up. On timeout the retry loop stops and `onClose` fires with an error.
+	 * Defaults to 30000ms. Only applies to the `MessageChannel` handshake path.
+	 */
+	handshakeTimeoutMs?: number
 }
 
 interface PortSignal {
@@ -210,14 +218,33 @@ export function iframeChildTransport(options: IframeTransportOptions = {}): Tran
 	}
 
 	const targetOrigin = options.targetOrigin ?? "*"
+	const handshakeTimeoutMs = options.handshakeTimeoutMs ?? DEFAULT_HANDSHAKE_TIMEOUT_MS
 	const capabilities = { objectMode: true, transfer: true, remoteRefs: true }
 	const listeners = new Set<(message: RPCMessage) => void>()
+	const closeListeners = new Set<(reason?: Error) => void>()
 	const queuedMessages: Array<{ message: RPCMessage; transfers: Transferable[] }> = []
 	let readyTransport: Transport<RPCMessage> | undefined
 	let candidateTransport: Transport<RPCMessage> | undefined
 	let candidateUnsubscribe: (() => void) | undefined
 	let retryTimer: ReturnType<typeof setTimeout> | undefined
+	let retryDelay = PORT_RETRY_DELAY_MS
 	let activeId = ""
+	let closeNotified = false
+	let closeReason: Error | undefined
+	const handshakeStart = Date.now()
+
+	const notifyClose = (reason?: Error) => {
+		if (closeNotified) return
+		closeNotified = true
+		closeReason = reason
+		if (retryTimer) clearTimeout(retryTimer)
+		retryTimer = undefined
+		candidateUnsubscribe?.()
+		candidateTransport?.close?.()
+		candidateTransport = undefined
+		for (const listener of [...closeListeners]) listener(reason)
+		closeListeners.clear()
+	}
 
 	const promoteCandidate = () => {
 		if (!candidateTransport) return
@@ -242,6 +269,12 @@ export function iframeChildTransport(options: IframeTransportOptions = {}): Tran
 	}
 
 	const attemptInit = () => {
+		if (closeNotified || readyTransport) return
+		// Give up if the parent never accepts a port within the handshake window.
+		if (Date.now() - handshakeStart >= handshakeTimeoutMs) {
+			notifyClose(new Error(`iframe MessagePort handshake timed out after ${handshakeTimeoutMs}ms`))
+			return
+		}
 		// Retry until the parent accepts a port; this handles parent listeners attaching late.
 		candidateUnsubscribe?.()
 		candidateTransport?.close?.()
@@ -254,7 +287,9 @@ export function iframeChildTransport(options: IframeTransportOptions = {}): Tran
 		targetWindow.postMessage({ type: PORT_INIT_SIGNAL, id: activeId }, targetOrigin, [
 			channel.port2
 		])
-		retryTimer = setTimeout(attemptInit, PORT_RETRY_DELAY_MS)
+		// Exponential backoff caps the retry storm instead of a fixed 25ms busy loop.
+		retryTimer = setTimeout(attemptInit, retryDelay)
+		retryDelay = Math.min(retryDelay * 2, PORT_RETRY_MAX_DELAY_MS)
 	}
 
 	sourceWindow.addEventListener("message", messageListener)
@@ -270,11 +305,22 @@ export function iframeChildTransport(options: IframeTransportOptions = {}): Tran
 			listeners.add(listener)
 			return () => listeners.delete(listener)
 		},
+		onClose(listener) {
+			if (closeNotified) {
+				const reason = closeReason
+				queueMicrotask(() => listener(reason))
+				return () => {}
+			}
+			closeListeners.add(listener)
+			return () => closeListeners.delete(listener)
+		},
 		close() {
+			closeNotified = true
 			if (retryTimer) clearTimeout(retryTimer)
 			candidateUnsubscribe?.()
 			candidateTransport?.close?.()
 			readyTransport?.close?.()
+			closeListeners.clear()
 			sourceWindow.removeEventListener("message", messageListener)
 		}
 	}
@@ -287,7 +333,7 @@ export function iframeChildTransportReady(
 	if (typeof MessageChannel === "undefined") {
 		return Promise.resolve(iframeChildTransport(options))
 	}
-	return new Promise((resolve) => {
+	return new Promise((resolve, reject) => {
 		let ready = false
 		let transport: Transport<RPCMessage> | undefined
 		transport = iframeChildTransport({
@@ -300,6 +346,10 @@ export function iframeChildTransportReady(
 				ready = true
 			}
 		})
+		// Reject if the handshake times out before it becomes ready.
+		transport.onClose?.((reason) =>
+			reject(reason ?? new Error("iframe MessagePort handshake failed"))
+		)
 		if (ready) resolve(transport)
 	})
 }

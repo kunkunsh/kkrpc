@@ -18,6 +18,7 @@ import { RPCChannel } from "../core/channel.ts"
 import type { RPCMessage, RPCOperation, RPCRequest, RPCResponse } from "../core/protocol.ts"
 import { isRemoteRefEnvelope } from "../core/remote-ref.ts"
 import type { Transport } from "../core/transport.ts"
+import { MAX_RPC_DEPTH } from "../core/utils.ts"
 
 /** Options for the client-side unary HTTP transport. */
 export interface HttpClientTransportOptions {
@@ -210,9 +211,11 @@ function assertHttpEnvelopeSupported(value: unknown): void {
 
 function findUnsupportedRemoteRefEnvelope(
 	value: unknown,
-	seen = new WeakSet<object>()
+	seen = new WeakSet<object>(),
+	depth = 0
 ): string | undefined {
 	if (typeof value !== "object" || value === null) return undefined
+	if (depth > MAX_RPC_DEPTH) return `HTTP transport payload nesting exceeds ${MAX_RPC_DEPTH}`
 	if (seen.has(value)) return undefined
 	seen.add(value)
 
@@ -225,14 +228,14 @@ function findUnsupportedRemoteRefEnvelope(
 
 	if (Array.isArray(value)) {
 		for (const item of value) {
-			const unsupported = findUnsupportedRemoteRefEnvelope(item, seen)
+			const unsupported = findUnsupportedRemoteRefEnvelope(item, seen, depth + 1)
 			if (unsupported) return unsupported
 		}
 		return undefined
 	}
 
 	for (const item of Object.values(value)) {
-		const unsupported = findUnsupportedRemoteRefEnvelope(item, seen)
+		const unsupported = findUnsupportedRemoteRefEnvelope(item, seen, depth + 1)
 		if (unsupported) return unsupported
 	}
 	return undefined
@@ -241,10 +244,12 @@ function findUnsupportedRemoteRefEnvelope(
 // HTTP only accepts one-shot exchanges; these envelopes require follow-up bidirectional traffic.
 function findUnsupportedHttpEnvelope(
 	value: unknown,
-	seen = new WeakSet<object>()
+	seen = new WeakSet<object>(),
+	depth = 0
 ): string | undefined {
 	if (typeof value === "function") return "HTTP transport does not support function values"
 	if (typeof value !== "object" || value === null) return undefined
+	if (depth > MAX_RPC_DEPTH) return `HTTP transport payload nesting exceeds ${MAX_RPC_DEPTH}`
 	if (seen.has(value)) return undefined
 	seen.add(value)
 
@@ -269,14 +274,14 @@ function findUnsupportedHttpEnvelope(
 
 	if (Array.isArray(value)) {
 		for (const item of value) {
-			const unsupported = findUnsupportedHttpEnvelope(item, seen)
+			const unsupported = findUnsupportedHttpEnvelope(item, seen, depth + 1)
 			if (unsupported) return unsupported
 		}
 		return undefined
 	}
 
 	for (const item of Object.values(value)) {
-		const unsupported = findUnsupportedHttpEnvelope(item, seen)
+		const unsupported = findUnsupportedHttpEnvelope(item, seen, depth + 1)
 		if (unsupported) return unsupported
 	}
 	return undefined

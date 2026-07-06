@@ -1,5 +1,6 @@
 import type { RPCMessage } from "./core/protocol.ts"
 import type { Transport } from "./core/transport.ts"
+import { MAX_RPC_DEPTH } from "./core/utils.ts"
 
 /** Controller returned by `relayTransport()` for stopping a relay. */
 export interface RelayController {
@@ -89,14 +90,18 @@ function collectTransferables(value: unknown): Transferable[] {
 function visitTransferables(
 	value: unknown,
 	transfers: Transferable[],
-	seen: WeakSet<object>
+	seen: WeakSet<object>,
+	depth = 0
 ): void {
 	if (typeof value !== "object" || value === null) return
+	// Stop descending past the depth cap: deeper transferables fall back to
+	// structured clone rather than risking a stack overflow on hostile input.
+	if (depth > MAX_RPC_DEPTH) return
 	if (seen.has(value)) return
 	seen.add(value)
 
 	if (Array.isArray(value)) {
-		for (const item of value) visitTransferables(item, transfers, seen)
+		for (const item of value) visitTransferables(item, transfers, seen, depth + 1)
 		return
 	}
 
@@ -106,7 +111,7 @@ function visitTransferables(
 	}
 
 	for (const item of Object.values(value as Record<string, unknown>)) {
-		visitTransferables(item, transfers, seen)
+		visitTransferables(item, transfers, seen, depth + 1)
 	}
 }
 

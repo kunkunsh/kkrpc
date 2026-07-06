@@ -25,6 +25,11 @@ Property access is implemented using JavaScript Proxy objects with custom get an
 4. **Property Setting**: Direct assignment like `api.counter = 42` triggers the proxy's set trap
 5. **Remote Execution**: The remote endpoint handles get/set operations on the actual object
 
+Assignment is **fire-and-forget**: `api.counter = 42` returns immediately and does not wait for the
+remote set to complete, so a failed set does not throw at the assignment site. To observe such
+failures for diagnostics, pass `onUncaughtError` to the channel — it receives errors from failed
+sets (`kind: "set"`) and from thrown remote-callback invocations (`kind: "callback"`).
+
 ## Basic Usage
 
 ### API Definition
