@@ -48,3 +48,13 @@ export const frameApi: FrameAPI = {
 	expose(frameApi, transport)
 </script>
 ```
+
+## Handshake timeout
+
+The child retries the `MessagePort` handshake with exponential backoff until the parent accepts a
+port. If the parent never responds, it gives up after `handshakeTimeoutMs` (default 30000) and
+`iframeChildTransportReady()` rejects, instead of retrying forever.
+
+```ts
+const transport = await iframeChildTransportReady({ handshakeTimeoutMs: 10_000 })
+```
