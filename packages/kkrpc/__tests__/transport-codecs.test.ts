@@ -90,6 +90,38 @@ describe("stable transport codecs", () => {
 		expect(() => codec.encode(message)).toThrow()
 	})
 
+	test("createTransport without onInvalidFrame lets decode errors propagate", () => {
+		const platform = new StringPlatform()
+		const transport = createTransport<RPCMessage, string>({
+			platform,
+			codec: jsonCodec<RPCMessage>()
+		})
+		transport.subscribe(() => {})
+
+		expect(() => platform.listener?.("not json {")).toThrow()
+	})
+
+	test("createTransport with onInvalidFrame drops bad frames and reports them", () => {
+		const platform = new StringPlatform()
+		const invalid: Array<{ wire: string; error: unknown }> = []
+		const received: RPCMessage[] = []
+		const transport = createTransport<RPCMessage, string>({
+			platform,
+			codec: jsonCodec<RPCMessage>(),
+			onInvalidFrame: (wire, error) => invalid.push({ wire, error })
+		})
+		transport.subscribe((message) => received.push(message))
+
+		expect(() => platform.listener?.("not json {")).not.toThrow()
+		const valid: RPCMessage = { t: "r", id: "1", v: 42 }
+		platform.listener?.(JSON.stringify(valid))
+
+		expect(invalid).toHaveLength(1)
+		expect(invalid[0].wire).toBe("not json {")
+		expect(invalid[0].error).toBeInstanceOf(Error)
+		expect(received).toEqual([valid])
+	})
+
 	test("jsonLineCodec adds newline framing and decodes newline-framed JSON", () => {
 		const codec = jsonLineCodec<RPCMessage>()
 		const message: RPCMessage = {

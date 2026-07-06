@@ -90,11 +90,19 @@ export interface Codec<TMessage, TWire> {
 export function createTransport<TMessage, TWire>({
 	platform,
 	codec,
-	capabilities
+	capabilities,
+	onInvalidFrame
 }: {
 	platform: Platform<TWire>
 	codec: Codec<TMessage, TWire>
 	capabilities?: TransportCapabilities
+	/**
+	 * Observe wire values that `codec.decode()` could not parse. When provided,
+	 * decode errors are reported here and the frame is dropped instead of throwing
+	 * into the platform's receive loop. This matters for transports that may carry
+	 * non-kkrpc or malformed frames. Without it, decode errors propagate as before.
+	 */
+	onInvalidFrame?: (wire: TWire, error: unknown) => void
 }): Transport<TMessage> {
 	const supportsTransfer =
 		platform.capabilities?.transfer === true && codec.capabilities?.transfer === true
@@ -112,7 +120,20 @@ export function createTransport<TMessage, TWire>({
 			return platform.send(wire, forwardsTransfer ? transfers : [])
 		},
 		subscribe(listener: (message: TMessage) => void) {
-			return platform.subscribe((wire) => listener(codec.decode(wire)))
+			return platform.subscribe((wire) => {
+				if (!onInvalidFrame) {
+					listener(codec.decode(wire))
+					return
+				}
+				let message: TMessage
+				try {
+					message = codec.decode(wire)
+				} catch (error) {
+					onInvalidFrame(wire, error)
+					return
+				}
+				listener(message)
+			})
 		},
 		close() {
 			platform.close?.()
