@@ -1,6 +1,6 @@
-# tauri-kkrpc-example
+# electron-demo
 
-## 0.1.2
+## 0.0.1
 
 ### Patch Changes
 
@@ -13,10 +13,3 @@
 - Updated dependencies [4e00cb6]
 - Updated dependencies [9dc4c14]
   - kkrpc@2.1.0
-
-## 0.1.1
-
-### Patch Changes
-
-- Updated dependencies
-  - kkrpc@0.4.0
