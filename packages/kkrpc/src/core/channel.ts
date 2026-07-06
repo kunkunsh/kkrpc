@@ -34,6 +34,7 @@ import type {
 } from "./protocol.ts"
 import { takeTransferDescriptor } from "./transfer.ts"
 import type { Transport } from "./transport.ts"
+import { generateId } from "./utils.ts"
 
 /** Options used to configure an `RPCChannel`. */
 export interface RPCChannelOptions<LocalAPI extends object = object> {
@@ -122,10 +123,6 @@ function isRPCCallbackMessage(value: unknown): value is RPCCallback {
 	if (typeof value !== "object" || value === null) return false
 	const message = value as Partial<RPCCallback>
 	return message.t === "cb" && typeof message.id === "string" && Array.isArray(message.a)
-}
-
-function generateId(): string {
-	return globalThis.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2)
 }
 
 export function toRPCError(error: unknown): RPCError {

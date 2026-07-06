@@ -30,6 +30,7 @@ import {
 	type RemoteRefKind
 } from "./remote-ref.ts"
 import type { Transport } from "./transport.ts"
+import { generateId } from "./utils.ts"
 
 /** Options for `RemoteReferenceRPCChannel`. */
 export interface RemoteReferenceRPCChannelOptions<LocalAPI extends object = object>
@@ -72,10 +73,6 @@ type CallbackArgEnvelope = {
 }
 
 type ArgEnvelope = ValueArgEnvelope | CallbackArgEnvelope
-
-function generateId(): string {
-	return globalThis.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2)
-}
 
 /** Restrict recursive marker traversal to ordinary data containers. */
 function isPlainObject(value: unknown): value is Record<string, unknown> {

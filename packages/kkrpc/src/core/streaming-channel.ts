@@ -18,6 +18,7 @@ import type {
 	RPCStreamResponse
 } from "./protocol.ts"
 import type { Transport } from "./transport.ts"
+import { generateId } from "./utils.ts"
 
 // Keep enough values in flight to avoid a round trip per chunk while bounding buffering.
 const STREAM_CREDIT_WINDOW = 32
@@ -65,10 +66,6 @@ type PendingRequest = {
 	resolve(value: unknown): void
 	reject(error: Error): void
 	timer?: ReturnType<typeof setTimeout>
-}
-
-function generateId(): string {
-	return globalThis.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2)
 }
 
 /** Return whether a value can be consumed with `for await`. */
