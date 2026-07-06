@@ -9,11 +9,14 @@
  */
 
 import {
+	type CallOptions,
 	fromRPCError,
 	getParent,
 	getPath,
+	NO_VALUE,
 	RPCChannel,
 	RPCTransportClosedError,
+	toAbortError,
 	toRPCError,
 	type RPCChannelOptions
 } from "./channel.ts"
@@ -38,12 +41,6 @@ export interface RemoteReferenceRPCChannelOptions<LocalAPI extends object = obje
 	extends RPCChannelOptions<LocalAPI> {
 	/** Disable remote references even when using the remote-ref entry. */
 	remoteRefs?: boolean
-}
-
-type PendingRequest = {
-	resolve(value: unknown): void
-	reject(error: Error): void
-	timer?: ReturnType<typeof setTimeout>
 }
 
 type RewriteState = {
@@ -180,6 +177,7 @@ export class RemoteReferenceRPCChannel<
 		if (!pending) return
 		this.pending.delete(id)
 		if (pending.timer) clearTimeout(pending.timer)
+		pending.cleanup?.()
 		try {
 			if (error) {
 				pending.reject(this.decodeRPCError(error))
@@ -196,10 +194,12 @@ export class RemoteReferenceRPCChannel<
 		op: RPCRequest["op"],
 		path: string[],
 		args?: unknown[],
-		value?: unknown
+		value: unknown = NO_VALUE,
+		callOptions?: CallOptions
 	): Promise<unknown> {
 		if (this.destroyed) return Promise.reject(new Error("RPC channel destroyed"))
 		if (this.closed) return Promise.reject(new RPCTransportClosedError(this.closeReason))
+		if (callOptions?.signal?.aborted) return Promise.reject(toAbortError(callOptions.signal))
 		let meta: RPCMessageMetadata | undefined
 		try {
 			meta = this.getMetadata?.()
@@ -213,7 +213,7 @@ export class RemoteReferenceRPCChannel<
 		const retainedRefs = this.createRewriteState()
 		try {
 			if (args) message.a = this.encodeArgs(args, transfers, retainedRefs)
-			if (arguments.length >= 4) message.v = this.encodeRoot(value, transfers, retainedRefs)
+			if (value !== NO_VALUE) message.v = this.encodeRoot(value, transfers, retainedRefs)
 		} catch (error) {
 			this.rollbackNewRefs(retainedRefs)
 			return Promise.reject(error instanceof Error ? error : new Error(String(error)))
@@ -221,16 +221,7 @@ export class RemoteReferenceRPCChannel<
 		if (meta && Object.keys(meta).length > 0) message.meta = meta
 
 		const promise = new Promise<unknown>((resolve, reject) => {
-			const pending: PendingRequest = { resolve, reject }
-			if (this.timeout > 0) {
-				pending.timer = setTimeout(() => {
-					this.pending.delete(id)
-					const error = new Error(`RPC request ${id} timed out after ${this.timeout}ms`)
-					error.name = "RPCTimeoutError"
-					reject(error)
-				}, this.timeout)
-			}
-			this.pending.set(id, pending)
+			this.armPending(id, { resolve, reject }, reject, callOptions)
 		})
 
 		this.post(message, transfers, id, () => this.rollbackNewRefs(retainedRefs))

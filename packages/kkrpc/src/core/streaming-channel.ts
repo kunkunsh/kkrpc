@@ -9,7 +9,10 @@
  */
 
 import {
+	CALL_OPTIONS,
+	type CallOptions,
 	fromRPCError,
+	NO_VALUE,
 	RPCChannel,
 	RPCTransportClosedError,
 	type RPCChannelOptions
@@ -187,29 +190,36 @@ export class StreamingRPCChannel<
 	}
 
 	/** Add `[Symbol.asyncIterator]` support to remote proxies for stream results. */
-	protected override createProxy(path: string[]): unknown {
+	protected override createProxy(path: string[], callOptions?: CallOptions): unknown {
 		const target = function () {}
 		return new Proxy(target, {
 			get: (target, property, receiver) => {
+				if (property === CALL_OPTIONS) {
+					return (options: CallOptions) => this.createProxy(path, options)
+				}
 				if (property === "then") {
 					if (path.length === 0) return undefined
-					const promise = this.request("get", path)
+					const promise = this.request("get", path, undefined, NO_VALUE, callOptions)
 					return promise.then.bind(promise)
 				}
 				if (property === Symbol.asyncIterator && path.length > 0) {
-					return () => this.createAsyncIteratorFromPromise(this.request("get", path))
+					return () =>
+						this.createAsyncIteratorFromPromise(
+							this.request("get", path, undefined, NO_VALUE, callOptions)
+						)
 				}
 				if (typeof property === "symbol") return Reflect.get(target, property, receiver)
-				return this.createProxy([...path, property])
+				return this.createProxy([...path, property], callOptions)
 			},
 			set: (_target, property, value) => {
 				if (typeof property === "symbol") return false
-				void this.request("set", [...path, property], undefined, value).catch(() => {})
+				void this.request("set", [...path, property], undefined, value, callOptions).catch(() => {})
 				return true
 			},
 			apply: (_target, _thisArg, args) =>
-				this.withAsyncIterator(this.request("call", path, Array.from(args))),
-			construct: (_target, args) => this.request("new", path, Array.from(args))
+				this.withAsyncIterator(this.request("call", path, Array.from(args), NO_VALUE, callOptions)),
+			construct: (_target, args) =>
+				this.request("new", path, Array.from(args), NO_VALUE, callOptions)
 		})
 	}
 

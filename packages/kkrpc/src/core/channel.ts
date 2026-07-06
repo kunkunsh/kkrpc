@@ -64,6 +64,33 @@ type PendingRequest = {
 	resolve(value: unknown): void
 	reject(error: Error): void
 	timer?: ReturnType<typeof setTimeout>
+	/** Removes any per-call abort listener when the request settles. */
+	cleanup?: () => void
+}
+
+/** Per-call overrides applied to a proxy created with `withCallOptions`. */
+export interface CallOptions {
+	/** Timeout in milliseconds for calls made through this proxy. Overrides the channel default; `0` disables. */
+	timeout?: number
+	/** Abort signal that rejects in-flight calls made through this proxy. */
+	signal?: AbortSignal
+}
+
+// Marks "no value argument" so `set` can be distinguished from other operations
+// without relying on argument count (which per-call options would otherwise break).
+// Exported for subclass request() overrides; not part of the public entry surface.
+export const NO_VALUE = Symbol("kkrpc.noValue")
+
+/** Symbol used to derive a per-call-options proxy from an existing remote proxy. Exported for subclass createProxy() overrides. */
+export const CALL_OPTIONS = Symbol("kkrpc.callOptions")
+
+/** Normalize an aborted signal into a rejection error. Exported for subclass request() overrides. */
+export function toAbortError(signal: AbortSignal): Error {
+	const reason = (signal as AbortSignal & { reason?: unknown }).reason
+	if (reason instanceof Error) return reason
+	const error = new Error(typeof reason === "string" ? reason : "The operation was aborted")
+	error.name = "AbortError"
+	return error
 }
 
 const RPC_OPERATIONS = new Set<RPCOperation>(["call", "get", "set", "new"])
@@ -190,6 +217,32 @@ export function releaseCallback(callback: unknown): boolean {
 	return true
 }
 
+/**
+ * Derive a remote proxy whose calls use per-call `timeout` and/or `AbortSignal`
+ * overrides, without changing the channel default.
+ *
+ * ```ts
+ * const api = wrap<RemoteAPI>(transport)
+ * const quick = withCallOptions(api, { timeout: 2000 })
+ * await quick.slowThing() // rejects after 2s instead of the channel timeout
+ *
+ * const controller = new AbortController()
+ * const cancelable = withCallOptions(api, { signal: controller.signal })
+ * cancelable.longRunning().catch(() => {})
+ * controller.abort()
+ * ```
+ *
+ * The options apply to every call made through the returned proxy (and nested
+ * property proxies derived from it). Throws if the value is not a kkrpc remote proxy.
+ */
+export function withCallOptions<T extends object>(api: T, options: CallOptions): T {
+	const derive = (api as Record<symbol, unknown>)[CALL_OPTIONS]
+	if (typeof derive !== "function") {
+		throw new TypeError("withCallOptions requires a remote proxy created by wrap()/getAPI()")
+	}
+	return (derive as (options: CallOptions) => T)(options)
+}
+
 export function toRPCError(error: unknown): RPCError {
 	if (error instanceof Error) {
 		const result: RPCError = { n: error.name, m: error.message, s: error.stack }
@@ -308,6 +361,7 @@ export class RPCChannel<LocalAPI extends object = object, RemoteAPI extends obje
 		const error = new RPCTransportClosedError(reason)
 		for (const pending of this.pending.values()) {
 			if (pending.timer) clearTimeout(pending.timer)
+			pending.cleanup?.()
 			pending.reject(error)
 		}
 		this.pending.clear()
@@ -331,6 +385,7 @@ export class RPCChannel<LocalAPI extends object = object, RemoteAPI extends obje
 		this.unsubscribeClose?.()
 		for (const pending of this.pending.values()) {
 			if (pending.timer) clearTimeout(pending.timer)
+			pending.cleanup?.()
 			pending.reject(new Error("RPC channel destroyed"))
 		}
 		this.pending.clear()
@@ -340,26 +395,31 @@ export class RPCChannel<LocalAPI extends object = object, RemoteAPI extends obje
 		this.transport.close?.()
 	}
 
-	/** Create a remote proxy rooted at a protocol path. */
-	protected createProxy(path: string[]): unknown {
+	/** Create a remote proxy rooted at a protocol path, optionally with per-call options. */
+	protected createProxy(path: string[], callOptions?: CallOptions): unknown {
 		const target = function () {}
 		return new Proxy(target, {
 			get: (target, property, receiver) => {
+				if (property === CALL_OPTIONS) {
+					return (options: CallOptions) => this.createProxy(path, options)
+				}
 				if (property === "then") {
 					if (path.length === 0) return undefined
-					const promise = this.request("get", path)
+					const promise = this.request("get", path, undefined, NO_VALUE, callOptions)
 					return promise.then.bind(promise)
 				}
 				if (typeof property === "symbol") return Reflect.get(target, property, receiver)
-				return this.createProxy([...path, property])
+				return this.createProxy([...path, property], callOptions)
 			},
 			set: (_target, property, value) => {
 				if (typeof property === "symbol") return false
-				void this.request("set", [...path, property], undefined, value).catch(() => {})
+				void this.request("set", [...path, property], undefined, value, callOptions).catch(() => {})
 				return true
 			},
-			apply: (_target, _thisArg, args) => this.request("call", path, Array.from(args)),
-			construct: (_target, args) => this.request("new", path, Array.from(args))
+			apply: (_target, _thisArg, args) =>
+				this.request("call", path, Array.from(args), NO_VALUE, callOptions),
+			construct: (_target, args) =>
+				this.request("new", path, Array.from(args), NO_VALUE, callOptions)
 		})
 	}
 
@@ -369,10 +429,12 @@ export class RPCChannel<LocalAPI extends object = object, RemoteAPI extends obje
 		op: RPCOperation,
 		path: string[],
 		args?: unknown[],
-		value?: unknown
+		value: unknown = NO_VALUE,
+		callOptions?: CallOptions
 	): Promise<unknown> {
 		if (this.destroyed) return Promise.reject(new Error("RPC channel destroyed"))
 		if (this.closed) return Promise.reject(new RPCTransportClosedError(this.closeReason))
+		if (callOptions?.signal?.aborted) return Promise.reject(toAbortError(callOptions.signal))
 		let meta: RPCMessageMetadata | undefined
 		try {
 			meta = this.getMetadata?.()
@@ -383,24 +445,48 @@ export class RPCChannel<LocalAPI extends object = object, RemoteAPI extends obje
 		const transfers: Transferable[] = []
 		const message: RPCRequest = { t: "q", id, op, p: path }
 		if (args) message.a = this.encodeArgs(args, transfers)
-		if (arguments.length >= 4) message.v = this.encodeValue(value, transfers)
+		if (value !== NO_VALUE) message.v = this.encodeValue(value, transfers)
 		if (meta && Object.keys(meta).length > 0) message.meta = meta
 
 		const promise = new Promise<unknown>((resolve, reject) => {
-			const pending: PendingRequest = { resolve, reject }
-			if (this.timeout > 0) {
-				pending.timer = setTimeout(() => {
-					this.pending.delete(id)
-					const error = new Error(`RPC request ${id} timed out after ${this.timeout}ms`)
-					error.name = "RPCTimeoutError"
-					reject(error)
-				}, this.timeout)
-			}
-			this.pending.set(id, pending)
+			this.armPending(id, { resolve, reject }, reject, callOptions)
 		})
 
 		this.post(message, transfers, id)
 		return promise
+	}
+
+	// Register a pending request with its timeout and optional abort wiring.
+	/** Store a pending request and arm its timeout and abort-signal handlers. */
+	protected armPending(
+		id: string,
+		pending: PendingRequest,
+		reject: (error: Error) => void,
+		callOptions?: CallOptions
+	): void {
+		const timeout = callOptions?.timeout ?? this.timeout
+		if (timeout > 0) {
+			pending.timer = setTimeout(() => {
+				const current = this.pending.get(id)
+				this.pending.delete(id)
+				current?.cleanup?.()
+				const error = new Error(`RPC request ${id} timed out after ${timeout}ms`)
+				error.name = "RPCTimeoutError"
+				reject(error)
+			}, timeout)
+		}
+		const signal = callOptions?.signal
+		if (signal) {
+			const onAbort = () => {
+				const current = this.pending.get(id)
+				this.pending.delete(id)
+				if (current?.timer) clearTimeout(current.timer)
+				reject(toAbortError(signal))
+			}
+			signal.addEventListener("abort", onAbort, { once: true })
+			pending.cleanup = () => signal.removeEventListener("abort", onAbort)
+		}
+		this.pending.set(id, pending)
 	}
 
 	// If a transport write fails, reject the matching pending request instead of waiting for timeout.
@@ -439,6 +525,7 @@ export class RPCChannel<LocalAPI extends object = object, RemoteAPI extends obje
 		if (!pending) return
 		this.pending.delete(pendingId)
 		if (pending.timer) clearTimeout(pending.timer)
+		pending.cleanup?.()
 		pending.reject(error instanceof Error ? error : new Error(String(error)))
 	}
 
@@ -479,6 +566,7 @@ export class RPCChannel<LocalAPI extends object = object, RemoteAPI extends obje
 		if (!pending) return
 		this.pending.delete(id)
 		if (pending.timer) clearTimeout(pending.timer)
+		pending.cleanup?.()
 		if (error) {
 			pending.reject(fromRPCError(error))
 			return
