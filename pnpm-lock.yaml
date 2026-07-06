@@ -240,7 +240,7 @@ importers:
         version: 5.42.1
       svelte-check:
         specifier: ^4.0.0
-        version: 4.0.9(picomatch@4.0.4)(svelte@5.42.1)(typescript@5.5.4)
+        version: 4.0.9(picomatch@4.0.3)(svelte@5.42.1)(typescript@5.5.4)
       tailwindcss:
         specifier: ^3.4.9
         version: 3.4.15
@@ -382,7 +382,7 @@ importers:
         version: 5.23.1
       svelte-check:
         specifier: ^4.0.0
-        version: 4.0.9(picomatch@4.0.3)(svelte@5.23.1)(typescript@5.6.3)
+        version: 4.0.9(picomatch@4.0.4)(svelte@5.23.1)(typescript@5.6.3)
       tailwind-merge:
         specifier: ^3.0.2
         version: 3.0.2
@@ -462,6 +462,25 @@ importers:
       vitest-browser-svelte:
         specifier: ^1.1.0
         version: 1.1.0(@vitest/browser@3.2.4)(svelte@5.42.1)(vitest@3.2.4)
+
+  examples/websocket-demo:
+    dependencies:
+      '@kksh/demo-api':
+        specifier: workspace:*
+        version: link:../../packages/demo-api
+      elysia:
+        specifier: ^1.1.0
+        version: 1.4.13(@sinclair/typebox@0.34.30)(@types/bun@1.3.14)(exact-mirror@0.2.2(@sinclair/typebox@0.34.30))(file-type@21.0.0)(openapi-types@12.1.3)(typescript@5.9.3)
+      hono:
+        specifier: ^4.6.10
+        version: 4.10.4
+      kkrpc:
+        specifier: workspace:*
+        version: link:../../packages/kkrpc
+    devDependencies:
+      '@types/bun':
+        specifier: latest
+        version: 1.3.14
 
   packages/demo-api:
     dependencies:
@@ -4253,14 +4272,6 @@ packages:
   cookie@0.7.2:
     resolution: {integrity: sha512-yki5XnKuf750l50uGTllt6kKILY4nQ1eNIQatoXEByZ5dWgnKqbnqmTrBE5B4N7lrMJKQ2ytWMiTO2o0v6Ew/w==}
     engines: {node: '>= 0.6'}
-
-  cookie@1.0.1:
-    resolution: {integrity: sha512-Xd8lFX4LM9QEEwxQpF9J9NTUh8pmdJO0cyRJhFiDoLTk2eH8FXlRv2IFGYVadZpqI3j8fhNrSdKCeYPxiAhLXw==}
-    engines: {node: '>=18'}
-
-  cookie@1.0.2:
-    resolution: {integrity: sha512-9Kr/j4O16ISv8zBBhJoi4bXOYNTkFLOqSL3UDB0njXxCXNezjeyVrJyGOWtgfs/q2km1gwBcfH8q1yEGoMYunA==}
-    engines: {node: '>=18'}
 
   cookie@1.1.1:
     resolution: {integrity: sha512-ei8Aos7ja0weRpFzJnEA9UHJ/7XQmqglbRwnf2ATjcB9Wq874VKH9kfjjirM6UhU2/E5fFYadylyhFldcqSidQ==}
@@ -13556,7 +13567,7 @@ snapshots:
       minimatch: 5.1.6
       read-config-file: 6.3.2
       sanitize-filename: 1.6.3
-      semver: 7.7.3
+      semver: 7.8.4
       tar: 6.2.1
       temp-file: 3.4.0
     transitivePeerDependencies:
@@ -14383,10 +14394,6 @@ snapshots:
 
   cookie@0.7.2: {}
 
-  cookie@1.0.1: {}
-
-  cookie@1.0.2: {}
-
   cookie@1.1.1: {}
 
   copy-anything@3.0.5:
@@ -14978,7 +14985,7 @@ snapshots:
   elysia@1.4.13(@sinclair/typebox@0.34.30)(@types/bun@1.2.20(@types/react@19.1.10))(exact-mirror@0.2.2(@sinclair/typebox@0.34.30))(file-type@21.0.0)(openapi-types@12.1.3)(typescript@5.9.3):
     dependencies:
       '@sinclair/typebox': 0.34.30
-      cookie: 1.0.2
+      cookie: 1.1.1
       exact-mirror: 0.2.2(@sinclair/typebox@0.34.30)
       fast-decode-uri-component: 1.0.1
       file-type: 21.0.0
@@ -14986,6 +14993,19 @@ snapshots:
       openapi-types: 12.1.3
     optionalDependencies:
       '@types/bun': 1.2.20(@types/react@19.1.10)
+      typescript: 5.9.3
+
+  elysia@1.4.13(@sinclair/typebox@0.34.30)(@types/bun@1.3.14)(exact-mirror@0.2.2(@sinclair/typebox@0.34.30))(file-type@21.0.0)(openapi-types@12.1.3)(typescript@5.9.3):
+    dependencies:
+      '@sinclair/typebox': 0.34.30
+      cookie: 1.1.1
+      exact-mirror: 0.2.2(@sinclair/typebox@0.34.30)
+      fast-decode-uri-component: 1.0.1
+      file-type: 21.0.0
+      memoirist: 0.4.0
+      openapi-types: 12.1.3
+    optionalDependencies:
+      '@types/bun': 1.3.14
       typescript: 5.9.3
 
   embla-carousel-reactive-utils@8.5.2(embla-carousel@8.5.2):
@@ -16549,7 +16569,7 @@ snapshots:
 
   light-my-request@6.3.0:
     dependencies:
-      cookie: 1.0.1
+      cookie: 1.1.1
       process-warning: 4.0.0
       set-cookie-parser: 2.7.1
 
@@ -19080,27 +19100,27 @@ snapshots:
 
   supports-preserve-symlinks-flag@1.0.0: {}
 
-  svelte-check@4.0.9(picomatch@4.0.3)(svelte@5.23.1)(typescript@5.6.3):
+  svelte-check@4.0.9(picomatch@4.0.3)(svelte@5.42.1)(typescript@5.5.4):
     dependencies:
       '@jridgewell/trace-mapping': 0.3.25
       chokidar: 4.0.1
       fdir: 6.4.2(picomatch@4.0.3)
       picocolors: 1.1.1
       sade: 1.8.1
-      svelte: 5.23.1
-      typescript: 5.6.3
+      svelte: 5.42.1
+      typescript: 5.5.4
     transitivePeerDependencies:
       - picomatch
 
-  svelte-check@4.0.9(picomatch@4.0.4)(svelte@5.42.1)(typescript@5.5.4):
+  svelte-check@4.0.9(picomatch@4.0.4)(svelte@5.23.1)(typescript@5.6.3):
     dependencies:
       '@jridgewell/trace-mapping': 0.3.25
       chokidar: 4.0.1
       fdir: 6.4.2(picomatch@4.0.4)
       picocolors: 1.1.1
       sade: 1.8.1
-      svelte: 5.42.1
-      typescript: 5.5.4
+      svelte: 5.23.1
+      typescript: 5.6.3
     transitivePeerDependencies:
       - picomatch
 

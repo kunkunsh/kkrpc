@@ -1,0 +1,23 @@
+{
+	"name": "websocket-demo",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"hono": "bun run --hot src/hono.ts",
+		"elysia": "bun run --hot src/elysia.ts",
+		"client": "bun run client.ts",
+		"client:hono": "KKRPC_WS_URL=ws://127.0.0.1:3001/ws bun run client.ts",
+		"client:elysia": "KKRPC_WS_URL=ws://127.0.0.1:3002/rpc bun run client.ts",
+		"test": "bun test",
+		"check-types": "tsc --noEmit"
+	},
+	"dependencies": {
+		"@kksh/demo-api": "workspace:*",
+		"elysia": "^1.1.0",
+		"hono": "^4.6.10",
+		"kkrpc": "workspace:*"
+	},
+	"devDependencies": {
+		"@types/bun": "latest"
+	}
+}
