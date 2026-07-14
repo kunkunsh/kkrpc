@@ -10,9 +10,14 @@ public actor Server {
     public init(transport: Transport, api: [String: Any]) {
         self.transport = transport
         self.api = api
-        self.readTask = Task {
-            await self.readLoop()
-        }
+        // See `Client.init`: touching actor state from a nonisolated initializer
+        // is an error under Swift 6, so start the loop on the actor's executor.
+        Task { await self.startReading() }
+    }
+
+    private func startReading() {
+        guard readTask == nil else { return }
+        readTask = Task { await self.readLoop() }
     }
 
     deinit {

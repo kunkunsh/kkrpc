@@ -20,9 +20,15 @@ public actor Client {
     
     public init(transport: Transport) {
         self.transport = transport
-        self.readTask = Task {
-            await self.readLoop()
-        }
+        // Kick the read loop off the actor's own executor. Assigning `readTask`
+        // directly here touches actor state from a nonisolated initializer, which
+        // is an error under Swift 6.
+        Task { await self.startReading() }
+    }
+
+    private func startReading() {
+        guard readTask == nil else { return }
+        readTask = Task { await self.readLoop() }
     }
     
     deinit {
