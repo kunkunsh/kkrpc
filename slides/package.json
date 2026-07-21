@@ -1,0 +1,22 @@
+{
+  "name": "kkrpc-slidev",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "slidev build",
+    "check": "pnpm test && slidev build",
+    "dev": "slidev --open",
+    "export": "slidev export",
+    "export:png": "slidev export --format png --with-clicks --output out/kkrpc-slidev",
+    "test": "node --test tests/*.test.mjs"
+  },
+  "dependencies": {
+    "@slidev/cli": "^52.18.0",
+    "@slidev/theme-default": "latest",
+    "@slidev/theme-seriph": "latest",
+    "vue": "^3.5.33"
+  },
+  "devDependencies": {
+    "playwright-chromium": "^1.61.1"
+  }
+}

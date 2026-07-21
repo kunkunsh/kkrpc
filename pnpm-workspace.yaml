@@ -2,5 +2,6 @@ packages:
   - examples/*
   - packages/*
   - docs
+  - slides
 onlyBuiltDependencies:
   - '@sveltejs/kit'
