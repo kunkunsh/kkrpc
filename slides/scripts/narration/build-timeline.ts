@@ -15,12 +15,7 @@ import { type NarrationManifest, validateManifest } from './schema'
 const FPS = 30
 
 export function millisecondsToFrames(milliseconds: number, fps: number): number {
-	if (!Number.isFinite(milliseconds) || milliseconds < 0) {
-		throw new RangeError('milliseconds must be a non-negative finite number')
-	}
-	if (!Number.isFinite(fps) || fps <= 0) throw new RangeError('fps must be a positive finite number')
-
-	return Math.round((milliseconds / 1000) * fps)
+	return Math.max(0, Math.round((milliseconds / 1000) * fps))
 }
 
 function isPathWithin(parent: string, candidate: string): boolean {
@@ -30,6 +25,10 @@ function isPathWithin(parent: string, candidate: string): boolean {
 
 async function resolvePublicAudioPath(segmentId: string, audioPublicPath: string): Promise<string> {
 	const candidatePath = path.resolve(publicDirectory, audioPublicPath)
+	if (!isPathWithin(publicDirectory, candidatePath)) {
+		throw new Error(`Segment ${segmentId} audio ${audioPublicPath} is lexically outside public/`)
+	}
+
 	const resolvedPublicDirectory = await realpath(publicDirectory)
 
 	let resolvedAudioPath: string
@@ -72,7 +71,7 @@ export async function compileTimeline(
 
 			if (segment.audio) {
 				const absolutePath = await resolvePublicAudioPath(segment.id, segment.audio)
-				audioDurationMs = await probeDuration(absolutePath)
+				audioDurationMs = Math.round(await probeDuration(absolutePath))
 				if (!Number.isFinite(audioDurationMs) || audioDurationMs <= 0) {
 					throw new Error(`Segment ${segment.id} audio ${segment.audio} has an invalid duration`)
 				}

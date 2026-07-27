@@ -1,15 +1,19 @@
-import { copyFile, mkdir, mkdtemp, rm, symlink } from 'node:fs/promises'
+import { execFile as execFileCallback } from 'node:child_process'
+import { copyFile, mkdir, mkdtemp, readFile, rm, symlink } from 'node:fs/promises'
 import path from 'node:path'
 import { tmpdir } from 'node:os'
+import { promisify } from 'node:util'
 import { afterEach, describe, expect, it } from 'vitest'
+import { parse } from 'yaml'
 import { compileTimeline, millisecondsToFrames } from '../../scripts/narration/build-timeline'
 import { probeAudioDurationMs } from '../../scripts/narration/probe-audio'
-import { publicDirectory } from '../../scripts/narration/paths'
-import { validateManifest } from '../../scripts/narration/schema'
+import { generatedTimelinePath, narrationSourcePath, publicDirectory } from '../../scripts/narration/paths'
+import { type NarrationManifest, validateManifest } from '../../scripts/narration/schema'
 
 const testAudioDirectory = path.join(publicDirectory, 'narration/audio')
 const testAudioPath = path.join(testAudioDirectory, 'a.wav')
 const toneFixturePath = path.join(process.cwd(), 'narration/fixtures/tone-500ms.wav')
+const execFile = promisify(execFileCallback)
 
 afterEach(async () => {
 	await rm(testAudioPath, { force: true })
@@ -106,6 +110,7 @@ describe('timeline compilation', () => {
 	it('converts milliseconds to frames', () => {
 		expect(millisecondsToFrames(500, 30)).toBe(15)
 		expect(millisecondsToFrames(1000, 30)).toBe(30)
+		expect(millisecondsToFrames(-500, 30)).toBe(0)
 	})
 
 	it('probes the deterministic fixture duration', async () => {
@@ -142,6 +147,51 @@ describe('timeline compilation', () => {
 		)
 	})
 
+	it('normalizes fractional probed durations before storing them', async () => {
+		await mkdir(testAudioDirectory, { recursive: true })
+		await copyFile(toneFixturePath, testAudioPath)
+
+		const manifest = validateManifest({
+			version: 1,
+			defaults: { transitionMs: 0, leadInMs: 0, tailMs: 0 },
+			slides: [
+				{
+					page: 1,
+					segments: [{ id: 'fractional-audio', click: 0, text: '', audio: 'narration/audio/a.wav' }]
+				}
+			]
+		})
+
+		const timeline = await compileTimeline(manifest, async () => 500.6)
+
+		expect(timeline.entries[0].audioDurationMs).toBe(501)
+		expect(Number.isInteger(timeline.entries[0].audioDurationMs)).toBe(true)
+	})
+
+	it('rejects a lexically escaped candidate before resolving it', async () => {
+		const manifest = {
+			version: 1,
+			defaults: { transitionMs: 0, leadInMs: 0, tailMs: 0 },
+			slides: [
+				{
+					page: 1,
+					segments: [
+						{
+							id: 'lexical-audio',
+							click: 0,
+							text: '',
+							audio: '../narration/fixtures/tone-500ms.wav'
+						}
+					]
+				}
+			]
+		} as NarrationManifest
+
+		await expect(compileTimeline(manifest, async () => 500)).rejects.toThrow(
+			/lexical-audio.*lexically outside public/i
+		)
+	})
+
 	it('rejects an audio symlink that escapes public', async () => {
 		const escapedAudioPath = path.join(testAudioDirectory, 'escaped.wav')
 		const outsideDirectory = await mkdtemp(path.join(tmpdir(), 'kkrpc-narration-'))
@@ -170,5 +220,22 @@ describe('timeline compilation', () => {
 			await rm(escapedAudioPath, { force: true })
 			await rm(outsideDirectory, { force: true, recursive: true })
 		}
+	})
+
+	it('compiles the initial manifest against every committed fixture audio file', async () => {
+		const manifest = validateManifest(parse(await readFile(narrationSourcePath, 'utf8')))
+
+		const timeline = await compileTimeline(manifest, probeAudioDurationMs)
+
+		expect(timeline.entries).toHaveLength(11)
+		expect(timeline.entries.every(entry => Number.isInteger(entry.audioDurationMs))).toBe(true)
+	})
+
+	it('does not write timeline JSON while validating', async () => {
+		const timelineBeforeValidation = await readFile(generatedTimelinePath, 'utf8')
+
+		await execFile('pnpm', ['narration:validate'], { cwd: process.cwd() })
+
+		expect(await readFile(generatedTimelinePath, 'utf8')).toBe(timelineBeforeValidation)
 	})
 })
