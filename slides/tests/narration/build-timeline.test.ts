@@ -1,5 +1,19 @@
-import { describe, expect, it } from 'vitest'
+import { copyFile, mkdir, mkdtemp, rm, symlink } from 'node:fs/promises'
+import path from 'node:path'
+import { tmpdir } from 'node:os'
+import { afterEach, describe, expect, it } from 'vitest'
+import { compileTimeline, millisecondsToFrames } from '../../scripts/narration/build-timeline'
+import { probeAudioDurationMs } from '../../scripts/narration/probe-audio'
+import { publicDirectory } from '../../scripts/narration/paths'
 import { validateManifest } from '../../scripts/narration/schema'
+
+const testAudioDirectory = path.join(publicDirectory, 'narration/audio')
+const testAudioPath = path.join(testAudioDirectory, 'a.wav')
+const toneFixturePath = path.join(process.cwd(), 'narration/fixtures/tone-500ms.wav')
+
+afterEach(async () => {
+	await rm(testAudioPath, { force: true })
+})
 
 describe('validateManifest', () => {
 	it('accepts sequential click segments beginning at click zero', () => {
@@ -85,5 +99,76 @@ describe('validateManifest', () => {
 				]
 			})
 		).toThrow(/safe path relative to public/i)
+	})
+})
+
+describe('timeline compilation', () => {
+	it('converts milliseconds to frames', () => {
+		expect(millisecondsToFrames(500, 30)).toBe(15)
+		expect(millisecondsToFrames(1000, 30)).toBe(30)
+	})
+
+	it('probes the deterministic fixture duration', async () => {
+		await expect(probeAudioDurationMs(toneFixturePath)).resolves.toBeCloseTo(500, -1)
+	})
+
+	it('creates contiguous entries', async () => {
+		await mkdir(testAudioDirectory, { recursive: true })
+		await copyFile(toneFixturePath, testAudioPath)
+
+		const manifest = validateManifest({
+			version: 1,
+			defaults: { transitionMs: 300, leadInMs: 100, tailMs: 150 },
+			slides: [
+				{
+					page: 1,
+					segments: [
+						{ id: 'a', click: 0, text: 'A', audio: 'narration/audio/a.wav' },
+						{ id: 'b', click: 1, text: 'B', silentMs: 1000 }
+					]
+				}
+			]
+		})
+
+		const timeline = await compileTimeline(manifest, async () => 500)
+
+		expect(timeline.entries[0].startFrame).toBe(0)
+		expect(timeline.entries[1].startFrame).toBe(timeline.entries[0].durationInFrames)
+		expect(timeline.durationInFrames).toBe(
+			timeline.entries.reduce((sum, entry) => sum + entry.durationInFrames, 0)
+		)
+		expect(timeline.entries[0].stateImagePublicPath).toBe(
+			'narration/generated/states/s001-c000.png'
+		)
+	})
+
+	it('rejects an audio symlink that escapes public', async () => {
+		const escapedAudioPath = path.join(testAudioDirectory, 'escaped.wav')
+		const outsideDirectory = await mkdtemp(path.join(tmpdir(), 'kkrpc-narration-'))
+		const outsideAudioPath = path.join(outsideDirectory, 'outside.wav')
+
+		await mkdir(testAudioDirectory, { recursive: true })
+		await copyFile(toneFixturePath, outsideAudioPath)
+		await symlink(outsideAudioPath, escapedAudioPath)
+
+		const manifest = validateManifest({
+			version: 1,
+			defaults: { transitionMs: 0, leadInMs: 0, tailMs: 0 },
+			slides: [
+				{
+					page: 1,
+					segments: [{ id: 'escaped-audio', click: 0, text: '', audio: 'narration/audio/escaped.wav' }]
+				}
+			]
+		})
+
+		try {
+			await expect(compileTimeline(manifest, async () => 500)).rejects.toThrow(
+				/escaped-audio.*narration\/audio\/escaped\.wav/i
+			)
+		} finally {
+			await rm(escapedAudioPath, { force: true })
+			await rm(outsideDirectory, { force: true, recursive: true })
+		}
 	})
 })
