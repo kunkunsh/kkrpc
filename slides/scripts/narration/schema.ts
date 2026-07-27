@@ -1,14 +1,27 @@
 import { z } from 'zod'
 
 const timingSchema = z.number().int().min(0).max(60_000)
+const silentMsSchema = z.number().int().min(0)
+
+function isSafePublicRelativePath(audio: string): boolean {
+	if (audio.startsWith('/') || audio.startsWith('public/') || audio.includes('\\')) return false
+	if (/^[a-z][a-z0-9+.-]*:/i.test(audio)) return false
+
+	return audio.split('/').every(part => part.length > 0 && part !== '.' && part !== '..')
+}
+
+const audioPathSchema = z
+	.string()
+	.min(1)
+	.refine(isSafePublicRelativePath, 'audio must be a safe path relative to public/')
 
 const segmentSchema = z
 	.object({
 		id: z.string().min(1).regex(/^[a-z0-9][a-z0-9-]*$/),
 		click: z.number().int().min(0),
 		text: z.string(),
-		audio: z.string().min(1).optional(),
-		silentMs: z.number().int().positive().optional(),
+		audio: audioPathSchema.optional(),
+		silentMs: silentMsSchema.optional(),
 		transitionMs: timingSchema.optional(),
 		leadInMs: timingSchema.optional(),
 		tailMs: timingSchema.optional()

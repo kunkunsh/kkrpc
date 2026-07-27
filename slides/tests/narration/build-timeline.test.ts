@@ -47,4 +47,43 @@ describe('validateManifest', () => {
 			})
 		).toThrow(/duplicate segment id/i)
 	})
+
+	it('accepts non-negative silent durations', () => {
+		const result = validateManifest({
+			version: 1,
+			defaults: { transitionMs: 300, leadInMs: 100, tailMs: 150 },
+			slides: [
+				{
+					page: 1,
+					segments: [
+						{ id: 'instant', click: 0, text: '', silentMs: 0 },
+						{ id: 'long-pause', click: 1, text: '', silentMs: 60_001 }
+					]
+				}
+			]
+		})
+
+		expect(result.slides[0].segments[0].silentMs).toBe(0)
+		expect(result.slides[0].segments[1].silentMs).toBe(60_001)
+	})
+
+	it.each([
+	'/narration/audio/absolute.mp3',
+	'public/narration/audio/redundant-prefix.mp3',
+	'../narration/audio/traversal.mp3',
+	'https://example.com/narration.mp3'
+])('rejects an audio path that is not safely relative to public: %s', audio => {
+		expect(() =>
+			validateManifest({
+				version: 1,
+				defaults: { transitionMs: 300, leadInMs: 100, tailMs: 150 },
+				slides: [
+					{
+						page: 1,
+						segments: [{ id: 'unsafe-audio', click: 0, text: '', audio }]
+					}
+				]
+			})
+		).toThrow(/safe path relative to public/i)
+	})
 })
