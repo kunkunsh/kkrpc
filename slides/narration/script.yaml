@@ -1,0 +1,57 @@
+version: 1
+
+defaults:
+  transitionMs: 300
+  leadInMs: 100
+  tailMs: 150
+
+slides:
+  - page: 1
+    segments:
+      - id: promise-ordinary-call
+        click: 0
+        text: "Let's not start from the protocol format. Start from the code we actually want to write: an ordinary TypeScript method call."
+        audio: narration/audio/s001-c000.mp3
+      - id: promise-call-here
+        click: 1
+        text: "The call happens in the current runtime, but the implementation can live in a Worker, a child process, a desktop host, or even the far end of a message queue."
+        audio: narration/audio/s001-c001.mp3
+      - id: promise-result
+        click: 2
+        text: "To the application code, the result is still just a Promise."
+        audio: narration/audio/s001-c002.mp3
+      - id: promise-mental-model
+        click: 3
+        text: "kkRPC's whole goal is to compress cross-boundary communication down to exactly this mental model."
+        audio: narration/audio/s001-c003.mp3
+
+  - page: 2
+    segments:
+      - id: jsonrpc-wire-format
+        click: 0
+        text: "JSON-RPC is good at defining what goes on the wire."
+        audio: narration/audio/s002-c000.mp3
+      - id: jsonrpc-version
+        click: 1
+        text: "It gives the request a version."
+        audio: narration/audio/s002-c001.mp3
+      - id: jsonrpc-method
+        click: 2
+        text: "It names the method to call."
+        audio: narration/audio/s002-c002.mp3
+      - id: jsonrpc-params
+        click: 3
+        text: "It carries the parameters for that method."
+        audio: narration/audio/s002-c003.mp3
+      - id: jsonrpc-id
+        click: 4
+        text: "And it supplies an id for correlating the request and response. That part is fine."
+        audio: narration/audio/s002-c004.mp3
+      - id: jsonrpc-protocol-leak
+        click: 5
+        text: "But when application code assembles these objects by hand, serialization, request correlation, and dispatch logic leak into every call site."
+        audio: narration/audio/s002-c005.mp3
+      - id: jsonrpc-plain-object
+        click: 6
+        text: "More importantly, TypeScript only sees a plain object, not an API contract that can evolve together with the server."
+        audio: narration/audio/s002-c006.mp3
