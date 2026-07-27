@@ -8,15 +8,33 @@
     "dev": "slidev --open",
     "export": "slidev export",
     "export:png": "slidev export --format png --with-clicks --output out/kkrpc-slidev",
-    "test": "node --test tests/*.test.mjs"
+    "test": "node --test tests/*.test.mjs",
+    "narration:test": "vitest run tests/narration",
+    "narration:validate": "tsx scripts/narration/build-timeline.ts --validate-only",
+    "narration:build": "tsx scripts/narration/build-timeline.ts",
+    "narration:capture": "tsx scripts/narration/capture-states.ts",
+    "narration:render": "remotion render video/index.ts NarratedSlides dist/narrated-slides.mp4 --codec=h264 --crf=18 --concurrency=75%",
+    "narration:inspect": "tsx scripts/narration/inspect-output.ts dist/narrated-slides.mp4",
+    "narration:video": "pnpm narration:validate && pnpm narration:build && pnpm narration:capture && pnpm narration:render && pnpm narration:inspect"
   },
   "dependencies": {
     "@slidev/cli": "^52.18.0",
     "@slidev/theme-default": "latest",
     "@slidev/theme-seriph": "latest",
-    "vue": "^3.5.33"
+    "vue": "^3.5.33",
+    "yaml": "^2.9.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
-    "playwright-chromium": "^1.61.1"
+    "@remotion/bundler": "^4.0.500",
+    "@remotion/cli": "^4.0.500",
+    "@remotion/media": "^4.0.500",
+    "@remotion/renderer": "^4.0.500",
+    "@remotion/transitions": "^4.0.500",
+    "playwright": "^1.62.0",
+    "playwright-chromium": "^1.61.1",
+    "remotion": "^4.0.500",
+    "tsx": "^4.23.1",
+    "vitest": "^4.1.10"
   }
 }
