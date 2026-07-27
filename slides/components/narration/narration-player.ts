@@ -31,7 +31,8 @@ export interface NarrationPlayerOptions {
 	getCurrentPosition: () => NarrationPosition
 	advance: () => void | Promise<void>
 	playAudio: (publicPath: string) => Promise<void>
-	wait: (milliseconds: number) => Promise<void>
+	wait: (milliseconds: number, signal: AbortSignal) => Promise<void>
+	now?: () => number
 	pauseAudio?: () => void
 	resumeAudio?: () => void | Promise<void>
 	stopAudio?: () => void
@@ -62,6 +63,8 @@ export function createNarrationPlayer(options: NarrationPlayerOptions): Narratio
 		error: null
 	}
 	let pausedResolvers = new Set<(active: boolean) => void>()
+	let activeWaitAbort: AbortController | null = null
+	const now = options.now ?? (() => Date.now())
 
 	function publish(next: NarrationPlayerSnapshot): void {
 		snapshot = next
@@ -80,6 +83,11 @@ export function createNarrationPlayer(options: NarrationPlayerOptions): Narratio
 		return generation === runGeneration && snapshot.status !== 'stopped' && snapshot.status !== 'error'
 	}
 
+	function abortActiveWait(): void {
+		activeWaitAbort?.abort()
+		activeWaitAbort = null
+	}
+
 	async function waitUntilPlaying(runGeneration: number): Promise<boolean> {
 		if (!isActive(runGeneration)) {
 			return false
@@ -93,12 +101,32 @@ export function createNarrationPlayer(options: NarrationPlayerOptions): Narratio
 	}
 
 	async function runWait(milliseconds: number, runGeneration: number): Promise<boolean> {
-		if (!(await waitUntilPlaying(runGeneration))) {
-			return false
+		let remaining = milliseconds
+
+		while (remaining > 0) {
+			if (!(await waitUntilPlaying(runGeneration))) {
+				return false
+			}
+
+			const startedAt = now()
+			const waitAbort = new AbortController()
+			activeWaitAbort = waitAbort
+			await options.wait(remaining, waitAbort.signal)
+			if (activeWaitAbort === waitAbort) {
+				activeWaitAbort = null
+			}
+
+			if (!isActive(runGeneration)) {
+				return false
+			}
+			if (!waitAbort.signal.aborted) {
+				return waitUntilPlaying(runGeneration)
+			}
+
+			const elapsed = Math.max(0, now() - startedAt)
+			remaining = Math.max(0, remaining - elapsed)
 		}
-		if (milliseconds > 0) {
-			await options.wait(milliseconds)
-		}
+
 		return waitUntilPlaying(runGeneration)
 	}
 
@@ -144,14 +172,19 @@ export function createNarrationPlayer(options: NarrationPlayerOptions): Narratio
 			return false
 		}
 
+		const visible = options.getCurrentPosition()
 		if (nextEntry) {
-			const visible = options.getCurrentPosition()
 			if (!positionsMatch(visible, nextEntry)) {
 				throw new Error(
 					`Expected Slidev state ${nextEntry.page}/${nextEntry.click} after ${entry.id}, ` +
 						`received ${visible.page}/${visible.click}`
 				)
 			}
+		} else if (positionsMatch(visible, entry)) {
+			throw new Error(
+				`Expected Slidev to leave terminal state ${entry.page}/${entry.click} after ${entry.id}, ` +
+					`received ${visible.page}/${visible.click}`
+			)
 		}
 
 		return true
@@ -188,6 +221,7 @@ export function createNarrationPlayer(options: NarrationPlayerOptions): Narratio
 
 	function start(): Promise<void> {
 		generation += 1
+		abortActiveWait()
 		releasePaused(false)
 		if (snapshot.status === 'playing' || snapshot.status === 'paused') {
 			options.stopAudio?.()
@@ -217,6 +251,7 @@ export function createNarrationPlayer(options: NarrationPlayerOptions): Narratio
 		if (snapshot.status !== 'playing') {
 			return
 		}
+		abortActiveWait()
 		options.pauseAudio?.()
 		publish({ ...snapshot, status: 'paused' })
 	}
@@ -231,6 +266,7 @@ export function createNarrationPlayer(options: NarrationPlayerOptions): Narratio
 			releasePaused(true)
 		} catch (error) {
 			generation += 1
+			abortActiveWait()
 			releasePaused(false)
 			options.stopAudio?.()
 			publish({
@@ -246,6 +282,7 @@ export function createNarrationPlayer(options: NarrationPlayerOptions): Narratio
 			return
 		}
 		generation += 1
+		abortActiveWait()
 		releasePaused(false)
 		options.stopAudio?.()
 		publish({ status: 'stopped', currentSegmentId: snapshot.currentSegmentId, error: null })

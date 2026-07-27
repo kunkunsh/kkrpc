@@ -8,6 +8,7 @@ import {
 	type NarrationPlayerSnapshot,
 	type NarrationPosition
 } from './narration-player'
+import { createNarrationStartup } from './narration-startup'
 
 interface AudioPlayback {
 	unlock: (publicPath: string) => Promise<void>
@@ -151,8 +152,21 @@ function currentPosition(): NarrationPosition {
 	}
 }
 
-function wait(milliseconds: number): Promise<void> {
-	return new Promise(resolve => window.setTimeout(resolve, milliseconds))
+function wait(milliseconds: number, signal: AbortSignal): Promise<void> {
+	return new Promise(resolve => {
+		if (signal.aborted) {
+			resolve()
+			return
+		}
+
+		const timer = window.setTimeout(finish, milliseconds)
+		function finish(): void {
+			window.clearTimeout(timer)
+			signal.removeEventListener('abort', finish)
+			resolve()
+		}
+		signal.addEventListener('abort', finish, { once: true })
+	})
 }
 
 const audioPlayback = createAudioPlayback()
@@ -170,11 +184,15 @@ const player = createNarrationPlayer({
 	}
 })
 
-const firstVisibleAudio = computed(() => {
-	const position = currentPosition()
-	return timeline.entries.find(
-		entry => entry.page === position.page && entry.click === position.click
-	)?.audioPublicPath ?? null
+const startup = createNarrationStartup({
+	entries: timeline.entries,
+	getCurrentPosition: currentPosition,
+	unlockAudio: audioPlayback.unlock,
+	startPlayer: () => {
+		void player.start()
+	},
+	stopAudio: audioPlayback.stop,
+	stopPlayer: player.stop
 })
 const canStart = computed(() =>
 	!isUnlocking.value && state.value.status !== 'playing' && state.value.status !== 'paused'
@@ -189,12 +207,9 @@ async function start(): Promise<void> {
 	isUnlocking.value = true
 
 	try {
-		const publicPath = firstVisibleAudio.value
-		const unlocked = publicPath ? audioPlayback.unlock(publicPath) : Promise.resolve()
-		await unlocked
-		void player.start()
+		const started = startup.start()
+		await started
 	} catch (error) {
-		audioPlayback.stop()
 		unlockError.value = error instanceof Error ? error.message : String(error)
 	} finally {
 		isUnlocking.value = false
@@ -210,12 +225,11 @@ function resume(): void {
 }
 
 function stop(): void {
-	player.stop()
+	startup.stop()
 }
 
 onUnmounted(() => {
-	player.stop()
-	audioPlayback.stop()
+	startup.dispose()
 })
 </script>
 

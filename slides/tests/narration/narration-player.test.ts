@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
 	createNarrationPlayer,
 	type NarrationPlaybackEntry,
@@ -42,6 +42,10 @@ async function flushPromises(): Promise<void> {
 	await Promise.resolve()
 	await Promise.resolve()
 }
+
+afterEach(() => {
+	vi.useRealTimers()
+})
 
 describe('createNarrationPlayer', () => {
 	it('runs each segment in timing, audio, tail, navigation order', async () => {
@@ -160,13 +164,17 @@ describe('createNarrationPlayer', () => {
 
 	it('does not navigate while paused and resumes the active sequence', async () => {
 		const audio = deferred()
+		let visible: NarrationPosition = { page: 1, click: 0 }
 		const advance = vi.fn()
 		const pauseAudio = vi.fn()
 		const resumeAudio = vi.fn(async () => undefined)
 		const player = createNarrationPlayer({
 			entries: [entry('a', 1, 0)],
-			getCurrentPosition: () => ({ page: 1, click: 0 }),
-			advance,
+			getCurrentPosition: () => visible,
+			advance: () => {
+				advance()
+				visible = { page: 1, click: 1 }
+			},
 			playAudio: () => audio.promise,
 			pauseAudio,
 			resumeAudio,
@@ -195,14 +203,18 @@ describe('createNarrationPlayer', () => {
 		const advancePending = deferred()
 		const advanceStarted = deferred()
 		let visible: NarrationPosition = { page: 1, click: 0 }
+		let advanceCount = 0
 		const playAudio = vi.fn(async () => undefined)
 		const player = createNarrationPlayer({
 			entries: [entry('a', 1, 0), entry('b', 1, 1)],
 			getCurrentPosition: () => visible,
 			advance: async () => {
-				advanceStarted.resolve()
-				await advancePending.promise
-				visible = { page: 1, click: 1 }
+				advanceCount += 1
+				if (advanceCount === 1) {
+					advanceStarted.resolve()
+					await advancePending.promise
+				}
+				visible = { page: 1, click: visible.click + 1 }
 			},
 			playAudio,
 			wait: async () => undefined
@@ -223,6 +235,71 @@ describe('createNarrationPlayer', () => {
 		expect(playAudio).toHaveBeenCalledTimes(2)
 		expect(player.getSnapshot().status).toBe('completed')
 	})
+
+	it.each(['transitionMs', 'leadInMs', 'silentMs', 'tailMs'] as const)(
+		'preserves the remaining %s wait while paused',
+		async phase => {
+			vi.useFakeTimers()
+			const phases = ['transitionMs', 'leadInMs', 'silentMs', 'tailMs'] as const
+			const phaseIndex = phases.indexOf(phase)
+			let visible: NarrationPosition = { page: 1, click: 0 }
+			const advance = vi.fn(() => {
+				visible = { page: 1, click: 1 }
+			})
+			const player = createNarrationPlayer({
+				entries: [
+					entry('silent', 1, 0, {
+						audioPublicPath: null,
+						transitionMs: 100,
+						leadInMs: 100,
+						silentMs: 100,
+						tailMs: 100
+					})
+				],
+				getCurrentPosition: () => visible,
+				advance,
+				playAudio: async () => undefined,
+				wait: (milliseconds, signal) =>
+					new Promise(resolve => {
+						const timer = setTimeout(resolve, milliseconds)
+						signal.addEventListener(
+							'abort',
+							() => {
+								clearTimeout(timer)
+								resolve()
+							},
+							{ once: true }
+						)
+					}),
+				now: () => Date.now()
+			})
+
+			const run = player.start()
+			await vi.advanceTimersByTimeAsync(0)
+			for (let index = 0; index < phaseIndex; index += 1) {
+				await vi.advanceTimersByTimeAsync(100)
+			}
+
+			await vi.advanceTimersByTimeAsync(30)
+			player.pause()
+			await vi.advanceTimersByTimeAsync(1000)
+
+			expect(advance).not.toHaveBeenCalled()
+
+			await player.resume()
+			await vi.advanceTimersByTimeAsync(69)
+			expect(advance).not.toHaveBeenCalled()
+
+			await vi.advanceTimersByTimeAsync(1)
+			for (let index = phaseIndex + 1; index < phases.length; index += 1) {
+				await vi.advanceTimersByTimeAsync(100)
+			}
+			await run
+
+			expect(advance).toHaveBeenCalledTimes(1)
+			expect(player.getSnapshot().status).toBe('completed')
+		}
+	)
 
 	it('restarting begins at the currently visible page and click', async () => {
 		let visible: NarrationPosition = { page: 2, click: 1 }
@@ -261,6 +338,26 @@ describe('createNarrationPlayer', () => {
 			status: 'error',
 			currentSegmentId: 'a',
 			error: 'Expected Slidev state 1/1 after a, received 1/0'
+		})
+	})
+
+	it('stops with an error when terminal navigation leaves Slidev on the finished state', async () => {
+		const advance = vi.fn(async () => undefined)
+		const player = createNarrationPlayer({
+			entries: [entry('terminal', 2, 3)],
+			getCurrentPosition: () => ({ page: 2, click: 3 }),
+			advance,
+			playAudio: async () => undefined,
+			wait: async () => undefined
+		})
+
+		await player.start()
+
+		expect(advance).toHaveBeenCalledTimes(1)
+		expect(player.getSnapshot()).toEqual({
+			status: 'error',
+			currentSegmentId: 'terminal',
+			error: 'Expected Slidev to leave terminal state 2/3 after terminal, received 2/3'
 		})
 	})
 
