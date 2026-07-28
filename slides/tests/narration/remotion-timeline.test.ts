@@ -131,6 +131,28 @@ describe('Remotion compiled timeline', () => {
 })
 
 describe('NarratedSlides composition plan', () => {
+	it('rejects a malformed timeline prop before rendering sequences', () => {
+		const entries = [
+			entry(),
+			entry({
+				id: 'detail',
+				index: 1,
+				click: 1,
+				startFrame: 31
+			})
+		]
+
+		expect(() => NarratedSlides({ timeline: timeline(entries, { durationInFrames: 60 }) })).toThrow(
+			/contiguous/
+		)
+	})
+
+	it('rejects a valid timeline prop whose duration differs from the registered composition', () => {
+		expect(() => NarratedSlides({ timeline: timeline([entry()]) })).toThrow(
+			/durationInFrames.*registered composition/
+		)
+	})
+
 	it('contains each state only within its compiled entry sequence', () => {
 		const entries = [
 			entry(),
@@ -142,6 +164,9 @@ describe('NarratedSlides composition plan', () => {
 				audioPublicPath: null,
 				audioDurationMs: 0,
 				silentMs: 500,
+				tailMs: 9833,
+				tailFrames: 295,
+				durationInFrames: 322,
 				stateImagePublicPath: 'narration/generated/states/s001-c001.png'
 			})
 		]
@@ -156,7 +181,7 @@ describe('NarratedSlides composition plan', () => {
 			}))
 		).toEqual([
 			{ type: Sequence, from: 0, durationInFrames: 30 },
-			{ type: Sequence, from: 30, durationInFrames: 30 }
+			{ type: Sequence, from: 30, durationInFrames: 322 }
 		])
 
 		const firstChildren = Children.toArray(sequences[0].props.children).filter(isValidElement)
@@ -193,6 +218,9 @@ describe('NarratedSlides composition plan', () => {
 				audioPublicPath: null,
 				audioDurationMs: 0,
 				silentMs: 500,
+				tailMs: 9833,
+				tailFrames: 295,
+				durationInFrames: 322,
 				stateImagePublicPath: 'narration/generated/states/s001-c001.png'
 			})
 		]

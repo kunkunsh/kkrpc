@@ -3,13 +3,24 @@ import { Fragment } from 'react'
 import { Sequence, staticFile } from 'remotion'
 import type { CompiledTimeline } from '../components/narration/types'
 import { StateSegment } from './StateSegment'
-import { getEntryAudioStartFrame, timeline as defaultTimeline } from './timeline'
+import {
+	getEntryAudioStartFrame,
+	timeline as defaultTimeline,
+	validateCompiledTimeline
+} from './timeline'
 
 export interface NarratedSlidesProps {
 	timeline?: CompiledTimeline
 }
 
 export function NarratedSlides({ timeline = defaultTimeline }: NarratedSlidesProps = {}) {
+	validateCompiledTimeline(timeline)
+	if (timeline.durationInFrames !== defaultTimeline.durationInFrames) {
+		throw new Error(
+			`Invalid Remotion timeline prop: durationInFrames ${timeline.durationInFrames} does not match registered composition duration ${defaultTimeline.durationInFrames}`
+		)
+	}
+
 	return (
 		<Fragment>
 			{timeline.entries.map((entry, index) => {
