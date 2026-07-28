@@ -1,5 +1,5 @@
 import { execFile as execFileCallback } from 'node:child_process'
-import { mkdir, mkdtemp, readFile, rm, symlink } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { tmpdir } from 'node:os'
 import { promisify } from 'node:util'
@@ -7,12 +7,13 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { parse } from 'yaml'
 import { compileTimeline, millisecondsToFrames } from '../../scripts/narration/build-timeline'
 import { probeAudioDurationMs } from '../../scripts/narration/probe-audio'
-import { generatedTimelinePath, narrationSourcePath, publicDirectory } from '../../scripts/narration/paths'
+import { narrationSourcePath, publicDirectory } from '../../scripts/narration/paths'
 import { type NarrationManifest, validateManifest } from '../../scripts/narration/schema'
 import { createSilentWav } from './create-silent-wav'
 
 const testAudioDirectory = path.join(publicDirectory, 'narration/audio')
 const testAudioPath = path.join(testAudioDirectory, 'a.wav')
+const buildTimelineScriptPath = path.join(process.cwd(), 'scripts/narration/build-timeline.ts')
 const execFile = promisify(execFileCallback)
 
 afterEach(async () => {
@@ -222,24 +223,89 @@ describe('timeline compilation', () => {
 		}
 	})
 
-	it('compiles the initial manifest against every committed fixture audio file', async () => {
+	it('compiles the checked-in manifest with generated test-local audio', async () => {
 		const manifest = validateManifest(parse(await readFile(narrationSourcePath, 'utf8')))
 		const expectedEntryCount = manifest.slides.reduce(
 			(total, slide) => total + slide.segments.length,
 			0
 		)
+		await mkdir(testAudioDirectory, { recursive: true })
+		const fixtureDirectory = await mkdtemp(path.join(testAudioDirectory, 'manifest-'))
+		const fixtureAudioPath = path.join(fixtureDirectory, 'narration.wav')
+		const fixtureAudioPublicPath = path
+			.relative(publicDirectory, fixtureAudioPath)
+			.split(path.sep)
+			.join(path.posix.sep)
+		const manifestWithGeneratedAudio: NarrationManifest = {
+			...manifest,
+			slides: manifest.slides.map(slide => ({
+				...slide,
+				segments: slide.segments.map(segment =>
+					segment.audio === undefined
+						? segment
+						: { ...segment, audio: fixtureAudioPublicPath }
+				)
+			}))
+		}
 
-		const timeline = await compileTimeline(manifest, probeAudioDurationMs)
+		try {
+			await createSilentWav(fixtureAudioPath)
+			const timeline = await compileTimeline(manifestWithGeneratedAudio, probeAudioDurationMs)
+			const narratedEntries = timeline.entries.filter(entry => entry.audioPublicPath !== null)
+			const silentEntries = timeline.entries.filter(entry => entry.audioPublicPath === null)
 
-		expect(timeline.entries).toHaveLength(expectedEntryCount)
-		expect(timeline.entries.every(entry => Number.isInteger(entry.audioDurationMs))).toBe(true)
+			expect(timeline.entries).toHaveLength(expectedEntryCount)
+			expect(narratedEntries.length).toBeGreaterThan(0)
+			expect(silentEntries.length).toBeGreaterThan(0)
+			expect(narratedEntries.every(entry => entry.audioDurationMs === 500)).toBe(true)
+			expect(silentEntries.every(entry => entry.audioDurationMs === 0)).toBe(true)
+		} finally {
+			await rm(fixtureDirectory, { force: true, recursive: true })
+		}
 	})
 
-	it('does not write timeline JSON while validating', async () => {
-		const timelineBeforeValidation = await readFile(generatedTimelinePath, 'utf8')
+	it('does not write timeline JSON while validating a generated fixture project', async () => {
+		const fixtureRoot = await mkdtemp(path.join(tmpdir(), 'kkrpc-narration-cli-'))
+		const fixtureAudioPath = path.join(
+			fixtureRoot,
+			'public/narration/audio/validation.wav'
+		)
+		const fixtureManifestPath = path.join(fixtureRoot, 'narration/script.yaml')
+		const fixtureTimelinePath = path.join(fixtureRoot, 'narration/generated/timeline.json')
+		const timelineSentinel = '{"sentinel":"must remain unchanged"}\n'
 
-		await execFile('pnpm', ['narration:validate'], { cwd: process.cwd() })
+		try {
+			await createSilentWav(fixtureAudioPath)
+			await mkdir(path.dirname(fixtureTimelinePath), { recursive: true })
+			await writeFile(
+				fixtureManifestPath,
+				[
+					'version: 1',
+					'defaults:',
+					'  transitionMs: 300',
+					'  leadInMs: 100',
+					'  tailMs: 150',
+					'slides:',
+					'  - page: 1',
+					'    segments:',
+					'      - id: validation-fixture',
+					'        click: 0',
+					'        text: Fixture narration',
+					'        audio: narration/audio/validation.wav',
+					''
+				].join('\n')
+			)
+			await writeFile(fixtureTimelinePath, timelineSentinel)
 
-		expect(await readFile(generatedTimelinePath, 'utf8')).toBe(timelineBeforeValidation)
+			await execFile(
+				process.execPath,
+				['--import', import.meta.resolve('tsx'), buildTimelineScriptPath, '--validate-only'],
+				{ cwd: fixtureRoot }
+			)
+
+			expect(await readFile(fixtureTimelinePath, 'utf8')).toBe(timelineSentinel)
+		} finally {
+			await rm(fixtureRoot, { force: true, recursive: true })
+		}
 	})
 })

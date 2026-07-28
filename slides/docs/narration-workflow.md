@@ -8,10 +8,15 @@ This project uses one narration manifest for two outputs:
 Run the commands below from the `slides/` directory. FFmpeg (including `ffprobe`) and the
 project's pnpm dependencies must be available locally.
 
+The checked-in deck contains 21 slides and 136 visual states: 127 narrated states and nine
+explicit silent states. The 127 narration MP3 files are local production inputs under
+`public/narration/audio/`. That directory is ignored, so a clean clone contains the
+manifest and compiled timeline but no narration audio.
+
 ## Daily commands
 
-Validate the YAML, audio paths, audio durations, and page/click ordering without rewriting
-the compiled timeline:
+After provisioning the local narration set, validate the YAML, audio paths, audio durations,
+and page/click ordering without rewriting the compiled timeline:
 
 ```bash
 # Validate source files
@@ -89,6 +94,34 @@ Keep audio under `public/narration/audio/`. Use stable names such as
 a convention for reviewability; the manifest path is authoritative. Paths are relative to
 `public/`, so do not add a `public/` prefix.
 
+### Provisioning local narration
+
+Populate every `audio` path declared in `narration/script.yaml` before validating or
+rebuilding the timeline. Either copy an existing private audio set into
+`public/narration/audio/`, or record/generate each file from its segment's `text`. The
+repository intentionally has no provider-specific TTS command and does not commit the
+resulting binaries.
+
+For example, the current production audio was generated locally on macOS with `say`, then
+normalized with FFmpeg. One segment can be produced as follows:
+
+```bash
+mkdir -p public/narration/audio /private/tmp/kkrpc-narration
+/usr/bin/say -v Samantha -r 170 \
+  -o /private/tmp/kkrpc-narration/s003-c000.aiff \
+  -- "First, a method path is just a string, so a typo like math dot A D survives compilation."
+ffmpeg -y \
+  -i /private/tmp/kkrpc-narration/s003-c000.aiff \
+  -ar 48000 -ac 1 -b:a 128k \
+  public/narration/audio/s003-c000.mp3
+```
+
+Repeat that process for every segment with an `audio` field, using the exact manifest text
+and output path. Other recording or TTS tools are equally valid. To provision an existing
+set instead, copy all 127 files into `public/narration/audio/` while preserving their
+manifest filenames. Then run `pnpm narration:validate` and `pnpm narration:build`; both
+commands fail closed if an audio path is missing or cannot be probed.
+
 To hold a state without speech, use `silentMs` instead of `audio`:
 
 ```yaml
@@ -145,7 +178,20 @@ It does not prove that spoken words match the visible slide. Before publishing r
 narration, watch the first segment, a same-slide click, a slide-to-slide transition, a silent
 segment, and the final segment.
 
-The repository's current two-slide sample uses short tone files as deterministic pipeline
-fixtures. Tones can prove audio placement but cannot support a semantic spoken A/V review.
-Replace them with genuine speech and expand the manifest before treating the result as a
-finished narrated deck.
+The current 21-slide production was rendered with real local speech audio; no tone fixtures
+are committed. Review the full output semantically before publishing because media
+inspection alone cannot detect a sentence assigned to the wrong click state.
+
+## Clean-clone command boundary
+
+| Command | Works in a clean clone without narration MP3s? | Requirements and effect |
+| --- | --- | --- |
+| `pnpm narration:test` | Yes | Tests generate and remove their own tiny WAV inputs; FFmpeg/ffprobe is still required. |
+| `pnpm build` | Yes | Builds the visual Slidev site. The **Start narration** action still needs local MP3s at runtime. |
+| `pnpm dev` | Yes, for visual review | Starts Slidev; automatic narrated playback needs the local MP3 set. |
+| `pnpm narration:capture` | Yes | Uses the tracked compiled timeline and visual deck; Playwright Chromium is required. |
+| `pnpm narration:validate` | No | Resolves and probes every declared local narration file. |
+| `pnpm narration:build` | No | Probes local audio and rewrites the compiled timeline with measured durations. |
+| `pnpm narration:render` | No | Requires local narration audio plus previously captured PNG states. |
+| `pnpm narration:inspect` | No (no MP4) | Inspects an already-rendered local MP4; it does not generate missing media. |
+| `pnpm narration:video` | No | Runs validation, build, capture, render, and inspection, so the full local audio set is required. |
