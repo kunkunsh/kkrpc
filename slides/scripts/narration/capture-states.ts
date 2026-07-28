@@ -1,12 +1,18 @@
 import { spawn, type ChildProcess } from "node:child_process"
-import { readFile, readdir, rm, mkdir } from "node:fs/promises"
+import { randomUUID } from "node:crypto"
+import { mkdir, readFile, readdir, rename, rm, writeFile } from "node:fs/promises"
 import { createServer } from "node:net"
 import path from "node:path"
 import { pathToFileURL } from "node:url"
 import type { Browser, BrowserContext, Page } from "playwright"
 import { z } from "zod"
 import type { CompiledTimeline, CompiledTimelineEntry } from "../../components/narration/types"
-import { generatedStatesDirectory, generatedTimelinePath, projectRoot } from "./paths"
+import {
+	generatedStatesDirectory,
+	generatedTimelinePath,
+	projectRoot,
+	publicGeneratedStatesDirectory
+} from "./paths"
 
 const HOST = "127.0.0.1"
 const CAPTURE_WIDTH = 1920
@@ -67,6 +73,43 @@ export function uniqueStates(entries: CompiledTimelineEntry[]): SlideState[] {
 	}
 
 	return states
+}
+
+async function writeFileAtomically(destinationPath: string, data: Uint8Array): Promise<void> {
+	const temporaryPath = path.join(
+		path.dirname(destinationPath),
+		`.${path.basename(destinationPath)}.${process.pid}.${randomUUID()}.tmp`
+	)
+
+	try {
+		await writeFile(temporaryPath, data, { flag: "wx" })
+		await rename(temporaryPath, destinationPath)
+	} finally {
+		await rm(temporaryPath, { force: true })
+	}
+}
+
+export async function writeCaptureCopiesAtomically(
+	outputDirectories: readonly [string, string],
+	fileName: string,
+	data: Uint8Array
+): Promise<void> {
+	const destinationPaths = outputDirectories.map((directory) => path.join(directory, fileName))
+	const results = await Promise.allSettled(
+		destinationPaths.map((destinationPath) => writeFileAtomically(destinationPath, data))
+	)
+	const failures = results.filter(
+		(result): result is PromiseRejectedResult => result.status === "rejected"
+	)
+	if (!failures.length) return
+
+	await Promise.allSettled(
+		destinationPaths.map((destinationPath) => rm(destinationPath, { force: true }))
+	)
+	throw new Error(
+		`Unable to write both capture copies for ${fileName}: ` +
+			failures.map((failure) => errorMessage(failure.reason)).join("; ")
+	)
 }
 
 interface RunningSlidev {
@@ -310,6 +353,7 @@ async function captureState(
 ): Promise<void> {
 	const fileName = stateFileName(entry.page, entry.click)
 	const outputPath = path.join(generatedStatesDirectory, fileName)
+	const publicOutputPath = path.join(publicGeneratedStatesDirectory, fileName)
 	const targetUrl = slideStateUrl(origin, entry.page)
 	let page: Page | null = null
 
@@ -352,13 +396,17 @@ async function captureState(
 
 		await page.mouse.move(CAPTURE_WIDTH - 1, 1)
 		await page.waitForTimeout(entry.transitionMs + 100)
-		await page.screenshot({
-			path: outputPath,
+		const screenshot = await page.screenshot({
 			type: "png",
 			fullPage: false,
 			caret: "hide"
 		})
-		await assertPngDimensions(outputPath)
+		await writeCaptureCopiesAtomically(
+			[generatedStatesDirectory, publicGeneratedStatesDirectory],
+			fileName,
+			screenshot
+		)
+		await Promise.all([assertPngDimensions(outputPath), assertPngDimensions(publicOutputPath)])
 		console.log(`Captured ${fileName}`)
 	} catch (error) {
 		throw new Error(`Failed to capture ${fileName} from ${targetUrl}: ${errorMessage(error)}`)
@@ -368,11 +416,29 @@ async function captureState(
 }
 
 async function verifyCaptureSet(expectedFileNames: string[]): Promise<void> {
+	await verifyCaptureDirectory(generatedStatesDirectory, expectedFileNames)
+	await verifyCaptureDirectory(publicGeneratedStatesDirectory, expectedFileNames)
+
 	for (const fileName of expectedFileNames) {
-		await assertPngDimensions(path.join(generatedStatesDirectory, fileName))
+		const [canonical, publicMirror] = await Promise.all([
+			readFile(path.join(generatedStatesDirectory, fileName)),
+			readFile(path.join(publicGeneratedStatesDirectory, fileName))
+		])
+		if (!canonical.equals(publicMirror)) {
+			throw new Error(`Public capture mirror differs from the canonical screenshot: ${fileName}`)
+		}
+	}
+}
+
+async function verifyCaptureDirectory(
+	directory: string,
+	expectedFileNames: string[]
+): Promise<void> {
+	for (const fileName of expectedFileNames) {
+		await assertPngDimensions(path.join(directory, fileName))
 	}
 
-	const actualFileNames = (await readdir(generatedStatesDirectory))
+	const actualFileNames = (await readdir(directory))
 		.filter((fileName) => fileName.endsWith(".png"))
 		.sort()
 	const expectedSorted = [...expectedFileNames].sort()
@@ -381,7 +447,8 @@ async function verifyCaptureSet(expectedFileNames: string[]): Promise<void> {
 		actualFileNames.some((fileName, index) => fileName !== expectedSorted[index])
 	) {
 		throw new Error(
-			`Capture directory contains [${actualFileNames.join(", ")}]; ` +
+			`Capture directory ${path.relative(projectRoot, directory)} contains ` +
+				`[${actualFileNames.join(", ")}]; ` +
 				`expected exactly [${expectedSorted.join(", ")}]`
 		)
 	}
@@ -403,7 +470,11 @@ async function captureAllStates(): Promise<void> {
 	const expectedFileNames = states.map((state) => stateFileName(state.page, state.click))
 
 	await rm(generatedStatesDirectory, { recursive: true, force: true })
-	await mkdir(generatedStatesDirectory, { recursive: true })
+	await rm(publicGeneratedStatesDirectory, { recursive: true, force: true })
+	await Promise.all([
+		mkdir(generatedStatesDirectory, { recursive: true }),
+		mkdir(publicGeneratedStatesDirectory, { recursive: true })
+	])
 
 	const server = await startSlidev()
 	let browser: Browser | null = null
@@ -446,8 +517,7 @@ async function captureAllStates(): Promise<void> {
 
 	console.log(
 		`Captured ${entries.length} unique Slidev states at ` +
-			`${CAPTURE_WIDTH}x${CAPTURE_HEIGHT} in ` +
-			path.relative(projectRoot, generatedStatesDirectory)
+			`${CAPTURE_WIDTH}x${CAPTURE_HEIGHT} in canonical and public asset directories`
 	)
 }
 

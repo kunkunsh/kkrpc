@@ -6,4 +6,5 @@ dist
 .remote-assets
 components.d.ts
 narration/generated/states/
+public/narration/generated/states/
 dist/narrated-slides.mp4

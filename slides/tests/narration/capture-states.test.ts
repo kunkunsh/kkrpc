@@ -1,6 +1,23 @@
-import { describe, expect, it } from "vitest"
+import { mkdir, mkdtemp, readFile, readdir, rm } from "node:fs/promises"
+import { tmpdir } from "node:os"
+import path from "node:path"
+import { afterEach, describe, expect, it } from "vitest"
 import type { CompiledTimelineEntry } from "../../components/narration/types"
-import { stateFileName, uniqueStates } from "../../scripts/narration/capture-states"
+import {
+	stateFileName,
+	uniqueStates,
+	writeCaptureCopiesAtomically
+} from "../../scripts/narration/capture-states"
+
+const temporaryDirectories: string[] = []
+
+afterEach(async () => {
+	await Promise.all(
+		temporaryDirectories
+			.splice(0)
+			.map((directory) => rm(directory, { recursive: true, force: true }))
+	)
+})
 
 function timelineEntry(page: number, click: number, id: string): CompiledTimelineEntry {
 	return {
@@ -47,5 +64,27 @@ describe("uniqueStates", () => {
 			{ page: 1, click: 0 },
 			{ page: 2, click: 2 }
 		])
+	})
+})
+
+describe("capture file mirroring", () => {
+	it("atomically writes identical bytes under the same filename in both output directories", async () => {
+		const testRoot = await mkdtemp(path.join(tmpdir(), "kkrpc-capture-mirror-"))
+		temporaryDirectories.push(testRoot)
+		const canonicalDirectory = path.join(testRoot, "narration/generated/states")
+		const publicDirectory = path.join(testRoot, "public/narration/generated/states")
+		const fileName = "s001-c000.png"
+		const pngBytes = Buffer.from("deterministic-png-bytes")
+		await Promise.all([
+			mkdir(canonicalDirectory, { recursive: true }),
+			mkdir(publicDirectory, { recursive: true })
+		])
+
+		await writeCaptureCopiesAtomically([canonicalDirectory, publicDirectory], fileName, pngBytes)
+
+		await expect(readFile(path.join(canonicalDirectory, fileName))).resolves.toEqual(pngBytes)
+		await expect(readFile(path.join(publicDirectory, fileName))).resolves.toEqual(pngBytes)
+		await expect(readdir(canonicalDirectory)).resolves.toEqual([fileName])
+		await expect(readdir(publicDirectory)).resolves.toEqual([fileName])
 	})
 })
