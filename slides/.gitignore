@@ -5,3 +5,5 @@ dist
 .vite-inspect
 .remote-assets
 components.d.ts
+narration/generated/states/
+dist/narrated-slides.mp4
