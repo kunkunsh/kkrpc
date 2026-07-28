@@ -21,6 +21,7 @@ const SERVER_READY_TIMEOUT_MS = 30_000
 const PAGE_READY_TIMEOUT_MS = 30_000
 const SERVER_STOP_TIMEOUT_MS = 5_000
 const PROCESS_LOG_LIMIT = 12_000
+const LAYOUT_RECALCULATION_WAIT_MS = 500
 
 const compiledTimelineEntrySchema = z.object({
 	id: z.string(),
@@ -396,6 +397,11 @@ async function captureState(
 
 		await page.mouse.move(CAPTURE_WIDTH - 1, 1)
 		await page.waitForTimeout(entry.transitionMs + 100)
+		// Slidev's rough annotations measure their targets before the fitted slide
+		// canvas reaches its final 1920x1080 scale. Their documented resize path
+		// remeasures visible annotations without replaying the click sequence.
+		await page.evaluate(() => window.dispatchEvent(new Event("resize")))
+		await page.waitForTimeout(LAYOUT_RECALCULATION_WAIT_MS)
 		const screenshot = await page.screenshot({
 			type: "png",
 			fullPage: false,

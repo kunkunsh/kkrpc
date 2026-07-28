@@ -224,10 +224,14 @@ describe('timeline compilation', () => {
 
 	it('compiles the initial manifest against every committed fixture audio file', async () => {
 		const manifest = validateManifest(parse(await readFile(narrationSourcePath, 'utf8')))
+		const expectedEntryCount = manifest.slides.reduce(
+			(total, slide) => total + slide.segments.length,
+			0
+		)
 
 		const timeline = await compileTimeline(manifest, probeAudioDurationMs)
 
-		expect(timeline.entries).toHaveLength(11)
+		expect(timeline.entries).toHaveLength(expectedEntryCount)
 		expect(timeline.entries.every(entry => Number.isInteger(entry.audioDurationMs))).toBe(true)
 	})
 

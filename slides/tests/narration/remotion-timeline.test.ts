@@ -4,7 +4,11 @@ import { describe, expect, it } from 'vitest'
 import type { CompiledTimeline, CompiledTimelineEntry } from '../../components/narration/types'
 import { NarratedSlides } from '../../video/NarratedSlides'
 import { StateSegment } from '../../video/StateSegment'
-import { getEntryAudioStartFrame, validateCompiledTimeline } from '../../video/timeline'
+import {
+	getEntryAudioStartFrame,
+	timeline as defaultTimeline,
+	validateCompiledTimeline
+} from '../../video/timeline'
 
 function entry(overrides: Partial<CompiledTimelineEntry> = {}): CompiledTimelineEntry {
 	return {
@@ -46,6 +50,31 @@ function timeline(
 		entries,
 		...overrides
 	}
+}
+
+function timelineForRegisteredComposition(
+	entries: CompiledTimelineEntry[]
+): CompiledTimeline {
+	const durationInFrames = entries.reduce(
+		(duration, timelineEntry) => duration + timelineEntry.durationInFrames,
+		0
+	)
+	const paddingFrames = defaultTimeline.durationInFrames - durationInFrames
+	if (paddingFrames < 0) {
+		throw new Error('Test timeline exceeds the registered composition duration')
+	}
+
+	const paddedEntries = entries.map((timelineEntry, index) =>
+		index === entries.length - 1
+			? {
+					...timelineEntry,
+					tailFrames: timelineEntry.tailFrames + paddingFrames,
+					durationInFrames: timelineEntry.durationInFrames + paddingFrames
+				}
+			: timelineEntry
+	)
+
+	return timeline(paddedEntries)
 }
 
 describe('Remotion compiled timeline', () => {
@@ -170,7 +199,8 @@ describe('NarratedSlides composition plan', () => {
 				stateImagePublicPath: 'narration/generated/states/s001-c001.png'
 			})
 		]
-		const composition = NarratedSlides({ timeline: timeline(entries) })
+		const compositionTimeline = timelineForRegisteredComposition(entries)
+		const composition = NarratedSlides({ timeline: compositionTimeline })
 		const sequences = Children.toArray(composition.props.children).filter(isValidElement)
 
 		expect(
@@ -181,7 +211,11 @@ describe('NarratedSlides composition plan', () => {
 			}))
 		).toEqual([
 			{ type: Sequence, from: 0, durationInFrames: 30 },
-			{ type: Sequence, from: 30, durationInFrames: 322 }
+			{
+				type: Sequence,
+				from: 30,
+				durationInFrames: defaultTimeline.durationInFrames - 30
+			}
 		])
 
 		const firstChildren = Children.toArray(sequences[0].props.children).filter(isValidElement)
@@ -224,7 +258,7 @@ describe('NarratedSlides composition plan', () => {
 				stateImagePublicPath: 'narration/generated/states/s001-c001.png'
 			})
 		]
-		const composition = NarratedSlides({ timeline: timeline(entries) })
+		const composition = NarratedSlides({ timeline: timelineForRegisteredComposition(entries) })
 		const sequences = Children.toArray(composition.props.children).filter(isValidElement)
 		const narratedChildren = Children.toArray(sequences[0].props.children).filter(isValidElement)
 		const silentChildren = Children.toArray(sequences[1].props.children).filter(isValidElement)
