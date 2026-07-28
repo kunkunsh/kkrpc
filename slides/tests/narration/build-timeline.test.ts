@@ -1,5 +1,5 @@
 import { execFile as execFileCallback } from 'node:child_process'
-import { copyFile, mkdir, mkdtemp, readFile, rm, symlink } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, rm, symlink } from 'node:fs/promises'
 import path from 'node:path'
 import { tmpdir } from 'node:os'
 import { promisify } from 'node:util'
@@ -9,10 +9,10 @@ import { compileTimeline, millisecondsToFrames } from '../../scripts/narration/b
 import { probeAudioDurationMs } from '../../scripts/narration/probe-audio'
 import { generatedTimelinePath, narrationSourcePath, publicDirectory } from '../../scripts/narration/paths'
 import { type NarrationManifest, validateManifest } from '../../scripts/narration/schema'
+import { createSilentWav } from './create-silent-wav'
 
 const testAudioDirectory = path.join(publicDirectory, 'narration/audio')
 const testAudioPath = path.join(testAudioDirectory, 'a.wav')
-const toneFixturePath = path.join(process.cwd(), 'narration/fixtures/tone-500ms.wav')
 const execFile = promisify(execFileCallback)
 
 afterEach(async () => {
@@ -114,12 +114,13 @@ describe('timeline compilation', () => {
 	})
 
 	it('probes the deterministic fixture duration', async () => {
-		await expect(probeAudioDurationMs(toneFixturePath)).resolves.toBeCloseTo(500, -1)
+		await createSilentWav(testAudioPath)
+
+		await expect(probeAudioDurationMs(testAudioPath)).resolves.toBeCloseTo(500, -1)
 	})
 
 	it('creates contiguous entries', async () => {
-		await mkdir(testAudioDirectory, { recursive: true })
-		await copyFile(toneFixturePath, testAudioPath)
+		await createSilentWav(testAudioPath)
 
 		const manifest = validateManifest({
 			version: 1,
@@ -148,8 +149,7 @@ describe('timeline compilation', () => {
 	})
 
 	it('normalizes fractional probed durations before storing them', async () => {
-		await mkdir(testAudioDirectory, { recursive: true })
-		await copyFile(toneFixturePath, testAudioPath)
+		await createSilentWav(testAudioPath)
 
 		const manifest = validateManifest({
 			version: 1,
@@ -180,7 +180,7 @@ describe('timeline compilation', () => {
 							id: 'lexical-audio',
 							click: 0,
 							text: '',
-							audio: '../narration/fixtures/tone-500ms.wav'
+							audio: '../narration/fixtures/not-an-audio-file.wav'
 						}
 					]
 				}
@@ -198,7 +198,7 @@ describe('timeline compilation', () => {
 		const outsideAudioPath = path.join(outsideDirectory, 'outside.wav')
 
 		await mkdir(testAudioDirectory, { recursive: true })
-		await copyFile(toneFixturePath, outsideAudioPath)
+		await createSilentWav(outsideAudioPath)
 		await symlink(outsideAudioPath, escapedAudioPath)
 
 		const manifest = validateManifest({

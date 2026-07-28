@@ -1,4 +1,4 @@
-import { copyFile, mkdtemp, rm } from 'node:fs/promises'
+import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
@@ -7,6 +7,7 @@ import {
 	probeMedia,
 	type FfprobeOutput
 } from '../../scripts/narration/inspect-output'
+import { createSilentWav } from './create-silent-wav'
 
 const temporaryDirectories: string[] = []
 
@@ -201,9 +202,8 @@ describe('probeMedia', () => {
 	it('passes a path containing shell metacharacters to real ffprobe without interpretation', async () => {
 		const temporaryDirectory = await mkdtemp(path.join(tmpdir(), 'kkrpc-media-probe-'))
 		temporaryDirectories.push(temporaryDirectory)
-		const fixturePath = path.join(process.cwd(), 'narration/fixtures/tone-500ms.wav')
 		const mediaPath = path.join(temporaryDirectory, 'tone;not-a-command.wav')
-		await copyFile(fixturePath, mediaPath)
+		await createSilentWav(mediaPath)
 
 		const probe = await probeMedia(mediaPath)
 
