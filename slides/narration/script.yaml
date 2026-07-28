@@ -2,56 +2,613 @@ version: 1
 
 defaults:
   transitionMs: 300
-  leadInMs: 100
-  tailMs: 150
+  leadInMs: 150
+  tailMs: 200
 
 slides:
   - page: 1
     segments:
-      - id: promise-ordinary-call
+      - id: promise-typed-call
         click: 0
-        text: "Let's not start from the protocol format. Start from the code we actually want to write: an ordinary TypeScript method call."
+        text: "Begin with the code we want to write: one ordinary, typed TypeScript method call."
         audio: narration/audio/s001-c000.mp3
-      - id: promise-call-here
+      - id: promise-run-elsewhere
         click: 1
-        text: "The call happens in the current runtime, but the implementation can live in a Worker, a child process, a desktop host, or even the far end of a message queue."
+        text: "The call happens here, while its implementation can run in a Worker, process, desktop host, or message bus."
         audio: narration/audio/s001-c001.mp3
       - id: promise-result
         click: 2
-        text: "To the application code, the result is still just a Promise."
+        text: "The caller simply awaits a Promise whose resolved value is three."
         audio: narration/audio/s001-c002.mp3
-      - id: promise-mental-model
+      - id: promise-same-shape
         click: 3
-        text: "kkRPC's whole goal is to compress cross-boundary communication down to exactly this mental model."
+        text: "The API shape stays the same even when the implementation runs somewhere else."
         audio: narration/audio/s001-c003.mp3
 
   - page: 2
     segments:
-      - id: jsonrpc-wire-format
+      - id: baseline-wire-format
         click: 0
-        text: "JSON-RPC is good at defining what goes on the wire."
+        text: "JSON R P C is good at defining the request that goes on the wire."
         audio: narration/audio/s002-c000.mp3
-      - id: jsonrpc-version
+      - id: baseline-version
         click: 1
-        text: "It gives the request a version."
+        text: "The JSON R P C field identifies the protocol version."
         audio: narration/audio/s002-c001.mp3
-      - id: jsonrpc-method
+      - id: baseline-method
         click: 2
-        text: "It names the method to call."
+        text: "The method field names the operation to invoke."
         audio: narration/audio/s002-c002.mp3
-      - id: jsonrpc-params
+      - id: baseline-params
         click: 3
-        text: "It carries the parameters for that method."
+        text: "The params field carries the arguments for that method."
         audio: narration/audio/s002-c003.mp3
-      - id: jsonrpc-id
+      - id: baseline-id
         click: 4
-        text: "And it supplies an id for correlating the request and response. That part is fine."
+        text: "The id correlates this request with exactly one response."
         audio: narration/audio/s002-c004.mp3
-      - id: jsonrpc-protocol-leak
+      - id: baseline-protocol-leak
         click: 5
-        text: "But when application code assembles these objects by hand, serialization, request correlation, and dispatch logic leak into every call site."
+        text: "But hand-built requests leak serialization, correlation, dispatch, and deserialization into application code."
         audio: narration/audio/s002-c005.mp3
-      - id: jsonrpc-plain-object
+      - id: baseline-compiler-sees-data
         click: 6
-        text: "More importantly, TypeScript only sees a plain object, not an API contract that can evolve together with the server."
+        text: "TypeScript sees this as plain data, not as a callable API contract shared with the server."
         audio: narration/audio/s002-c006.mp3
+
+  - page: 3
+    segments:
+      - id: friction-string-typo
+        click: 0
+        text: "First, a method path is just a string, so a typo like math dot A D survives compilation."
+        audio: narration/audio/s003-c000.mp3
+      - id: friction-wrong-shape
+        click: 1
+        text: "Second, a string can slip into an argument position that should contain a number."
+        audio: narration/audio/s003-c001.mp3
+      - id: friction-rename
+        click: 2
+        text: "Third, renaming the remote method cannot reliably update string-shaped call sites."
+        audio: narration/audio/s003-c002.mp3
+      - id: friction-correlation
+        click: 3
+        text: "Fourth, every caller must correlate incoming messages with its own pending request."
+        audio: narration/audio/s003-c003.mp3
+      - id: friction-callback
+        click: 4
+        text: "Fifth, a callback is behavior, so it does not fit the plain JSON value model."
+        audio: narration/audio/s003-c004.mp3
+      - id: friction-code-checkpoint
+        click: 5
+        text: ""
+        silentMs: 700
+      - id: friction-hard-coded-paths
+        click: 6
+        text: "Hard-coded paths hide spelling errors inside strings."
+        audio: narration/audio/s003-c006.mp3
+      - id: friction-loose-parameters
+        click: 7
+        text: "Loose parameter shapes move contract errors from the build into production."
+        audio: narration/audio/s003-c007.mp3
+      - id: friction-weak-refactors
+        click: 8
+        text: "Weak refactors leave breaking changes scattered across call sites."
+        audio: narration/audio/s003-c008.mp3
+      - id: friction-boilerplate
+        click: 9
+        text: "Correlation and dispatch boilerplate grows again for every method."
+        audio: narration/audio/s003-c009.mp3
+      - id: friction-callback-model
+        click: 10
+        text: "Callbacks complete the maintenance problem because functions are not JSON values."
+        audio: narration/audio/s003-c010.mp3
+
+  - page: 4
+    segments:
+      - id: type-safety-interface
+        click: 0
+        text: "The interface declares that both add arguments are numbers and the result is a Promise of number."
+        audio: narration/audio/s004-c000.mp3
+      - id: type-safety-wrap
+        click: 1
+        text: "Wrapping the transport with Math A P I brings that contract to the caller."
+        audio: narration/audio/s004-c001.mp3
+      - id: type-safety-diagnostic
+        click: 2
+        text: "The string two violates the parameter type, so the TypeScript compiler reports error twenty-three forty-five."
+        audio: narration/audio/s004-c002.mp3
+      - id: type-safety-code-checkpoint
+        click: 3
+        text: ""
+        silentMs: 650
+      - id: type-safety-fix
+        click: 4
+        text: "Changing the string to the number two produces the valid call shown below."
+        audio: narration/audio/s004-c004.mp3
+      - id: type-safety-local-error
+        click: 5
+        text: "A remote breaking change now becomes a local build error before any message travels."
+        audio: narration/audio/s004-c005.mp3
+
+  - page: 5
+    segments:
+      - id: callbacks-normal-argument
+        click: 0
+        text: "Here the remote download accepts a progress callback as a normal function argument."
+        audio: narration/audio/s005-c000.mp3
+      - id: callbacks-progress-value
+        click: 1
+        text: "The callback receives each progress object from the remote operation."
+        audio: narration/audio/s005-c001.mp3
+      - id: callbacks-consume-percent
+        click: 2
+        text: "Application code consumes the percentage exactly where a local callback would."
+        audio: narration/audio/s005-c002.mp3
+      - id: callbacks-code-checkpoint
+        click: 3
+        text: ""
+        silentMs: 650
+      - id: callbacks-json-undefined
+        click: 4
+        text: "JSON serialization cannot preserve function behavior; the callback becomes undefined."
+        audio: narration/audio/s005-c004.mp3
+      - id: callbacks-register
+        click: 5
+        text: "K K R P C keeps the function locally under a reference identifier."
+        audio: narration/audio/s005-c005.mp3
+      - id: callbacks-pass-reference
+        click: 6
+        text: "Only that reference crosses the transport boundary."
+        audio: narration/audio/s005-c006.mp3
+      - id: callbacks-invoke-back
+        click: 7
+        text: "Callback messages route back to the original function, preserving the natural API shape."
+        audio: narration/audio/s005-c007.mp3
+
+  - page: 6
+    segments:
+      - id: origin-kunkun-constraints
+        click: 0
+        text: "K K R P C came from Kunkun's need to keep one API coherent across several very different runtimes."
+        audio: narration/audio/s006-c000.mp3
+      - id: origin-web-ui
+        click: 1
+        text: "The Web user interface makes typed calls from a browser surface."
+        audio: narration/audio/s006-c001.mp3
+      - id: origin-rust-host
+        click: 2
+        text: "A Rust host owns permissions, process I O, and native capabilities."
+        audio: narration/audio/s006-c002.mp3
+      - id: origin-plugin-runtimes
+        click: 3
+        text: "Plugins can run in Deno, Node, a Web Worker, or an iframe."
+        audio: narration/audio/s006-c003.mp3
+      - id: origin-comlink-inspiration
+        click: 4
+        text: "Comlink inspired the proxy-shaped API, but Kunkun needed transports beyond browser endpoints."
+        audio: narration/audio/s006-c004.mp3
+
+  - page: 7
+    segments:
+      - id: expose-imports
+        click: 0
+        text: "On the Worker side, import expose and the self-facing Worker transport."
+        audio: narration/audio/s007-c000.mp3
+      - id: expose-interface
+        click: 1
+        text: "The Worker API interface describes a nested math object whose add method returns a Promise."
+        audio: narration/audio/s007-c001.mp3
+      - id: expose-implementation
+        click: 2
+        text: "Expose mounts an ordinary object whose real implementation is simply A plus B."
+        audio: narration/audio/s007-c002.mp3
+      - id: expose-code-checkpoint
+        click: 3
+        text: ""
+        silentMs: 650
+      - id: expose-object-contract
+        click: 4
+        text: "The object's TypeScript shape is the contract."
+        audio: narration/audio/s007-c004.mp3
+      - id: expose-transport-separate
+        click: 5
+        text: "The transport is supplied separately from that contract."
+        audio: narration/audio/s007-c005.mp3
+      - id: expose-ordinary-typescript
+        click: 6
+        text: "The implementation stays ordinary TypeScript and never handles message envelopes."
+        audio: narration/audio/s007-c006.mp3
+
+  - page: 8
+    segments:
+      - id: wrap-imports
+        click: 0
+        text: "The caller imports wrap, the Worker transport adapter, and the same Worker API type."
+        audio: narration/audio/s008-c000.mp3
+      - id: wrap-native-worker
+        click: 1
+        text: "It creates a normal platform Worker, with no custom runtime wrapper."
+        audio: narration/audio/s008-c001.mp3
+      - id: wrap-typed-proxy
+        click: 2
+        text: "Wrap turns the transport into a proxy typed as Worker A P I."
+        audio: narration/audio/s008-c002.mp3
+      - id: wrap-call
+        click: 3
+        text: "The application then awaits api dot math dot add exactly like a local call."
+        audio: narration/audio/s008-c003.mp3
+      - id: wrap-code-checkpoint
+        click: 4
+        text: ""
+        silentMs: 650
+      - id: wrap-autocomplete
+        click: 5
+        text: "Typing api dot now gives editor autocomplete."
+        audio: narration/audio/s008-c005.mp3
+      - id: wrap-nested-path
+        click: 6
+        text: "The nested math path remains part of the shared contract."
+        audio: narration/audio/s008-c006.mp3
+      - id: wrap-checked-call
+        click: 7
+        text: "The add arguments and Promise result are checked at the call site."
+        audio: narration/audio/s008-c007.mp3
+
+  - page: 9
+    segments:
+      - id: refactor-original-contract
+        click: 0
+        text: "Begin with the original contract, where the method is named add."
+        audio: narration/audio/s009-c000.mp3
+      - id: refactor-original-call
+        click: 1
+        text: "The caller currently invokes that add method."
+        audio: narration/audio/s009-c001.mp3
+      - id: refactor-rename-to-sum
+        click: 2
+        text: "Now rename the method in the interface from add to sum."
+        audio: narration/audio/s009-c002.mp3
+      - id: refactor-old-call-error
+        click: 3
+        text: "The old call immediately fails because add no longer exists on the typed contract."
+        audio: narration/audio/s009-c003.mp3
+      - id: refactor-updated-contract
+        click: 4
+        text: "The updated interface now exposes sum as the supported method."
+        audio: narration/audio/s009-c004.mp3
+      - id: refactor-updated-call
+        click: 5
+        text: "An editor rename updates the caller to api dot math dot sum."
+        audio: narration/audio/s009-c005.mp3
+      - id: refactor-final-checkpoint
+        click: 6
+        text: ""
+        silentMs: 800
+
+  - page: 10
+    segments:
+      - id: model-three-layers
+        click: 0
+        text: "Keep three layers separate: the Proxy, the Channel, and the Transport."
+        audio: narration/audio/s010-c000.mp3
+      - id: model-proxy
+        click: 1
+        text: "The Proxy records property paths, arguments, and remote references."
+        audio: narration/audio/s010-c001.mp3
+      - id: model-channel
+        click: 2
+        text: "The Channel owns request identifiers, pending Promises, timeouts, and dispatch."
+        audio: narration/audio/s010-c002.mp3
+      - id: model-transport
+        click: 3
+        text: "The Transport only needs to send, receive, and close."
+        audio: narration/audio/s010-c003.mp3
+      - id: model-swap-transport
+        click: 4
+        text: "Because those boundaries are clean, change the transport without changing the API."
+        audio: narration/audio/s010-c004.mp3
+
+  - page: 11
+    segments:
+      - id: outbound-call-journey
+        click: 0
+        text: "Follow api dot math dot add from the typed Proxy to the remote boundary."
+        audio: narration/audio/s011-c000.mp3
+      - id: outbound-proxy-path
+        click: 1
+        text: "The Proxy records the property path math dot add and the call arguments."
+        audio: narration/audio/s011-c001.mp3
+      - id: outbound-pending-promise
+        click: 2
+        text: "The Channel allocates an id and stores the Promise resolver in its pending map."
+        audio: narration/audio/s011-c002.mp3
+      - id: outbound-transport-send
+        click: 3
+        text: "The Transport sends the compact request while the local Promise waits."
+        audio: narration/audio/s011-c003.mp3
+      - id: outbound-request-record
+        click: 4
+        text: "The visible record carries a request tag, id, path, and argument array."
+        audio: narration/audio/s011-c004.mp3
+
+  - page: 12
+    segments:
+      - id: return-request-arrives
+        click: 0
+        text: "On the remote side, the transport delivers that request to the exposed API."
+        audio: narration/audio/s012-c000.mp3
+      - id: return-execute
+        click: 1
+        text: "The exposed object locates add and evaluates one plus two."
+        audio: narration/audio/s012-c001.mp3
+      - id: return-response
+        click: 2
+        text: "The result is wrapped in a response carrying the same request id."
+        audio: narration/audio/s012-c002.mp3
+      - id: return-resolve-promise
+        click: 3
+        text: "Back at the caller, the Channel finds the waiting resolver and fulfills the Promise with three."
+        audio: narration/audio/s012-c003.mp3
+      - id: return-cleanup
+        click: 4
+        text: "It also clears the timeout and deletes the completed pending entry."
+        audio: narration/audio/s012-c004.mp3
+
+  - page: 13
+    segments:
+      - id: protocol-small-records
+        click: 0
+        text: "The core wire protocol uses small request and response records with explicit lifecycle messages."
+        audio: narration/audio/s013-c000.mp3
+      - id: protocol-id
+        click: 1
+        text: "The id field links the request on the left to the response on the right."
+        audio: narration/audio/s013-c001.mp3
+      - id: protocol-path
+        click: 2
+        text: "The P field carries the nested property path."
+        audio: narration/audio/s013-c002.mp3
+      - id: protocol-arguments
+        click: 3
+        text: "The A field carries the call's argument array."
+        audio: narration/audio/s013-c003.mp3
+      - id: protocol-value
+        click: 4
+        text: "The V field contains the returned value, while errors use the corresponding error shape."
+        audio: narration/audio/s013-c004.mp3
+      - id: protocol-lifecycles
+        click: 5
+        text: "References, callback invocations, and releases add explicit cleanup paths around the remote API."
+        audio: narration/audio/s013-c005.mp3
+
+  - page: 14
+    segments:
+      - id: adapters-browser
+        click: 0
+        text: "Browser boundaries include Web Workers, iframes, and Chrome extensions."
+        audio: narration/audio/s014-c000.mp3
+      - id: adapters-process
+        click: 1
+        text: "Process boundaries can use framed standard input and output."
+        audio: narration/audio/s014-c001.mp3
+      - id: adapters-network
+        click: 2
+        text: "Network adapters include H T T P, WebSocket, Hono, Elysia, and Socket I O."
+        audio: narration/audio/s014-c002.mp3
+      - id: adapters-desktop
+        click: 3
+        text: "Desktop applications can cross Electron and Tauri boundaries."
+        audio: narration/audio/s014-c003.mp3
+      - id: adapters-buses
+        click: 4
+        text: "Event-bus adapters cover Rabbit M Q, Kafka, Redis Streams, and NATS."
+        audio: narration/audio/s014-c004.mp3
+      - id: adapters-wall-checkpoint
+        click: 5
+        text: ""
+        silentMs: 900
+      - id: adapters-one-surface
+        click: 6
+        text: "Fifteen adapters are visible, yet application code keeps one typed call surface."
+        audio: narration/audio/s014-c006.mp3
+
+  - page: 15
+    segments:
+      - id: physics-capability-caveat
+        click: 0
+        text: "One API shape does not erase the physical capabilities of each transport."
+        audio: narration/audio/s015-c000.mp3
+      - id: physics-http
+        click: 1
+        text: "H T T P is fundamentally unary request and response."
+        audio: narration/audio/s015-c001.mp3
+      - id: physics-worker-iframe
+        click: 2
+        text: "Workers and iframes can use structured clone and transferable objects."
+        audio: narration/audio/s015-c002.mp3
+      - id: physics-websocket
+        click: 3
+        text: "WebSocket and Socket I O naturally support duplex connections and remote references."
+        audio: narration/audio/s015-c003.mp3
+      - id: physics-stdio
+        click: 4
+        text: "Standard I O must handle process lifecycle and message framing."
+        audio: narration/audio/s015-c004.mp3
+      - id: physics-event-buses
+        click: 5
+        text: "Event buses add subjects, consumers, delivery rules, and broadcast semantics."
+        audio: narration/audio/s015-c005.mp3
+      - id: physics-object-mode
+        click: 6
+        text: "Object mode avoids forced JSON serialization where the runtime already moves objects safely."
+        audio: narration/audio/s015-c006.mp3
+      - id: physics-choose-capability
+        click: 7
+        text: "Choose an adapter by the capability you need, not by its logo."
+        audio: narration/audio/s015-c007.mp3
+
+  - page: 16
+    segments:
+      - id: middleware-boundary
+        click: 0
+        text: "Middleware wraps the R P C boundary so logging, authorization, timing, and policy stay out of business methods."
+        audio: narration/audio/s016-c000.mp3
+      - id: middleware-start-time
+        click: 1
+        text: "The interceptor first records the start time from the performance clock."
+        audio: narration/audio/s016-c001.mp3
+      - id: middleware-next
+        click: 2
+        text: "Awaiting next enters the inner handler and the remaining onion layers."
+        audio: narration/audio/s016-c002.mp3
+      - id: middleware-observe
+        click: 3
+        text: "After the call returns, the interceptor logs the method and elapsed time, then returns the result."
+        audio: narration/audio/s016-c003.mp3
+      - id: middleware-code-checkpoint
+        click: 4
+        text: ""
+        silentMs: 700
+      - id: middleware-before
+        click: 5
+        text: "Before next, middleware can inspect and modify the call context."
+        audio: narration/audio/s016-c005.mp3
+      - id: middleware-onion
+        click: 6
+        text: "The highlighted next call enters the middleware onion exactly once."
+        audio: narration/audio/s016-c006.mp3
+      - id: middleware-after
+        click: 7
+        text: "After next resolves, the outer layer can observe either the result or the error."
+        audio: narration/audio/s016-c007.mp3
+
+  - page: 17
+    segments:
+      - id: validation-runtime-boundary
+        click: 0
+        text: "Static types protect compiled code, while Standard Schema validators protect values that arrive at runtime."
+        audio: narration/audio/s017-c000.mp3
+      - id: validation-input-schema
+        click: 1
+        text: "The input schema requires a tuple containing two numbers."
+        audio: narration/audio/s017-c001.mp3
+      - id: validation-output-schema
+        click: 2
+        text: "The output schema requires the implementation to return a number."
+        audio: narration/audio/s017-c002.mp3
+      - id: validation-code-checkpoint
+        click: 3
+        text: ""
+        silentMs: 700
+      - id: validation-reject-input
+        click: 4
+        text: "Malformed input is rejected before the implementation executes."
+        audio: narration/audio/s017-c004.mp3
+      - id: validation-verify-output
+        click: 5
+        text: "Output validation verifies the implementation side of the same runtime contract."
+        audio: narration/audio/s017-c005.mp3
+      - id: validation-opt-in
+        click: 6
+        text: "Opt into schemas at trust boundaries instead of imposing them on every call."
+        audio: narration/audio/s017-c006.mp3
+
+  - page: 18
+    segments:
+      - id: capabilities-small-core
+        click: 0
+        text: "The small core combines a typed nested API with fifteen swappable transports."
+        audio: narration/audio/s018-c000.mp3
+      - id: capabilities-callbacks
+        click: 1
+        text: "Add callback references when functions must cross the boundary."
+        audio: narration/audio/s018-c001.mp3
+      - id: capabilities-streams
+        click: 2
+        text: "Add streaming when values need a lifecycle beyond one response."
+        audio: narration/audio/s018-c002.mp3
+      - id: capabilities-middleware
+        click: 3
+        text: "Add middleware for cross-cutting policy around the handler."
+        audio: narration/audio/s018-c003.mp3
+      - id: capabilities-validation
+        click: 4
+        text: "Add schema validation where runtime inputs and outputs are not already trusted."
+        audio: narration/audio/s018-c004.mp3
+      - id: capabilities-mental-model
+        click: 5
+        text: "Every optional capability still fits the same mental model: Proxy, Channel, Transport."
+        audio: narration/audio/s018-c005.mp3
+
+  - page: 19
+    segments:
+      - id: comparison-different-scopes
+        click: 0
+        text: "JSON R P C, Comlink, and K K R P C solve related problems at different scopes."
+        audio: narration/audio/s019-c000.mp3
+      - id: comparison-json-rpc
+        click: 1
+        text: "JSON R P C is a language-neutral wire protocol, and generated clients can add a typed surface."
+        audio: narration/audio/s019-c001.mp3
+      - id: comparison-comlink
+        click: 2
+        text: "Comlink provides excellent proxy ergonomics for browser ports and remote references."
+        audio: narration/audio/s019-c002.mp3
+      - id: comparison-kkrpc
+        click: 3
+        text: "K K R P C extends a native typed proxy across adapter-based runtimes, with optional validation and middleware."
+        audio: narration/audio/s019-c003.mp3
+      - id: comparison-json-strength
+        click: 4
+        text: "Choose JSON R P C when a simple, language-neutral protocol is the central requirement."
+        audio: narration/audio/s019-c004.mp3
+      - id: comparison-comlink-strength
+        click: 5
+        text: "Choose Comlink when the browser boundary and its concise R P C ergonomics are exactly the scope you need."
+        audio: narration/audio/s019-c005.mp3
+
+  - page: 20
+    segments:
+      - id: decision-conditional
+        click: 0
+        text: "Use K K R P C when the API should remain stable even as the transport changes."
+        audio: narration/audio/s020-c000.mp3
+      - id: decision-typed-api
+        click: 1
+        text: "The typed API gives autocomplete, safe refactors, and local build errors."
+        audio: narration/audio/s020-c001.mp3
+      - id: decision-lifecycle
+        click: 2
+        text: "The Channel manages request, callback, and stream lifecycles."
+        audio: narration/audio/s020-c002.mp3
+      - id: decision-adapter
+        click: 3
+        text: "The adapter is chosen for the Worker, process, desktop host, plugin, network, or event bus you actually have."
+        audio: narration/audio/s020-c003.mp3
+      - id: decision-tagline
+        click: 4
+        text: "The application sees one typed call. Another runtime performs the work."
+        audio: narration/audio/s020-c004.mp3
+
+  - page: 21
+    segments:
+      - id: start-install
+        click: 0
+        text: "Start by installing K K R P C from N P M, or from J S R when using Deno."
+        audio: narration/audio/s021-c000.mp3
+      - id: start-docs
+        click: 1
+        text: "The documentation covers each adapter and optional capability."
+        audio: narration/audio/s021-c001.mp3
+      - id: start-source
+        click: 2
+        text: "The source code, issues, and examples live in the Kunkun S H repository on GitHub."
+        audio: narration/audio/s021-c002.mp3
+      - id: start-package
+        click: 3
+        text: "The package is published today as K K R P C."
+        audio: narration/audio/s021-c003.mp3
+      - id: start-final
+        click: 4
+        text: "Expose an object. Wrap a transport. Ship one typed call to another runtime."
+        audio: narration/audio/s021-c004.mp3
