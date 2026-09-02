@@ -26,7 +26,14 @@ export interface WritableLike {
 	end?(): unknown
 }
 
-/** Node-style stream lifecycle event source used to report connection close. */
+/**
+ * Node-style stream lifecycle event source used to report connection close.
+ *
+ * Usually the same object as `readable`. When provided, the platform and
+ * transport expose `onClose`: `"error"` reports the error, `"end"`/`"close"`
+ * report a clean close. Left optional so the minimal `ReadableLike` contract
+ * (and consumers like the Tauri transport) stays unchanged.
+ */
 export interface StreamLifecycleLike {
 	/** Attach a lifecycle listener. */
 	on(event: "close" | "end" | "error", listener: (...args: unknown[]) => void): unknown
@@ -67,9 +74,16 @@ function getNodeProcess(): NodeProcessLike {
 	return maybeProcess
 }
 
-/** Create a string platform from Node-style readable/writable streams. */
+/**
+ * Create a string platform from Node-style readable/writable streams.
+ *
+ * The platform emits complete newline-delimited frames, writes string frames to
+ * the provided writable, and closes by calling `writable.end()` when available.
+ */
 export function stdioPlatform(options: StdioPlatformOptions): Platform<string> {
 	const { readable, writable, lifecycle } = options
+
+	// Connection-close notification, wired only when a lifecycle source is provided.
 	const closeListeners = new Set<(reason?: Error) => void>()
 	let closeNotified = false
 	let closeReason: Error | undefined
@@ -123,14 +137,17 @@ export function stdioPlatform(options: StdioPlatformOptions): Platform<string> {
 				buffer += typeof chunk === "string" ? chunk : decoder.decode(chunk, { stream: true })
 				const lines = buffer.split("\n")
 				buffer = lines.pop() ?? ""
+
 				for (const line of lines) {
 					if (line.trim().length > 0) listener(`${line}\n`)
 				}
 			}
+
 			readable.on("data", onData)
 			return () => readable.off("data", onData)
 		},
 		close() {
+			// Local close is intentional teardown; do not fire onClose.
 			closeNotified = true
 			detachLifecycle?.()
 			detachLifecycle = undefined
@@ -156,10 +173,16 @@ function isLikelyRpcFrame(wire: string): boolean {
 	return wire.trimStart().startsWith("{")
 }
 
-/** Create the standard JSON-line stdio transport for RPC messages. */
+/**
+ * Create the standard JSON-line stdio transport for RPC messages.
+ *
+ * This composes `stdioPlatform()` with `jsonLineCodec()`. It is bidirectional
+ * when paired with another process and supports callbacks, but not transferables.
+ */
 export function stdioJsonTransport(options: StdioJsonTransportOptions): Transport<RPCMessage> {
 	const platform = stdioPlatform(options)
 	const codec = jsonLineCodec<RPCMessage>()
+
 	const transport: Transport<RPCMessage> = {
 		capabilities: { objectMode: false, transfer: false, remoteRefs: true },
 		send(message: RPCMessage) {
@@ -182,11 +205,17 @@ export function stdioJsonTransport(options: StdioJsonTransportOptions): Transpor
 			platform.close?.()
 		}
 	}
+	// Forward conditionally so absence stays a reliable capability signal.
 	if (platform.onClose) transport.onClose = (listener) => platform.onClose!(listener)
 	return transport
 }
 
-/** Create a stdio transport bound to Node's `process.stdin` and `process.stdout`. */
+/**
+ * Create a stdio transport bound to Node's `process.stdin` and `process.stdout`.
+ *
+ * Pass explicit streams in tests or embedded runtimes. Closing the transport ends
+ * the writable stream when the stream exposes `end()`.
+ */
 export function nodeStdioTransport(
 	options: Partial<StdioPlatformOptions> = {}
 ): Transport<RPCMessage> {
@@ -196,6 +225,8 @@ export function nodeStdioTransport(
 	return stdioJsonTransport({
 		readable,
 		writable: options.writable ?? nodeProcess.stdout,
+		// Real Node streams emit end/close/error, so auto-wire lifecycle when using the
+		// default process.stdin. Custom readables must opt in via `options.lifecycle`.
 		lifecycle:
 			options.lifecycle ??
 			(usingDefaultReadable ? (readable as unknown as StreamLifecycleLike) : undefined)
