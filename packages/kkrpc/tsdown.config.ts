@@ -10,7 +10,8 @@ const externalDependencies = [
 	"ws",
 	"elysia",
 	"hono",
-	"@tauri-apps/plugin-shell"
+	"@tauri-apps/plugin-shell",
+	"godot"
 ]
 
 export default defineConfig({

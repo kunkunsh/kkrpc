@@ -178,3 +178,12 @@ deno.d.ts
 
 __tests__/scripts/node-api.js
 docs
+
+# GodotJS editor and export templates downloaded by @godot-js/editor
+godot/.editor-*/
+godot/.godot/
+godot/.kkrpc-dist/
+godot/kkrpc-dist/
+godot/stdio-worker.js
+godot/stdio-main.js
+godot/*.uid

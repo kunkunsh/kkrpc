@@ -2,6 +2,14 @@
 	"name": "kkrpc",
 	"version": "2.1.0",
 	"description": "TypeScript-first RPC library for seamless bi-directional communication between processes, workers, and contexts. Cross-runtime compatible with Node.js, Deno, Bun, and browsers.",
+	"godot-js": {
+		"rootPath": "./godot",
+		"gitTag": "v1.1.0.beta1-4.6.1",
+		"godotVersion": "4.6.1",
+		"editorJSEngine": "v8",
+		"editorPath": "./.editor-4.6.1",
+		"templatesPath": "./.editor-4.6.1/templates"
+	},
 	"type": "module",
 	"sideEffects": false,
 	"keywords": [
@@ -38,6 +46,7 @@
 	},
 	"scripts": {
 		"prepare": "bun run scripts/prepare.ts",
+		"prepare:godot-js": "npm exec --yes --ignore-scripts -- @godot-js/editor@1.1.0-editor2 prepare",
 		"test": "bun run scripts/test.ts",
 		"test:deno": "deno test --no-lock -R __deno_tests__",
 		"posttest": "verify-package-export verify",
