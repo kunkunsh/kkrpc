@@ -180,6 +180,16 @@
 				"default": "./dist/stdio.cjs"
 			}
 		},
+		"./godot": {
+			"import": {
+				"types": "./dist/godot.d.ts",
+				"default": "./dist/godot.js"
+			},
+			"require": {
+				"types": "./dist/godot.d.cts",
+				"default": "./dist/godot.cjs"
+			}
+		},
 		"./ws": {
 			"import": {
 				"types": "./dist/ws.d.ts",

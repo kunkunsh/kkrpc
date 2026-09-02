@@ -29,6 +29,7 @@ export default defineConfig({
 		streaming: "./src/entries/streaming.ts",
 		worker: "./src/entries/worker.ts",
 		stdio: "./src/entries/stdio.ts",
+		godot: "./src/entries/godot.ts",
 		http: "./src/entries/http.ts",
 		ws: "./src/entries/ws.ts",
 		"ws-hono": "./src/entries/ws-hono.ts",

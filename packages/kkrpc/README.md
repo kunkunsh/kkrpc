@@ -240,7 +240,7 @@ headless or exported subprocess:
 
 ```js title="godot-worker.js"
 const { expose } = require("kkrpc")
-const { godotStdioTransport } = require("kkrpc/stdio")
+const { godotStdioTransport } = require("kkrpc/godot")
 
 expose(
 	{
@@ -265,7 +265,7 @@ another JSON-line-compatible child process without blocking the game loop:
 
 ```js title="godot-main.js"
 const { wrap } = require("kkrpc")
-const { godotChildProcessTransport } = require("kkrpc/stdio")
+const { godotChildProcessTransport } = require("kkrpc/godot")
 
 const transport = godotChildProcessTransport({
 	path: "/path/to/bun",
@@ -436,7 +436,8 @@ const channel = new RPCChannel(transport, { expose: api, plugins: [inspector.plu
 | Transport        | Entry                    | Notes                                       |
 | ---------------- | ------------------------ | ------------------------------------------- |
 | Web Worker       | `kkrpc/worker`           | Main-thread and worker-global helpers       |
-| stdio            | `kkrpc/stdio`            | Node.js, Deno, Bun, and GodotJS pipes       |
+| stdio            | `kkrpc/stdio`            | Node.js, Deno, and Bun process pipes        |
+| GodotJS          | `kkrpc/godot`            | Godot stdin and child-process pipes         |
 | HTTP             | `kkrpc/http`             | Unary request/response only                 |
 | WebSocket        | `kkrpc/ws`               | Bidirectional socket transport              |
 | Hono WebSocket   | `kkrpc/ws/hono`          | Framework handler for Hono                  |
@@ -463,6 +464,7 @@ const channel = new RPCChannel(transport, { expose: api, plugins: [inspector.plu
 | `kkrpc/plugins`          | Plugin types and helpers          |
 | `kkrpc/worker`           | Web Worker transports             |
 | `kkrpc/stdio`            | Node/Deno/Bun stdio transports    |
+| `kkrpc/godot`            | GodotJS process transports        |
 | `kkrpc/http`             | HTTP client and handler helpers   |
 | `kkrpc/ws`               | WebSocket transports              |
 | `kkrpc/ws/hono`          | Hono WebSocket integration        |

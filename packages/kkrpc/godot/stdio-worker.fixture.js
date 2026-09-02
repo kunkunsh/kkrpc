@@ -1,7 +1,7 @@
 // @ts-check
 
 const { expose } = require("../dist/mod.cjs")
-const { godotStdioTransport } = require("../dist/stdio.cjs")
+const { godotStdioTransport } = require("../dist/godot.cjs")
 const { SceneTree } = require("godot")
 
 class KkrpcStdioWorker extends SceneTree {

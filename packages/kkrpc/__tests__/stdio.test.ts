@@ -1,19 +1,14 @@
 import { PassThrough } from "node:stream"
 import { describe, expect, test } from "bun:test"
-import { dispose, expose, wrap, type RPCMessage } from "../src/entries/mod.ts"
-import {
-	godotChildProcessTransport,
-	godotStdioTransport,
-	nodeStdioTransport,
-	stdioJsonTransport,
-	stdioPlatform
-} from "../src/entries/stdio.ts"
+import { godotChildProcessTransport, godotStdioTransport } from "../src/entries/godot.ts"
 import type {
 	GodotChildProcessBinding,
 	GodotChildProcessPipe,
-	GodotStdioBinding,
-	ReadableLike
-} from "../src/entries/stdio.ts"
+	GodotStdioBinding
+} from "../src/entries/godot.ts"
+import { dispose, expose, wrap, type RPCMessage } from "../src/entries/mod.ts"
+import { nodeStdioTransport, stdioJsonTransport, stdioPlatform } from "../src/entries/stdio.ts"
+import type { ReadableLike } from "../src/entries/stdio.ts"
 
 interface TestAPI {
 	add(a: number, b: number): Promise<number>
@@ -137,7 +132,7 @@ function createGodotChildHarness(chunks: string[]) {
 }
 
 describe("stdio transport", () => {
-	test("exports stable stdio helpers", () => {
+	test("exports runtime-specific stdio helpers", () => {
 		expect(typeof nodeStdioTransport).toBe("function")
 		expect(typeof godotStdioTransport).toBe("function")
 		expect(typeof godotChildProcessTransport).toBe("function")

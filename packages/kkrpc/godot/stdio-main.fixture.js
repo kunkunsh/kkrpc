@@ -1,7 +1,7 @@
 // @ts-check
 
 const { dispose, wrap } = require("../dist/mod.cjs")
-const { godotChildProcessTransport } = require("../dist/stdio.cjs")
+const { godotChildProcessTransport } = require("../dist/godot.cjs")
 const { OS, SceneTree } = require("godot")
 
 class KkrpcStdioMainTest extends SceneTree {
