@@ -33,6 +33,7 @@ export default defineConfig({
 		"ws-hono": "./src/entries/ws-hono.ts",
 		"ws-elysia": "./src/entries/ws-elysia.ts",
 		iframe: "./src/entries/iframe.ts",
+		webview: "./src/entries/webview.ts",
 		"chrome-extension": "./src/entries/chrome-extension.ts",
 		electron: "./src/entries/electron.ts",
 		tauri: "./src/entries/tauri.ts",

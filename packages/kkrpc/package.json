@@ -211,6 +211,16 @@
 				"default": "./dist/iframe.cjs"
 			}
 		},
+		"./webview": {
+			"import": {
+				"types": "./dist/webview.d.ts",
+				"default": "./dist/webview.js"
+			},
+			"require": {
+				"types": "./dist/webview.d.cts",
+				"default": "./dist/webview.cjs"
+			}
+		},
 		"./http": {
 			"import": {
 				"types": "./dist/http.d.ts",
