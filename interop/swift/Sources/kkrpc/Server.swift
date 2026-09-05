@@ -25,28 +25,37 @@ public actor Server {
                 guard let line = try await transport.read() else {
                     break
                 }
-                let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
-                guard !trimmed.isEmpty else { continue }
-                
-                guard let message = try? decodeMessage(trimmed) else { continue }
-                guard message["t"] as? String == "q",
-                      let messageType = message["op"] as? String else { continue }
-                
-                switch messageType {
-                case "call":
-                    await handleRequest(message)
-                case "get":
-                    await handleGet(message)
-                case "set":
-                    await handleSet(message)
-                case "new":
-                    await handleConstruct(message)
-                default:
-                    break
-                }
+                await accept(line)
             } catch {
                 break
             }
+        }
+    }
+
+    /// Handle one frame that somebody else read.
+    ///
+    /// Exists for ``Channel``, which owns a single read loop over a transport
+    /// both halves share; without it a `Server` and a `Client` on one transport
+    /// race for every frame. Safe to call directly: a frame that is not a
+    /// request is ignored here, exactly as the loop above ignores it.
+    public func accept(_ line: String) async {
+        let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        guard let message = try? decodeMessage(trimmed) else { return }
+        guard message["t"] as? String == "q",
+              let messageType = message["op"] as? String else { return }
+
+        switch messageType {
+        case "call":
+            await handleRequest(message)
+        case "get":
+            await handleGet(message)
+        case "set":
+            await handleSet(message)
+        case "new":
+            await handleConstruct(message)
+        default:
+            break
         }
     }
     

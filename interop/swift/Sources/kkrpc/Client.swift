@@ -109,26 +109,35 @@ public actor Client {
                 guard let line = try await transport.read() else {
                     break
                 }
-                let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
-                guard !trimmed.isEmpty else { continue }
-                
-                guard let message = try? decodeMessage(trimmed) else { continue }
-                guard let messageType = message["t"] as? String else { continue }
-                
-                switch messageType {
-                case "r":
-                    await handleResponse(message)
-                case "cb":
-                    await handleCallback(message)
-                default:
-                    break
-                }
+                await accept(line)
             } catch {
                 break
             }
         }
     }
     
+    /// Handle one frame that somebody else read.
+    ///
+    /// Exists for ``Channel``, which owns a single read loop over a transport
+    /// both halves share; without it a `Client` and a `Server` on one transport
+    /// race for every frame. A frame that is not a response or a callback is
+    /// ignored here, exactly as the loop above ignores it.
+    public func accept(_ line: String) async {
+        let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        guard let message = try? decodeMessage(trimmed) else { return }
+        guard let messageType = message["t"] as? String else { return }
+
+        switch messageType {
+        case "r":
+            await handleResponse(message)
+        case "cb":
+            await handleCallback(message)
+        default:
+            break
+        }
+    }
+
     private func handleResponse(_ message: [String: Any]) async {
         guard let requestId = message["id"] as? String,
               let continuation = pending.removeValue(forKey: requestId) else {
