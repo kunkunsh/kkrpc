@@ -39,6 +39,7 @@ jobs:
           pnpx playwright install --with-deps
           pnpm --filter kkrpc build
           pnpm --filter kkrpc check-types
+          pnpm --filter kkrpc prepare:godot-js
           pnpm --filter kkrpc test
       - name: Stop test services
         if: always()

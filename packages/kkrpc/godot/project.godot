@@ -1,0 +1,7 @@
+[application]
+
+config/name="kkrpc GodotJS stdio test"
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"

@@ -30,7 +30,7 @@ The stable API is built on native `Transport<RPCMessage>` objects. The main `kkr
 | Type-safe remote calls            | Yes                                  | Yes                     | Yes             |
 | Bidirectional APIs                | Yes                                  | No                      | Yes             |
 | Browser-safe core entry           | Yes                                  | Mostly HTTP app focused | Browser focused |
-| Node.js, Deno, Bun stdio          | Yes                                  | No                      | No              |
+| Node.js, Deno, Bun, GodotJS stdio | Yes                                  | No                      | No              |
 | WebSocket and HTTP                | Yes                                  | HTTP focused            | No              |
 | Workers and iframes               | Yes                                  | No                      | Yes             |
 | Electron, Tauri, Chrome extension | Yes                                  | No                      | No              |
@@ -233,6 +233,58 @@ const api = wrap<ChildAPI>(nodeStdioTransport({ readable: child.stdout, writable
 console.log(await api.version())
 ```
 
+### GodotJS worker
+
+`godotStdioTransport()` exposes the same JSON-line protocol from a dedicated GodotJS
+headless or exported subprocess:
+
+```js title="godot-worker.js"
+const { expose } = require("kkrpc")
+const { godotStdioTransport } = require("kkrpc/godot")
+
+expose(
+	{
+		async version() {
+			return "godot"
+		}
+	},
+	godotStdioTransport()
+)
+```
+
+The parent uses `nodeStdioTransport()` exactly as shown above, with the Godot process's
+stdout and stdin. Godot's stdin API blocks the script thread, so this helper is intended for a
+dedicated RPC worker and must not be used on a real-time game-loop thread. On Windows exports,
+launch the console wrapper executable so stdin is available. Bundle the worker into a single
+CommonJS script before Godot imports it, keeping the built-in `godot` module external.
+
+### GodotJS parent process
+
+`godotChildProcessTransport()` lets a running GodotJS application start a Node.js, Bun, or
+another JSON-line-compatible child process without blocking the game loop:
+
+```js title="godot-main.js"
+const { wrap } = require("kkrpc")
+const { godotChildProcessTransport } = require("kkrpc/godot")
+
+const transport = godotChildProcessTransport({
+	path: "/path/to/bun",
+	args: ["run", "/path/to/child.js"]
+})
+const api = wrap(transport)
+
+console.log(await api.version())
+console.log(`child pid: ${transport.pid}`)
+
+transport.close()
+```
+
+The child uses `nodeStdioTransport()` as in the first example. Incoming bytes are polled and
+decoded incrementally, so responses, callbacks, split UTF-8 data, and multiple frames remain
+non-blocking on the Godot side. `close()` closes the pipe and kills a still-running child by
+default; pass `killOnClose: false` when the child owns its shutdown lifecycle. As with the worker
+helper, bundle the Godot entry as CommonJS and keep the built-in `godot` module external.
+
 ## Property Access
 
 Remote proxies can read and write exposed properties. Remote reads are asynchronous.
@@ -385,6 +437,7 @@ const channel = new RPCChannel(transport, { expose: api, plugins: [inspector.plu
 | ---------------- | ------------------------ | ------------------------------------------- |
 | Web Worker       | `kkrpc/worker`           | Main-thread and worker-global helpers       |
 | stdio            | `kkrpc/stdio`            | Node.js, Deno, and Bun process pipes        |
+| GodotJS          | `kkrpc/godot`            | Godot stdin and child-process pipes         |
 | HTTP             | `kkrpc/http`             | Unary request/response only                 |
 | WebSocket        | `kkrpc/ws`               | Bidirectional socket transport              |
 | Hono WebSocket   | `kkrpc/ws/hono`          | Framework handler for Hono                  |
@@ -411,6 +464,7 @@ const channel = new RPCChannel(transport, { expose: api, plugins: [inspector.plu
 | `kkrpc/plugins`          | Plugin types and helpers          |
 | `kkrpc/worker`           | Web Worker transports             |
 | `kkrpc/stdio`            | Node/Deno/Bun stdio transports    |
+| `kkrpc/godot`            | GodotJS process transports        |
 | `kkrpc/http`             | HTTP client and handler helpers   |
 | `kkrpc/ws`               | WebSocket transports              |
 | `kkrpc/ws/hono`          | Hono WebSocket integration        |

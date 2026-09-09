@@ -28,5 +28,5 @@
 		"noPropertyAccessFromIndexSignature": false,
 		"types": ["chrome", "bun"]
 	},
-	"exclude": ["__deno_tests__/**/*", "dist/**/*"]
+	"exclude": ["__deno_tests__/**/*", "dist/**/*", "godot/**/*"]
 }
