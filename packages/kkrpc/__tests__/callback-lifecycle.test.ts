@@ -211,8 +211,12 @@ describe("callback lifecycle", () => {
 			await api.callOnce(() => {})
 			await flush()
 
-			serverT.sent.length = 0
-			for (let i = 0; i < 5; i++) {
+			// Exercise a real collection before checking release history; keep any
+			// earlier `cbr` sent during the request/flush above.
+			Bun.gc(true)
+			await new Promise((resolve) => setTimeout(resolve, 20))
+			for (let i = 0; i < 4; i++) {
+				if (serverT.sent.some((m) => m.t === "cbr")) break
 				Bun.gc(true)
 				await new Promise((resolve) => setTimeout(resolve, 20))
 				if (serverT.sent.some((m) => m.t === "cbr")) break
