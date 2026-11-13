@@ -9,7 +9,6 @@
  */
 
 import {
-	type CallOptions,
 	fromRPCError,
 	getParent,
 	getPath,
@@ -18,6 +17,7 @@ import {
 	RPCTransportClosedError,
 	toAbortError,
 	toRPCError,
+	type CallOptions,
 	type RPCChannelOptions
 } from "./channel.ts"
 import type { RPCError, RPCMessage, RPCMessageMetadata, RPCRequest } from "./protocol.ts"

@@ -138,7 +138,7 @@ describe("kkrpc validation plugin", () => {
 		}
 		const controller = expose(
 			{
-				use: async (value: string, callback: () => Promise<string> | string) => {
+				use: async (value: string, callback: () => void) => {
 					expect(value).toBe("ok")
 					callback()
 					return "done"
@@ -150,7 +150,7 @@ describe("kkrpc validation plugin", () => {
 			}
 		)
 		const api = wrap<{
-			use(value: string, callback: () => Promise<string> | string): Promise<string>
+			use(value: string, callback: () => void): Promise<string>
 		}>(a)
 		let callbackValue = ""
 

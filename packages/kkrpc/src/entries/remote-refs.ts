@@ -19,12 +19,24 @@ import {
 	type RemoteReferenceRPCChannelOptions
 } from "../core/remote-ref-channel.ts"
 import type { Transport } from "../core/transport.ts"
+import type { Remote, ValidateBiDirectionalAPI } from "../core/types.ts"
 
 export { RemoteReferenceRPCChannel, RemoteReferenceRPCChannel as RPCChannel }
 export type {
 	RemoteReferenceRPCChannelOptions,
 	RemoteReferenceRPCChannelOptions as RPCChannelOptions
 }
+export type {
+	AnyConstructor,
+	AnyFunction,
+	BiDirectionalCallbackError,
+	PromisifyReturn,
+	Remote,
+	RemoteValue,
+	ValidateBiDirectionalAPI,
+	ValidateBiDirectionalArgs,
+	ValidateBiDirectionalParam
+} from "../core/types.ts"
 export {
 	RPCEncodeError,
 	RPCRemoteReferenceReleasedError,
@@ -58,14 +70,17 @@ const channels = new WeakMap<object, RemoteReferenceRPCChannel<object, object>>(
 export function wrap<RemoteAPI extends object = object>(
 	transport: Transport<RPCMessage>,
 	options: Omit<RemoteReferenceRPCChannelOptions<object>, "expose"> = {}
-): RemoteAPI {
+): Remote<RemoteAPI> {
 	const channel = new RemoteReferenceRPCChannel<object, RemoteAPI>(transport, options)
 	const api = channel.getAPI()
 	channels.set(api, channel as RemoteReferenceRPCChannel<object, object>)
 	return api
 }
 
-export function expose<LocalAPI extends object, RemoteAPI extends object = object>(
+export function expose<
+	LocalAPI extends ValidateBiDirectionalAPI<LocalAPI>,
+	RemoteAPI extends object = object
+>(
 	api: LocalAPI,
 	transport: Transport<RPCMessage>,
 	options: Omit<RemoteReferenceRPCChannelOptions<LocalAPI>, "expose"> = {}

@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test"
+import { iframeChildTransportReady, type WindowLike } from "../src/entries/iframe.ts"
 import { RPCChannel } from "../src/entries/mod.ts"
 import type { RPCMessage, Transport } from "../src/entries/mod.ts"
-import { iframeChildTransportReady, type WindowLike } from "../src/entries/iframe.ts"
 import { RPCChannel as RemoteReferenceRPCChannel } from "../src/entries/remote-refs.ts"
 
 class MemoryTransport implements Transport<RPCMessage> {
@@ -48,8 +48,7 @@ describe("onUncaughtError", () => {
 			onUncaughtError: (_error, context) => errors.push(context)
 		})
 		new RPCChannel(serverT, { expose: target })
-
-		;(client.getAPI() as { locked: number }).locked = 5
+		;(client.getAPI() as unknown as { locked: number }).locked = 5
 		await flush()
 		expect(errors).toHaveLength(1)
 		expect(errors[0].kind).toBe("set")

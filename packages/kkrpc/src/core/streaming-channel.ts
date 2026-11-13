@@ -10,11 +10,11 @@
 
 import {
 	CALL_OPTIONS,
-	type CallOptions,
 	fromRPCError,
 	NO_VALUE,
 	RPCChannel,
 	RPCTransportClosedError,
+	type CallOptions,
 	type RPCChannelOptions
 } from "./channel.ts"
 import { runErrorHooks, runHandlerHooks, runRequestHooks, runResponseHooks } from "./plugins.ts"

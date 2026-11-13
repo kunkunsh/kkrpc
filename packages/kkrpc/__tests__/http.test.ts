@@ -1,16 +1,16 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test"
 import { createHttpHandler, httpClientTransport } from "../src/entries/http.ts"
-import { RPCChannel, wrap } from "../src/entries/mod.ts"
+import { RPCChannel, wrap, type Remote, type ValidateHttpAPI } from "../src/entries/mod.ts"
 import { proxy, RPCChannel as RemoteRefRPCChannel } from "../src/entries/remote-refs.ts"
 import { apiMethods, type API } from "./scripts/api.ts"
 
 describe("HTTP RPC", () => {
 	let server: ReturnType<typeof Bun.serve>
-	let api: API
+	let api: Remote<API>
 	let baseUrl: string
 
 	beforeAll(() => {
-		const handler = createHttpHandler(apiMethods)
+		const handler = createHttpHandler(apiMethods as unknown as ValidateHttpAPI<API>)
 		server = Bun.serve({
 			port: 0,
 			async fetch(req) {
