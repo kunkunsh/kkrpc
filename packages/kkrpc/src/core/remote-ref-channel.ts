@@ -9,7 +9,6 @@
  */
 
 import {
-	type CallOptions,
 	fromRPCError,
 	getParent,
 	getPath,
@@ -18,6 +17,7 @@ import {
 	RPCTransportClosedError,
 	toAbortError,
 	toRPCError,
+	type CallOptions,
 	type RPCChannelOptions
 } from "./channel.ts"
 import type { RPCError, RPCMessage, RPCMessageMetadata, RPCRequest } from "./protocol.ts"
@@ -41,6 +41,18 @@ export interface RemoteReferenceRPCChannelOptions<LocalAPI extends object = obje
 	extends RPCChannelOptions<LocalAPI> {
 	/** Disable remote references even when using the remote-ref entry. */
 	remoteRefs?: boolean
+	/**
+	 * Automatically pass function values by reference as remote proxies, even if not marked with `proxy()`.
+	 *
+	 * When enabled (the default), any unmarked function encountered during encoding is automatically
+	 * retained and sent as a remote reference envelope. When disabled (`false`), unmarked functions
+	 * throw an `RPCEncodeError`.
+	 *
+	 * Plain data objects and arrays continue to cross by value unless explicitly marked with `proxy()`.
+	 *
+	 * @default true
+	 */
+	autoProxy?: boolean
 }
 
 type RewriteState = {
@@ -125,6 +137,7 @@ export class RemoteReferenceRPCChannel<
 	private remoteProxyRecords = new Set<RemoteProxyRecord>()
 	private readonly remoteProxyOwner = Symbol("kkrpc.remote-ref-channel")
 	private supportsRemoteRefs: boolean
+	private readonly autoProxy: boolean
 
 	constructor(
 		transport: Transport<RPCMessage>,
@@ -133,6 +146,7 @@ export class RemoteReferenceRPCChannel<
 		super(transport, options)
 		this.supportsRemoteRefs =
 			options.remoteRefs !== false && transport.capabilities?.remoteRefs === true
+		this.autoProxy = options.autoProxy ?? true
 	}
 
 	/** Release local bookkeeping and mark decoded remote proxies as unusable. */
@@ -283,10 +297,11 @@ export class RemoteReferenceRPCChannel<
 	}
 
 	/**
-	 * Encode transfer descriptors, pass-back proxies, and explicit `proxy()` markers.
+	 * Encode transfer descriptors, pass-back proxies, and explicit or automatic `proxy()` markers.
 	 *
-	 * Plain arrays/objects are shallow-copied only when a nested explicit marker or
-	 * remote proxy is rewritten. Unmarked function values are rejected so object-mode
+	 * Plain arrays/objects are shallow-copied only when a nested explicit marker,
+	 * remote proxy, or automatically proxied function is rewritten. When `autoProxy`
+	 * is disabled (`false`), unmarked function values are rejected so object-mode
 	 * transports cannot accidentally leak raw same-process references.
 	 */
 	protected override encodeValue(
@@ -318,6 +333,10 @@ export class RemoteReferenceRPCChannel<
 			)
 		}
 		if (typeof value === "function") {
+			if (this.autoProxy) {
+				state.changed = true
+				return this.retainLocalRef("function", value, state, receiver)
+			}
 			throw new RPCEncodeError("Unmarked function values require proxy() with kkrpc/remote-refs")
 		}
 		if (Array.isArray(value)) {

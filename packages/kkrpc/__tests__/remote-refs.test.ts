@@ -10,12 +10,15 @@ import { describe, expect, test } from "bun:test"
 import { registerRemoteProxy } from "../src/core/remote-ref.ts"
 import { RPCChannel as CoreRPCChannel } from "../src/entries/mod.ts"
 import {
+	dispose,
+	expose,
 	isRemoteProxy,
 	isRemoteRefEnvelope,
 	proxy,
 	releaseProxy,
 	RPCChannel,
 	RPCRemoteReferenceReleasedError,
+	wrap,
 	type RPCMessage,
 	type Transport,
 	type TransportCapabilities
@@ -136,11 +139,38 @@ describe("remote references", () => {
 		server.destroy()
 	})
 
-	test("rejects unmarked nested functions instead of passing same-process references", async () => {
+	test("automatically proxies unmarked functions by default", async () => {
 		const [clientTransport, serverTransport] = createPair()
 		let called = false
 		const client = new RPCChannel<object, { receive(input: { cb(): string }): Promise<string> }>(
 			clientTransport
+		)
+		const server = new RPCChannel<{ receive(input: { cb(): string }): string }, object>(
+			serverTransport,
+			{
+				expose: {
+					receive: (input) => {
+						called = true
+						return input.cb()
+					}
+				}
+			}
+		)
+
+		const result = await client.getAPI().receive({ cb: () => "auto-proxied" })
+		expect(result).toBe("auto-proxied")
+		expect(called).toBe(true)
+
+		client.destroy()
+		server.destroy()
+	})
+
+	test("rejects unmarked nested functions when autoProxy is false", async () => {
+		const [clientTransport, serverTransport] = createPair()
+		let called = false
+		const client = new RPCChannel<object, { receive(input: { cb(): string }): Promise<string> }>(
+			clientTransport,
+			{ autoProxy: false }
 		)
 		const server = new RPCChannel<{ receive(input: { cb(): string }): string }, object>(
 			serverTransport,
@@ -367,5 +397,53 @@ describe("remote references", () => {
 		expect(result.message).toContain("proxy()")
 
 		client.destroy()
+	})
+
+	test("automatically proxies returned unmarked functions by default", async () => {
+		const [clientTransport, serverTransport] = createPair()
+		const server = new RPCChannel<
+			{ createToast(msg: string): { message: string; hide(): string } },
+			object
+		>(serverTransport, {
+			expose: {
+				createToast: (msg) => ({
+					message: msg,
+					hide: () => `hidden:${msg}`
+				})
+			}
+		})
+		const client = new RPCChannel<
+			object,
+			{ createToast(msg: string): Promise<{ message: string; hide(): Promise<string> }> }
+		>(clientTransport)
+
+		const toast = await client.getAPI().createToast("hello")
+		expect(toast.message).toBe("hello")
+		expect(await toast.hide()).toBe("hidden:hello")
+
+		client.destroy()
+		server.destroy()
+	})
+
+	test("wrap and expose respect autoProxy option", async () => {
+		const [clientTransport, serverTransport] = createPair()
+		const serverController = expose(
+			{
+				createToast: (msg: string) => ({
+					message: msg,
+					hide: () => `hidden:${msg}`
+				})
+			},
+			serverTransport,
+			{ autoProxy: false }
+		)
+		const client = wrap<{
+			createToast(msg: string): Promise<{ message: string; hide(): Promise<string> }>
+		}>(clientTransport)
+
+		await expect(client.createToast("hello")).rejects.toThrow("proxy()")
+
+		serverController.dispose()
+		dispose(client)
 	})
 })
