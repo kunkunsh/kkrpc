@@ -18,6 +18,7 @@ import { RPCChannel } from "../core/channel.ts"
 import type { RPCMessage, RPCOperation, RPCRequest, RPCResponse } from "../core/protocol.ts"
 import { isRemoteRefEnvelope } from "../core/remote-ref.ts"
 import type { Transport } from "../core/transport.ts"
+import type { ValidateHttpAPI } from "../core/types.ts"
 import { MAX_RPC_DEPTH } from "../core/utils.ts"
 
 /** Options for the client-side unary HTTP transport. */
@@ -111,7 +112,7 @@ function isRPCResponseMessage(value: unknown): value is RPCResponse {
  * rejects remote reference envelopes because HTTP has no reverse channel for
  * invoking retained values. A request-scoped channel is destroyed after each response.
  */
-export function createHttpHandler<LocalAPI extends object>(
+export function createHttpHandler<LocalAPI extends ValidateHttpAPI<LocalAPI>>(
 	api: LocalAPI,
 	options: HttpHandlerOptions = {}
 ): (request: Request) => Promise<Response> {

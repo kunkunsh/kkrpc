@@ -35,6 +35,7 @@
  */
 
 import type { RPCPlugin, RPCRequestContext, RPCResponseContext } from "../core/plugins.ts"
+import type { Remote } from "../core/types.ts"
 
 /**
  * Minimal Standard Schema v1 interface accepted by kkrpc validation helpers.
@@ -401,17 +402,15 @@ export function extractValidators<T extends Record<string, unknown>>(
  * `DefinedMethod` entries become methods returning promises of the output schema
  * type, while nested objects are inferred recursively.
  */
-export type InferAPI<T> = {
+export type InferAPI<T> = Remote<{
 	[K in keyof T]: T[K] extends DefinedMethod<infer I, infer O>
 		? (
 				...args: StandardSchemaV1.InferOutput<I> extends readonly unknown[]
 					? StandardSchemaV1.InferOutput<I>
 					: [StandardSchemaV1.InferOutput<I>]
 			) => Promise<StandardSchemaV1.InferOutput<O>>
-		: T[K] extends Record<string, unknown>
-			? InferAPI<T[K]>
-			: T[K]
-}
+		: T[K]
+}>
 
 function filterCallbacks(args: unknown[]): unknown[] {
 	return args.filter((arg) => typeof arg !== "function")

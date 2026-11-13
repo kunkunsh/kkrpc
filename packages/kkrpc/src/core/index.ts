@@ -11,9 +11,30 @@ import { RPCChannel } from "./channel.ts"
 import type { RPCChannelOptions } from "./channel.ts"
 import type { RPCMessage } from "./protocol.ts"
 import type { Transport } from "./transport.ts"
+import type { Remote, ValidateOneWayAPI } from "./types.ts"
 
 export { RPCChannel }
 export type { CallOptions, RPCChannelOptions } from "./channel.ts"
+export type {
+	AnyConstructor,
+	AnyFunction,
+	BiDirectionalCallbackError,
+	HttpCallbackError,
+	OneWayCallbackError,
+	PromisifyReturn,
+	Remote,
+	RemoteProperty,
+	RemoteValue,
+	ValidateBiDirectionalAPI,
+	ValidateBiDirectionalArgs,
+	ValidateBiDirectionalParam,
+	ValidateHttpAPI,
+	ValidateHttpArgs,
+	ValidateHttpParam,
+	ValidateOneWayAPI,
+	ValidateOneWayArgs,
+	ValidateOneWayParam
+} from "./types.ts"
 export {
 	RPCCallbackReleasedError,
 	releaseCallback,
@@ -81,7 +102,7 @@ const channels = new WeakMap<object, RPCChannel<object, object>>()
 export function wrap<RemoteAPI extends object = object>(
 	transport: Transport<RPCMessage>,
 	options: Omit<RPCChannelOptions<object>, "expose"> = {}
-): RemoteAPI {
+): Remote<RemoteAPI> {
 	const channel = new RPCChannel<object, RemoteAPI>(transport, options)
 	const api = channel.getAPI()
 	channels.set(api, channel as RPCChannel<object, object>)
@@ -94,7 +115,10 @@ export function wrap<RemoteAPI extends object = object>(
  * The returned controller can also access the remote side through `channel.getAPI()`
  * when the connection is bidirectional.
  */
-export function expose<LocalAPI extends object, RemoteAPI extends object = object>(
+export function expose<
+	LocalAPI extends ValidateOneWayAPI<LocalAPI>,
+	RemoteAPI extends object = object
+>(
 	api: LocalAPI,
 	transport: Transport<RPCMessage>,
 	options: Omit<RPCChannelOptions<LocalAPI>, "expose"> = {}

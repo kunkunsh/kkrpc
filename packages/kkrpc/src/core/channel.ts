@@ -35,6 +35,7 @@ import type {
 } from "./protocol.ts"
 import { takeTransferDescriptor } from "./transfer.ts"
 import type { Transport } from "./transport.ts"
+import type { Remote } from "./types.ts"
 import { generateId } from "./utils.ts"
 
 /** Options used to configure an `RPCChannel`. */
@@ -382,8 +383,8 @@ export class RPCChannel<LocalAPI extends object = object, RemoteAPI extends obje
 	}
 
 	/** Return a typed proxy that sends operations to the remote API. */
-	getAPI(): RemoteAPI {
-		return this.createProxy([]) as RemoteAPI
+	getAPI(): Remote<RemoteAPI> {
+		return this.createProxy([]) as Remote<RemoteAPI>
 	}
 
 	/** Close the transport subscription, reject pending calls, and release callback records. */
@@ -416,6 +417,10 @@ export class RPCChannel<LocalAPI extends object = object, RemoteAPI extends obje
 					if (path.length === 0) return undefined
 					const promise = this.request("get", path, undefined, NO_VALUE, callOptions)
 					return promise.then.bind(promise)
+				}
+				if (property === "set") {
+					if (path.length === 0) return undefined
+					return (newValue: unknown) => this.request("set", path, undefined, newValue, callOptions)
 				}
 				if (typeof property === "symbol") return Reflect.get(target, property, receiver)
 				return this.createProxy([...path, property], callOptions)

@@ -16,9 +16,21 @@ import type { RPCChannelOptions } from "../core/channel.ts"
 import type { RPCMessage } from "../core/protocol.ts"
 import { StreamingRPCChannel } from "../core/streaming-channel.ts"
 import type { Transport } from "../core/transport.ts"
+import type { Remote, ValidateOneWayAPI } from "../core/types.ts"
 
 export { StreamingRPCChannel, StreamingRPCChannel as RPCChannel }
 export type { RPCChannelOptions }
+export type {
+	AnyConstructor,
+	AnyFunction,
+	OneWayCallbackError,
+	PromisifyReturn,
+	Remote,
+	RemoteProperty,
+	ValidateOneWayAPI,
+	ValidateOneWayArgs,
+	ValidateOneWayParam
+} from "../core/types.ts"
 export { transfer } from "../core/transfer.ts"
 export type {
 	RPCError,
@@ -46,14 +58,17 @@ const channels = new WeakMap<object, StreamingRPCChannel<object, object>>()
 export function wrap<RemoteAPI extends object = object>(
 	transport: Transport<RPCMessage>,
 	options: Omit<RPCChannelOptions<object>, "expose"> = {}
-): RemoteAPI {
+): Remote<RemoteAPI> {
 	const channel = new StreamingRPCChannel<object, RemoteAPI>(transport, options)
 	const api = channel.getAPI()
 	channels.set(api, channel as StreamingRPCChannel<object, object>)
 	return api
 }
 
-export function expose<LocalAPI extends object, RemoteAPI extends object = object>(
+export function expose<
+	LocalAPI extends ValidateOneWayAPI<LocalAPI>,
+	RemoteAPI extends object = object
+>(
 	api: LocalAPI,
 	transport: Transport<RPCMessage>,
 	options: Omit<RPCChannelOptions<LocalAPI>, "expose"> = {}

@@ -9,7 +9,6 @@
  */
 
 import {
-	type CallOptions,
 	fromRPCError,
 	getParent,
 	getPath,
@@ -18,6 +17,7 @@ import {
 	RPCTransportClosedError,
 	toAbortError,
 	toRPCError,
+	type CallOptions,
 	type RPCChannelOptions
 } from "./channel.ts"
 import type { RPCError, RPCMessage, RPCMessageMetadata, RPCRequest } from "./protocol.ts"
@@ -663,6 +663,10 @@ export class RemoteReferenceRPCChannel<
 						if (path.length === 0) return undefined
 						const promise = request("get", path)
 						return promise.then.bind(promise)
+					}
+					if (property === "set") {
+						if (path.length === 0) return undefined
+						return (newValue: unknown) => request("set", path, undefined, newValue)
 					}
 					if (typeof property === "symbol") return Reflect.get(target, property, receiver)
 					return createNode([...path, property])

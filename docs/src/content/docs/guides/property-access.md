@@ -10,9 +10,10 @@ kkrpc supports direct property access and mutation across RPC boundaries using J
 ## Features
 
 - **Property Getters**: Access remote properties with `await api.property`
-- **Property Setters**: Set remote properties with `api.property = value`
+- **Deterministic Setters**: Set remote properties with `await api.property.set(newValue)`
+- **Direct Assignment**: Set remote properties fire-and-forget with `api.property = value`
 - **Nested Properties**: Deep property access with dot notation `api.nested.deep.property`
-- **Type Safety**: Full TypeScript inference and IDE autocompletion
+- **Type Safety**: Full TypeScript inference with `readonly RemoteProperty<T>` preventing accidental sync mutation
 - **Async/Await Support**: Seamless integration with async/await syntax
 
 ## How It Works
@@ -22,13 +23,23 @@ Property access is implemented using JavaScript Proxy objects with custom get an
 1. **Property Access**: When you access a property like `api.counter`, a proxy returns another proxy
 2. **Await Trigger**: Using `await api.counter` triggers the proxy's "then" handler
 3. **RPC Message**: This sends a "get" type message to the remote endpoint
-4. **Property Setting**: Direct assignment like `api.counter = 42` triggers the proxy's set trap
-5. **Remote Execution**: The remote endpoint handles get/set operations on the actual object
+4. **Deterministic Setting**: Calling `await api.counter.set(42)` sends a "set" request and awaits the remote result
+5. **Direct Assignment**: Direct assignment like `(api as any).counter = 42` triggers the proxy's set trap
 
-Assignment is **fire-and-forget**: `api.counter = 42` returns immediately and does not wait for the
-remote set to complete, so a failed set does not throw at the assignment site. To observe such
-failures for diagnostics, pass `onUncaughtError` to the channel — it receives errors from failed
-sets (`kind: "set"`) and from thrown remote-callback invocations (`kind: "callback"`).
+### Deterministic `set()` vs Direct Assignment
+
+kkrpc provides two ways to mutate remote properties:
+
+1. **`await api.property.set(newValue)` (Recommended)**:
+
+   - Returns a `Promise<void>` that settles when the remote host completes the assignment.
+   - Throws or rejects if validation fails or the remote setter throws.
+   - TypeScript types automatically treat leaf properties as `readonly RemoteProperty<T>` which exposes `.set(newValue)` and prevents accidental direct assignment.
+
+2. **Direct assignment `api.property = value`**:
+   - Assignment is **fire-and-forget**: returns immediately and does not wait for the remote set to complete.
+   - A failed set does not throw at the assignment site.
+   - To observe failures from direct assignments, pass `onUncaughtError` to the channel.
 
 ## Basic Usage
 
@@ -108,11 +119,11 @@ console.log(theme) // "light"
 console.log(notificationsEnabled) // true
 console.log(dbConnections) // 0
 
-// Property setters (direct assignment)
-api.counter = 42
-api.config.theme = "dark"
-api.config.notifications.sound = true
-api.database.connectionCount = 5
+// Property setters (deterministic with set)
+await api.counter.set(42)
+await api.config.theme.set("dark")
+await api.config.notifications.sound.set(true)
+await api.database.connectionCount.set(5)
 
 // Verify changes
 console.log(await api.counter) // 42
@@ -133,9 +144,9 @@ const results = await api.database.query("SELECT * FROM users")
 const status = await api.status
 const connectionCount = await api.database.connectionCount
 
-// Set properties directly
-api.status = "connected"
-api.database.connectionCount = 10
+// Set properties deterministically
+await api.status.set("connected")
+await api.database.connectionCount.set(10)
 ```
 
 ## Advanced Usage
