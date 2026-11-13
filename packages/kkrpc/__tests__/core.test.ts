@@ -127,8 +127,7 @@ describe("stable core RPC", () => {
 
 		expect(await api.math.add(2, 3)).toBe(15)
 		expect(await api.config.name).toBe("initial")
-		;(api.config as unknown as { name: string }).name = "updated"
-		await new Promise((resolve) => setTimeout(resolve, 0))
+		await api.config.name.set("updated")
 		expect(serverAPI.config.name).toBe("updated")
 		expect(await api.counter.getValue()).toBe(1)
 		const widget = await new api.Widget("demo")

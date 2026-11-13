@@ -23,6 +23,7 @@ export type {
 	OneWayCallbackError,
 	PromisifyReturn,
 	Remote,
+	RemoteProperty,
 	RemoteValue,
 	ValidateBiDirectionalAPI,
 	ValidateBiDirectionalArgs,

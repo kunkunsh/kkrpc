@@ -16,6 +16,7 @@ import {
 	releaseProxy,
 	RPCChannel,
 	RPCRemoteReferenceReleasedError,
+	type Remote,
 	type RPCMessage,
 	type Transport,
 	type TransportCapabilities
@@ -227,7 +228,7 @@ describe("remote references", () => {
 				return this.value
 			}
 		}
-		const client = new RPCChannel<object, { getCounter(): Promise<typeof counter> }>(
+		const client = new RPCChannel<object, { getCounter(): Promise<Remote<typeof counter>> }>(
 			clientTransport
 		)
 		const server = new RPCChannel<{ getCounter(): typeof counter }, object>(serverTransport, {
@@ -237,8 +238,7 @@ describe("remote references", () => {
 		const remoteCounter = await client.getAPI().getCounter()
 		expect(await remoteCounter.value).toBe(1)
 		expect(await remoteCounter.inc(4)).toBe(5)
-		remoteCounter.value = 10
-		await new Promise((resolve) => setTimeout(resolve, 0))
+		await remoteCounter.value.set(10)
 		expect(counter.value).toBe(10)
 
 		await releaseProxy(remoteCounter)

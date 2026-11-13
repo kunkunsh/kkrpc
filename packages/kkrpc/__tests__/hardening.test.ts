@@ -48,11 +48,26 @@ describe("onUncaughtError", () => {
 			onUncaughtError: (_error, context) => errors.push(context)
 		})
 		new RPCChannel(serverT, { expose: target })
-		;(client.getAPI() as unknown as { locked: number }).locked = 5
+		;(client.getAPI() as any).locked = 5
 		await flush()
 		expect(errors).toHaveLength(1)
 		expect(errors[0].kind).toBe("set")
 		expect(errors[0].path).toEqual(["locked"])
+	})
+
+	test("set rejects when remote set fails", async () => {
+		const [clientT, serverT] = createPair()
+		const target = {} as { locked: number }
+		Object.defineProperty(target, "locked", {
+			get: () => 0,
+			set: () => {
+				throw new Error("cannot set locked")
+			},
+			enumerable: true
+		})
+		const client = new RPCChannel<object, { locked: number }>(clientT)
+		new RPCChannel(serverT, { expose: target })
+		await expect(client.getAPI().locked.set(5)).rejects.toThrow("cannot set locked")
 	})
 
 	test("reports a throwing callback invocation", async () => {

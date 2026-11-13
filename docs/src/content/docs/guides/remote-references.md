@@ -108,17 +108,13 @@ console.log(await counter.get())
 console.log(await counter.add(5))
 ```
 
-Direct property assignment sends an asynchronous `set` request to the owner endpoint:
+Remote object handles provide deterministic property setters via `.set(newValue)`:
 
 ```ts
-counter.value = 10
+await counter.value.set(10)
 ```
 
-The JavaScript assignment expression itself cannot be awaited and does not surface owner-side assignment errors. Prefer explicit setter methods when the caller must observe validation failures or completion:
-
-```ts
-await counter.setValue(10)
-```
+Calling `.set()` sends an asynchronous `set` request to the owner endpoint and awaits its confirmation. This avoids silent failures from fire-and-forget assignment expressions and ensures the remote value has been updated before subsequent operations execute.
 
 Treat explicit object proxies as an API design decision, not as a serialization shortcut. Do not proxy DOM events, DOM nodes, request objects, host internals, or other sensitive capability-bearing objects unless the trust boundary is explicitly designed for that exposure.
 

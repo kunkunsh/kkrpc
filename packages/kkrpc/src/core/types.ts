@@ -32,6 +32,16 @@ export type AnyFunction = (...args: any[]) => any
 export type AnyConstructor = new (...args: any[]) => any
 
 /**
+ * A remote property proxy handle.
+ *
+ * - Awaiting the property directly (`await api.property`) sends an RPC `get` request to fetch its remote value.
+ * - Calling `.set(newValue)` sends an explicit RPC `set` request and returns a `Promise<void>` that settles when the update completes remotely.
+ */
+export type RemoteProperty<T> = Promise<T> & {
+	set(value: T): Promise<void>
+}
+
+/**
  * Recursively transforms a value crossing the RPC boundary (such as method return values or closure values).
  *
  * - Plain primitives (string, number, boolean, etc.) and built-in objects (Date, ArrayBuffer) cross by value and are preserved as-is.
@@ -70,13 +80,13 @@ export type PromisifyReturn<R> =
  * - Methods returning `T` are transformed to return `Promise<RemoteValue<T>>`.
  * - Methods returning `Promise<T>` or `AsyncIterable<T>` are preserved while transforming leaf functions.
  * - Constructors returning `Instance` are transformed to return `Promise<RemoteValue<Instance>>`.
- * - Plain non-function leaf properties become `readonly Promise<T>` to reflect asynchronous
- *   property access (`await api.property`) and prevent direct local mutation (use explicit setter methods instead).
+ * - Plain non-function leaf properties become `readonly RemoteProperty<T>` to reflect asynchronous
+ *   property access (`await api.property`) and provide `.set(newValue)` for remote updates.
  * - Nested objects are recursively transformed without being wrapped in `Promise`,
  *   preserving chainable dot-access syntax (e.g. `api.math.add(1, 2)`).
  */
 export type Remote<T> = T extends Builtin
-	? Promise<T>
+	? RemoteProperty<T>
 	: T extends new (...args: infer CA) => infer CR
 		? T extends (...args: infer FA) => infer FR
 			? ((...args: FA) => PromisifyReturn<FR>) & (new (...args: CA) => Promise<RemoteValue<CR>>)
@@ -86,7 +96,7 @@ export type Remote<T> = T extends Builtin
 			: T extends object
 				? {
 						readonly [K in keyof T]: T[K] extends Builtin
-							? Promise<T[K]>
+							? RemoteProperty<T[K]>
 							: T[K] extends new (...args: infer CA) => infer CR
 								? T[K] extends (...args: infer FA) => infer FR
 									? ((...args: FA) => PromisifyReturn<FR>) &
@@ -96,9 +106,9 @@ export type Remote<T> = T extends Builtin
 									? (...args: FA) => PromisifyReturn<FR>
 									: T[K] extends object
 										? Remote<T[K]>
-										: Promise<T[K]>
+										: RemoteProperty<T[K]>
 					}
-				: Promise<T>
+				: RemoteProperty<T>
 
 /**
  * Error branding type emitted when a callback in a one-way exposed API violates the `void` return constraint.

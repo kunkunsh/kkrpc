@@ -418,6 +418,10 @@ export class RPCChannel<LocalAPI extends object = object, RemoteAPI extends obje
 					const promise = this.request("get", path, undefined, NO_VALUE, callOptions)
 					return promise.then.bind(promise)
 				}
+				if (property === "set") {
+					if (path.length === 0) return undefined
+					return (newValue: unknown) => this.request("set", path, undefined, newValue, callOptions)
+				}
 				if (typeof property === "symbol") return Reflect.get(target, property, receiver)
 				return this.createProxy([...path, property], callOptions)
 			},

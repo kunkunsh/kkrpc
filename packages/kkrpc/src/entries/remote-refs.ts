@@ -32,6 +32,7 @@ export type {
 	BiDirectionalCallbackError,
 	PromisifyReturn,
 	Remote,
+	RemoteProperty,
 	RemoteValue,
 	ValidateBiDirectionalAPI,
 	ValidateBiDirectionalArgs,

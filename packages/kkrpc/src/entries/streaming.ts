@@ -26,6 +26,7 @@ export type {
 	OneWayCallbackError,
 	PromisifyReturn,
 	Remote,
+	RemoteProperty,
 	ValidateOneWayAPI,
 	ValidateOneWayArgs,
 	ValidateOneWayParam

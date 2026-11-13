@@ -9,6 +9,7 @@ import type {
 	HttpCallbackError,
 	OneWayCallbackError,
 	Remote,
+	RemoteProperty,
 	ValidateBiDirectionalAPI,
 	ValidateHttpAPI,
 	ValidateOneWayAPI
@@ -63,9 +64,11 @@ describe("Remote<T> automatic promisification", () => {
 
 		// math itself is an object, not wrapped in Promise
 		type _testMathAdd = Expect<Equal<ReturnType<RemoteAPI["math"]["add"]>, Promise<number>>>
-		// Leaf property is readonly Promise<T>
-		type _testMathFactor = Expect<Equal<RemoteAPI["math"]["factor"], Promise<number>>>
-		type _testConfigFlag = Expect<Equal<RemoteAPI["config"]["nested"]["flag"], Promise<boolean>>>
+		// Leaf property is readonly RemoteProperty<T>
+		type _testMathFactor = Expect<Equal<RemoteAPI["math"]["factor"], RemoteProperty<number>>>
+		type _testConfigFlag = Expect<
+			Equal<RemoteAPI["config"]["nested"]["flag"], RemoteProperty<boolean>>
+		>
 	})
 
 	test("promisifies constructor signatures", () => {
@@ -204,6 +207,11 @@ describe("Runtime integration with Remote<T> and expose constraints", () => {
 
 		const counterVal: Promise<number> = remote.counter
 		expect(await counterVal).toBe(10)
+
+		// Test set on remote property
+		await remote.counter.set(25)
+		expect(await remote.counter).toBe(25)
+		expect(syncAPI.counter).toBe(25)
 
 		client.destroy()
 		server.destroy()
