@@ -55,8 +55,9 @@ const remoteProxyRegistry = new WeakMap<object, RemoteProxyRecord>()
  * Mark an object or function to cross `kkrpc/remote-refs` by reference.
  *
  * The marker is persistent and non-enumerable because it is stored in a
- * `WeakSet`, not on the object itself. Plain unmarked functions nested inside
- * data are not proxied by the explicit remote-ref entry.
+ * `WeakSet`, not on the object itself. When `autoProxy` is enabled (the default),
+ * function values are automatically passed by reference even without `proxy()`.
+ * Use `proxy()` for explicit object handles, or when `autoProxy: false` is configured.
  */
 export function proxy<T extends object>(value: T): T {
 	if ((typeof value !== "object" && typeof value !== "function") || value === null) {

@@ -5,7 +5,7 @@ sidebar:
   order: 7
 ---
 
-Remote references are opt-in. Import from `kkrpc/remote-refs` when you want values marked with `proxy(value)` to cross a bidirectional transport by reference while ordinary data continues to cross by value.
+Remote references are opt-in. Import from `kkrpc/remote-refs` when you want callback functions or values marked with `proxy(value)` to cross a bidirectional transport by reference while ordinary data continues to cross by value.
 
 ```ts
 import { proxy, releaseProxy, wrap } from "kkrpc/remote-refs"
@@ -19,9 +19,9 @@ Remote references are lightweight handles to values that stay owned by the endpo
 
 This is different from serializing a value. The referenced function or object does not move across the transport; only a handle crosses the boundary.
 
-## Explicit Function References
+## Automatic Function Proxying
 
-Plain objects still cross by value. If you want a nested function to remain callable by reference, mark that function with `proxy()` before returning or passing it.
+Plain objects still cross by value, but functions cross by reference. By default, `kkrpc/remote-refs` has **`autoProxy: true`** enabled, so functions (whether passed as arguments, returned, or nested inside plain objects/arrays) are automatically proxied as remote references without requiring explicit `proxy()` wrapping:
 
 ```ts
 type Toast = {
@@ -33,7 +33,8 @@ const api = {
 	createToast(message: string): Toast {
 		return {
 			message,
-			hide: proxy(async () => `hidden:${message}`)
+			// Automatically proxied without proxy() wrapper by default:
+			hide: async () => `hidden:${message}`
 		}
 	}
 }
@@ -46,19 +47,30 @@ console.log(toast.message) // "hello" was copied by value
 console.log(await toast.hide()) // hide() calls back to the original endpoint
 ```
 
-This keeps object-shaped return values convenient without turning every object into a live remote proxy. Unmarked function values are rejected by the remote-reference entry instead of being passed by raw same-process identity; mark each by-reference function with `proxy(fn)`.
+This keeps object-shaped return values and callbacks convenient without turning every data object into a live remote proxy.
+
+### Controlling Automatic Proxying
+
+You can disable automatic function proxying by setting `autoProxy: false` on `wrap()`, `expose()`, or `RPCChannel`:
+
+```ts
+import { expose, wrap } from "kkrpc/remote-refs"
+
+const remote = wrap<RemoteAPI>(transport, { autoProxy: false })
+const controller = expose(api, transport, { autoProxy: false })
+```
+
+When `autoProxy` is set to `false`, unmarked function values are rejected with an `RPCEncodeError` during encoding, requiring explicit `proxy(fn)` markers.
 
 ## Callback Return Values
 
-Callbacks marked with `proxy()` use request/response semantics. If the remote endpoint calls your callback, kkrpc waits for the callback result and propagates returned values or thrown errors.
+In `kkrpc/remote-refs`, callback functions use bidirectional request/response semantics. By default (with `autoProxy: true`), you can pass a plain function as a callback; you can also explicitly wrap it with `proxy()`. If the remote endpoint calls your callback, kkrpc waits for the callback result and propagates returned values or thrown errors.
 
 ```ts
-const result = await remote.useCallback(
-	proxy(async (value) => {
-		if (value === "bad") throw new Error("callback rejected")
-		return `callback:${value}`
-	})
-)
+const result = await remote.useCallback(async (value) => {
+	if (value === "bad") throw new Error("callback rejected")
+	return `callback:${value}`
+})
 
 console.log(result)
 ```

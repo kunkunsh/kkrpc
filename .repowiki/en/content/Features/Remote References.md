@@ -61,7 +61,7 @@ Key behaviors:
 - Marking is persistent for the object's lifetime
 - Marking is non-enumerable (stored in a `WeakSet`, not on the object itself)
 - `proxy()` returns the same object reference (identity-preserving)
-- Plain unmarked functions inside data are NOT proxied — they throw `RPCEncodeError`
+- By default (`autoProxy: true`), functions are automatically passed by reference; when `autoProxy: false` is configured, unmarked functions throw `RPCEncodeError`
 
 **Section sources**
 
@@ -113,7 +113,7 @@ When encoding values for outbound messages:
 1. **Transfer descriptors** are consumed first (delegated to base `RPCChannel`)
 2. **Remote proxies** from the same channel are re-encoded by reference (prevents double-wrapping)
 3. **Explicit `proxy()` markers** are detected via `isExplicitProxyTarget()` and retained as local refs
-4. **Unmarked functions** throw `RPCEncodeError` (prevents accidental cross-context leaks)
+4. **Functions** are automatically retained as local refs when `autoProxy: true` (default); when `autoProxy: false`, unmarked functions throw `RPCEncodeError`
 5. **Plain arrays/objects** are shallow-copied only when a nested proxy marker or remote proxy is rewritten
 
 ### Decoding (receiver side)

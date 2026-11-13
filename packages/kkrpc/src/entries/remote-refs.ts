@@ -1,14 +1,16 @@
 /**
  * Remote-reference enabled RPC entry.
  *
- * Use this entry when values marked with `proxy(value)` should cross the RPC
- * boundary by reference. Marked functions and objects may appear at the top
- * level or nested inside plain arrays/objects.
+ * Use this entry when values marked with `proxy(value)` or unmarked functions
+ * (via default `autoProxy: true`) should cross the RPC boundary by reference.
+ * Functions and marked objects may appear at the top level or nested inside
+ * plain arrays/objects.
  *
  * ```ts
- * import { proxy, wrap } from "kkrpc/remote-refs"
+ * import { wrap } from "kkrpc/remote-refs"
  *
- * await remote.run({ onProgress: proxy((value) => console.log(value)) })
+ * // Unmarked functions are automatically passed by reference by default:
+ * await remote.run({ onProgress: (value) => console.log(value) })
  * ```
  * @module
  */
